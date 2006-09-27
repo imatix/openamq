@@ -113,12 +113,13 @@
           </next>
         </class>
 
+       <!--
         <class name = "cluster" label = "Cluster">
           <get>
             icl_shortstr_fmt (field_value, "%d", amq_cluster->object_id);
           </get>
         </class>
-
+       -->
         <class name = "config" label = "Configuration" source = "amq_console_config">
           <get>
             icl_shortstr_fmt (field_value, "%d", amq_console_config->object_id);
@@ -178,8 +179,8 @@
 
 <context>
     Bool
+        clustered,                      //  Is broker running in clustered mode?
         locked,                         //  Is broker locked?
-        master,                         //  Acting as cluster master server?
         restart;                        //  Restart broker after exit?
     int
         dump_state_timer,               //  Dump state timer
@@ -189,10 +190,11 @@
         *vhost;                         //  Single vhost (for now)
     amq_connection_by_broker_t
         *mgt_connection_list;           //  Connection mgt objects list
+    amq_cluster_hac_t
+        *hac;                           //  High availabilty cluster
 </context>
 
 <method name = "new">
-    //
     //  We use a single global vhost for now
     //  TODO: load list of vhosts from config file
     self->vhost = amq_vhost_new (self, "/");
@@ -207,10 +209,14 @@
         self->auto_crash_timer = randomof (self->auto_crash_timer) + 1;
     if (self->auto_block_timer)
         self->auto_block_timer = randomof (self->auto_block_timer) + 1;
+
+    //  Initialise high-availability controller (HAC)
+    self->hac = amq_cluster_hac_new (self);
 </method>
 
 <method name = "destroy">
     <action>
+    amq_cluster_hac_destroy (&self->hac);
     amq_console_config_destroy (&amq_console_config);
     amq_vhost_destroy (&self->vhost);
     amq_connection_by_broker_destroy (&self->mgt_connection_list);
@@ -276,6 +282,11 @@
                 amq_index_count (),
                 ipr_index_count (),
                 ipr_bits_count ());
+
+            smt_log_print (amq_broker->alert_log,
+                "I: qcn=%d cnq=%d",
+                amq_queue_connection_count (),
+                amq_connection_queue_count ());
         }
     }
     if (self->auto_crash_timer) {

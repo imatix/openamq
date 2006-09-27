@@ -21,7 +21,7 @@ $\(selftype)
 </private>
 
 <path name = "server">
-    <property name = "port" type = "char *" default = "5672">
+    <property name = "port" type = "icl_shortstr_t" default = "5672">
     Server port for clients
     <doc>
     Specifies the port on which the server should open its connections.
@@ -87,50 +87,8 @@ $\(selftype)
     </property>
 </path>
 
-<path name = "cluster" prefix = "cluster">
-    <property name = "vhost" type = "char *" default = "/">
-    Cluster virtual host
-    <doc>
-    Specifies the cluster vhost name, which must be identical for all
-    servers in a cluster.  Any string, up to 255 chars long, may be used.
-    By convention virtual host names are formatted as POSIX paths,
-    starting with '/'.  Note that all applications must use the same
-    virtual host name when connecting to the cluster.
-    </doc>
-    </property>
-
-    <property name = "state mb" type = "size_t" default = "50" dynamic = "1">
-    Maximum cluster state, MB.
-    <doc>
-    Specifies the maximum amount of memory in MB reserved for the
-    cluster state.  Note that this state will grow as the cluster is
-    used.  If zero, no limit is enforced (this is not recommended).
-    </doc>
-    </property>
-
-    <property name = "heartbeat" type = "int" default = "5" min = "1" max = "60" dynamic = "1">
-    Cluster heartbeat, seconds
-    <doc>
-    Specifies the heartbeat interval in seconds.  Use higher heartbeat
-    times only when working across a WAN where rapid heartbeats have a
-    visible cost.  Faster heartbeating is generally better if the network
-    can handle the traffic.
-    </doc>
-    </property>
-
-    <property name = "rebalance" type = "int" default = "5" dynamic = "1">
-    Cluster rebalance accuracy
-    <doc>
-    Specifies the accuracy of cluster rebalancing.  A cluster server 
-    will redirect clients when it finds another cluster server with
-    this amount fewer clients.  When set to zero, the cluster will
-    never redirect clients.
-    </doc>
-    </property>
-</path>
-
 <path name = "logging">
-    <property name = "log path" type = "char *" default = "logs">
+    <property name = "log path" type = "icl_shortstr_t" default = "logs">
     Active log file directory
     <doc>
     Specifies the directory path into which active log files are
@@ -147,7 +105,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "archive path" type = "char *" default = "archive">
+    <property name = "archive path" type = "icl_shortstr_t" default = "archive">
     Archive log file directory
     <doc>
     Specifies the directory path into which archived log files are
@@ -211,11 +169,11 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "debug cluster" type = "Bool" default = "0" dynamic = "1">
-    Debug cluster messages?
+    <property name = "debug peering" type = "Bool" default = "0" dynamic = "1">
+    Debug peering messages?
     <doc>
-    Specifies whether cluster activity is logged or not.  Set this
-    option when you are configuring or debugging a cluster.  For
+    Specifies whether peering activity is logged or not.  Set this
+    option when you are configuring or debugging peerings.  For
     production use, we recommend you do not set this option.
     </doc>
     </property>
@@ -226,6 +184,16 @@ $\(selftype)
     Specifies whether console activity is logged or not.  Set this
     option when you are configuring or debugging the console. For
     production use, we recommend you do not set this option.
+    </doc>
+    </property>
+
+    <property name = "debug cluster" type = "Bool" default = "0" dynamic = "1">
+    Debug cluster activity?
+    <doc>
+    Specifies whether cluster activity is logged or not.  Set this
+    option when you are configuring or debugging high-availability
+    clustering.  For production use, we recommend you do not set this
+    option.
     </doc>
     </property>
 
@@ -253,7 +221,7 @@ $\(selftype)
     </property>
 
     <property name = "heartbeat" type = "int" default = "2" dynamic = "1">
-    Heartbeat from client to server, seconds
+    Heartbeat timer, seconds
     <doc>
     Defines the timeout for connection heartbeating.
     </doc>
@@ -342,6 +310,55 @@ $\(selftype)
     </property>
 </path>
 
+<path name = "cluster">
+    <property name = "cluster vhost" type = "icl_shortstr_t" default = "/">
+    Cluster virtual host
+    <doc>
+    Specifies the cluster vhost name, which must be identical for both
+    HA peers.  Any string, up to 255 chars long, may be used. By convention
+    virtual host names are formatted as POSIX paths, starting with '/'.  Note
+    that all applications must use the same virtual host name when connecting
+    to the cluster.
+    </doc>
+    </property>
+
+    <property name = "is primary" type = "Bool" default = "0">
+    Server is HA primary
+    <doc>
+    Specifies whether or not this server instance is the HA primary peer.
+    If this option is set, the cluster backup-peer option must be set as
+    well.
+    </doc>
+    </property>
+
+    <property name = "is backup" type = "Bool" default = "0">
+    Server is HA backup
+    <doc>
+    Specifies whether or not this server instance is the HA backup peer.
+    If this option is set, the cluster primary-peer option must be set as
+    well.
+    </doc>
+    </property>
+
+    <property name = "primary peer" type = "icl_shortstr_t" default = "">
+    HA primary peer address
+    <doc>
+    Specifies the primary high-availability peer address.  This should consist
+    of a servername:portnumber combination that allows the backup peer to
+    correctly address the primary peer.
+    </doc>
+    </property>
+
+    <property name = "backup peer" type = "icl_shortstr_t" default = "">
+    HA backup peer address
+    <doc>
+    Specifies the backup high-availability peer address.  This should consist
+    of a servername:portnumber combination that allows the primary peer to
+    correctly address the backup peer.
+    </doc>
+    </property>
+</path>
+
 <path name = "internal">
     <property name = "auto crash" type = "int" default = "0" dynamic = "1">
     Auto-crash test timer, seconds
@@ -376,5 +393,6 @@ $\(selftype)
 <!-- These sections are allowed but ignored -->
 <path name = "queue_profile" />
 <path name = "security" />
+<path name = "cluster-mta" />
 
 </opf>

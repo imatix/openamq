@@ -43,10 +43,22 @@ independent of the queue content type.
 </method>
 
 <method name = "destroy">
-    <footer>
-    s_free_consumer_queue (&self->active_consumers);
-    s_free_consumer_queue (&self->paused_consumers);
+    <action>
+    s_free_consumer_queue (self->active_consumers);
+    s_free_consumer_queue (self->paused_consumers);
+    </action>
+</method>
+
+<method name = "free">
+    amq_consumer_by_queue_destroy (&self->active_consumers);
+    amq_consumer_by_queue_destroy (&self->paused_consumers);
     ipr_looseref_list_destroy (&self->content_list);
+</method>
+
+<method name = "stop" template = "function">
+    <footer>
+    s_free_consumer_queue (self->active_consumers);
+    s_free_consumer_queue (self->paused_consumers);
     </footer>
 </method>
 
@@ -113,16 +125,14 @@ independent of the queue content type.
 #define CONSUMER_BUSY   2
 
 static int
-    s_get_next_consumer (
-    $(selftype) *self, char *producer_id, char *cluster_id, amq_consumer_t **consumer_p);
+    s_get_next_consumer ($(selftype) *self, char *producer_id, amq_consumer_t **consumer_p);
 static void
-    s_free_consumer_queue (amq_consumer_by_queue_t **queue);
+    s_free_consumer_queue (amq_consumer_by_queue_t *queue);
 </private>
 
 <private name = "footer">
 //  Find next consumer for queue and message
 //  - producer_id is used for local consumers,
-//  - cluster_id across the cluster
 //  Returns CONSUMER_FOUND if a valid consumer is found
 //  Returns CONSUMER_NONE if no valid consumers are found
 //  Returns CONSUMER_BUSY if there are busy consumers
@@ -131,7 +141,6 @@ static int
 s_get_next_consumer (
     $(selftype) *self,
     char *producer_id,
-    char *cluster_id,
     amq_consumer_t **consumer_p)
 {
     amq_consumer_t
@@ -180,34 +189,6 @@ s_get_next_consumer (
         if (consumer->no_local == FALSE)
             rc = CONSUMER_FOUND;        //  We have our consumer
         else
-        if (connection->group == AMQ_CONNECTION_GROUP_CLUSTER) {
-            //  If the consumer is a cluster peer then the consumer tag is
-            //  serverid/connectionid/xxx where xxx is the original consumer
-            //  tag.  We can compare this with the content cluster_id, which
-            //  is serverid/connectionid/channelnbr.
-            char
-                *slash;
-            size_t
-                id_size = 0;            //  Size of serverid/connectionid string
-            Bool
-                ids_match;              //  Do the two IDs match?
-
-            //  Compare the leading part of both id strings...
-            slash = strchr (cluster_id, '/');
-            if (slash)
-                slash = strchr (slash + 1, '/');
-            if (slash)
-                id_size = slash - cluster_id;
-            if (strlen (consumer->tag) > id_size
-            &&  memcmp (cluster_id, consumer->tag, id_size) == 0)
-                ids_match = TRUE;
-            else
-                ids_match = FALSE;
-
-            if (!ids_match)
-                rc = CONSUMER_FOUND;    //  We have our consumer
-        }
-        else
         if (strneq (connection->id, producer_id)) {
             //  If the consumer is an application then we can compare the
             //  content producer_id with the connection id of the consumer.
@@ -225,21 +206,17 @@ s_get_next_consumer (
 }
 
 static void
-s_free_consumer_queue (amq_consumer_by_queue_t **queue)
+s_free_consumer_queue (amq_consumer_by_queue_t *queue)
 {
     amq_consumer_t
-        *consumer,
-        *consumer_ref;
+        *consumer;
 
-    while ((consumer = amq_consumer_by_queue_pop (*queue))) {
-        if (amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE, TRUE)) {
-            //  If async cancel failed, we need to do an extra unlink
-            consumer_ref = consumer;
-            amq_consumer_unlink (&consumer_ref);
+    if (queue) {
+        while ((consumer = amq_consumer_by_queue_pop (queue))) {
+            amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE, TRUE);
+            amq_consumer_destroy (&consumer);
         }
-        amq_consumer_destroy (&consumer);
     }
-    amq_consumer_by_queue_destroy (queue);
 }
 </private>
 

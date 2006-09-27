@@ -43,15 +43,13 @@ for Basic, File, and Stream content classes.
     amq_queue_connection_t
         *mgt_queue_connection;          //  Queue-connection management object
     icl_shortstr_t
-        tag,                            //  Consumer tag
-        cluster_id;                     //  Cluster id for connection
+        tag;                            //  Consumer tag
     amq_consumer_basic_t
         *consumer_basic;                //  Basic consumer
     Bool
         no_local,                       //  Don't want own messages
         no_ack,                         //  Auto acknowledge messages
-        exclusive,                      //  Exclusive access?
-        clustered;                      //  Is consumer clustered?
+        exclusive;                      //  Exclusive access?
 </context>
 
 <method name = "new">
@@ -88,92 +86,17 @@ for Basic, File, and Stream content classes.
     if (strnull (self->tag))
         icl_shortstr_fmt (self->tag, "%d",
             icl_atomic_inc32 ((volatile qbyte *) &(connection->consumer_tag)));
-
-    //  Broadcast consume method to cluster using our cluster_id
-    if (connection->group != AMQ_CONNECTION_GROUP_CLUSTER
-    &&  self->queue->clustered) {
-        icl_shortstr_fmt (self->cluster_id,
-            "%s/%s", connection->cluster_id, self->tag);
-        icl_shortstr_cpy (
-            method->payload.basic_consume.consumer_tag, self->cluster_id);
-        amq_cluster_tunnel_out (
-            amq_cluster,
-            AMQ_CLUSTER_ALL,
-            method,
-            AMQ_CLUSTER_TRANSIENT,
-            channel);
-        self->clustered = TRUE;
-    }
 </method>
 
 <method name = "destroy">
-    <local>
-    amq_proxy_method_t
-        *method;
-    </local>
-    //
-    amq_server_channel_unlink   (&self->channel);
-    amq_queue_unlink            (&self->queue);
-    amq_connection_queue_unlink (&self->mgt_connection_queue);
-    amq_queue_connection_unlink (&self->mgt_queue_connection);
+    amq_server_channel_unlink    (&self->channel);
+    amq_queue_unlink             (&self->queue);
+    
+    amq_connection_queue_destroy (&self->mgt_connection_queue);
+    amq_queue_connection_destroy (&self->mgt_queue_connection);
 
-    if (self->class_id == AMQ_SERVER_BASIC) {
+    if (self->class_id == AMQ_SERVER_BASIC)
         amq_consumer_basic_destroy (&self->consumer_basic);
-
-        //  Broadcast cancel method to cluster using our cluster_id
-        if (amq_cluster && amq_cluster->enabled && self->clustered) {
-            method = amq_proxy_method_new_basic_cancel (self->cluster_id, FALSE);
-            amq_cluster_tunnel_out (
-                amq_cluster,
-                AMQ_CLUSTER_ALL,
-                (amq_server_method_t *) method,
-                AMQ_CLUSTER_TRANSIENT,
-                NULL);
-            amq_proxy_method_destroy (&method);
-        }
-    }
-</method>
-
-<method name = "cluster search" return = "consumer">
-    <doc>
-    Lookups up a cluster consumer tag, returns the consumer reference
-    if found, else null. The caller must unlink the returned reference
-    when finished with it.  The cluster consumer tag is formatted thus:
-    serverid/connectionid/tag.
-    </doc>
-    <argument name = "cluster id" type = "char *">Cluster consumer tag</argument>
-    <declare name = "consumer" type = "amq_consumer_t *">Consumer to return</declare>
-    <local>
-    icl_shortstr_t
-        string;                         //  Copy of cluster consumer tag
-    char
-        *connection_id,                 //  Connection id value
-        *consumer_tag;                  //  Consumer tag value
-    amq_server_connection_t
-        *connection;                    //  Connection
-    </local>
-    //
-    icl_shortstr_cpy (string, cluster_id);
-
-    //  String must start with our own server id
-    connection_id = strchr (string, '/');
-    assert (connection_id);
-    connection_id++;
-
-    consumer_tag = strchr (connection_id, '/');
-    assert (consumer_tag);
-    *consumer_tag++ = 0;
-
-    //  Lookup connection, channel, and consumer if necessary
-    connection = amq_server_connection_table_search (
-        amq_broker->connections, connection_id);
-    if (connection) {
-        consumer = amq_consumer_table_search (connection->consumer_table, consumer_tag);
-        amq_server_connection_unlink (&connection);
-        assert (streq (consumer->cluster_id, cluster_id));
-    }
-    else
-        consumer = NULL;
 </method>
 
 <method name = "selftest" />

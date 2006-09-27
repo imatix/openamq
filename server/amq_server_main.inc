@@ -23,7 +23,6 @@ static char
     *s_opt_port = NULL,                 //  -p specifies server port
     *s_opt_workdir = NULL,              //  -w specifies working directory
     *s_opt_config = NULL,               //  -s specifies configuration file
-    *s_opt_cluster = NULL,              //  -c specifies broker cluster name
     *s_opt_trace = NULL,                //  -t defines trace level
     *s_opt_monitor = NULL;              //  -m means monitor server
 static int
@@ -43,7 +42,7 @@ static char
     "General options:\n"                                                     \
     "  -w directory     Working directory for server (current)\n"            \
     "  -s filename      Load custom settings from file (amq_server.cfg)\n"   \
-    "  -c name          Set server cluster name and join cluster (none)\n"   \
+    "  -c name          Run server as high-availability peer (none)\n"       \
     "  -X comment       Comment\n"                                           \
     "  -q               Quiet mode: no messages (no)\n"                      \
     "  -b               Run as background server process (no)\n"             \
@@ -117,9 +116,6 @@ s_start (int argc, char *argv [])
                     break;
                 case 's':
                     argparm = &s_opt_config;
-                    break;
-                case 'c':
-                    argparm = &s_opt_cluster;
                     break;
                 case 't':
                     icl_console_print ("W: deprecated argument, suggest you use '--trace'");
@@ -210,7 +206,6 @@ s_start (int argc, char *argv [])
     if (!s_opt_config)
         s_opt_config = "amq_server.cfg";
     amq_server_config = amq_server_config_new ("amq_server_base.cfg", s_opt_config, TRUE);
-    amq_proxy_config  = amq_proxy_config_new  ("amq_server_base.cfg", s_opt_config, FALSE);
     amq_server_config_cmdline_parse (amq_server_config, SERVER_NAME, s_argc, s_argv);
 
     //  Check that server security is reasonably defined
@@ -282,15 +277,13 @@ s_run_server (void)
 
     //  Create main objects and do the work
     amq_console = amq_console_new ();
-    amq_broker  = amq_broker_new  ();
-    amq_cluster = amq_cluster_new (amq_broker, s_opt_cluster);
+    amq_broker = amq_broker_new ();
     smt_wait (0);                       //  Execute the server
 
     if (amq_broker->restart)
         rc = 1;                         //  Restart the broker
 
     broker_ref = amq_broker_link (amq_broker);
-    amq_cluster_destroy (&amq_cluster);
     amq_broker_destroy  (&broker_ref);
     amq_console_destroy (&amq_console);
     smt_wait (0);
@@ -299,7 +292,6 @@ s_run_server (void)
 
     //  Synchronous shutdown
     amq_server_config_destroy (&amq_server_config);
-    amq_proxy_config_destroy  (&amq_proxy_config);
 
     if (s_opt_showinfo)
         icl_stats_dump ();

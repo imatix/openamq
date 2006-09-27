@@ -27,7 +27,7 @@ routed to all bound queues and exchanges.
     //  First binding is the only binding
     binding = amq_binding_list_first (self->exchange->binding_list);
     if (binding) {
-        delivered += amq_binding_publish (binding, channel, method, from_cluster);
+        delivered += amq_binding_publish (binding, channel, method);
         amq_binding_unlink (&binding);
     }
 </method>

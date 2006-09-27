@@ -146,6 +146,7 @@ runs lock-free as a child of the asynchronous queue class.
                     "No immediate consumers for Basic message",
                     content->exchange,
                     content->routing_key,
+                    content->sender_id,
                     NULL);
                 amq_server_connection_unlink (&connection);
             }
@@ -190,8 +191,7 @@ runs lock-free as a child of the asynchronous queue class.
     && amq_consumer_by_queue_count (self->active_consumers)) {
         //  Look for a valid consumer for this content
         content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
-        rc = s_get_next_consumer (
-            self, content->producer_id, content->cluster_id, &consumer);
+        rc = s_get_next_consumer (self, content->producer_id, &consumer);
 
         if (rc == CONSUMER_FOUND) {
             if (amq_server_config_debug_queue (amq_server_config))
@@ -233,40 +233,17 @@ runs lock-free as a child of the asynchronous queue class.
 
             //  No consumers right now, push content back onto list
             ipr_looseref_push (self->content_list, content);
-            break; 
+            break;
         }
         else
         if (rc == CONSUMER_NONE) {
             //  No consumers at all for content, send back to originator
             //  if the immediate flag was set, else discard it.
             if (content->immediate && !content->returned) {
-                amq_server_channel_t
-                    *channel;           //  Channel to send message back to
-            
                 if (amq_server_config_debug_queue (amq_server_config))
                     smt_log_print (amq_broker->debug_log,
                         "Q: return   queue=%s message=%s",
                         self->queue->name, content->message_id);
-
-                //  We use content's cluster_id for return path
-                channel = amq_server_channel_cluster_search (content->cluster_id);
-                if (channel) {
-                    connection = amq_server_connection_link (channel->connection);
-                    if (connection) {
-                        content->returned = TRUE;
-                        amq_server_agent_basic_return (
-                            connection->thread,
-                            channel->number,
-                            content,
-                            ASL_NOT_DELIVERED,
-                            "No immediate consumers for Basic message",
-                            content->exchange,
-                            content->routing_key,
-                            NULL);
-                        amq_server_connection_unlink (&connection);
-                    }
-                    amq_server_channel_unlink (&channel);
-                }
             }
             else {
                 if (amq_server_config_debug_queue (amq_server_config))
@@ -284,7 +261,6 @@ runs lock-free as a child of the asynchronous queue class.
     Returns next message off queue, if any.
     </doc>
     <argument name = "channel" type = "amq_server_channel_t *" />
-    <argument name = "cluster id" type = "char *">Stamp content with cluster id</argument>
     <local>
     amq_content_basic_t
         *content;                       //  Content object reference
@@ -299,9 +275,6 @@ runs lock-free as a child of the asynchronous queue class.
 
     if (connection) {
         if (content) {
-            if (cluster_id)
-                amq_content_basic_set_cluster_id (content, cluster_id);
-
             amq_server_agent_basic_get_ok (
                 connection->thread,
                 channel->number,

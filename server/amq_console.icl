@@ -78,24 +78,7 @@ $(selftype)
 
 <method name = "destroy">
     <action>
-    uint
-        table_idx;
-    ipr_hash_t
-        *hash,
-        *next_hash;
-    amq_console_entry_t
-        *entry;
-
-    for (table_idx = 0; table_idx < IPR_HASH_TABLE_MAXSIZE; table_idx++) {
-        hash = self->object_store->table_items [table_idx];
-        while (hash) {
-            entry = hash->data;
-            icl_mem_free (entry);
-            next_hash = hash->table_next;
-            ipr_hash_destroy (&hash);
-            hash = next_hash;
-        }
-    }
+    ipr_hash_table_apply (self->object_store, s_destroy_item);
     ipr_hash_table_destroy (&self->object_store);
     </action>
 </method>
@@ -107,6 +90,7 @@ $(selftype)
     <argument name = "object id"  type = "qbyte">Object id</argument>
     <argument name = "object ref" type = "void *">Object reference</argument>
     <argument name = "class ref"  type = "amq_console_class_t *" />
+    //
     <!-- This is not currently used but should be at some point
          if we can find a way to build a console structure that
          lets us organise all items into a nice tree
@@ -144,6 +128,7 @@ $(selftype)
 
     entry = s_lookup_object (self, object_id);
     if (entry) {
+        entry->class_ref->unlink (&entry->object_ref);
         ipr_hash_destroy (&entry->hash);
         icl_mem_free (entry);
     }
@@ -348,6 +333,8 @@ static void
     s_reply_xml       (amq_content_basic_t *request, ipr_xml_t *xml_item);
 static void
     s_reply_bucket    (amq_content_basic_t *request, ipr_bucket_t *bucket);
+static void
+    s_destroy_item    (ipr_hash_t *item);
 </private>
 
 <private name = "async footer">
@@ -403,10 +390,8 @@ s_execute_inspect (
         entry = s_lookup_object (self, atol (object_str));
         if (entry)
             entry->class_ref->inspect (entry->object_ref, request);
-        else {
-            smt_log_print (amq_broker->alert_log, "W: console - no such object found (ID=%s)", object_str);
+        else
             s_reply_error (request, "inspect-reply", "notfound");
-        }
     }
     else {
         smt_log_print (amq_broker->alert_log, "W: console - badly-formatted CML method, no object ID");
@@ -443,10 +428,8 @@ s_execute_modify (
                 asl_field_list_unlink (&fields);
             }
         }
-        else {
-            smt_log_print (amq_broker->alert_log, "W: console - no such object found (ID=%s)", object_str);
+        else
             s_reply_error (request, "modify-reply", "notfound");
-        }
     }
     else {
         smt_log_print (amq_broker->alert_log, "W: console - badly-formatted CML method, no object ID");
@@ -498,10 +481,8 @@ s_execute_method (
                 asl_field_list_unlink (&fields);
             }
         }
-        else {
-            smt_log_print (amq_broker->alert_log, "W: console - no such object found (ID=%s)", object_str);
+        else
             s_reply_error (request, "method-reply", "notfound");
-        }
     }
     else {
         smt_log_print (amq_broker->alert_log, "W: console - badly-formatted CML method, no object ID");
@@ -619,7 +600,7 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
                 amq_content_basic_set_routing_key  (method->content, "amq.direct", request->reply_to, 0);
 
                 //  Publish the message
-                amq_exchange_publish (exchange, NULL, (amq_server_method_t *) method, FALSE);
+                amq_exchange_publish (exchange, NULL, (amq_server_method_t *) method);
                 amq_client_method_unlink (&method);
 
                 amq_exchange_unlink (&exchange);
@@ -630,6 +611,20 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
                 "W: console - client did not specify Reply-To queue");
     }
     amq_vhost_unlink (&vhost);
+}
+
+//  Callback for object store destruction
+
+static void
+s_destroy_item (ipr_hash_t *item)
+{
+    amq_console_entry_t
+        *entry;
+
+    entry = item->data;
+    entry->class_ref->unlink (&entry->object_ref);
+    ipr_hash_destroy (&item);
+    icl_mem_free (entry);
 }
 </private>
 
