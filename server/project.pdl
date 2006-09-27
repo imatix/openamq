@@ -7,8 +7,6 @@
     copyright = "Copyright (c) 1996-2006 iMatix Corporation"
     >
 
-<!-- TODO: split this into constituent projects -->
-
 <include filename = "prelude.pdl" />
 <inherit filename = "icl_classes.pdl" />
 <inherit filename = "smt_classes.pdl" />
@@ -42,17 +40,6 @@
 <file name = "amq_broker.icl"            class = "icl private class" >Server broker class</file>
 <file name = "amq_broker_agent.smt"      class = "smt public module"
                                          generated = "1"             >Server broker agent</file>
-<file name = "amq_cluster.icl"           class = "icl private class" >Server cluster class</file>
-<file name = "amq_cluster_agent.smt"     class = "smt public module"
-                                         generated = "1"             >Server cluster agent</file>
-<file name = "amq_peer.icl"              class = "icl private class" >Cluster peer class</file>
-<file name = "amq_peer_list.icl"         class = "icl private cont"  >Cluster peers per server</file>
-<file name = "amq_proxy.asl"             class = "gsl data"          >Cluster proxy definition</file>
-<file name = "amq_proxy_agent.smt"       class = "smt public module"
-                                         generated = "1"             >Cluster proxy agent</file>
-<file name = "amq_proxy_config.opf"      class = "gsl data"          >Cluster proxy configuration</file>
-<file name = "amq_proxy_config.icl"      class = "icl private cont"  >Cluster proxy configuration class</file>
-<file name = "amq_proxy_method.icl"      class = "icl public cont"   >Cluster proxy methods</file>
 <file name = "amq_vhost.icl"             class = "icl private class" >Server vhost class</file>
 <file name = "amq_vhost_agent.smt"       class = "smt public module"
                                          generated = "1"             >Server vhost agent</file>
@@ -96,15 +83,28 @@
 <file name = "amq_consumer_basic.icl"    class = "icl private class" >Basic consumer class</file>
 <file name = "amq_queue_connection.icl"  class = "icl private class" >Queue-connection mgt class</file>
 <file name = "amq_queue_connection_agent.smt"
-                                         class = "smt public module" generated = "1"
-                                                                     >Queue-connection mgt agent</file>
 <file name = "amq_connection_queue.icl"  class = "icl private class" >Connection-queue mgt class</file>
 <file name = "amq_connection_queue_agent.smt"
-                                         class = "smt public module" generated = "1"
-                                                                     >Connection-queue mgt agent</file>
+                                         class = "smt public module"
+                                         generated = "1"             >Connection-queue mgt agent</file>
 <file name = "amq_server_method.icl"     class = "icl private cont"  >Server method class</file>
 <file name = "amq_server_base.cfg"       class = "public resource"   >Server config file</file>
-
+<file name = "amq_peering.icl"           class = "icl private class" >Server peering class</file>
+<file name = "amq_peering_agent.smt"     class = "smt public module"
+                                         generated = "1"             >Server peering agent</file>
+<file name = "amq_peer.asl"              class = "gsl data"          >Peering method interface</file>
+<file name = "amq_peer_method.icl"       class = "icl public cont"   >Peering methods, generated</file>
+<file name = "amq_peer_config.opf"       class = "gsl data"          >Peering config syntax</file>
+<file name = "amq_peer_config.icl"       class = "icl private cont"  >Peering config class</file>
+<file name = "amq_peer_config.txt"       class = "generated resource">Peering config documentation</file>
+<file name = "amq_peer_agent.smt"        class = "smt public module"
+                                         generated = "1"             >Peering client agent</file>
+<file name = "amq_cluster_mta.icl"       class = "icl private class" >MTA class</file>
+<file name = "amq_cluster_mta_agent.smt" class = "smt public module"
+                                         generated = "1"             >MTA agent</file>
+<file name = "amq_cluster_hac.icl"       class = "icl private class" >HAC class</file>
+<file name = "amq_cluster_hac_agent.smt" class = "smt public module"
+                                         generated = "1"             >HAC agent</file>
 
 <!-- OpenAMQ Management Console back-end -->
 <file name = "amq_console.icl"           class = "icl private class" >Server console class</file>
