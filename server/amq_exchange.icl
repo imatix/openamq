@@ -327,43 +327,10 @@ for each type of exchange. This is a lock-free asynchronous class.
         smt_log_print (amq_broker->debug_log,
             "X: bind     %s: queue=%s", self->name, queue->name);
 
-<<<<<<< .working
-    s_bind_object (self, channel, queue, NULL, routing_key, arguments);
-    amq_queue_set_last_binding (queue, self->type, routing_key, arguments);
-    </action>
-</method>
-=======
     //  Treat empty arguments as null to simplify comparisons
     if (arguments && arguments->cur_size == 0)
         arguments = NULL;
->>>>>>> .merge-right.r9878
 
-<<<<<<< .working
-<method name = "bind peer" template = "async function" async = "1">
-    <doc>
-    Bind a cluster peer to the exchange.  Works identically as for
-    bind queue.
-    </doc>
-    <argument name = "peer"        type = "amq_peer_t *">The peer to bind</argument>
-    <argument name = "routing key" type = "char *">Bind to routing key</argument>
-    <argument name = "arguments"   type = "icl_longstr_t *">Bind arguments</argument>
-    //
-    <possess>
-    peer = amq_peer_link (peer);
-    arguments = icl_longstr_dup (arguments);
-    routing_key = icl_mem_strdup (routing_key);
-    </possess>
-    <release>
-    amq_peer_unlink (&peer);
-    icl_longstr_destroy (&arguments);
-    icl_mem_free (routing_key);
-    </release>
-    //
-    <action>
-    if (amq_server_config_debug_route (amq_server_config))
-        smt_log_print (amq_broker->debug_log,
-            "X: bind     %s: peer=%s", self->name, peer->name);
-=======
     //  We need to know if this is a new binding or not
     //  First, we`ll check on the routing key
     hash = ipr_hash_table_search (self->binding_hash, routing_key);
@@ -384,7 +351,6 @@ for each type of exchange. This is a lock-free asynchronous class.
         assert (binding);
         if (!hash)                      //  Hash routing key if needed
             hash = ipr_hash_new (self->binding_hash, routing_key, binding);
->>>>>>> .merge-right.r9878
 
         //  Compile binding and put all 'wildcard' bindings at the front
         //  of the list. The meaning of this flag depends on the exchange.
