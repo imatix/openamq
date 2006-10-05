@@ -1,3 +1,10 @@
+1.0c6 - 2006/10/05
+---------------------------------------------------------------------
+
+Bugfixes (backport):
+     JAMQ-22    Assertion failed: item->by_status_head == self, file 
+                smt_thread_by_status.c, line 739
+
 1.0c5 - 2006/07/10
 ---------------------------------------------------------------------
      JAMQ-2     Added patch to remove extra unlinks on async cancel failure
