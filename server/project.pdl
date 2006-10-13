@@ -83,6 +83,8 @@
 <file name = "amq_consumer_basic.icl"    class = "icl private class" >Basic consumer class</file>
 <file name = "amq_queue_connection.icl"  class = "icl private class" >Queue-connection mgt class</file>
 <file name = "amq_queue_connection_agent.smt"
+                                         class = "smt public module"
+                                         generated = "1"             >Connection-queue mgt agent</file>
 <file name = "amq_connection_queue.icl"  class = "icl private class" >Connection-queue mgt class</file>
 <file name = "amq_connection_queue_agent.smt"
                                          class = "smt public module"

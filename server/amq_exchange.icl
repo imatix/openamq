@@ -429,7 +429,7 @@ for each type of exchange. This is a lock-free asynchronous class.
                         "Message cannot be processed - no route is defined",
                         method->payload.basic_publish.exchange,
                         method->payload.basic_publish.routing_key,
-                        ((amq_content_basic_t *) method->content)->sender_id,
+                        ((amq_content_basic_t *) method->content)->cluster_id,
                         NULL);
                     ((amq_content_basic_t *) method->content)->returned = TRUE;
                 }

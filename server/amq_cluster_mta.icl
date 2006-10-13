@@ -90,13 +90,13 @@
     //
     <action>
     icl_shortstr_t
-        sender_id;
+        cluster_id;
     
     //  Pulled messages (null channel) cannot be forwarded
     assert (channel);
 
-    icl_shortstr_fmt (sender_id, "%s|%d", channel->connection->key, channel->number);
-    amq_content_basic_set_sender_id (content, sender_id);
+    icl_shortstr_fmt (cluster_id, "%s|%d", channel->connection->key, channel->number);
+    amq_content_basic_set_cluster_id (content, cluster_id);
 
     icl_console_print ("I: Message pushed to the remote server.");
     amq_peering_forward (
@@ -173,14 +173,14 @@ s_return_handler (
 
     if (self->mode == AMQ_MTA_MODE_FORWARD_ALL
     ||  self->mode == AMQ_MTA_MODE_FORWARD_ELSE) {
-        //  Split sender-id "connection-key|channel-nbr" into fields
+        //  Split cluster-id "connection-key|channel-nbr" into fields
         //  NB: compare to previous code
-        icl_shortstr_cpy (connection_id, peer_method->payload.basic_return.sender_id);
+        icl_shortstr_cpy (connection_id, peer_method->payload.basic_return.cluster_id);
         separator = strchr (connection_id, '|');
 
         //  Does this assertion mean we can crash the server by sending it junk?
         assert (separator);
-        *separator++ = 0;               //  Split sender-id into fields
+        *separator++ = 0;               //  Split cluster-id into fields
         channel_nbr = atoi (separator);
         assert (channel_nbr);
 
