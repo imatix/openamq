@@ -1,0 +1,59 @@
+<?xml?>
+<pal script = "amq_pal_gen">
+    Publishes publish/subscribe (headers exhcnage) messages in bursts.
+
+    Command line parameters:
+    -A maximal delay between individual bursts (in milliseconds)
+    -B maximal number of messages in a burst (in tens)
+    <set name = "delay_cmdline" value = "10000" cmdline = "A" />
+    <set name = "msg_nbr_cmdline" value = "1000" cmdline = "B" />
+    <session>
+        <!-- Individual bursts -->
+        <repeat>
+            <set_random name = "delay" min = "1" max = "$delay_cmdline" />
+            <wait timeout = "$delay" />
+
+            <set_random name = "msg_nbr" max = "$msg_nbr_cmdline" />
+            <repeat times = "$msg_nbr" counter = "counter_1" >
+                <!-- Publish 9 common messages -->
+                <repeat times = "9" counter = "counter_2" >
+                    <basic_content size = "0" message_id = "PSB" >
+                        <headers>
+                            <field name = "M01" value = "VALUE" />
+                            <field name = "M02" value = "ANYTHING" />
+                            <field name = "F01" value = "DataDataDataData" />
+                            <field name = "F02" value = "DataDataDataData" />
+                            <field name = "F03" value = "DataDataDataData" />
+                            <field name = "F04" value = "DataDataDataData" />
+                            <field name = "F05" value = "DataDataDataData" />
+                            <field name = "F06" value = "DataDataDataData" />
+                            <field name = "F07" value = "DataDataDataData" />
+                            <field name = "F08" value = "DataDataDataData" />
+                            <field name = "F09" value = "DataDataDataData" />
+                            <field name = "F10" value = "DataDataDataData" />
+                            <field name = "F11" value = "DataDataDataData" />
+                            <field name = "F12" value = "DataDataDataData" />
+                            <field name = "F13" value = "DataDataDataData" />
+                            <field name = "F14" value = "DataDataDataData" />
+                            <field name = "F15" value = "DataDataDataData" />
+                            <field name = "F16" value = "DataDataDataData" />
+                            <field name = "F17" value = "DataDataDataData" />
+                            <field name = "F18" value = "DataDataDataData" />
+                            <field name = "F19" value = "DataDataDataData" />
+                            <field name = "F20" value = "DataDataDataData" />
+                        </headers>
+                    </basic_content>
+                    <basic_publish exchange = "amq.match" routing_key = "" />
+                </repeat>
+                <!-- Publish synchronisation message -->
+                <basic_content size = "0" message_id = "PSB-SYNC" >
+                    <headers>
+                        <field name = "M01" value = "VALUE" />
+                        <field name = "M02" value = "WHATEVER" />
+                    </headers>
+                </basic_content>
+                <basic_publish exchange = "amq.match" routing_key = "" />
+            </repeat>
+        </repeat>
+    </session>
+</pal>
