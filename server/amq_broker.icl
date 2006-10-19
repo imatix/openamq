@@ -20,22 +20,6 @@
           <get>ipr_time_iso8601 (self->started,
             ipr_date_format_minute, 0, ipr_time_zone (), field_value);</get>
         </field>
-        <field name = "messages_in" type = "int" label = "Messages published">
-          <rule name = "show on summary" />
-          <get>icl_shortstr_fmt (field_value, "%d", self->contents_in);</get>
-        </field>
-        <field name = "messages_out" type = "int" label = "Messages consumed">
-          <rule name = "show on summary" />
-          <get>icl_shortstr_fmt (field_value, "%d", self->contents_out);</get>
-        </field>
-        <field name = "megabytes_in" type = "int" label = "Megabytes published">
-          <rule name = "show on summary" />
-          <get>icl_shortstr_fmt (field_value, "%d", (int) (self->traffic_in / (1024 * 1024)));</get>
-        </field>
-        <field name = "megabytes_out" type = "int" label = "Megabytes consumed">
-          <rule name = "show on summary" />
-          <get>icl_shortstr_fmt (field_value, "%d", (int) (self->traffic_out / (1024 * 1024)));</get>
-        </field>
         <field name = "locked" type = "bool" label = "Broker is locked?">
           <get>icl_shortstr_fmt (field_value, "%d", self->locked);</get>
         </field>
