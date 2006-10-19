@@ -11,15 +11,31 @@
 
 <class name = "basic">
   <action name = "get-ok">
+    int
+        msg_count;
+
     amq_content_$(class.name)_set_routing_key (
         self->content, method->exchange, method->routing_key, 0);
     amq_content_$(class.name)_list_push_back (session->arrived_$(class.name)_list, self->content);
+    msg_count = amq_content_$(class.name)_list_size (session->arrived_$(class.name)_list);
+    if (amq_client_config_arrived_high_water (amq_client_config) &&
+        msg_count == amq_client_config_arrived_high_water (amq_client_config) &&
+        icl_atomic_cas32 (&session->flow_stopped, TRUE, FALSE) == FALSE)
+            amq_client_session_channel_flow (session, FALSE);
   </action>
 
   <action name = "deliver">
+    int
+        msg_count;
+
     amq_content_$(class.name)_set_routing_key (
         self->content, method->exchange, method->routing_key, 0);
     amq_content_$(class.name)_list_push_back (session->arrived_$(class.name)_list, self->content);
+    msg_count = amq_content_$(class.name)_list_size (session->arrived_$(class.name)_list);
+    if (amq_client_config_arrived_high_water (amq_client_config) &&
+        msg_count == amq_client_config_arrived_high_water (amq_client_config) &&
+        icl_atomic_cas32 (&session->flow_stopped, TRUE, FALSE) == FALSE)
+            amq_client_session_channel_flow (session, FALSE);
   </action>
 
   <action name = "return">
