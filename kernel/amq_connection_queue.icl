@@ -63,7 +63,7 @@ consumer object.
         </field>
         <field name = "consumers" label = "Number of consumers" type = "int">
           <rule name = "show on summary" />
-          <get>icl_shortstr_fmt (field_value, "%d", queue->consumers);</get>
+          <get>icl_shortstr_fmt (field_value, "%d", amq_queue_basic_consumer_count (queue->queue_basic));</get>
         </field>
         <field name = "pending" label = "Messages pending" type = "int">
           <rule name = "show on summary" />

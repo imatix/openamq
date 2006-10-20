@@ -48,6 +48,12 @@ runs lock-free as a child of the asynchronous queue class.
         *looseref;                      //  Queued message
     amq_server_connection_t
         *connection;
+    amq_consumer_t
+        *consumer;
+    int
+        active_consumer_count;
+    Bool
+        rejected;
     </local>
     //
     /*  Limitations of current design:
@@ -128,29 +134,42 @@ runs lock-free as a child of the asynchronous queue class.
     }
     if (content) {
         //  If immediate, and no consumers, return the message
-        if (immediate && amq_consumer_by_queue_count (self->active_consumers) == 0) {
-            if (amq_server_config_debug_queue (amq_server_config))
-                asl_log_print (amq_broker->debug_log,
-                    "Q: return   queue=%s message=%s",
-                    self->queue->name, content->message_id);
+	rejected = FALSE;
+        if (immediate) {
+            //  Get count of active consumers
+            active_consumer_count = 0;
+            consumer = amq_consumer_by_queue_first (self->consumer_list);
+            while (consumer) {
+                if (!consumer->paused)
+                    active_consumer_count++;
+                consumer = amq_consumer_by_queue_next (&consumer);
+            }
+            if (active_consumer_count == 0) {
+                rejected = TRUE;
+	    
+                if (amq_server_config_debug_queue (amq_server_config))
+                    asl_log_print (amq_broker->debug_log,
+                        "Q: return   queue=%s message=%s",
+                        self->queue->name, content->message_id);
 
-            content->returned = TRUE;
-            connection = channel?
-                amq_server_connection_link (channel->connection): NULL;
-            if (connection) {
-                amq_server_agent_basic_return (
-                    connection->thread,
-                    channel->number,
-                    content,
-                    ASL_NOT_DELIVERED,
-                    "No immediate consumers for Basic message",
-                    content->exchange,
-                    content->routing_key,
-                    NULL);
-                amq_server_connection_unlink (&connection);
+                content->returned = TRUE;
+                connection = channel?
+                    amq_server_connection_link (channel->connection): NULL;
+                if (connection) {
+                    amq_server_agent_basic_return (
+                        connection->thread,
+                        channel->number,
+                        content,
+                        ASL_NOT_DELIVERED,
+                        "No immediate consumers for Basic message",
+                        content->exchange,
+                        content->routing_key,
+                        NULL);
+                    amq_server_connection_unlink (&connection);
+                }
             }
         }
-        else {
+        if (!rejected) {
             content->immediate = immediate;
             amq_content_basic_link (content);
             looseref = ipr_looseref_queue (self->content_list, content);
@@ -184,10 +203,9 @@ runs lock-free as a child of the asynchronous queue class.
             "Q: dispatch queue=%s nbr_messages=%d nbr_consumers=%d",
             self->queue->name,
             ipr_looseref_list_count (self->content_list),
-            amq_consumer_by_queue_count (self->active_consumers));
+            amq_consumer_by_queue_count (self->consumer_list));
 
-    while (ipr_looseref_list_count (self->content_list)
-    && amq_consumer_by_queue_count (self->active_consumers)) {
+    while (ipr_looseref_list_count (self->content_list)) {
         //  Look for a valid consumer for this content
         content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
         rc = s_get_next_consumer (
@@ -220,7 +238,7 @@ runs lock-free as a child of the asynchronous queue class.
                 amq_server_channel_unlink (&channel);
             }
             //  Move consumer to end of queue to implement a round-robin
-            amq_consumer_by_queue_queue (self->active_consumers, consumer);
+            amq_consumer_by_queue_queue (self->consumer_list, consumer);
             amq_content_basic_unlink (&content);
             amq_consumer_unlink (&consumer);
         }
