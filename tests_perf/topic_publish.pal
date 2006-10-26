@@ -1,20 +1,15 @@
 <?xml?>
 <!--
-    topic_publish/topic_subscribe
-
-    These PAL scripts are used to test a publish/subscribe scenario
-    using a topic exchange.  topic_publish sends a series of messages to
-    a topic exchange and waits for a confirmation from each subscriber
-    that it has read the entire series.  topic_subscribe subscribes to
-    these messages.  You should tell topic_publish how many subcribers
-    there are (default = 1).
+    This pal script sends a series of messages to a topic exchange
+    and waits for a confirmation from each subscriber that it has
+    read the entire series. You should tell this script how many
+    subcribers there are (default = 20).
 
     To use:
 
-        topic_subscribe
-        topic_publish -M messages -S subscribers
+        scriptname -M messages -S subscribers
 
-    The -T option causes the scripts to set-up a number of topics that
+    The -T option causes the server to set-up a number of topics that
     are used for nothing except to load the topic exchange.
  -->
 
@@ -25,10 +20,8 @@
     <set name = "settle"      value = "0"    cmdline = "W" />
     <set name = "once"        value = "1"    cmdline = "O" />
     <set name = "topics"      value = "0"    cmdline = "T" />
-    <set name = "total_sent"  value = "0" />
-    <set name = "sent"        value = "0" />
 
-    <session>
+    <session cluster_key = "my.cluster">
         <!-- Create reply queue and start consuming from it -->
         <queue_declare exclusive = "1" />
         <basic_consume queue = "$queue" />
@@ -39,21 +32,13 @@
             <basic_publish exchange = "amq.topic" routing_key = "test.topic.$id" />
         </repeat>
 
-        <echo>I: Connected to server</echo>
         <repeat>
             <!-- Send off our test messages -->
             <timer action = "reset" />
             <repeat times = "$messages" counter = "id">
                 <basic_content size = "$size" message_id = "message-$id" reply_to = "$queue" />
                 <basic_publish exchange = "amq.topic" routing_key = "test" />
-                <inc name = "total_sent" />
-                <inc name = "sent" />
-                <if name = "sent" value = "1000" >
-                    <echo>I: Sent $total_sent messages</echo>
-                    <set name = "sent" value = "0" />
-                </if>
             </repeat>
-            <echo>I: Sent all messages</echo>
 
             <!-- Send off END message -->
             <basic_content size = "0" message_id = "END" reply_to = "$queue" />

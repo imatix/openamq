@@ -55,22 +55,6 @@ $\(selftype)
     this value.
     </doc>
     </property>
-
-    <property name = "arrived low water" type = "int" default = "0">
-    Low water mark for message flow control
-    <doc>
-    Number of messages in arrived queue when message flow from server is
-    started again after it had been switched off on high water mark.
-    </doc>
-    </property>
-
-    <property name = "arrived high water" type = "int" default = "0">
-    High water mark for message flow control
-    <doc>
-    Number of messages in arrived queue when message flow from server is stopped.
-    If this property is 0, message flow is never switched off.
-    </doc>
-    </property>
 </path>
 
 <!-- These sections are allowed but ignored -->

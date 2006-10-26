@@ -1,52 +1,21 @@
 <?xml?>
-<!--
-    topic_publish/topic_subscribe
-
-    These PAL scripts are used to test a publish/subscribe scenario
-    using a topic exchange.  topic_publish sends a series of messages to
-    a topic exchange and waits for a confirmation from each subscriber
-    that it has read the entire series.  topic_subscribe subscribes to
-    these messages.  You should tell topic_publish how many subcribers
-    there are (default = 1).
-
-    To use:
-
-        topic_subscribe
-        topic_publish -M messages -S subscribers
-
-    The -T option causes the scripts to set-up a number of topics that
-    are used for nothing except to load the topic exchange.
- -->
-
 <pal script = "amq_pal_gen">
-    <set name = "once"           value = "1" cmdline = "O" />
-    <set name = "topics"         value = "0" cmdline = "T" />
-    <set name = "total_received" value = "0" />
-    <set name = "received"       value = "0" />
+    <set name = "once"   value = "0" cmdline = "O" />
+    <set name = "topics" value = "0" cmdline = "T" />
 
     <session>
-        <!-- Create reply queue and subscribe to the test topic -->
         <queue_declare exclusive = "1" />
         <queue_bind queue = "$queue" exchange = "amq.topic" routing_key = "test" />
-
         <!-- Create extra topics to load the topic exchange -->
         <repeat times = "$topics" counter = "id">
             <queue_bind queue = "$queue" exchange = "amq.topic" routing_key = "test.topic.$id" />
         </repeat>
-
         <echo>Subscriber is ready</echo>
         <basic_consume queue = "$queue" />
         <repeat>
-            <!-- Consume any messages sent to the test topic(s) -->
             <wait/>
             <basic_arrived>
-                <inc name = "total_received" />
-                <inc name = "received" />
-                <if  name = "received" value = "1000" >
-                    <echo>I: Received $total_received messages</echo>
-                    <set name = "received" value = "0" />
-                </if>
-                <!-- Test if we have received the last message from the publisher -->
+                <!-- To test a content property we need to assign it to a variable -->
                 <set name = "message_id" value = "$message_id" />
                 <if name = "message_id" test = "eq" value = "END">
                     <basic_publish routing_key = "$reply_to" />

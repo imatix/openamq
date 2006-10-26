@@ -52,8 +52,6 @@ for Basic, File, and Stream content classes.
         no_ack,                         //  Auto acknowledge messages
         exclusive,                      //  Exclusive access?
         clustered;                      //  Is consumer clustered?
-    volatile Bool
-        paused;                         //  Is consumer paused (flow off) ?
 </context>
 
 <method name = "new">
