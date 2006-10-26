@@ -88,7 +88,9 @@ class.
     while ((peer = (amq_peer_t *) ipr_looseref_pop (self->peer_list)))
         amq_peer_unlink (&peer);
 
-    ipr_index_delete (self->exchange->binding_index, self->index);
+    if (self->exchange->binding_index)
+        ipr_index_delete (self->exchange->binding_index, self->index);
+
     amq_queue_list_destroy    (&self->queue_list);
     ipr_looseref_list_destroy (&self->peer_list);
     ipr_looseref_list_destroy (&self->index_list);
@@ -135,15 +137,17 @@ class.
         iterator;
     </local>
     //
-    iterator = amq_queue_list_find (
-        amq_queue_list_begin (self->queue_list), NULL, queue);
-    if (iterator)
-        amq_queue_list_erase (self->queue_list, iterator);
+    if (!self->zombie) {
+        iterator = amq_queue_list_find (
+            amq_queue_list_begin (self->queue_list), NULL, queue);
+        if (iterator)
+            amq_queue_list_erase (self->queue_list, iterator);
 
-    //  Signal to caller if binding is now empty
-    if (amq_queue_list_size (self->queue_list) == 0
-    &&  ipr_looseref_list_count (self->peer_list) == 0)
-        rc = -1;
+        //  Signal to caller if binding is now empty
+        if (amq_queue_list_size (self->queue_list) == 0
+        &&  ipr_looseref_list_count (self->peer_list) == 0)
+            rc = -1;
+   }
 </method>
 
 <method name = "unbind peer" template = "function">
