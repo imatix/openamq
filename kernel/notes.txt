@@ -1,19 +1,4 @@
-1. make branch of trunk (ms)
-OK, done
-2. remove old cluster code and create cluster-free version of broker (ph)
-OK, done
-3. add peering support so that broker objects can talk to remote servers
-OK, done
-4. add binding state subscription support so broker objects can track changes (ms)
-OK, done
-5. implement fedex using above framework (ms)
-
-6. implement master state management by refactoring old cluster controller (ms, ph)
-
-
-1. make new async amq_fedex.icl object
-2. copy test code from peering, so object makes test peering
-3. subscribe to amq.direct exchange and pass bindings to peering
-4. demonstrate hard-coded federation between two brokers
-5. make it configurable
+Changes
+    2006/05/09 - frame-max is server-configurable
+    2006/05/09 - connection thread trace is dynamically configurable
 

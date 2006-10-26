@@ -149,7 +149,7 @@ merge these two classes into one.
           <exec>
             connection = amq_server_connection_link (self->connection);
             if (connection) {
-                smt_log_print (amq_broker->alert_log,
+                asl_log_print (amq_broker->alert_log,
                     "W: operator killed connection to %s", connection->client_address);
                 amq_server_connection_kill (connection);
                 amq_server_connection_unlink (&connection);
@@ -171,7 +171,6 @@ merge these two classes into one.
 <method name = "new">
     <argument name = "broker" type = "amq_broker_t *">Parent broker</argument>
     <argument name = "channel" type = "amq_server_channel_t *">Parent server channel</argument>
-    //
     amq_connection_by_broker_push (broker->mgt_connection_list, self);
     self->channel = amq_server_channel_link (channel);
     if (self->channel)

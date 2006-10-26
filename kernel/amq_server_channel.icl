@@ -22,12 +22,19 @@ maximum number of consumers per channel is set at compile time.
     icl_shortstr_t
         current_exchange,               //  Last exchange declared on channel
         current_queue;                  //  Last queue declared on channel
+    icl_shortstr_t
+        cluster_id;                     //  Cluster id for channel
 </context>
 
 <method name = "new">
     self->consumer_list = amq_consumer_by_channel_new ();
     if (amq_broker)                     //  Null during self-testing
         self->mgt_connection = amq_connection_new (amq_broker, self);
+    icl_shortstr_fmt (self->cluster_id,
+        "%s/%s/%d",
+        amq_broker? amq_broker->name: "-",
+        connection? connection->id: "-",
+        self->number);
 </method>
 
 <method name = "destroy">
@@ -65,7 +72,9 @@ maximum number of consumers per channel is set at compile time.
     self->active = active;
     consumer = amq_consumer_by_channel_first (self->consumer_list);
     while (consumer) {
-        amq_queue_flow (consumer->queue, consumer, active);
+        consumer->paused = !active;
+        if (active)
+            amq_queue_dispatch (consumer->queue);
         consumer = amq_consumer_by_channel_next (&consumer);
     }
     amq_server_agent_channel_flow_ok (self->connection->thread, self->number, self->active);
@@ -104,7 +113,7 @@ maximum number of consumers per channel is set at compile time.
         amq_consumer_unlink (&consumer);
     }
     else
-        smt_log_print (amq_broker->alert_log, "W: cannot create consumer - too many consumers?");
+        asl_log_print (amq_broker->alert_log, "W: cannot create consumer - too many consumers?");
     </action>
 </method>
 
@@ -161,8 +170,48 @@ maximum number of consumers per channel is set at compile time.
     if (self)
         amq_server_channel_close (self, reply_code, reply_text);
     else
-        smt_log_print (amq_broker->alert_log,
+        asl_log_print (amq_broker->alert_log,
             "E: channel exception: (%d) %s", reply_code, reply_text);
+</method>
+
+<method name = "cluster search" return = "channel">
+    <doc>
+    Lookups up a cluster channel tag, returns the channel reference if
+    found, else null. The caller must unlink the returned reference
+    when finished with it.  The cluster channel tag is formatted thus:
+    serverid/connectionid/channelnbr.
+    </doc>
+    <argument name = "cluster id" type = "char *">Cluster consumer tag</argument>
+    <declare name = "channel" type = "amq_server_channel_t *">channel to return</declare>
+    <local>
+    icl_shortstr_t
+        string;                         //  Copy of cluster channel tag
+    char
+        *connection_id,                 //  Connection id value
+        *channel_nbr;                   //  Channel number string
+    amq_server_connection_t
+        *connection;                    //  Connection
+    </local>
+    //
+    icl_shortstr_cpy (string, cluster_id);
+
+    //  String must start with our own id
+    connection_id = strchr (string, '/');
+    assert (connection_id);
+    connection_id++;
+
+    channel_nbr = strchr (connection_id, '/');
+    assert (channel_nbr);
+    *channel_nbr++ = 0;
+
+    //  Lookup connection, channel, and channel if necessary
+    connection = amq_server_connection_table_search (amq_broker->connections, connection_id);
+    if (connection) {
+        channel = amq_server_channel_table_search (connection->channels, atoi (channel_nbr));
+        amq_server_connection_unlink (&connection);
+    }
+    else
+        channel = NULL;
 </method>
 
 <method name = "selftest">

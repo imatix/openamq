@@ -42,7 +42,7 @@ Defines a virtual host. This is a lock-free asynchronous class.
     //TODO: load config from directory
     //TODO: amq_server object, holding vhost hash table
     icl_shortstr_cpy (self->name, name);
-    smt_log_print (amq_broker->daily_log, "I: starting virtual host '%s'", self->name);
+    asl_log_print (amq_broker->daily_log, "I: starting virtual host '%s'", self->name);
 
     self->broker = broker;
     self->config = amq_vhost_config_new (NULL, NULL, FALSE);
@@ -54,27 +54,19 @@ Defines a virtual host. This is a lock-free asynchronous class.
     self->shared_queues  = ipr_symbol_table_new ();
 
     //  Automatic wiring schemes
-    s_exchange_declare (self, "$default$",   AMQ_EXCHANGE_DIRECT,  TRUE);
-    s_exchange_declare (self, "amq.fanout",  AMQ_EXCHANGE_FANOUT,  FALSE);
-    s_exchange_declare (self, "amq.direct",  AMQ_EXCHANGE_DIRECT,  FALSE);
-    s_exchange_declare (self, "amq.topic",   AMQ_EXCHANGE_TOPIC,   FALSE);
-    s_exchange_declare (self, "amq.headers", AMQ_EXCHANGE_HEADERS, FALSE);
-    s_exchange_declare (self, "amq.system",  AMQ_EXCHANGE_SYSTEM,  FALSE);
-    s_exchange_declare (self, "amq.notify",  AMQ_EXCHANGE_TOPIC,   FALSE);
-    s_exchange_declare (self, "amq.status",  AMQ_EXCHANGE_DIRECT,  FALSE);
+    s_exchange_declare (self, "$default$",  AMQ_EXCHANGE_DIRECT,  TRUE);
+    s_exchange_declare (self, "amq.fanout", AMQ_EXCHANGE_FANOUT,  FALSE);
+    s_exchange_declare (self, "amq.direct", AMQ_EXCHANGE_DIRECT,  FALSE);
+    s_exchange_declare (self, "amq.topic",  AMQ_EXCHANGE_TOPIC,   FALSE);
+    s_exchange_declare (self, "amq.match",  AMQ_EXCHANGE_HEADERS, FALSE);
+    s_exchange_declare (self, "amq.system", AMQ_EXCHANGE_SYSTEM,  FALSE);
+    s_exchange_declare (self, "amq.notify", AMQ_EXCHANGE_TOPIC,   FALSE);
 </method>
 
 <method name = "destroy">
     <action>
-    amq_exchange_t
-        *exchange;
     amq_vhost_config_destroy       (&self->config);
     amq_exchange_table_destroy     (&self->exchange_table);
-    exchange = amq_exchange_by_vhost_pop (self->exchange_list);
-    while (exchange) {
-        amq_exchange_destroy (&exchange);
-        exchange = amq_exchange_by_vhost_pop (self->exchange_list);
-    }
     amq_exchange_by_vhost_destroy  (&self->exchange_list);
     amq_queue_table_destroy        (&self->queue_table);
     amq_queue_by_vhost_destroy     (&self->queue_list);

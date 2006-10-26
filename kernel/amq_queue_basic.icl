@@ -48,6 +48,12 @@ runs lock-free as a child of the asynchronous queue class.
         *looseref;                      //  Queued message
     amq_server_connection_t
         *connection;
+    amq_consumer_t
+        *consumer;
+    int
+        active_consumer_count;
+    Bool
+        rejected;
     </local>
     //
     /*  Limitations of current design:
@@ -55,7 +61,7 @@ runs lock-free as a child of the asynchronous queue class.
         - no windowing
      */
     if (amq_server_config_debug_queue (amq_server_config))
-        smt_log_print (amq_broker->debug_log,
+        asl_log_print (amq_broker->debug_log,
             "Q: publish  queue=%s message=%s", self->queue->name, content->message_id);
 
     self->queue->contents_in++;
@@ -82,7 +88,7 @@ runs lock-free as a child of the asynchronous queue class.
         switch (limit_action) {
             case AMQ_QUEUE_LIMIT_WARN:
                 if (!self->warned) {
-                    smt_log_print (amq_broker->alert_log,
+                    asl_log_print (amq_broker->alert_log,
                         "I: yellow alert on queue=%s, reached %d messages",
                         self->queue->name, queue_size);
                     self->warned = TRUE;
@@ -90,7 +96,7 @@ runs lock-free as a child of the asynchronous queue class.
                 break;
             case AMQ_QUEUE_LIMIT_DROP:
                 if (!self->dropped) {
-                    smt_log_print (amq_broker->alert_log,
+                    asl_log_print (amq_broker->alert_log,
                         "W: orange alert on queue=%s, dropping new messages", 
                         self->queue->name);
                     self->dropped = TRUE;
@@ -100,7 +106,7 @@ runs lock-free as a child of the asynchronous queue class.
                 break;
             case AMQ_QUEUE_LIMIT_TRIM:
                 if (!self->trimmed) {
-                    smt_log_print (amq_broker->alert_log,
+                    asl_log_print (amq_broker->alert_log,
                         "W: orange alert on queue=%s, trimming old messages",
                         self->queue->name);
                     self->trimmed = TRUE;
@@ -110,7 +116,7 @@ runs lock-free as a child of the asynchronous queue class.
                 self->queue->dropped++;
                 break;
             case AMQ_QUEUE_LIMIT_KILL:
-                smt_log_print (amq_broker->alert_log,
+                asl_log_print (amq_broker->alert_log,
                         "E: red alert on queue=%s, killing queue", self->queue->name);
                 if (self->queue->exclusive)
                     amq_server_connection_error (self->queue->connection,
@@ -128,30 +134,42 @@ runs lock-free as a child of the asynchronous queue class.
     }
     if (content) {
         //  If immediate, and no consumers, return the message
-        if (immediate && amq_consumer_by_queue_count (self->active_consumers) == 0) {
-            if (amq_server_config_debug_queue (amq_server_config))
-                smt_log_print (amq_broker->debug_log,
-                    "Q: return   queue=%s message=%s",
-                    self->queue->name, content->message_id);
+	rejected = FALSE;
+        if (immediate) {
+            //  Get count of active consumers
+            active_consumer_count = 0;
+            consumer = amq_consumer_by_queue_first (self->consumer_list);
+            while (consumer) {
+                if (!consumer->paused)
+                    active_consumer_count++;
+                consumer = amq_consumer_by_queue_next (&consumer);
+            }
+            if (active_consumer_count == 0) {
+                rejected = TRUE;
+	    
+                if (amq_server_config_debug_queue (amq_server_config))
+                    asl_log_print (amq_broker->debug_log,
+                        "Q: return   queue=%s message=%s",
+                        self->queue->name, content->message_id);
 
-            content->returned = TRUE;
-            connection = channel?
-                amq_server_connection_link (channel->connection): NULL;
-            if (connection) {
-                amq_server_agent_basic_return (
-                    connection->thread,
-                    channel->number,
-                    content,
-                    ASL_NOT_DELIVERED,
-                    "No immediate consumers for Basic message",
-                    content->exchange,
-                    content->routing_key,
-                    content->sender_id,
-                    NULL);
-                amq_server_connection_unlink (&connection);
+                content->returned = TRUE;
+                connection = channel?
+                    amq_server_connection_link (channel->connection): NULL;
+                if (connection) {
+                    amq_server_agent_basic_return (
+                        connection->thread,
+                        channel->number,
+                        content,
+                        ASL_NOT_DELIVERED,
+                        "No immediate consumers for Basic message",
+                        content->exchange,
+                        content->routing_key,
+                        NULL);
+                    amq_server_connection_unlink (&connection);
+                }
             }
         }
-        else {
+        if (!rejected) {
             content->immediate = immediate;
             amq_content_basic_link (content);
             looseref = ipr_looseref_queue (self->content_list, content);
@@ -181,21 +199,21 @@ runs lock-free as a child of the asynchronous queue class.
     </local>
     //
     if (amq_server_config_debug_queue (amq_server_config))
-        smt_log_print (amq_broker->debug_log,
+        asl_log_print (amq_broker->debug_log,
             "Q: dispatch queue=%s nbr_messages=%d nbr_consumers=%d",
             self->queue->name,
             ipr_looseref_list_count (self->content_list),
-            amq_consumer_by_queue_count (self->active_consumers));
+            amq_consumer_by_queue_count (self->consumer_list));
 
-    while (ipr_looseref_list_count (self->content_list)
-    && amq_consumer_by_queue_count (self->active_consumers)) {
+    while (ipr_looseref_list_count (self->content_list)) {
         //  Look for a valid consumer for this content
         content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
-        rc = s_get_next_consumer (self, content->producer_id, &consumer);
+        rc = s_get_next_consumer (
+            self, content->producer_id, content->cluster_id, &consumer);
 
         if (rc == CONSUMER_FOUND) {
             if (amq_server_config_debug_queue (amq_server_config))
-                smt_log_print (amq_broker->debug_log,
+                asl_log_print (amq_broker->debug_log,
                     "Q: deliver  queue=%s message=%s",
                     self->queue->name, content->message_id);
 
@@ -220,34 +238,57 @@ runs lock-free as a child of the asynchronous queue class.
                 amq_server_channel_unlink (&channel);
             }
             //  Move consumer to end of queue to implement a round-robin
-            amq_consumer_by_queue_queue (self->active_consumers, consumer);
+            amq_consumer_by_queue_queue (self->consumer_list, consumer);
             amq_content_basic_unlink (&content);
             amq_consumer_unlink (&consumer);
         }
         else
         if (rc == CONSUMER_BUSY) {
             if (amq_server_config_debug_queue (amq_server_config))
-                smt_log_print (amq_broker->debug_log,
+                asl_log_print (amq_broker->debug_log,
                     "Q: busy     queue=%s message=%s",
                     self->queue->name, content->message_id);
 
             //  No consumers right now, push content back onto list
             ipr_looseref_push (self->content_list, content);
-            break;
+            break; 
         }
         else
         if (rc == CONSUMER_NONE) {
             //  No consumers at all for content, send back to originator
             //  if the immediate flag was set, else discard it.
             if (content->immediate && !content->returned) {
+                amq_server_channel_t
+                    *channel;           //  Channel to send message back to
+            
                 if (amq_server_config_debug_queue (amq_server_config))
-                    smt_log_print (amq_broker->debug_log,
+                    asl_log_print (amq_broker->debug_log,
                         "Q: return   queue=%s message=%s",
                         self->queue->name, content->message_id);
+
+                //  We use content's cluster_id for return path
+                channel = amq_server_channel_cluster_search (content->cluster_id);
+                if (channel) {
+                    connection = amq_server_connection_link (channel->connection);
+                    if (connection) {
+                        content->returned = TRUE;
+                        amq_server_agent_basic_return (
+                            connection->thread,
+                            channel->number,
+                            content,
+                            ASL_NOT_DELIVERED,
+                            "No immediate consumers for Basic message",
+                            content->exchange,
+                            content->routing_key,
+                            NULL);
+                        amq_server_connection_unlink (&connection);
+                    }
+                    amq_server_channel_unlink (&channel);
+                }
             }
             else {
                 if (amq_server_config_debug_queue (amq_server_config))
-                    smt_log_print (amq_broker->debug_log,
+                    asl_log_print (amq_broker->debug_log,
                         "Q: discard  queue=%s message=%s",
                         self->queue->name, content->message_id);
             }
@@ -261,6 +302,7 @@ runs lock-free as a child of the asynchronous queue class.
     Returns next message off queue, if any.
     </doc>
     <argument name = "channel" type = "amq_server_channel_t *" />
+    <argument name = "cluster id" type = "char *">Stamp content with cluster id</argument>
     <local>
     amq_content_basic_t
         *content;                       //  Content object reference
@@ -275,6 +317,9 @@ runs lock-free as a child of the asynchronous queue class.
 
     if (connection) {
         if (content) {
+            if (cluster_id)
+                amq_content_basic_set_cluster_id (content, cluster_id);
+
             amq_server_agent_basic_get_ok (
                 connection->thread,
                 channel->number,

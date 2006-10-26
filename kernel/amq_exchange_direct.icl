@@ -16,7 +16,7 @@ on the routing_key.
     //  We don't do anything, since we use the exchange's binding
     //  hash table for our lookups.
     if (amq_server_config_debug_route (amq_server_config))
-        smt_log_print (amq_broker->debug_log,
+        asl_log_print (amq_broker->debug_log,
             "X: compile  %s: routing_key=%s", self->exchange->name, binding->routing_key);
 </method>
 
@@ -29,13 +29,13 @@ on the routing_key.
      </local>
     //
     if (amq_server_config_debug_route (amq_server_config))
-        smt_log_print (amq_broker->debug_log,
+        asl_log_print (amq_broker->debug_log,
             "X: route    %s: routing_key=%s", self->exchange->name, routing_key);
 
     hash = ipr_hash_table_search (self->exchange->binding_hash, routing_key);
     if (hash) {
         binding = hash->data;
-        delivered += amq_binding_publish (binding, channel, method);
+        delivered += amq_binding_publish (binding, channel, method, from_cluster);
         ipr_hash_unlink (&hash);
     }
 </method>

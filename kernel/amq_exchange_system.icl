@@ -14,7 +14,7 @@ This class implements these system services (specified by the routing key):
 <inherit class = "amq_exchange_base" />
 
 <method name = "compile">
-    smt_log_print (amq_broker->alert_log, "E: cannot bind queue to the system exchange");
+    asl_log_print (amq_broker->alert_log, "E: cannot bind queue to the system exchange");
 </method>
 
 <method name = "publish">
@@ -31,11 +31,11 @@ This class implements these system services (specified by the routing key):
                 delivered++;
             }
             else
-                smt_log_print (amq_broker->alert_log,
+                asl_log_print (amq_broker->alert_log,
                     "E: unknown system routing key '%s' rejected", routing_key);
         }
         else
-            smt_log_print (amq_broker->alert_log,
+            asl_log_print (amq_broker->alert_log,
                 "E: system exchange only accepts Basic contents");
     }
 </method>

@@ -95,8 +95,8 @@
 <field name = "app id" type = "shortstr">
     The creating application id
 </field>
-<field name = "sender id" type = "shortstr">
-    Identifier of application issuing the message (Used to route returned messages back to the application)
+<field name = "cluster id" type = "shortstr">
+    Intra-cluster routing identifier
 </field>
 
 
@@ -415,14 +415,6 @@
       published.
     </doc>
   </field>
-
-  <field name = "sender id" type = "shortstr">
-     Sender id
-    <doc>
-      For use by cluster applications, should not be used by
-      client applications.
-    </doc>
-  </field>
 </method>
 
 
@@ -554,8 +546,8 @@
   </doc>
   <chassis name = "client" implement = "MAY" />
 
-  <field name = "sender id" type = "shortstr">
-     Sender id
+  <field name = "cluster id" type = "shortstr">
+     Cluster id
     <doc>
       For use by cluster applications, should not be used by
       client applications.

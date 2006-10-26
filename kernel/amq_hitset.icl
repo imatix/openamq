@@ -46,7 +46,7 @@
         item_nbr = ipr_bits_first (index->bindset);
         while (item_nbr >= 0) {
             if (amq_server_config_debug_route (amq_server_config))
-                smt_log_print (amq_broker->debug_log,
+                asl_log_print (amq_broker->debug_log,
                     "X: route    header=%s binding=%d", index_key, item_nbr);
             if (item_nbr < self->lowest)
                 self->lowest = item_nbr;

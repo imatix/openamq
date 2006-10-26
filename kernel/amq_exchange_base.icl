@@ -53,6 +53,7 @@ This is an abstract base class for all exchange implementations.
     <argument name = "self_v" type = "void *">The exchange cast as a void *</argument>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "method" type = "amq_server_method_t *">Publish method</argument>
+    <argument name = "from_cluster" type = "Bool">Intra-cluster publish?</argument>
     <declare name = "rc" type = "int" default = "0">Return code</declare>
     <local>
     $(selftype)
@@ -63,8 +64,10 @@ This is an abstract base class for all exchange implementations.
         *basic_content = NULL;
     char
         *routing_key = "",
-        *message_id = NULL,
-        *sender_id = NULL;
+        *message_id = NULL;
+    Bool
+        mandatory = FALSE,              //  Mandatory option from method
+        returned = FALSE;
     int
         delivered = 0;                  //  Number of message deliveries
     amq_server_connection_t
@@ -77,15 +80,15 @@ This is an abstract base class for all exchange implementations.
     if (method->class_id == AMQ_SERVER_BASIC) {
         basic_method  = &method->payload.basic_publish;
         basic_content = (amq_content_basic_t *) (method->content);
+        mandatory     = basic_method->mandatory;
         routing_key   = basic_method->routing_key;
         message_id    = basic_content->message_id;
-        sender_id     = basic_content->sender_id;
         if (amq_server_config_debug_route (amq_server_config))
-            smt_log_print (amq_broker->debug_log,
+            asl_log_print (amq_broker->debug_log,
                 "X: publish  %s: routing_key=%s", self->exchange->name, routing_key);
     }
     else
-        smt_log_print (amq_broker->alert_log,
+        asl_log_print (amq_broker->alert_log,
             "E: $(selfname) - bad class_id - %d", method->class_id);
    
     //  Grab reference to connection 
@@ -93,6 +96,36 @@ This is an abstract base class for all exchange implementations.
         amq_server_connection_link (channel->connection): NULL;
     </header>
     <footer>
+    if (!delivered && mandatory) {
+        if (method->class_id == AMQ_SERVER_BASIC) {
+            if (!basic_content->returned) {
+                if (connection) {
+                    amq_server_agent_basic_return (
+                        connection->thread,
+                        channel->number,
+                        basic_content,
+                        ASL_NOT_DELIVERED,
+                        "Message cannot be processed - no route is defined",
+                        basic_method->exchange,
+                        routing_key,
+                        NULL);
+                    basic_content->returned = TRUE;
+                }
+                returned = TRUE;
+            }
+        }
+    }
+    if (amq_server_config_debug_route (amq_server_config)) {
+        if (returned)
+            asl_log_print (amq_broker->debug_log,
+                "X: return   %s: message=%s reason=unroutable_mandatory",
+                    self->exchange->name, message_id);
+        else
+        if (!delivered)
+            asl_log_print (amq_broker->debug_log,
+                "X: discard  %s: message=%s reason=unroutable_optional",
+                    self->exchange->name, message_id);
+    }
     amq_server_connection_unlink (&connection);
     rc = delivered;                     //  Return number of deliveries
     </footer>

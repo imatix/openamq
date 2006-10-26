@@ -22,8 +22,7 @@ independent of the queue content type.
     amq_queue_t
         *queue;                         //  Parent queue
     amq_consumer_by_queue_t
-        *active_consumers,              //  Active consumers
-        *paused_consumers;              //  Paused consumers
+        *consumer_list;                 //  List of consumers from the queue
     ipr_looseref_list_t
         *content_list;                  //  List of message contents
 
@@ -37,28 +36,24 @@ independent of the queue content type.
     <argument name = "queue" type = "amq_queue_t *">Parent queue</argument>
     //
     self->queue            = queue;
-    self->active_consumers = amq_consumer_by_queue_new ();
-    self->paused_consumers = amq_consumer_by_queue_new ();
+    self->consumer_list    = amq_consumer_by_queue_new ();
     self->content_list     = ipr_looseref_list_new ();
 </method>
 
 <method name = "destroy">
     <action>
-    s_free_consumer_queue (self->active_consumers);
-    s_free_consumer_queue (self->paused_consumers);
+    s_free_consumer_queue (self->consumer_list);
     </action>
 </method>
 
 <method name = "free">
-    amq_consumer_by_queue_destroy (&self->active_consumers);
-    amq_consumer_by_queue_destroy (&self->paused_consumers);
+    amq_consumer_by_queue_destroy (&self->consumer_list);
     ipr_looseref_list_destroy (&self->content_list);
 </method>
 
 <method name = "stop" template = "function">
     <footer>
-    s_free_consumer_queue (self->active_consumers);
-    s_free_consumer_queue (self->paused_consumers);
+    s_free_consumer_queue (self->consumer_list);
     </footer>
 </method>
 
@@ -67,12 +62,8 @@ independent of the queue content type.
     Attach consumer to appropriate queue consumer list.
     </doc>
     <argument name = "consumer" type = "amq_consumer_t *">Consumer reference</argument>
-    <argument name = "active"   type = "Bool">Create active consumer?</argument>
     //
-    if (active)
-        amq_consumer_by_queue_queue (self->active_consumers, consumer);
-    else
-        amq_consumer_by_queue_queue (self->paused_consumers, consumer);
+    amq_consumer_by_queue_queue (self->consumer_list, consumer);
 </method>
 
 <method name = "cancel" template = "function">
@@ -87,28 +78,12 @@ independent of the queue content type.
     amq_consumer_destroy (&consumer);
 </method>
 
-<method name = "flow" template = "function">
-    <doc>
-    Pause or restart consumer.
-    </doc>
-    <argument name = "consumer" type = "amq_consumer_t *">Consumer reference</argument>
-    <argument name = "active"   type = "Bool">Active consumer?</argument>
-    //
-    amq_consumer_by_queue_remove (consumer);
-    if (active) {
-        amq_consumer_by_queue_queue (self->active_consumers, consumer);
-        amq_queue_dispatch (self->queue);
-    }
-    else
-        amq_consumer_by_queue_queue (self->paused_consumers, consumer);
-</method>
-
 <method name = "consumer count" template = "function">
     <doc>
     Return number of active consumers for queue.
     </doc>
     //
-    rc = amq_consumer_by_queue_count (self->active_consumers);
+    rc = amq_consumer_by_queue_count (self->consumer_list);
 </method>
 
 <method name = "message count" template = "function">
@@ -125,7 +100,8 @@ independent of the queue content type.
 #define CONSUMER_BUSY   2
 
 static int
-    s_get_next_consumer ($(selftype) *self, char *producer_id, amq_consumer_t **consumer_p);
+    s_get_next_consumer (
+    $(selftype) *self, char *producer_id, char *cluster_id, amq_consumer_t **consumer_p);
 static void
     s_free_consumer_queue (amq_consumer_by_queue_t *queue);
 </private>
@@ -133,6 +109,7 @@ static void
 <private name = "footer">
 //  Find next consumer for queue and message
 //  - producer_id is used for local consumers,
+//  - cluster_id across the cluster
 //  Returns CONSUMER_FOUND if a valid consumer is found
 //  Returns CONSUMER_NONE if no valid consumers are found
 //  Returns CONSUMER_BUSY if there are busy consumers
@@ -141,6 +118,7 @@ static int
 s_get_next_consumer (
     $(selftype) *self,
     char *producer_id,
+    char *cluster_id,
     amq_consumer_t **consumer_p)
 {
     amq_consumer_t
@@ -158,8 +136,15 @@ s_get_next_consumer (
         channel_busy;
 
     //  We expect to process the first consumer on the active list
-    consumer = amq_consumer_by_queue_first (self->active_consumers);
+    consumer = amq_consumer_by_queue_first (self->consumer_list);
     while (consumer) {
+
+        //  Skip paused consumers
+        if (consumer->paused) {
+            consumer = amq_consumer_by_queue_next (&consumer);
+            continue;
+        }
+
         channel_active = FALSE;
         channel_busy   = FALSE;
         channel = amq_server_channel_link (consumer->channel);
@@ -188,6 +173,34 @@ s_get_next_consumer (
         else
         if (consumer->no_local == FALSE)
             rc = CONSUMER_FOUND;        //  We have our consumer
+        else
+        if (connection->group == AMQ_CONNECTION_GROUP_CLUSTER) {
+            //  If the consumer is a cluster peer then the consumer tag is
+            //  serverid/connectionid/xxx where xxx is the original consumer
+            //  tag.  We can compare this with the content cluster_id, which
+            //  is serverid/connectionid/channelnbr.
+            char
+                *slash;
+            size_t
+                id_size = 0;            //  Size of serverid/connectionid string
+            Bool
+                ids_match;              //  Do the two IDs match?
+
+            //  Compare the leading part of both id strings...
+            slash = strchr (cluster_id, '/');
+            if (slash)
+                slash = strchr (slash + 1, '/');
+            if (slash)
+                id_size = slash - cluster_id;
+            if (strlen (consumer->tag) > id_size
+            &&  memcmp (cluster_id, consumer->tag, id_size) == 0)
+                ids_match = TRUE;
+            else
+                ids_match = FALSE;
+
+            if (!ids_match)
+                rc = CONSUMER_FOUND;    //  We have our consumer
+        }
         else
         if (strneq (connection->id, producer_id)) {
             //  If the consumer is an application then we can compare the

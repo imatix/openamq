@@ -77,7 +77,7 @@ class.  This is a lock-free asynchronous class.
         </field>
         <field name = "consumers" label = "Number of consumers" type = "int">
           <rule name = "show on summary" />
-          <get>icl_shortstr_fmt (field_value, "%d", self->consumers);</get>
+          <get>icl_shortstr_fmt (field_value, "%d", amq_queue_basic_consumer_count (self->queue_basic));</get>
         </field>
         <field name = "messages_in" type = "int" label = "Messages published">
           <rule name = "show on summary" />
@@ -105,7 +105,7 @@ class.  This is a lock-free asynchronous class.
                 *consumer;              //  Consumer object reference
           </local>
           <get>
-            consumer = amq_consumer_by_queue_first (self->queue_basic->active_consumers);
+            consumer = amq_consumer_by_queue_first (self->queue_basic->consumer_list);
             if (consumer)
                 icl_shortstr_fmt (field_value, "%d", consumer->mgt_queue_connection->object_id);
           </get>
@@ -149,9 +149,8 @@ class.  This is a lock-free asynchronous class.
         exclusive,                      //  Is queue exclusive?
         auto_delete,                    //  Auto-delete unused queue?
         locked,                         //  Queue for exclusive consumer?
-        dirty;                          //  Queue has to be dispatched?
-    int
-        consumers;                      //  Number of consumers
+        dirty,                          //  Queue has to be dispatched?
+        clustered;                      //  Queue is clustered (shared)?
     amq_queue_basic_t
         *queue_basic;                   //  Basic content queue
     int
@@ -196,12 +195,13 @@ class.  This is a lock-free asynchronous class.
     self->enabled     = TRUE;
     self->durable     = durable;
     self->exclusive   = exclusive;
+    self->clustered   = amq_cluster->enabled && !self->exclusive;
     self->auto_delete = auto_delete;
     self->queue_basic = amq_queue_basic_new (self);
     icl_shortstr_cpy (self->name, name);
     amq_queue_by_vhost_queue (self->vhost->queue_list, self);
     if (amq_server_config_debug_queue (amq_server_config))
-        smt_log_print (amq_broker->debug_log,
+        asl_log_print (amq_broker->debug_log,
             "Q: create   queue=%s auto_delete=%d", self->name, self->auto_delete);
 
     s_set_queue_limits (self);
@@ -211,7 +211,7 @@ class.  This is a lock-free asynchronous class.
     <action>
     amq_server_connection_unlink (&self->connection);
     if (amq_server_config_debug_queue (amq_server_config))
-        smt_log_print (amq_broker->debug_log, "Q: destroy  queue=%s", self->name);
+        asl_log_print (amq_broker->debug_log, "Q: destroy  queue=%s", self->name);
 
     amq_queue_basic_destroy (&self->queue_basic);
     </action>
@@ -224,9 +224,9 @@ class.  This is a lock-free asynchronous class.
 
     assert (self->connection);
     assert (self->auto_delete);
-    if (self->consumers == 0) {
+    if (amq_queue_basic_consumer_count (self->queue_basic) == 0) {
         if (amq_server_config_debug_queue (amq_server_config))
-            smt_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
+            asl_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
 
         queue_ref = amq_queue_link (self);
         amq_vhost_unbind_queue (self->vhost, queue_ref);
@@ -243,10 +243,15 @@ class.  This is a lock-free asynchronous class.
 
 <method name = "publish" template = "async function" async = "1">
     <doc>
-    Publish message content onto queue.
+    Publish message content onto queue. Handles cluster distribution
+    of messages to shared queues: if cluster is enabled and queue is
+    shared (!exclusive), message is queued only at master server. If
+    we are not a master server, we forward the message to the master,
+    unless the message already came from the cluster.
     </doc>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
+    <argument name = "from_cluster" type = "Bool">Intra-cluster publish?</argument>
     //
     <possess>
     channel = amq_server_channel_link (channel);
@@ -258,6 +263,11 @@ class.  This is a lock-free asynchronous class.
     </release>
     //
     <action>
+    //  Pass message to shared queue on master server unless message already
+    //  came to us from another cluster peer.
+    if (self->clustered && !amq_broker->master && !from_cluster)
+        amq_cluster_peer_push (amq_cluster, amq_cluster->master_peer, method);
+    else
     if (self->enabled) {
         if (method->class_id == AMQ_SERVER_BASIC)
             amq_queue_basic_publish (
@@ -277,18 +287,21 @@ class.  This is a lock-free asynchronous class.
     </doc>
     <argument name = "channel"  type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "class id" type = "int" >The content class</argument>
+    <argument name = "cluster id" type = "char *">Stamp content with cluster id</argument>
     //
     <possess>
     channel = amq_server_channel_link (channel);
+    cluster_id = icl_mem_strdup (cluster_id);
     </possess>
     <release>
     amq_server_channel_unlink (&channel);
+    icl_mem_free (cluster_id);
     </release>
     <action>
     if (class_id == AMQ_SERVER_BASIC)
-        amq_queue_basic_get (self->queue_basic, channel);
+        amq_queue_basic_get (self->queue_basic, channel, cluster_id);
     else
-        smt_log_print (amq_broker->alert_log, "E: illegal content class (%d)", class_id);
+        asl_log_print (amq_broker->alert_log, "E: illegal content class (%d)", class_id);
     </action>
 </method>
 
@@ -326,7 +339,7 @@ class.  This is a lock-free asynchronous class.
         error = "Queue is exclusive to another connection";
     else
     if (consumer->exclusive) {
-        if (self->consumers == 0)
+        if (amq_queue_basic_consumer_count (self->queue_basic) == 0 && !self->clustered)
             self->locked = TRUE;        //  Grant exclusive access
         else
             error = "Exclusive access to queue not possible";
@@ -343,12 +356,12 @@ class.  This is a lock-free asynchronous class.
     }
     else {
         if (consumer->class_id == AMQ_SERVER_BASIC) {
-            amq_queue_basic_consume (self->queue_basic, consumer, active);
+            consumer->paused = !active;
+            amq_queue_basic_consume (self->queue_basic, consumer);
             if (connection && !nowait)
                 amq_server_agent_basic_consume_ok (
                     connection->thread, channel->number, consumer->tag);
         }
-        self->consumers++;
         amq_queue_dispatch (self);
     }
     amq_server_connection_unlink (&connection);
@@ -396,8 +409,7 @@ class.  This is a lock-free asynchronous class.
         amq_queue_basic_cancel (self->queue_basic, consumer);
     }
     self->locked = FALSE;
-    self->consumers--;
-    if (self->auto_delete && self->consumers == 0) {
+    if (self->auto_delete && amq_queue_basic_consumer_count (self->queue_basic) == 0) {
         int
             timeout = amq_server_config_queue_timeout (amq_server_config)
                     * 1000 * 1000;
@@ -410,10 +422,25 @@ class.  This is a lock-free asynchronous class.
 
 <event name = "auto_delete">
     <action>
+    amq_proxy_method_t
+        *method;
+
     //  If we're still at zero consumers, self-destruct
-    if (self->consumers == 0) {
+    if (amq_queue_basic_consumer_count (self->queue_basic) == 0) {
         if (amq_server_config_debug_queue (amq_server_config))
-            smt_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
+            asl_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
+
+        //  Delete the queue on all cluster peers
+        method = amq_proxy_method_new_queue_delete (0, self->name, FALSE, FALSE, FALSE);
+
+        if (amq_cluster && amq_cluster->enabled && self->clustered)
+            amq_cluster_tunnel_out (
+                amq_cluster,
+                AMQ_CLUSTER_ALL,
+                (amq_server_method_t *) method,
+                AMQ_CLUSTER_TRANSIENT,
+                NULL);
+        amq_proxy_method_destroy (&method);
 
         amq_queue_self_destruct (self);
     }
@@ -478,25 +505,6 @@ class.  This is a lock-free asynchronous class.
     </action>
 </method>
 
-<method name = "flow" template = "async function" async = "1">
-    <doc>
-    Pause or restart consumer.
-    </doc>
-    <argument name = "consumer" type = "amq_consumer_t *">Consumer</argument>
-    <argument name = "active"   type = "Bool">Active consumer?</argument>
-    //
-    <possess>
-    consumer = amq_consumer_link (consumer);
-    </possess>
-    <release>
-    amq_consumer_unlink (&consumer);
-    </release>
-    <action>
-    if (consumer->class_id == AMQ_SERVER_BASIC)
-        amq_queue_basic_flow (self->queue_basic, consumer, active);
-    </action>
-</method>
-
 <method name = "dispatch" template = "async function" async = "1">
     <doc>
     Dispatches all pending messages waiting on the specified message queue.
@@ -521,7 +529,7 @@ class.  This is a lock-free asynchronous class.
     Return number of consumers on queue.
     </doc>
     //
-    rc = self->consumers;
+    rc = amq_queue_basic_consumer_count (self->queue_basic);
 </method>
 
 <method name = "set last binding" template = "async function" async = "1">
@@ -595,7 +603,7 @@ s_set_queue_limits ($(selftype) *self)
             limit_action = AMQ_QUEUE_LIMIT_KILL;
         else {
             limit_action = 0;
-            smt_log_print (amq_broker->alert_log,
+            asl_log_print (amq_broker->alert_log,
                 "E: invalid configured limit action '%s'", action_text);
         }
         limit_value = atol (ipr_config_get (config, "value",  "0"));
@@ -610,13 +618,13 @@ s_set_queue_limits ($(selftype) *self)
                     self->limit_min = limit_value;
             }
             else {
-                smt_log_print (amq_broker->alert_log,
+                asl_log_print (amq_broker->alert_log,
                     "E: too many limits for queue profile (%d)", self->limits);
                 break;
             }
         }
         else
-            smt_log_print (amq_broker->alert_log,
+            asl_log_print (amq_broker->alert_log,
                 "W: configured limit value '%s' ignored", action_text);
         ipr_config_next (config);
     }

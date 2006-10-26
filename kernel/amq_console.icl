@@ -78,7 +78,22 @@ $(selftype)
 
 <method name = "destroy">
     <action>
-    ipr_hash_table_apply (self->object_store, s_destroy_item);
+    uint
+        table_idx;
+    ipr_hash_t
+        *hash;
+    amq_console_entry_t
+        *entry;
+
+    for (table_idx = 0; table_idx < IPR_HASH_TABLE_MAXSIZE; table_idx++) {
+        hash = self->object_store->table_items [table_idx];
+        if (hash && hash != IPR_HASH_DELETED) {
+            entry = hash->data;
+            entry->class_ref->unlink (&entry->object_ref);
+            icl_mem_free (entry);
+            ipr_hash_destroy (&hash);
+        }
+    }
     ipr_hash_table_destroy (&self->object_store);
     </action>
 </method>
@@ -164,7 +179,7 @@ $(selftype)
     bucket->data [bucket->cur_size] = 0;
 
     if (amq_server_config_debug_console (amq_server_config))
-        smt_log_print (amq_broker->debug_log, "C: console xml=%s", bucket->data);
+        asl_log_print (amq_broker->debug_log, "C: console xml=%s", bucket->data);
 
     //  Parse as XML message
     xml_root = ipr_xml_parse_string (bucket->data);
@@ -333,8 +348,6 @@ static void
     s_reply_xml       (amq_content_basic_t *request, ipr_xml_t *xml_item);
 static void
     s_reply_bucket    (amq_content_basic_t *request, ipr_bucket_t *bucket);
-static void
-    s_destroy_item    (ipr_hash_t *item);
 </private>
 
 <private name = "async footer">
@@ -394,7 +407,7 @@ s_execute_inspect (
             s_reply_error (request, "inspect-reply", "notfound");
     }
     else {
-        smt_log_print (amq_broker->alert_log, "W: console - badly-formatted CML method, no object ID");
+        asl_log_print (amq_broker->alert_log, "W: console - badly-formatted CML method, no object ID");
         s_reply_error (request, "inspect-reply", "invalid");
     }
 }
@@ -418,7 +431,7 @@ s_execute_modify (
         entry = s_lookup_object (self, atol (object_str));
         if (entry) {
             if (group == AMQ_CONNECTION_GROUP_NORMAL) {
-                smt_log_print (amq_broker->alert_log,
+                asl_log_print (amq_broker->alert_log,
                     "W: console - normal user attempted super-user function");
                 s_reply_error (request, "modify-reply", "noaccess");
             }
@@ -432,7 +445,7 @@ s_execute_modify (
             s_reply_error (request, "modify-reply", "notfound");
     }
     else {
-        smt_log_print (amq_broker->alert_log, "W: console - badly-formatted CML method, no object ID");
+        asl_log_print (amq_broker->alert_log, "W: console - badly-formatted CML method, no object ID");
         s_reply_error (request, "modify-reply", "invalid");
     }
 }
@@ -445,7 +458,7 @@ s_execute_monitor (
     ipr_xml_t *xml_item,
     int group)
 {
-    smt_log_print (amq_broker->debug_log, "amq_console: monitor");
+    asl_log_print (amq_broker->debug_log, "amq_console: monitor");
 }
 
 
@@ -470,7 +483,7 @@ s_execute_method (
         entry = s_lookup_object (self, atol (object_str));
         if (entry) {
             if (group == AMQ_CONNECTION_GROUP_NORMAL) {
-                smt_log_print (amq_broker->alert_log,
+                asl_log_print (amq_broker->alert_log,
                     "W: console - normal user attempted super-user function");
                 s_reply_error (request, "method-reply", "noaccess");
             }
@@ -485,7 +498,7 @@ s_execute_method (
             s_reply_error (request, "method-reply", "notfound");
     }
     else {
-        smt_log_print (amq_broker->alert_log, "W: console - badly-formatted CML method, no object ID");
+        asl_log_print (amq_broker->alert_log, "W: console - badly-formatted CML method, no object ID");
         s_reply_error (request, "method-reply", "invalid");
     }
 }
@@ -520,7 +533,7 @@ s_get_field_list (ipr_xml_t *xml_item)
 static void
 s_invalid_cml (amq_content_basic_t *request, ipr_bucket_t *bucket, char *error)
 {
-    smt_log_print (amq_broker->alert_log,
+    asl_log_print (amq_broker->alert_log,
         "W: console - content body is not valid CML: %s", error);
     ipr_bucket_dump (bucket, "I: ");
     s_reply_error (request, "invalid", NULL);
@@ -581,7 +594,7 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
         *vhost;
 
     if (amq_server_config_debug_console (amq_server_config))
-        smt_log_print (amq_broker->debug_log, "C: response xml=%s", bucket->data);
+        asl_log_print (amq_broker->debug_log, "C: response xml=%s", bucket->data);
 
     vhost = amq_vhost_link (amq_broker->vhost);
     if (vhost) {
@@ -600,31 +613,17 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
                 amq_content_basic_set_routing_key  (method->content, "amq.direct", request->reply_to, 0);
 
                 //  Publish the message
-                amq_exchange_publish (exchange, NULL, (amq_server_method_t *) method);
+                amq_exchange_publish (exchange, NULL, (amq_server_method_t *) method, FALSE);
                 amq_client_method_unlink (&method);
 
                 amq_exchange_unlink (&exchange);
             }
         }
         else
-            smt_log_print (amq_broker->alert_log,
+            asl_log_print (amq_broker->alert_log,
                 "W: console - client did not specify Reply-To queue");
     }
     amq_vhost_unlink (&vhost);
-}
-
-//  Callback for object store destruction
-
-static void
-s_destroy_item (ipr_hash_t *item)
-{
-    amq_console_entry_t
-        *entry;
-
-    entry = item->data;
-    entry->class_ref->unlink (&entry->object_ref);
-    ipr_hash_destroy (&item);
-    icl_mem_free (entry);
 }
 </private>
 

@@ -1,1 +1,0 @@
-OpenAMQ MTA Tests

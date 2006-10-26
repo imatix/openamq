@@ -1,11 +1,8 @@
-1.0e0 - 2006/09/25
+1.0d6 - 2006/10/08
 ---------------------------------------------------------------------
-This is an initial release of the new high availability and briding
-functionality that replaces the old clustering implementation in OpenAMQ
-1.0c and 1.0d.
-
-This release incorporates all applicable bug fixes up to and including
-those in OpenAMQ 1.0d5.
+Bugfixes:
+    JAMQ-22    Assertion failed: item->by_status_head == self, file 
+               smt_thread_by_status.c, line 739
 
 1.0d5 - 2006/09/25
 ---------------------------------------------------------------------

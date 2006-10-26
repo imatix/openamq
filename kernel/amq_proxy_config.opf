@@ -9,21 +9,21 @@
   -->
 
 <opf
-    name    = "amq_peer_config"
-    comment = "Peer client configuration properties"
+    name    = "amq_proxy_config"
+    comment = "Cluster proxy configuration properties"
     script  = "opf_gen"
     root    = "config"
-    config  = "amq_peer.cfg"
+    config  = "amq_proxy.cfg"
     >
 
 <public>
 extern $\(selftype)
-    *amq_peer_config;                  //  Global properties object
+    *amq_proxy_config;                  //  Global properties object
 </public>
 
 <private>
 $\(selftype)
-    *amq_peer_config = NULL;           //  Global properties
+    *amq_proxy_config = NULL;           //  Global properties
 </private>
 
 <path name = "tuning">
@@ -60,11 +60,10 @@ $\(selftype)
 <!-- These sections are allowed but ignored -->
 <path name = "server" />
 <path name = "resources" />
+<path name = "cluster" />
 <path name = "logging" />
 <path name = "internal" />
 <path name = "queue_profile" />
 <path name = "security" />
-<path name = "cluster-hac" />
-<path name = "cluster-mta" />
 
 </opf>

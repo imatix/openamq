@@ -96,7 +96,7 @@ consumer object.
           <exec>
             connection = amq_server_connection_link (self->connection);
             if (connection) {
-                smt_log_print (amq_broker->alert_log,
+                asl_log_print (amq_broker->alert_log,
                     "W: operator killed connection to %s", connection->client_address);
                 amq_server_connection_kill (connection);
                 amq_server_connection_unlink (&connection);

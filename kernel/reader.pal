@@ -1,19 +1,13 @@
 <?xml?>
 <pal script = "amq_pal_gen">
-    <set name = "myqueue" value = "my.queue" cmdline = "Q" />
-    <set name = "private" value = "0"        cmdline = "P" />
-    <session virtual_host = "/test">
-        <queue_declare queue = "$myqueue" exclusive = "$private" />
-        <queue_bind    queue = "$myqueue" exchange = "amq.direct" routing_key = "test" />
-        <basic_consume queue = "$myqueue" no_local = "1" />
+    <session>
         <repeat>
-            <wait/>
-            <basic_arrived>
-                <echo>I: Message $message_id arrived</echo>
-            </basic_arrived>
-            <empty>
-                <abort>E: Message did not arrive</abort>
-            </empty>
+            <repeat counter = "qid" times = "10">
+                <queue_declare queue = "queue$qid" auto_delete = "1" />
+                <basic_consume queue = "queue$qid" />
+                <basic_cancel consumer_tag = "$consumer_tag" />
+            </repeat>
+            <wait timeout = "100" />
         </repeat>
     </session>
 </pal>
