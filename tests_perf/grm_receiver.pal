@@ -55,10 +55,10 @@
             <repeat>
                 <wait/>
                 <basic_arrived>
-                    <dec name = "lifetime" />
-                     <if name = "lifetime" test = "le" value = "0">
+                    <if name = "lifetime" test = "le" value = "0">
                         <exit/>
-                     </if>
+                    </if>
+                    <dec name = "lifetime" />
 
                     <set name = "message_id" value = "$message_id" />
 
