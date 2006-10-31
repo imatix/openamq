@@ -505,17 +505,16 @@ s_bind_object (
                 amq_binding_list_push (self->binding_list, binding);
             else
                 amq_binding_list_queue (self->binding_list, binding);
-
-            if (queue) {
-                bindings_list = amq_queue_bindings_list_table_search (
-                    self->queue_bindings, queue->name);
-                if (!bindings_list)
-                    bindings_list = amq_queue_bindings_list_new (
-                        self->queue_bindings, queue->name);
-                amq_queue_bindings_list_push_back (bindings_list, binding);
-                amq_queue_bindings_list_unlink (&bindings_list);
-            }
         }
+    }
+    if (queue) {
+        bindings_list = amq_queue_bindings_list_table_search (
+            self->queue_bindings, queue->name);
+        if (!bindings_list)
+            bindings_list = amq_queue_bindings_list_new (
+                self->queue_bindings, queue->name);
+        amq_queue_bindings_list_push_back (bindings_list, binding);
+        amq_queue_bindings_list_unlink (&bindings_list);
     }
     if (queue)
         amq_binding_bind_queue (binding, queue);
