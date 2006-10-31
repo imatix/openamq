@@ -65,7 +65,9 @@ maximum number of consumers per channel is set at compile time.
     self->active = active;
     consumer = amq_consumer_by_channel_first (self->consumer_list);
     while (consumer) {
-        amq_queue_flow (consumer->queue, consumer, active);
+        consumer->paused = !active;
+        if (active)
+            amq_queue_dispatch (consumer->queue);
         consumer = amq_consumer_by_channel_next (&consumer);
     }
     amq_server_agent_channel_flow_ok (self->connection->thread, self->number, self->active);

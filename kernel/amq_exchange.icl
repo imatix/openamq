@@ -62,6 +62,7 @@ for each type of exchange. This is a lock-free asynchronous class.
 </data>
 
 <import class = "amq_server_classes" />
+<import class = "amq_queue_bindings_list_table" />
 
 <context>
     amq_broker_t
@@ -80,6 +81,8 @@ for each type of exchange. This is a lock-free asynchronous class.
         *object;                        //  Exchange implementation
     amq_binding_list_t
         *binding_list;                  //  Bindings as a list
+    amq_queue_bindings_list_table_t
+        *queue_bindings;                //  Bindings sorted by queues
     ipr_hash_table_t
         *binding_hash;                  //  Bindings hashed by routing_key
     ipr_index_t
@@ -154,6 +157,8 @@ for each type of exchange. This is a lock-free asynchronous class.
     self->binding_list  = amq_binding_list_new ();
     self->binding_hash  = ipr_hash_table_new ();
     self->binding_index = ipr_index_new ();
+    self->queue_bindings
+                        = amq_queue_bindings_list_table_new ();
     icl_shortstr_cpy (self->name, name);
 
     if (self->type == AMQ_EXCHANGE_SYSTEM) {
@@ -220,6 +225,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     ipr_hash_table_destroy (&self->binding_hash);
     amq_binding_list_destroy (&self->binding_list);
     ipr_index_destroy (&self->binding_index);
+    amq_queue_bindings_list_table_destroy (&self->queue_bindings);
     amq_cluster_mta_destroy (&self->mta);
 
     if (self->type == AMQ_EXCHANGE_SYSTEM)
@@ -322,6 +328,8 @@ for each type of exchange. This is a lock-free asynchronous class.
         *binding = NULL;                //  New binding created
     ipr_hash_t
         *hash;                          //  Entry into hash table
+    amq_queue_bindings_list_t
+        *bindings_list;                 //  List of bindings for the queue
 
     if (amq_server_config_debug_route (amq_server_config))
         smt_log_print (amq_broker->debug_log,
@@ -360,6 +368,15 @@ for each type of exchange. This is a lock-free asynchronous class.
             else
                 amq_binding_list_queue (self->binding_list, binding);
         }
+    }
+    if (queue) {
+        bindings_list = amq_queue_bindings_list_table_search (
+            self->queue_bindings, queue->name);
+        if (!bindings_list)
+            bindings_list = amq_queue_bindings_list_new (
+                self->queue_bindings, queue->name);
+        amq_queue_bindings_list_push_back (bindings_list, binding);
+        amq_queue_bindings_list_unlink (&bindings_list);
     }
 
     //  Notify MTA about new binding
@@ -474,21 +491,26 @@ for each type of exchange. This is a lock-free asynchronous class.
     </release>
     //
     <action>
-    amq_binding_t
-        *binding,
-        *target;
 
-    binding = amq_binding_list_first (self->binding_list);
-    while (binding) {
-        if (amq_binding_unbind_queue (binding, queue)) {
-            //  Allow the exchange implementation the chance to cleanup the
-            //  binding, but be careful to get the next binding first...
-            target = binding;
-            binding = amq_binding_list_next (&binding);
-            self->unbind (self->object, target);
+    amq_queue_bindings_list_t
+        *queue_bindings;
+    amq_binding_t
+        *binding;
+
+    queue_bindings =
+        amq_queue_bindings_list_table_search (self->queue_bindings, queue->name);
+    if (queue_bindings) {
+        while (1) {
+            binding = amq_queue_bindings_list_pop (queue_bindings);
+            if (!binding)
+                break;
+            if (amq_binding_unbind_queue (binding, queue))
+                //  Allow the exchange implementation the chance to cleanup the
+                //  binding, but be careful to get the next binding first...
+                self->unbind (self->object, binding);
+            amq_binding_unlink (&binding);
         }
-        else
-            binding = amq_binding_list_next (&binding);
+        amq_queue_bindings_list_destroy (&queue_bindings);
     }
     </action>
 </method>

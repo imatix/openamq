@@ -50,6 +50,8 @@ for Basic, File, and Stream content classes.
         no_local,                       //  Don't want own messages
         no_ack,                         //  Auto acknowledge messages
         exclusive;                      //  Exclusive access?
+    volatile Bool
+        paused;                         //  Is consumer paused (flow off) ?
 </context>
 
 <method name = "new">

@@ -76,7 +76,9 @@ class.
 </method>
 
 <method name = "destroy">
-    ipr_index_delete (self->exchange->binding_index, self->index);
+    if (self->exchange->binding_index)
+        ipr_index_delete (self->exchange->binding_index, self->index);
+
     amq_queue_list_destroy    (&self->queue_list);
     ipr_looseref_list_destroy (&self->index_list);
     icl_longstr_destroy       (&self->arguments);
@@ -104,14 +106,16 @@ class.
         iterator;
     </local>
     //
-    iterator = amq_queue_list_find (
-        amq_queue_list_begin (self->queue_list), NULL, queue);
-    if (iterator)
-        amq_queue_list_erase (self->queue_list, iterator);
+    if (!self->zombie) {
+        iterator = amq_queue_list_find (
+            amq_queue_list_begin (self->queue_list), NULL, queue);
+        if (iterator)
+            amq_queue_list_erase (self->queue_list, iterator);
 
-    //  Signal to caller if binding is now empty
-    if (amq_queue_list_size (self->queue_list) == 0)
-        rc = -1;
+        //  Signal to caller if binding is now empty
+        if (amq_queue_list_size (self->queue_list) == 0)
+            rc = -1;
+    }
 </method>
 
 <method name = "publish" template = "function">

@@ -55,19 +55,19 @@
             <repeat>
                 <wait/>
                 <basic_arrived>
-                    <dec name = "lifetime" />
-                     <if name = "lifetime" test = "le" value = "0">
+                    <if name = "lifetime" test = "le" value = "0">
                         <exit/>
-                     </if>
+                    </if>
+                    <dec name = "lifetime" />
 
                     <set name = "message_id" value = "$message_id" />
 
-                    <!-- Requerst/reply stable sender -->
+                    <!-- Request/reply stable sender -->
                     <if name = "message_id" test = "eq" value = "RRS">
                         <if name = "rrs_active" value = "1">
                             <inc name = "rrs_counter" />
                             <if name = "rrs_counter" value = "10">
-                                <echo>Message missing!</echo>
+                                <echo>E: Sync message missing (reqrep,stable)</echo>
                                 <exit/>
                             </if>
                         </if>
@@ -75,7 +75,7 @@
                     <if name = "message_id" test = "eq" value = "RRS-SYNC">
                         <if name = "rrs_active" value = "1">
                             <if name = "rrs_counter" test = "ne" value = "9">
-                                <echo>Message missing!</echo>
+                                <echo>E: Sync message too early (reqrep,stable)</echo>
                                 <exit/>
                             </if>
                             <set name = "rrs_counter" value = "0" />
@@ -86,12 +86,12 @@
                         </if>
                     </if>
 
-                    <!-- Requerst/reply burst sender -->
+                    <!-- Request/reply burst sender -->
                     <if name = "message_id" test = "eq" value = "RRB">
                         <if name = "rrb_active" value = "1">
                             <inc name = "rrb_counter" />
                             <if name = "rrb_counter" value = "10">
-                                <echo>Message missing!</echo>
+                                <echo>E: Sync message missing (reqrep,burst)</echo>
                                 <exit/>
                             </if>
                         </if>
@@ -99,7 +99,7 @@
                     <if name = "message_id" test = "eq" value = "RRB-SYNC">
                         <if name = "rrb_active" value = "1">
                             <if name = "rrb_counter" test = "ne" value = "9">
-                                <echo>Message missing!</echo>
+                                <echo>E: Sync message too early (reqrep,burst)</echo>
                                 <exit/>
                             </if>
                             <set name = "rrb_counter" value = "0" />
@@ -115,7 +115,7 @@
                         <if name = "pss_active" value = "1">
                             <inc name = "pss_counter" />
                             <if name = "pss_counter" value = "10">
-                                <echo>Message missing!</echo>
+                                <echo>E: Sync message too early (pubsub,stable)</echo>
                                 <exit/>
                             </if>
                         </if>
@@ -123,7 +123,7 @@
                     <if name = "message_id" test = "eq" value = "PSS-SYNC">
                         <if name = "pss_active" value = "1">
                             <if name = "pss_counter" test = "ne" value = "9">
-                                <echo>Message missing!</echo>
+                                <echo>E: Sync message missing (pubsub,stable)</echo>
                                 <exit/>
                             </if>
                             <set name = "pss_counter" value = "0" />
@@ -131,6 +131,30 @@
                         <if name = "pss_active" value = "0">
                             <set name = "pss_active" value = "1" />
                             <set name = "pss_counter" value = "0" />
+                        </if>
+                    </if>
+
+                    <!-- Publish/subscribe stable sender -->
+                    <if name = "message_id" test = "eq" value = "PSB">
+                        <if name = "psb_active" value = "1">
+                            <inc name = "psb_counter" />
+                            <if name = "psb_counter" value = "10">
+                                <echo>E: Sync message too early (pubsub,burst)</echo>
+                                <exit/>
+                            </if>
+                        </if>
+                    </if>
+                    <if name = "message_id" test = "eq" value = "PSB-SYNC">
+                        <if name = "psb_active" value = "1">
+                            <if name = "psb_counter" test = "ne" value = "9">
+                                <echo>E: Sync message missing (pubsub,burst)</echo>
+                                <exit/>
+                            </if>
+                            <set name = "psb_counter" value = "0" />
+                        </if>
+                        <if name = "psb_active" value = "0">
+                            <set name = "psb_active" value = "1" />
+                            <set name = "psb_counter" value = "0" />
                         </if>
                     </if>
                 </basic_arrived>
