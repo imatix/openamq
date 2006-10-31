@@ -80,7 +80,7 @@ independent of the queue content type.
 
 <method name = "consumer count" template = "function">
     <doc>
-    Return number of active consumers for queue.
+    Return number of consumers for queue.
     </doc>
     //
     rc = amq_consumer_by_queue_count (self->consumer_list);
