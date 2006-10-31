@@ -1,3 +1,26 @@
+1.0e1 - 2006/10/31
+---------------------------------------------------------------------
+Bugfixes:
+    JAMQ-36    Memory leaks due to incorrect use of APR pools
+  (BASE2-250)
+    JAMQ-33    Negative number of consumers on queue
+   (AMQ-529)
+    JAMQ-31    amq_server: smt_socket_request.c:836:
+  (BASE2-255)  smt_socket_request_destroy_: Assertion
+               `self->thread->pending_count' failed
+
+Changes:
+    JAMQ-35    Remove message/traffic statistics from asl_broker
+  (BASE2-254)
+    JAMQ-34    Make destroying queues more efficient
+   (AMQ-534)   Also resolves: JAMQ-25, JAMQ-7
+    BASE2-252  Add random values to PAL
+    BASE2-251  PAL: Add -i option to clients to enable setting instance name
+               passed to server
+    AMQ-533    Move flow control to consumer
+    AMQ-532    Implement Client API flow control using channel.flow
+
+
 1.0d6 - 2006/10/08
 ---------------------------------------------------------------------
 Bugfixes:
