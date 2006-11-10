@@ -11,6 +11,8 @@ Bugfixes:
     JAMQ-35    Remove message/traffic statistics from asl_broker
   (BASE2-254)
 
+The ipr_hash table size has been increased to 512k-1 for this release.
+
 1.0d6 - 2006/10/08
 ---------------------------------------------------------------------
 Bugfixes:
