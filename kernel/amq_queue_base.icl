@@ -98,6 +98,7 @@ independent of the queue content type.
 #define CONSUMER_FOUND  0
 #define CONSUMER_NONE   1
 #define CONSUMER_BUSY   2
+#define CONSUMER_PAUSED 3
 
 static int
     s_get_next_consumer (
@@ -113,6 +114,7 @@ static void
 //  Returns CONSUMER_FOUND if a valid consumer is found
 //  Returns CONSUMER_NONE if no valid consumers are found
 //  Returns CONSUMER_BUSY if there are busy consumers
+//  Returns CONSUMER_PAUSED if there are paused consumers
 
 static int
 s_get_next_consumer (
@@ -139,12 +141,6 @@ s_get_next_consumer (
     consumer = amq_consumer_by_queue_first (self->consumer_list);
     while (consumer) {
 
-        //  Skip paused consumers
-        if (consumer->paused) {
-            consumer = amq_consumer_by_queue_next (&consumer);
-            continue;
-        }
-
         channel_active = FALSE;
         channel_busy   = FALSE;
         channel = amq_server_channel_link (consumer->channel);
@@ -166,7 +162,7 @@ s_get_next_consumer (
             connection = NULL;
             
         if (!channel_active)
-            ;                           //  Skip this consumer
+            rc = CONSUMER_PAUSED;       //  Skip this consumer
         else
         if (channel_busy)
             rc = CONSUMER_BUSY;         //  Unless we have better news
