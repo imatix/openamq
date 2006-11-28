@@ -56,7 +56,6 @@
         </class>
 
         <class name = "queue" label = "Shared queues" repeat = "1">
-          <rule name = "monitor top" field = "pending" />
           <local>
             amq_queue_t
                 *queue;
@@ -80,7 +79,6 @@
         </class>
 
         <class name = "connection" label = "Connections" repeat = "1">
-          <rule name = "monitor top" field = "pending" />
           <local>
             amq_connection_t
                 *connection;
