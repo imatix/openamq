@@ -205,7 +205,7 @@ class.
     s_print_property ("$(label:)", self->$(name)? "yes": "no", \
 .   elsif type = "time"
     apr_time_ansi_put (&$(name)_time, self->$(name));
-    ipr_time_iso8601 ($(name)_time, ipr_date_format_minute, 0, ipr_time_zone (), field_value);
+    ipr_time_iso8601 ($(name)_time, ipr_date_format_minute, 0, FALSE, field_value);
     s_print_property ("$(label:)", field_value, \
 .   endif
 .   if count (put)
@@ -271,7 +271,7 @@ NULL, NULL);
 .for field where count (rule, name = "show on summary")
 .   if type = "time"
     apr_time_ansi_put (&$(name)_time, self->$(name));
-    ipr_time_iso8601 ($(name)_time, ipr_date_format_minute, 0, ipr_time_zone (), $(name)_str);
+    ipr_time_iso8601 ($(name)_time, ipr_date_format_minute, 0, FALSE, $(name)_str);
 .   endif
 .   if count (rule, name = "ip address")
     ipr_net_fmt_display ($(name)_fmt, self->$(name), g_opt_addr);
