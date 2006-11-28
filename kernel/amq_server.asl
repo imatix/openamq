@@ -197,7 +197,8 @@
                 method->durable,
                 method->exclusive,
                 //  Setting the 'exclusive' flag always implies 'auto-delete'
-                method->exclusive? TRUE: method->auto_delete);
+                method->exclusive? TRUE: method->auto_delete,
+                method->arguments);
 
             //  This can fail if two threads create the same queue at the
             //  same time... so let's go find the actual queue object
