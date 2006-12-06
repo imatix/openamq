@@ -19,7 +19,6 @@ class.  This is a lock-free asynchronous class.
 </inherit>
 <inherit class = "icl_hash_item">
     <option name = "hash_type" value = "str" />
-    <option name = "hash_size" value = "65535" />
 </inherit>
 <inherit class = "icl_list_item">
     <option name = "prefix" value = "by_vhost" />

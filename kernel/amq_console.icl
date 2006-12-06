@@ -81,17 +81,20 @@ $(selftype)
     uint
         table_idx;
     ipr_hash_t
-        *hash;
+        *hash,
+        *prev_hash;
     amq_console_entry_t
         *entry;
 
-    for (table_idx = 0; table_idx < IPR_HASH_TABLE_MAXSIZE; table_idx++) {
+    for (table_idx = 0; table_idx < self->object_store->max_items; table_idx++) {
         hash = self->object_store->table_items [table_idx];
-        if (hash && hash != IPR_HASH_DELETED) {
+        while (hash) {
             entry = hash->data;
             entry->class_ref->unlink (&entry->object_ref);
             icl_mem_free (entry);
-            ipr_hash_destroy (&hash);
+            prev_hash = hash;
+            hash = hash->table_next;
+            ipr_hash_destroy (&prev_hash);
         }
     }
     ipr_hash_table_destroy (&self->object_store);

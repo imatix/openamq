@@ -17,7 +17,7 @@ for each type of exchange. This is a lock-free asynchronous class.
 <inherit class = "smt_object" />
 <inherit class = "icl_hash_item">
     <option name = "hash_type" value = "str" />
-    <option name = "hash_size" value = "65535" />
+    <option name = "initial_size" value = "15" />
 </inherit>
 <inherit class = "icl_list_item">
     <option name = "prefix" value = "by_vhost" />
