@@ -13,7 +13,6 @@
 </inherit>
 
 <inherit class = "icl_hash_item">
-    <option name = "hash_size" value = "65535" />
     <option name = "hash_type" value = "str" />
 </inherit>
 

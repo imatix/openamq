@@ -18,7 +18,7 @@ for Basic, File, and Stream content classes.
 </inherit>
 <inherit class = "icl_hash_item">
     <option name = "hash_type" value = "str" />
-    <option name = "hash_size" value = "65535" />
+    <option name = "initial_size" value = "31" />
 </inherit>
 <inherit class = "icl_list_item" >
     <option name = "prefix" value = "by_queue" />

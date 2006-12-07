@@ -19,7 +19,6 @@ class.  This is a lock-free asynchronous class.
 </inherit>
 <inherit class = "icl_hash_item">
     <option name = "hash_type" value = "str" />
-    <option name = "hash_size" value = "65535" />
 </inherit>
 <inherit class = "icl_list_item">
     <option name = "prefix" value = "by_vhost" />
@@ -180,12 +179,19 @@ class.  This is a lock-free asynchronous class.
     <argument name = "durable"     type = "Bool">Is queue durable?</argument>
     <argument name = "exclusive"   type = "Bool">Is queue exclusive?</argument>
     <argument name = "auto delete" type = "Bool">Auto-delete unused queue?</argument>
+    <argument name = "arguments"   type = "icl_longstr_t*">Queue arguments</argument>
 
     <dismiss argument = "table" value = "vhost->queue_table" />
     <dismiss argument = "key" value = "name" />
     <local>
     amq_broker_t
         *broker = amq_broker;
+    asl_field_list_t
+        *arg_list;
+    asl_field_t
+        *profile_field;
+    char
+        *profile;
     </local>
     //
     self->broker      = broker;
@@ -201,8 +207,48 @@ class.  This is a lock-free asynchronous class.
     if (amq_server_config_debug_queue (amq_server_config))
         smt_log_print (amq_broker->debug_log,
             "Q: create   queue=%s auto_delete=%d", self->name, self->auto_delete);
-
-    s_set_queue_limits (self);
+    //  Process arguments
+    arg_list = asl_field_list_new (arguments);
+    if (!arg_list) {
+        //  Catch case where field list is malformed
+        smt_log_print (amq_broker->alert_log,
+            "E: client sent malformed 'arguments' in queue.declare (%s, %s, %s, %s)",
+            self->connection->client_address,
+            self->connection->client_product,
+            self->connection->client_version,
+            self->connection->client_instance);
+        amq_server_connection_error (NULL, ASL_SYNTAX_ERROR,
+            "Malformed 'arguments' field");
+        self_destroy (&self);
+    }
+    else {
+        //  If unspecified, queue profile defaults to 'private' for exclusive 
+        //  queues, 'shared' for shared queues 
+        profile_field = asl_field_list_search (arg_list, "profile");
+        if (!profile_field)
+            profile = self->exclusive? "private": "shared";
+        else
+            profile = asl_field_string (profile_field);
+        //  Reject unknown queue profiles
+        if (s_set_queue_limits (self, profile)) {
+            smt_log_print (amq_broker->alert_log,
+                "E: client requested unknown queue profile '%s' (%s, %s, %s, %s)", 
+                profile,
+		self->connection->client_address,
+		self->connection->client_product,
+		self->connection->client_version,
+		self->connection->client_instance);
+            amq_server_connection_error (connection, ASL_SYNTAX_ERROR,
+                "Unknown queue profile requested");
+            if (profile_field)
+                asl_field_destroy (&profile_field);
+            asl_field_list_destroy (&arg_list);
+            self_destroy (&self);
+        }
+        if (profile_field)
+            asl_field_destroy (&profile_field);
+        asl_field_list_destroy (&arg_list);
+    }
 </method>
 
 <method name = "destroy">
@@ -491,7 +537,11 @@ class.  This is a lock-free asynchronous class.
     Return number of messages on queue.
     </doc>
     //
-    rc = amq_queue_basic_message_count (self->queue_basic);
+    //  JAMQ-55
+    rc = amq_queue_basic_message_count (self->queue_basic) +
+         self->connection ? 
+         smt_thread_reply_backlog (self->connection->thread) :
+         0;
 </method>
 
 <method name = "consumer count" template = "function">
@@ -536,13 +586,13 @@ class.  This is a lock-free asynchronous class.
 </method>
 
 <private name = "header">
-static void
-    s_set_queue_limits ($(selftype) *self);
+static int
+    s_set_queue_limits ($(selftype) *self, char *profile);
 </private>
 
 <private name = "footer">
-static void
-s_set_queue_limits ($(selftype) *self)
+static int
+s_set_queue_limits ($(selftype) *self, char *profile)
 {
     ipr_config_t
         *config;                        //  Current server config file
@@ -553,7 +603,13 @@ s_set_queue_limits ($(selftype) *self)
         *action_text;                   //  Limit action as string
 
     config = ipr_config_dup (amq_server_config->config);
-    ipr_config_locate (config, "/config/queue_profile", self->exclusive? "private": "shared");
+    ipr_config_locate (config, "/config/queue_profile", profile);
+
+    if (!config->located) {
+        ipr_config_destroy (&config);
+        return 1;
+    }
+    
     if (config->located)
         ipr_config_locate (config, "limit", NULL);
 
@@ -599,6 +655,8 @@ s_set_queue_limits ($(selftype) *self)
         ipr_config_next (config);
     }
     ipr_config_destroy (&config);
+
+    return 0;
 }
 </private>
 

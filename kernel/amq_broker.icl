@@ -18,7 +18,7 @@
         </field>
         <field name = "started" label = "Date, time broker started">
           <get>ipr_time_iso8601 (self->started,
-            ipr_date_format_minute, 0, ipr_time_zone (), field_value);</get>
+            ipr_date_format_minute, 0, FALSE, field_value);</get>
         </field>
         <field name = "locked" type = "bool" label = "Broker is locked?">
           <get>icl_shortstr_fmt (field_value, "%d", self->locked);</get>
@@ -56,7 +56,6 @@
         </class>
 
         <class name = "queue" label = "Shared queues" repeat = "1">
-          <rule name = "monitor top" field = "pending" />
           <local>
             amq_queue_t
                 *queue;
@@ -80,7 +79,6 @@
         </class>
 
         <class name = "connection" label = "Connections" repeat = "1">
-          <rule name = "monitor top" field = "pending" />
           <local>
             amq_connection_t
                 *connection;

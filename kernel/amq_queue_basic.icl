@@ -197,6 +197,8 @@ runs lock-free as a child of the asynchronous queue class.
         *connection;
     amq_server_channel_t
         *channel;
+    int
+        active_consumer_count;
     </local>
     //
     if (amq_server_config_debug_queue (amq_server_config))
@@ -206,7 +208,24 @@ runs lock-free as a child of the asynchronous queue class.
             ipr_looseref_list_count (self->content_list),
             amq_consumer_by_queue_count (self->consumer_list));
 
-    while (ipr_looseref_list_count (self->content_list)) {
+    //  This is an optimization to stop us looping over content below
+    //  if there are only passive consumers on the queue.
+    //  Get count of active consumers
+    active_consumer_count = 0;
+    consumer = amq_consumer_by_queue_first (self->consumer_list);
+    while (consumer) {
+        if (!consumer->paused)
+            active_consumer_count++;
+        consumer = amq_consumer_by_queue_next (&consumer);
+    }
+    if (amq_server_config_debug_queue (amq_server_config) 
+        && active_consumer_count == 0)
+        smt_log_print (amq_broker->debug_log,
+            "Q: paused   queue=%s message=%s",
+            self->queue->name, content->message_id);
+
+    while (active_consumer_count &&
+        ipr_looseref_list_count (self->content_list)) {
         //  Look for a valid consumer for this content
         content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
         rc = s_get_next_consumer (self, content->producer_id, &consumer);
@@ -254,9 +273,27 @@ runs lock-free as a child of the asynchronous queue class.
             break;
         }
         else
+        //  CONSUMER_PAUSED can be returned if a consumer was paused since we
+        //  checked before entering the loop.  In this case, just treat it the
+        //  same as CONSUMER_BUSY.  TODO: Find a way to avoid this situation
+        if (rc == CONSUMER_PAUSED) {
+            if (amq_server_config_debug_queue (amq_server_config))
+                smt_log_print (amq_broker->debug_log,
+                    "Q: paused   queue=%s message=%s",
+                    self->queue->name, content->message_id);
+
+            //  No consumers right now, push content back onto list
+            ipr_looseref_push (self->content_list, content);
+            break; 
+        }
+        else
         if (rc == CONSUMER_NONE) {
             //  No consumers at all for content, send back to originator
             //  if the immediate flag was set, else discard it.
+            //  FIXME: This is old clustering code, what we should probably
+            //  be doing here is returning the content to the originating
+            //  connection, if possible?  Isn't the check in _publish
+            //  sufficient?
             if (content->immediate && !content->returned) {
                 if (amq_server_config_debug_queue (amq_server_config))
                     smt_log_print (amq_broker->debug_log,

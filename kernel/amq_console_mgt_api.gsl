@@ -205,7 +205,7 @@ class.
     s_print_property ("$(label:)", self->$(name)? "yes": "no", \
 .   elsif type = "time"
     apr_time_ansi_put (&$(name)_time, self->$(name));
-    ipr_time_iso8601 ($(name)_time, ipr_date_format_minute, 0, ipr_time_zone (), field_value);
+    ipr_time_iso8601 ($(name)_time, ipr_date_format_minute, 0, FALSE, field_value);
     s_print_property ("$(label:)", field_value, \
 .   endif
 .   if count (put)
@@ -271,7 +271,7 @@ NULL, NULL);
 .for field where count (rule, name = "show on summary")
 .   if type = "time"
     apr_time_ansi_put (&$(name)_time, self->$(name));
-    ipr_time_iso8601 ($(name)_time, ipr_date_format_minute, 0, ipr_time_zone (), $(name)_str);
+    ipr_time_iso8601 ($(name)_time, ipr_date_format_minute, 0, FALSE, $(name)_str);
 .   endif
 .   if count (rule, name = "ip address")
     ipr_net_fmt_display ($(name)_fmt, self->$(name), g_opt_addr);
@@ -888,72 +888,112 @@ s_list_children ($\(selftype) *self, char *command, FILE *xml_data)
 static void
 s_top_children ($\(selftype) *self, char *command, FILE *xml_data)
 {
-#   define TOP_SIZE    10
     ipr_token_list_t
         *tokens;
     ipr_token_t
         *token;
-    char
-        *childname = NULL;
-.for class where repeat ?= 1 & count (rule, name = "monitor top")
+    icl_shortstr_t
+        childname,
+        criterion;
+    uint
+        top_count;                      //  Number of tops requested by user
+.for class where repeat ?= 1
     size_t
-        top_value [TOP_SIZE];           //  Key values for top ten items
+        *top_value;                     //  Key values for top items
     int
-        top_id [TOP_SIZE];              //  IDs of top ten items
+        *top_id;                        //  IDs of top items
     uint
         item_nbr,                       //  Where we intend to insert
         item_move,                      //  Use when moving items up
         nbr_tops;                       //  How many top items we have so far
 .   last
 .endfor
-.for class where repeat ?= 1 & count (rule, name = "monitor top")
+.for class where repeat ?= 1
     amq_mgt_$(name)_t
         *$(name);                       //  Child $(name)
 .endfor
 
     //  Get child name if any
     tokens = ipr_token_split (command);
-    token = ipr_token_list_first (tokens);
-    if (token) {
-        childname = token->value;
-        ipr_token_unlink (&token);
+    if (ipr_token_list_count (tokens) != 3) {
+        icl_console_out ("Syntax error (top object-type sort-criterion number-of-items)");
+        ipr_token_list_destroy (&tokens);
+        return;
     }
-.for class where repeat ?= 1 & count (rule, name = "monitor top")
-.   for rule where name = "monitor top"
-.       top_field = rule.field
-.   endfor
-    if (!childname || ipr_str_prefixed ("$(name)", childname)) {
-        $(name) = self_$(name)_first (self);
-        nbr_tops = 0;
-        while ($(name)) {
-            amq_mgt_$(name)_load ($(name));
-            //  Find slot for item, if any
-            for (item_nbr = 0; item_nbr < nbr_tops; item_nbr++)
-                if ($(class.name)->$(top_field) > top_value [item_nbr])
-                    break;
-            //  Move items up to make space for new item
-            item_move = TOP_SIZE - 1;
-            while (item_move > item_nbr) {
-                top_value [item_move] = top_value [item_move - 1];
-                top_id    [item_move] = top_id    [item_move - 1];
-                item_move--;
+
+    token = ipr_token_list_first (tokens);
+    icl_shortstr_cpy (childname, token->value);
+    token = ipr_token_list_next (&token);
+    icl_shortstr_cpy (criterion, token->value);
+    token = ipr_token_list_next (&token);
+    top_count = atoi (token->value);
+    if (top_count < 1) {
+        icl_console_out ("Syntax error (number of items in top list must be grater than zero)");
+        ipr_token_list_destroy (&tokens);
+        return;
+    }
+    ipr_token_unlink (&token);
+
+    if (0) {}
+.for class where repeat ?= 1
+    else if (strcmp (childname, "$(name)") == 0) {
+        if (0) {}
+.   childdef = xml.load_file ("amq_" + class.name + ".icl") ? abort_xml_error ()
+.   for childdef->data->class.field where defined (type) & type = "int"
+        else if (strcmp (criterion, "$(field.name)") == 0) {
+
+            top_value = icl_mem_alloc (top_count * sizeof (size_t));
+            assert (top_value);
+            top_id = icl_mem_alloc (top_count * sizeof (int));
+            assert (top_value);
+
+            $(class.name) = self_$(class.name)_first (self);
+            nbr_tops = 0;
+            while ($(class.name)) {
+                amq_mgt_$(class.name)_load ($(class.name));
+                //  Find slot for item, if any
+                for (item_nbr = 0; item_nbr < nbr_tops; item_nbr++)
+                    if ($(class.name)->$(field.name) > top_value [item_nbr])
+                        break;
+                //  Move items up to make space for new item
+                item_move = top_count - 1;
+                while (item_move > item_nbr) {
+                    top_value [item_move] = top_value [item_move - 1];
+                    top_id    [item_move] = top_id    [item_move - 1];
+                    item_move--;
+                }
+                if (nbr_tops < top_count)
+                    nbr_tops++;
+                if (item_nbr < top_count) {
+                    top_value [item_nbr] = $(class.name)->$(field.name);
+                    top_id    [item_nbr] = $(class.name)->id;
+                }
+                $(class.name) = self_$(class.name)_next (self);
             }
-            if (nbr_tops < TOP_SIZE)
-                nbr_tops++;
-            if (item_nbr < TOP_SIZE) {
-                top_value [item_nbr] = $(class.name)->$(top_field);
-                top_id    [item_nbr] = $(class.name)->id;
+            for (item_nbr = 0; item_nbr < nbr_tops; item_nbr++) {
+                $(class.name) = amq_mgt_$(class.name)_new (self->session, top_id [item_nbr]);
+                amq_mgt_$(class.name)_load ($(class.name));
+                amq_mgt_$(class.name)_print_summary ($(class.name), xml_data);
+                amq_mgt_$(class.name)_destroy (&$(class.name));
             }
-            $(name) = self_$(name)_next (self);
+
+            icl_mem_free (top_id);
+            icl_mem_free (top_value);
         }
-        for (item_nbr = 0; item_nbr < nbr_tops; item_nbr++) {
-            $(name) = amq_mgt_$(name)_new (self->session, top_id [item_nbr]);
-            amq_mgt_$(name)_load ($(name));
-            amq_mgt_$(name)_print_summary ($(name), xml_data);
-            amq_mgt_$(name)_destroy (&$(name));
+.   endfor
+        else {
+            icl_console_out ("'%s' objects cannot be sorted by '%s' criterion",
+                childname, criterion);
+            ipr_token_list_destroy (&tokens);
+            return;
         }
     }
 .endfor
+    else {
+        icl_console_out ("Top list of '%s' objects not supported", childname);
+        ipr_token_list_destroy (&tokens);
+        return;
+    }
     ipr_token_list_destroy (&tokens);
 }
 

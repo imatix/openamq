@@ -235,25 +235,6 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "read timeout" type = "int" default = "30" dynamic = "1">
-    Network read timeout, seconds
-    <doc>
-    Defines the timeout for network reads.  If a peer does not respond
-    within this time, it is considered dead.  If you get unexpected
-    timeout errors in the logs, you may want to increase this value.
-    </doc>
-    </property>
-
-    <property name = "write timeout" type = "int" default = "30" dynamic = "1">
-    Network write timeout, seconds
-    <doc>
-    Defines the timeout for network writes.  If a peer does not accept
-    data within this time, it is considered dead.  If you get
-    unexpected timeout errors in the logs, you may want to increase
-    this value.
-    </doc>
-    </property>
-
     <property name = "polling threads" type = "int" default = "4">
     Number of polling OS threads
     <doc>

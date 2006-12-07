@@ -48,7 +48,7 @@ consumer object.
         </field>
         <field name = "started" label = "Date, time connection started">
           <get>ipr_time_iso8601 (connection->started,
-            ipr_date_format_minute, 0, ipr_time_zone (), field_value);</get>
+            ipr_date_format_minute, 0, FALSE, field_value);</get>
         </field>
         <field name = "messages_in" type = "int" label = "Messages published">
           <get>icl_shortstr_fmt (field_value, "%d", connection->contents_in);</get>

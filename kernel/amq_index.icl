@@ -19,7 +19,6 @@
 <inherit class = "icl_hash_item">
     <option name = "prefix"    value = "hash" />
     <option name = "hash_type" value = "str" />
-    <option name = "hash_size" value = "65535" />
     <option name = "rwlock"    value = "0" />
 </inherit>
 <inherit class = "icl_array_item">
