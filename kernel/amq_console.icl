@@ -78,25 +78,7 @@ $(selftype)
 
 <method name = "destroy">
     <action>
-    uint
-        table_idx;
-    ipr_hash_t
-        *hash,
-        *prev_hash;
-    amq_console_entry_t
-        *entry;
-
-    for (table_idx = 0; table_idx < self->object_store->max_items; table_idx++) {
-        hash = self->object_store->table_items [table_idx];
-        while (hash) {
-            entry = hash->data;
-            entry->class_ref->unlink (&entry->object_ref);
-            icl_mem_free (entry);
-            prev_hash = hash;
-            hash = hash->table_next;
-            ipr_hash_destroy (&prev_hash);
-        }
-    }
+    ipr_hash_table_apply (self->object_store, s_destroy_item);
     ipr_hash_table_destroy (&self->object_store);
     </action>
 </method>
@@ -351,6 +333,8 @@ static void
     s_reply_xml       (amq_content_basic_t *request, ipr_xml_t *xml_item);
 static void
     s_reply_bucket    (amq_content_basic_t *request, ipr_bucket_t *bucket);
+static void
+    s_destroy_item    (ipr_hash_t *item);
 </private>
 
 <private name = "async footer">
@@ -627,6 +611,20 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
                 "W: console - client did not specify Reply-To queue");
     }
     amq_vhost_unlink (&vhost);
+}
+
+//  Callback for object store destruction
+
+static void
+s_destroy_item (ipr_hash_t *item)
+{
+    amq_console_entry_t
+        *entry;
+
+    entry = item->data;
+    entry->class_ref->unlink (&entry->object_ref);
+    ipr_hash_destroy (&item);
+    icl_mem_free (entry);
 }
 </private>
 
