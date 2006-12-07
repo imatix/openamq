@@ -97,7 +97,7 @@ independent of the queue content type.
 <private name = "header">
 #define CONSUMER_FOUND  0
 #define CONSUMER_NONE   1
-#define CONSUMER_BUSY   2
+#define CONSUMER_BUSY   2 //  Currently not used, pending review of flow control
 #define CONSUMER_PAUSED 3
 
 static int
@@ -125,8 +125,6 @@ s_get_next_consumer (
 {
     amq_consumer_t
         *consumer;
-    smt_thread_t
-        *thread;
     int
         rc = CONSUMER_NONE;
     amq_server_connection_t
@@ -134,38 +132,24 @@ s_get_next_consumer (
     amq_server_channel_t
         *channel;
     Bool
-        channel_active,
-        channel_busy;
+        channel_active;
 
     //  We expect to process the first consumer on the active list
     consumer = amq_consumer_by_queue_first (self->consumer_list);
     while (consumer) {
 
         channel_active = FALSE;
-        channel_busy   = FALSE;
         channel = amq_server_channel_link (consumer->channel);
         if (channel) {
             connection = amq_server_connection_link (channel->connection);
-            if (connection) {
-                thread = smt_thread_link (channel->thread);
-                if (thread) {
-                    channel_active = channel->active;
-                    //  ML: We shouldn't need a lock here since count is 
-                    //  always updated atomically, so at worst we get some
-                    //  past value
-                    channel_busy = (thread->reply_queue->count > 100);
-                }
-                smt_thread_unlink (&thread);
-            }
+            if (connection)
+                channel_active = channel->active;
         }
         else
             connection = NULL;
             
         if (!channel_active)
             rc = CONSUMER_PAUSED;       //  Skip this consumer
-        else
-        if (channel_busy)
-            rc = CONSUMER_BUSY;         //  Unless we have better news
         else
         if (consumer->no_local == FALSE)
             rc = CONSUMER_FOUND;        //  We have our consumer
