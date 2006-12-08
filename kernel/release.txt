@@ -1,3 +1,17 @@
+1.0d8 - 2006/12/08
+---------------------------------------------------------------------
+Bugfixes:
+    JAMQ-43    SMT problem: assert (!thread->os_thread)
+
+    JAMQ-46    Console: 'top' command gives bogus output
+
+    JAMQ-52    ipr_time_iso8601: timezone handling is broken
+
+    JAMQ-54    ASL: Design flaw in heartbeat algorithm (broker side fix only)
+
+    JAMQ-55    Broker: Throttle message flow on outgoing path (queue ->
+               connection threadlet -> TCP) (reporting fix only)
+
 1.0d7 - 2006/11/10
 ---------------------------------------------------------------------
 Bugfixes:
