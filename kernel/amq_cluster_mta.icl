@@ -70,7 +70,9 @@
     </release>
     //
     <action>
-    amq_peering_bind (self->peering, self->exchange->name, routing_key, arguments);
+    amq_peering_bind (self->peering, self->exchange->name,
+        amq_exchange_type_name (self->exchange->type), self->exchange->durable,
+        self->exchange->auto_delete, routing_key, arguments);
     </action>
 </method>
 
@@ -98,7 +100,6 @@
     icl_shortstr_fmt (sender_id, "%s|%d", channel->connection->key, channel->number);
     amq_content_basic_set_sender_id (content, sender_id);
 
-    icl_console_print ("I: Message pushed to the remote server.");
     amq_peering_forward (
         self->peering,
         self->exchange->name,
@@ -144,7 +145,6 @@ s_content_handler (
         client_method->content = peer_method->content;
         peer_method->content = NULL;
 
-        icl_console_print ("I: Message pulled from remote server.");
         amq_exchange_publish (self->exchange, NULL, (amq_server_method_t *) client_method);
         amq_client_method_unlink (&client_method);
     }
@@ -188,7 +188,6 @@ s_return_handler (
         connection = amq_server_connection_table_search (amq_broker->connections, connection_id);
 
         if (connection) {
-            icl_console_print ("I: Message returned from remote server.");
             amq_server_agent_basic_return (
                 connection->thread,
                 channel_nbr,
