@@ -1,3 +1,41 @@
+1.1b2 - 2006/12/11
+---------------------------------------------------------------------
+
+Bugfixes:
+    BASE2-257  ICL: JAMQ-36 changes break ST build
+
+    JAMQ-43    SMT problem: assert (!thread->os_thread)
+
+    JAMQ-46    Console: 'top' command gives bogus output
+
+    JAMQ-49    ipr_str_matches: Bug in conversion of glob expression to regexp
+               could lead to incorrect matches
+
+    JAMQ-51    Broker dropping messages when channel flow is suspended
+
+    JAMQ-52    ipr_time_iso8601: timezone handling is broken
+
+    JAMQ-54    ASL: Design flaw in heartbeat algorithm (broker side fix only)
+
+    JAMQ-55    Broker: Throttle message flow on outgoing path (queue ->
+               connection threadlet -> TCP) (reporting fix only)
+
+Changes:
+
+    JAMQ-50    Replace hash table container with a more suitable algorithm
+
+    JAMQ-48    Provide option to clean up pending messages in queue
+               (implemented as profile= argument on queue.declare)
+
+Known issues:
+
+    * Client-side fix for JAMQ-54 will be in a future release
+    
+    * Full fix for JAMQ-55 will be in a future release
+
+    * Correct functionality of JAMQ-48 change is dependent on a
+      full fix for JAMQ-55
+
 1.1b1 - 2006/10/31
 ---------------------------------------------------------------------
 Note the version number change - the new clustering code will as of now
