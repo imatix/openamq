@@ -1,3 +1,10 @@
+1.1b3 - 2006/12/13
+---------------------------------------------------------------------
+
+Bugfixes:
+    JAMQ-59    Publish messages on Proxy Server from local clients are not
+               passed onto clients connected to remote Broker
+
 1.1b2 - 2006/12/11
 ---------------------------------------------------------------------
 
