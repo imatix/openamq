@@ -30,7 +30,8 @@
 #define AMQ_MTA_MODE_SUBSCRIBER         1
 #define AMQ_MTA_MODE_FORWARD_ALL        2
 #define AMQ_MTA_MODE_FORWARD_ELSE       3
-#define AMQ_MTA_MODE_VALID(m) (m > 0 && m <= 3)
+#define AMQ_MTA_MODE_BOTH               4
+#define AMQ_MTA_MODE_VALID(m) (m > 0 && m <= 4)
 </public>
 
 <method name = "new">
@@ -129,7 +130,9 @@ s_content_handler (
     amq_client_method_t
         *client_method;
 
-    if (self->mode == AMQ_MTA_MODE_SUBSCRIBER) {
+    if (self->mode == AMQ_MTA_MODE_SUBSCRIBER ||
+          self->mode == AMQ_MTA_MODE_BOTH) {
+
         assert (peer_method->class_id == AMQ_PEER_BASIC);
         assert (peer_method->method_id == AMQ_PEER_BASIC_DELIVER);
 
@@ -172,9 +175,9 @@ s_return_handler (
     assert (peer_method->method_id == AMQ_PEER_BASIC_RETURN);
 
     if (self->mode == AMQ_MTA_MODE_FORWARD_ALL
-    ||  self->mode == AMQ_MTA_MODE_FORWARD_ELSE) {
+    ||  self->mode == AMQ_MTA_MODE_FORWARD_ELSE
+    ||  self->mode == AMQ_MTA_MODE_BOTH) {
         //  Split sender-id "connection-key|channel-nbr" into fields
-        //  NB: compare to previous code
         icl_shortstr_cpy (connection_id, peer_method->payload.basic_return.sender_id);
         separator = strchr (connection_id, '|');
 

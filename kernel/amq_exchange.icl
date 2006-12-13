@@ -416,12 +416,18 @@ for each type of exchange. This is a lock-free asynchronous class.
     Bool
         returned = FALSE;
 
-    delivered = self->publish (self->object, channel, method);
+    if (self->mta_mode == AMQ_MTA_MODE_BOTH && channel)
+        delivered = 1;
+    else
+        delivered = self->publish (self->object, channel, method);
+
     content_size = ((amq_content_basic_t *) method->content)->body_size;
 
     //  Publish message to MTA if required
-    if (self->mta && (self->mta_mode ==AMQ_MTA_MODE_FORWARD_ALL ||
+    if (self->mta && (self->mta_mode == AMQ_MTA_MODE_FORWARD_ALL ||
+          (self->mta_mode == AMQ_MTA_MODE_BOTH && channel) ||
           (self->mta_mode == AMQ_MTA_MODE_FORWARD_ELSE && !delivered))) {
+
         amq_cluster_mta_message_published (
             self->mta,
             channel,
