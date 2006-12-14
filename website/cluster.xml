@@ -1,7 +1,7 @@
 <page
     name = "cluster"
     title = "Clustering"
-    subtitle = "Construct Your OpenAMQ Cluster"
+    subtitle = "OpenAMQ Clustering"
     >
 <content type = "gurudoc">
 
@@ -11,240 +11,171 @@ OpenAMQ Clustering
 General Principles
 ==================
 
-An OpenAMQ cluster consists of two or more OpenAMQ servers with a
-specific configuration.  OpenAMQ clustering provides these features:
+The OpenAMQ clustering implementation covers two main functionalities:
 
- 1. Load balancing for large topic publish-subscribe networks.  A
-    set of applications that share the same overall data sources may
-    be distributed across many servers, so that the load on each
-    server is kept manageable.
+1. The use of high-availability pairs to create automatic failover systems
+   in which applications can switch to a backup server if a primary server
+   crashes.
 
- 2. Failover. When a broker used by a set of applications has a failure
-    for some reason, a secondary server can be brought into action
-    rapidly, allowing the applications to continue working.
+2. The interconnection of servers or high-availability pairs into larger
+   architectures that can support distributed request-response and pub-sub
+   scenarios.
 
-Main Clustering Principles
+High-availability Cookbook
 ==========================
 
-These are the main principles underlying OpenAMQ clustering:
+Summary
+-------
 
- 1. The topology of the cluster is static; that is the cluster servers
-    do not attempt to discover each other.
+We take two brokers, running on the same or different systems.  One broker
+is the primary, one is the backup.  When the cluster starts, the primary
+is master and the backup is slave.  If the primary dies, the backup takes
+over the role of master.  If the primary comes back, it remains slave. To
+reset the cluster, restart the backup.
 
- 2. All servers in a cluster must share identical cluster configuration
-    data.
+Application Support
+-------------------
 
- 3. All servers in a cluster must use the same configured virtual host.
+For HA clustering to work, applications must connect to first the primary
+server, and if that fails, the backup server.  Applications must use the correct
+order (primary, then secondary).
 
- 4. To start the cluster, all servers in the configuration set must come
-    up and successfully connect to each other.
+HA Configuration
+----------------
 
- 5. Failover from primary to backup is automatic.
+You can share the same configuration for both brokers by specifying the key
+options on the command-line.  In amq_server.cfg, add this section:
 
- 6. Recover from backup to primary is manual and happens only after an
-    explicit act from the operator.
+    <cluster
+        vhost = "/"
+        primary_peer = "localhost:5555"
+        backup_peer = "localhost:6666"
+    />
 
-The goal of these principles is to make clustering simple and predictable.
+Then start the two brokers as follows (you can use any legal values for the
+port numbers):
 
-Cluster Tradeoffs
-=================
+    amq_server --port 5555 --is_primary 1
+    amq_server --port 6666 --is_backup 1
 
-If you use a cluster for pub-sub scaling, you will add extra hops to
-published messages.  Note that:
+Alternatively you can use two separate configuration files, with the primary
+server using this:
 
- - All publishers should connect explicitly to the primary server,
-   using the WireAPI connection 'force' option.
+    <cluster
+        vhost = "/"
+        is_primary = "1"
+        backup_peer = "localhost:6666"
+    />
 
- - High-priority subscribers should also connect to the primary server.
+And the backup server using this:
 
- - Low-priority subscribers will be load-balanced around the entire
-   cluster.  These subscribers will suffer some extra latency in their
-   received messages.
+    <cluster
+        vhost = "/"
+        is_backup = "1"
+        primary_peer = "localhost:5555"
+    />
 
-Cluster Organisation
-====================
+Virtual Host
+------------
 
-This describes the cluster organisation:
+The vhost option is used to ensure that connecting applications are using the
+correct cluster.  This value must match the value used by applications.
 
- - An OpenAMQ cluster consists of one primary server, zero or one
-   backup server, and zero or more support servers. At any moment
-   either the primary or the backup server is the "master server".
+Exchange Forwarding Cookbook
+============================
 
- - The cluster servers are fully interconnected and share information
-   using heartbeating commands.
+Summary
+-------
 
- - The master server holds all active shared queues.
+We connect an exchange on one broker (or HA pair of brokers) to the matching
+exchange on a remote broker (or HA pair of brokers).
 
- - Failover from primary to backup is automatic, recovery to
-   primary happens manually, through stopping the backup server
-   after the primary server has been restarted.
+The local exchange either sends messages to the remote exchange, or subscribes
+to messages from it.
 
- - At startup the primary server becomes master, the backup does not.
+There are three message transfer modes:
 
- - If the backup server sees the primary server going away and if it
-   has at least one connected client, it becomes master and remains
-   master until it is stopped. If the primary server goes away, and
-   the backup server has no clients, it cedes its position as master.
+1. Subscriber forwarding - the local exchange requests messages from the remote
+   exchange.
+2. Full forwarding - the local exchange forwards all messages to the remote
+   exchange.
+3. Default forwarding - the local exchange forwards only unmatched messages to
+   the remote exchange.
 
- - If the primary server sees the backup server going away, and it
-   is not master, it becomes master. If the primary server sees the
-   backup coming back, as master, the primary stops being master.
+Subscribe Forwarding
+--------------------
 
- - If a server is neither primary nor backup, it counts the number
-   of masters, and if both primary and backup claim to be master at
-   the same time, it warns the primary server to cede its role as
-   master.
+The classic scenario is when local applications want to receive topic data
+published centrally.
 
-Cluster Limitations
-===================
+The configuration looks like this:
 
-These are the main limitations of the clustering implementation:
+    <cluster-mta
+        name = "exchange-name"
+        vhost = "virtual-host-name"
+        host = "remotehost:port"
+        login = "peering"
+        mode = "1"
+    />
 
- - There is no support for persistence or transactions, this is a
-   general limitation of the current OpenAMQ implementation.
+All bindings made to the specified exchange are copied to the specified remote
+host exchange.
 
- - Servers cannot be added or removed dynamically.  To add a new
-   server to the cluster you must restart the entire cluster.
+Most often used with topic or headers exchanges.
 
-Cluster Cookbook
-****************
+Worked example:
 
-Four steps to configure your cluster:
+ - A set of clients in a regional office need to get market data from a
+   central server.
 
- 1. Choose a cluster topology
- 2. Configure the cluster
- 3. Start the cluster
- 4. Test the cluster
+ - The configuration is done entirely at the regional office by defining an
+   MTA that connects the market data exchanges on both servers.
 
-Choosing a Cluster Topology
-===========================
+ - When data is published centrally, any messages that match requests from
+   the regional applications are forwarded to the regional server.
 
-Choose your cluster topology as follows:
+Full Message Forwarding
+-----------------------
 
- 1. You always want a primary server.
+The classic scenario is when local applications want to publish data both to
+local clients and remote ones.
 
- 2. You always want a backup server.
+The configuration looks like this:
 
- 3. You want one or more support servers if, and only if, you are doing
-    very heavy topic publish-subscribe that is exceeding the capacities
-    of a single OpenAMQ server.
+    <cluster-mta
+        name = "exchange-name"
+        vhost = "virtual-host-name"
+        host = "remotehost:port"
+        login = "peering"
+        mode = "2"
+    />
 
-Configure the Cluster
-=====================
+All messages published to the local exchange are automatically published to the
+remote exchange as well.
 
-This example configuration file shows how to configure a cluster with
-a primary, a backup, and no support servers:
+Most often used with topic or headers exchanges.
 
-    &lt;?xml?&gt;
-    &lt;config&gt;
-        ... other configuration sections
-        &lt;cluster
-            vhost = "my.cluster"
-            heartbeat = "5"
-            &gt;
-            &lt;server name = "cluster-001" host = "10.0.0.1:5001" primary = "1" /&gt;
-            &lt;server name = "cluster-002" host = "10.0.0.1:5002" backup = "1" /&gt;
-        &lt;/cluster&gt;
-    &lt;/config&gt;
+Default Message Forwarding
+--------------------------
 
-Start the Cluster
-=================
+The classic scenario is when local applications want to use services that could
+be either local, or remote.
 
-Start each of the cluster servers by running these commands:
+The configuration looks like this:
 
-    amq_server -c cluster-001 --port 5001&
-    amq_server -c cluster-002 --port 5002&
+    <cluster-mta
+        name = "exchange-name"
+        vhost = "virtual-host-name"
+        host = "remotehost:port"
+        login = "peering"
+        mode = "3"
+    />
 
-If you run the cluster servers on different systems, make sure the host
-setting correctly specifies the IP address and port of each server, and
-make sure each server accesses the same configuration data, by either
-duplicating the configuration file, or holding it on a shared file system.
+All messages published to the local exchange are automatically published to the
+remote exchange only if they are not delivered locally.
 
-Test the Cluster
-================
-
-You can test the cluster by writing an AMQP application but there is a
-simpler way, using the [/pal.html:PAL] scripting languages to build a
-simple messaging client and server.
-
-This script, reader.pal, shows the messaging client:
-
-    &lt;?xml?&gt;
-    &lt;pal script = "amq_pal_gen"&gt;
-       &lt;set name = "myqueue" value = "my.queue" cmdline = "Q" /&gt;
-       &lt;set name = "private" value = "0" cmdline = "P" /&gt;
-       &lt;session cluster_key = "/my.cluster"&gt;
-          &lt;queue_declare queue = "$myqueue" exclusive = "$private" /&gt;
-          &lt;queue_bind queue = "$myqueue" exchange = "amq.direct"
-              routing_key = "test" /&gt;
-          &lt;basic_consume queue = "$myqueue" no_local = "1" /&gt;
-          &lt;repeat&gt;
-             &lt;wait/&gt;
-             &lt;basic_arrived&gt;
-                &lt;echo&gt;I: Message $message_id arrived&lt;/echo&gt;
-             &lt;/basic_arrived&gt;
-             &lt;empty&gt;
-                &lt;abort&gt;E: Message did not arrive&lt;/abort&gt;
-             &lt;/empty&gt;
-          &lt;/repeat&gt;
-       &lt;/session&gt;
-    &lt;/pal&gt;
-
-This script, writer.pal, shows the messaging publisher:
-
-    &lt;?xml?&gt;
-    &lt;pal script = "amq_pal_gen"&gt;
-       &lt;set name = "messages" value = "1" cmdline = "M" /&gt;
-       &lt;set name = "message_id" value = "$random" cmdline = "I" /&gt;
-       &lt;session cluster_key = "/my.cluster"&gt;
-          &lt;repeat counter = "id" times = "$messages" &gt;
-             &lt;basic_content size = "1000" message_id = "id-$message_id" /&gt;
-             &lt;basic_publish exchange = "amq.direct" routing_key = "test" /&gt;
-             &lt;basic_returned&gt;
-                &lt;echo&gt;W: Message $message_id returned&lt;/echo&gt;
-             &lt;/basic_returned&gt;
-          &lt;/repeat&gt;
-       &lt;/session&gt;
-    &lt;/pal&gt;
-
-Testing Shared Queues
----------------------
-
-Starting two readers on the same shared queue:
-
-    reader -s localhost:5001 -Q q.shared
-    reader -s localhost:5002 -Q q.shared
-
-Publishing 5 messages to each cluster server:
-
-    writer -s localhost:5001 -M 5
-    writer -s localhost:5002 -M 5
-
-Expected results:
-
- - The messages from the writer are distributed in round-robin fashion
-   between the readers.
-
-Note that unless there is a certain load of clients, the cluster will
-not redirect client connections, so we can actually decide which cluster
-server we connect to for testing.
-
-Testing Private Queues
-----------------------
-
-Starting two readers, each with their own private queue:
-
-    reader -s localhost:5001 -Q q.private -P 1
-    reader -s localhost:5002 -Q q.private -P 1
-
-Publishing 5 messages to each peer:
-
-    writer -s localhost:5001 -M 5
-    writer -s localhost:5002 -M 5
-
-Expected results:
-
- - Each reader receives a copy of each published message.
+Most often used with direct exchanges so that services can be placed either
+locally or remotely, invisibly to the applications.
 
 Cluster FAQ
 ***********

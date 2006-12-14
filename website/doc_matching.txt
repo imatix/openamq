@@ -41,6 +41,11 @@ This document describes a matching algorithm that provides all the
 functionality needed for topic matching and most of the functionality
 needed for content-based routing.
 
+Authors
+=======
+
+This document was written by Pieter Hintjens.
+
 Argumentation
 *************
 

@@ -82,7 +82,7 @@ Unix Deployment FAQ
    [config.html:server configuration].
 
  - !Do I need root access to run the server?! Answer: no, it runs in user
-   space, and the official AMQP port 95672) does not need root access.
+   space, and the official AMQP port 5672) does not need root access.
 
  - !Does OpenAMQ support connections across firewalls?! Answer: yes, so
    long as you have network addressability, but the current product does not

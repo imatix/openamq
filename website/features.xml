@@ -15,15 +15,15 @@ Implements the AMQ message routing architecture with a set of high
 performance exchange types:
 
  - Implements the AMQP fanout, direct, topic and header exchange types.
- - Create and manage exchanges (limited to 64k exchanges per server).
- - Hierarchical topics of any complexity (limited to 128k topics per exchange).
+ - Create and manage exchanges.
+ - Hierarchical topics of any complexity.
 
 Message Queuing
 ===============
 
 Implements the AMQ queueing model with flexible user-defined message queues:
 
- - Create and manage named or unnamed queues (limited to 64k queues per server).
+ - Create and manage named or unnamed queues.
  - Basic content messages of zero bytes up to 4Gb.
  - Multiple readers per queue with round-robin dispatching
  - Asynchonous message publishing and dispatching.
@@ -53,7 +53,8 @@ Clustering and Failover
 
 Supports failover and scalability through in-built clustering:
 
- - Create server clusters of any size.
+ - Create high-availability server pairs.
+ - Connect servers and server pairs into cluster architectures.
  - Fanout publish/subscribe load across many servers.
  - Configurable client-server heartbeating.
 
@@ -92,7 +93,7 @@ Provides the cross-language WireAPI for application development:
  - Support for all methods defined in the AMQP standard.
  - Asynchronous background message delivery.
  - Error reporting to applications.
- - Currently available for C and C++.
+ - Currently available for C/C++.
 
 Automation
 ==========

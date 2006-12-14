@@ -13,7 +13,8 @@ The Producers
 
  - Produced by [http://www.imatix.com:iMatix Corporation]
  - Written and directed by Pieter Hintjens & Jonathan Schultz
- - Associate producer: John O'Hara
+ - Assistant directors: Martin Lucina & Martin Sustrik
+ - Associate producers: John O'Hara
 
 Principal Crew
 ==============
@@ -25,7 +26,7 @@ Principal Crew
  - Gustavo Broos
  - Tim Esselens
  - Lubica Segecova
- 
+
 With Thanks To
 ==============
 
@@ -55,22 +56,18 @@ Statistics
  - Current version of OpenAMQ software: *$(main_version)*.
  - Number of versions of OpenAMQ released and tested before 1.0d0: *55.*
  - Date of birth of first line of OpenAMQ code: *2, October 2004.*
- - Number of Jiras fixed on OpenAMQ since August 2005: *621.*
+ - Number of Jiras fixed on OpenAMQ since August 2005: *750.*
  - Size of iMatix technology stack: *524,133 lines of C/C++ code.*
  - Size of OpenAMQ main products: *309,656 lines of C/C++ code.*
  - Size of OpenAMQ main products: *10,537 lines of MOP code.*
  - Percentage of OpenAMQ that is generated from models: *99.79%.*
- - Highest speed recorded on a single CPU: *48,000 messages/second.*
- - Highest speed recorded on a multi-way box: *265,828 500-byte messages/second.*
+ - Highest speed recorded on a single CPU: *40,000 messages/second.*
+ - Highest speed recorded on a multi-way box: *140,000 500-byte messages/second.*
  - Theoretical limit on a gigabit network: *512,000 500-byte messages/second.*
  - The team's opinion on OpenAMQ performance: *"it's still too slow!"*
  - First production data flow through OpenAMQ: *9 May 2006 (JPMorganChase).*
+ - Highest number of messages per day for one application: 100,000,000 (JPMorganChase, December 2007)
  - Number of animals harmed in the production of OpenAMQ: *none.*
-
-    2006-05-15 17:52:58: I: outgoing rate=225132 mean=261309 iomean=265828
-    2006-05-15 17:52:59: I: outgoing rate=228540 mean=256710 iomean=261229
-    2006-05-15 17:53:00: I: outgoing rate=218673 mean=255787 iomean=260306
-    2006-05-15 17:53:01: I: outgoing rate=123070 mean=241817 iomean=246336
 
 Technology
 **********

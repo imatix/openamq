@@ -3,5 +3,5 @@
     title = "Runtime Options"
     subtitle = "Fine-tune Your Server"
     >
-<content type = "gurudoc" filename = "../kernel/amq_server_config.txt" />
+<content type = "gurudoc" filename = "amq_server_config.txt" />
 </page>

@@ -42,6 +42,11 @@ technically-minded readership. It explains the basic AMQ concepts, and
 goes into medium detail on all significant aspects of the architecture
 and technology.
 
+Authors
+=======
+
+This document was written by Pieter Hintjens.
+
 Introduction
 ************
 

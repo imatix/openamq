@@ -41,6 +41,11 @@ We define a standard for remote administration of OpenAMQ servers; the
 standard consists of an XML language that defines objects and methods,
 and a transport mechanism that is itself built on top of AMQP.
 
+Authors
+=======
+
+This document was written by Pieter Hintjens.
+
 Overview
 ********
 

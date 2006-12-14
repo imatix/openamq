@@ -151,13 +151,6 @@ Note that:
     help               Show this text
     exit | quit        Leave the OpenAMQ shell
 
-Custom Consoles
-===============
-
-OpenAMQ provides tools and standards to let you develop your own consoles
-in Java, Perl, Python, and other languages.  See the OpenAMQ Console API
-specification.
-
 Administration FAQ
 ******************
 

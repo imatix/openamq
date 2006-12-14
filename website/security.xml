@@ -48,9 +48,8 @@ We advise you to set custom passwords for all production-use of OpenAMQ.
 To do this, in the file amq_server.cfg, add this section:
 
     &lt;security name = "plain"&gt;
-        &lt;user name = "guest"   password = "[new normal password]" /&gt;
-        &lt;user name = "super"   password = "[new super password]" /&gt;
-        &lt;user name = "cluster" password = "[new cluster password]" /&gt;
+        &lt;user name = "guest" password = "[new normal password]" /&gt;
+        &lt;user name = "super" password = "[new super password]" /&gt;
     &lt;/security&gt;
 
 Note that if amq_server.cfg does not already exist, it should look like
@@ -77,9 +76,6 @@ to the amq_server.cfg file:
     &lt;security name = "plain"&gt;
         *&lt;user name = "[login name]" password = "[new super password]" group = "super"/&gt;*
     &lt;/security&gt;
-
-Do !not! create new cluster logins, since the OpenAMQ cluster manager
-always uses the user name "cluster" to connect.
 
 Security FAQ
 ************
