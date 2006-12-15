@@ -77,7 +77,7 @@ limited by size of amq_index_hash table.
                 //  We truncate name and value to sensible limits
 
                 icl_shortstr_ncpy (index_key, field->name, FIELD_NAME_MAX);
-                if (*asl_field_string (field)) {
+                if (field->type != 'V') {
                     icl_shortstr_cat  (index_key, "=");
                     icl_shortstr_ncat (index_key,
                         asl_field_string (field), FIELD_VALUE_MAX);
@@ -134,12 +134,11 @@ limited by size of amq_index_hash table.
             icl_shortstr_ncpy (index_key, field->name, FIELD_NAME_MAX);
             amq_hitset_collect (hitset, self->index_hash, index_key);
 
-            //  Match on field name and value, if field has a value
-            if (*asl_field_string (field)) {
-                icl_shortstr_cat  (index_key, "=");
-                icl_shortstr_ncat (index_key, asl_field_string (field), FIELD_VALUE_MAX);
-                amq_hitset_collect (hitset, self->index_hash, index_key);
-            }
+            //  Match on field value
+            icl_shortstr_cat  (index_key, "=");
+            icl_shortstr_ncat (index_key, asl_field_string (field), FIELD_VALUE_MAX);
+            amq_hitset_collect (hitset, self->index_hash, index_key);
+
             field = asl_field_list_next (&field);
         }
         //  Add "match all" bindings
