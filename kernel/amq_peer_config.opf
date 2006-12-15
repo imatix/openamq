@@ -64,7 +64,6 @@ $\(selftype)
 <path name = "internal" />
 <path name = "queue_profile" />
 <path name = "security" />
-<path name = "cluster-hac" />
-<path name = "cluster-mta" />
+<path name = "cluster_mta" />
 
 </opf>

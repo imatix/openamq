@@ -95,13 +95,6 @@
           </next>
         </class>
 
-       <!--
-        <class name = "cluster" label = "Cluster">
-          <get>
-            icl_shortstr_fmt (field_value, "%d", amq_cluster->object_id);
-          </get>
-        </class>
-       -->
         <class name = "config" label = "Configuration" source = "amq_console_config">
           <get>
             icl_shortstr_fmt (field_value, "%d", amq_console_config->object_id);
@@ -161,7 +154,7 @@
 
 <context>
     Bool
-        clustered,                      //  Is broker running in clustered mode?
+        clustered,                      //  Is broker part of HAC ?
         locked,                         //  Is broker locked?
         restart;                        //  Restart broker after exit?
     int

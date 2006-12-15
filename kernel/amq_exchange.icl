@@ -203,7 +203,7 @@ for each type of exchange. This is a lock-free asynchronous class.
 
     //  If exchange is configured for message transfer, create MTA agent
     config = ipr_config_dup (amq_server_config->config);
-    ipr_config_locate (config, "/config/cluster-mta", name);
+    ipr_config_locate (config, "/config/cluster_mta", name);
     if (config->located) {
         mta_host  = ipr_config_get (config, "host", NULL);
         mta_vhost = ipr_config_get (config, "vhost", "/");

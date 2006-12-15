@@ -156,13 +156,8 @@
     </footer>
     //
     //  Find queue and create if necessary
-    if (strnull (method->queue)) {
-        if (amq_broker->clustered && !method->exclusive)
-            icl_shortstr_fmt (method->queue, "%s:%d",
-                amq_broker->name, icl_atomic_inc32 (&queue_index));
-        else
-            icl_shortstr_fmt (method->queue, "#%d", icl_atomic_inc32 (&queue_index));
-    }
+    if (strnull (method->queue))
+        icl_shortstr_fmt (method->queue, "#%d", icl_atomic_inc32 (&queue_index));
     queue = amq_queue_table_search (vhost->queue_table, method->queue);
     if (!queue) {
         if (method->passive)
@@ -416,11 +411,6 @@
                 method->routing_key,
                 connection->id);
 
-#ifdef __DISABLED_CLUSTER_TODO__
-//  This was where we set the cluster tag for message returns... not very
-//  elegant.
-            amq_content_$(class.name)_set_cluster_id (content, channel->cluster_id);
-#endif
             amq_exchange_publish (exchange, channel, self);
         }
         else
