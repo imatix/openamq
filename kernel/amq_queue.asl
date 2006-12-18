@@ -323,7 +323,7 @@
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 <method name = "unbind" synchronous = "1" index = "22">
-  bind queue to an exchange
+  unbind queue from an exchange
   <doc>
     This method unbinds a queue from an exchange.
   </doc>
