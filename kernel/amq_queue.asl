@@ -209,7 +209,6 @@
   </field>
 </method>
 
-
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 <method name = "bind" synchronous = "1" index = "20">
@@ -317,6 +316,85 @@
   confirm bind successful
   <doc>
     This method confirms that the bind was successful.
+  </doc>
+  <chassis name = "client" implement = "MUST" />
+</method>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+<method name = "unbind" synchronous = "1" index = "22">
+  bind queue to an exchange
+  <doc>
+    This method unbinds a queue from an exchange.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <doc name = "rule">
+  TODO: What happens if specified binding does not exist?
+  </doc>
+  <response name = "unbind-ok" />
+
+  <field name = "ticket" domain = "access ticket">
+    <doc>
+      The client provides a valid access ticket giving "active"
+      access rights to the queue's access realm.
+    </doc>
+  </field>
+
+  <field name = "queue" domain = "queue name">
+    <doc>
+      Specifies the name of the queue to unbind.  If the queue name is
+      empty, refers to the current queue for the channel, which is
+      the last declared queue.
+    </doc>
+    <doc name = "rule">
+      If the client did not previously declare a queue, and the queue
+      name in this method is empty, the server MUST raise a connection
+      exception with reply code 530 (not allowed).
+    </doc>
+    <doc name = "rule" test = "amq_queue_26">
+      If the queue does not exist the server MUST raise a channel exception
+      with reply code 404 (not found).
+    </doc>
+  </field>
+
+  <field name = "exchange" domain = "exchange name">
+    <doc name = "rule">
+      The name of the exchange to unbind from.
+    </doc>
+    <doc name = "rule" test = "amq_queue_14">
+      If the exchange does not exist the server MUST raise a channel
+      exception with reply code 404 (not found).
+    </doc>
+  </field>
+
+  <field name = "routing key" type = "shortstr">
+     message routing key
+    <doc>
+      Specifies the routing key of the binding to unbind.
+    </doc>
+  </field>
+
+  <field name = "nowait" type = "bit">
+    do not send a reply method
+    <doc>
+    If set, the server will not respond to the method. The client should
+    not wait for a reply method.  If the server could not complete the
+    method it will raise a channel or connection exception.
+    </doc>
+  </field>
+
+  <field name = "arguments" type = "table">
+    arguments for binding
+    <doc>
+      A set of arguments of the binding to unbind.
+    </doc>
+  </field>
+</method>
+
+<method name = "unbind-ok" synchronous = "1" index = "23">
+  confirm unbind successful
+  <doc>
+    This method confirms that the unbind was successful.
   </doc>
   <chassis name = "client" implement = "MUST" />
 </method>

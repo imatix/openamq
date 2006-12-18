@@ -264,6 +264,54 @@
         amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined");
   </action>
 
+  <action name = "unbind">
+    <local>
+    amq_exchange_t
+        *exchange;                      //  Exchange to unbind from 
+    amq_queue_t
+        *queue;
+    </local>
+    <local>
+    amq_vhost_t
+        *vhost;
+    </local>
+    <header>
+    vhost = amq_vhost_link (amq_broker->vhost);
+    if (vhost) {
+    </header>
+    <footer>
+        amq_vhost_unlink (&vhost);
+    }
+    else
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+    </footer>
+    //
+    //  Use current channel queue if method uses a blank queue
+    if (strnull (method->queue)) {
+        icl_shortstr_cpy (method->queue, channel->current_queue);
+        if (strnull (method->routing_key))
+            icl_shortstr_cpy (method->routing_key, channel->current_queue);
+    }
+    exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
+    if (exchange) {
+        queue = amq_queue_table_search (vhost->queue_table, method->queue);
+        if (queue) {
+            amq_exchange_protocol_unbind_queue (
+                exchange, channel, queue, method->routing_key, method->arguments);
+            if (!method->nowait)
+                amq_server_agent_queue_unbind_ok (connection->thread, channel->number);
+
+            /*  TODO: Clustering code missing  */
+            amq_queue_unlink (&queue);
+        }
+        else
+            amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
+        amq_exchange_unlink (&exchange);
+    }
+    else
+        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined");
+  </action>
+
   <action name = "delete">
     <local>
     amq_queue_t
