@@ -1,0 +1,1338 @@
+ASL Manual
+
+Overview of ASL
+===============
+
+What is ASL?
+------------
+
+The Abstract Syntax Layer (ASL) is a framework for specifying and building
+protocol stacks.  The ASL framework is based on a protocol specification
+grammar, tools that validate and interpret this grammar, and a set of code
+generators that produce outputs from protocol specifications written in
+the ASL grammar.
+
+The current set of code generators are aimed at multi-channel connected
+protocols.  The AMQP protocol (for which ASL was developed) is a specific
+instance of such a protocol.
+
+The current implementation of ASL, especially the grammar, needs upgrading
+to be compatible with the officially released AMQP specifications, which
+have been forked and modified independently from the ASL framework.
+
+What is an ASL Specification?
+-----------------------------
+
+In gross terms, an ASL specification consists of a set of class and method
+definitions, plus a target.  The classes and methods provide a structure for
+the protocol.  The target specifies the name of a back-end code generator
+that will turn the specifications into usable source code.
+
+The ASL framework is roughly a front-end that parses, denormalises, and
+checks the protocol specifications, plus a set of back-ends that turn these
+specifications into usable source code.
+
+This front-end/back-end architecture is based on the XNF model oriented
+programming (MOP) concept.  ASL is built using MOP and anyone wanting to
+modify or extend ASL should have prior MOP experience.
+
+ASL Targets
+-----------
+
+At code generation time, the protocol developer specifies a "target". The
+target defines entirely what kind of code generation the framework will
+do.  ASL itself defines no fixed architecture on the produced code.
+
+These targets have been developed:
+
+1. A standard C stack (stdc), which produces a full client stack (also called
+   an API), and a server structure into which the developer adds custom code.
+2. Prototype stacks in perl, Java, and C#.  These generate only the client
+   stacks.
+3. A documentation target (doc) that produces extensive documentation for the
+   protocol.
+4. A PAL target (pal) that produces a scripting language for the protocol.
+   PAL is documented separately.
+
+Each target is named 'asl_xxx.gsl' where 'xxx' is the target name.  So, you
+can see how the stdc target works by reading asl_stdc.gsl.
+
+Naming Conventions
+------------------
+
+The only naming conventions imposed by ASL are the extensions for files.
+File names themselves can be defined by the protocol developer.  Note
+that complex protocols need large numbers of files, and the names used
+can be quite important for clarity.
+
+ASL Base Specifications
+-----------------------
+
+The ASL framework includes a set of "base specifications", which are an
+optional foundation for multi-channel connected protocols.  The base
+specifications (asl_base.asl) define:
+
+* A set of constants, including error codes (asl_constants.asl).
+* The connection class and methods (asl_connection.asl).
+* The channel class and methods (asl_channel.asl).
+* A number of standard domains such as reply-code.
+
+The base specifications are not mandatory, but they are intended to make
+the development of AMQP-like protocols faster and easier.  The base
+specifications use these files:
+
+ * asl_base.asl - base specifications.
+ * asl_constants.asl - protocol constants.
+ * asl_connection.asl - the 'connection' class.
+ * asl_channel.asl - the 'channel' class.
+
+The Chassis Concept
+-------------------
+
+ASL is used explicitly for asymmetric client-server protocols, and uses
+the concept of 'chassis' to encapsulate these roles.  In a protocol
+specification, functionality can be tied to either or both chassis,
+telling the code generators, "output this code in the appropriate form
+for the current chassis being generated".
+
+For example, if a particular method is sent by the client to the server
+but not vice-versa, sending code would be generated in the client stack,
+and validating code in server stack.  The chassis information is not used
+by all targets.
+
+Specification Hierarchy
+-----------------------
+
+ASL uses the MOP inheritence technique very heavily.  That is, one ASL
+file can inherit from other files.  ASL files can also include other
+ASL files.  Inclusion copies specifications from one file into an
+other, and makes it simpler to break large grammars into smaller pieces.
+Inheritence lets the developer create variations on a protocol.
+
+A typical protocol specification (like the demo protocol examined below)
+uses both these techniques to create a hierachy of protocol specification
+files.
+
+We can look at some specific examples from the demo protocol:
+
+ * The two chassis specifications inherit from the same base protocol
+   specification called demo.asl.  This lets the chassis specifications
+   share the same classes and methods, and layer ASL code on top of
+   those.
+ * Each class is defined as a seperate .asl file, and included into the
+   base protocol specification.  This lets the author edit each class
+   separately; simpler and more convenient than editing the whole protocol
+   as a single file.
+
+Worked Example - Demo protocol
+------------------------------
+
+The ASL project includes a complete worked example, 'demo', which uses
+the base specifications.  The demo protocol implements a simple message
+routing service, based on the concepts of 'exchange' and 'queue', as
+developed in AMQP.
+
+We provide a summary of the demo protocol specifications.  The demo
+protocol uses the stdc target, which uses two chassis specifications,
+one for the server and one for the client.
+
+Helicopter overview
+...................
+
+The specifications themselves are composed of these ASL files:
+
+ * demo_client_proto.asl - chassis specification for the client.
+ * demo_server_proto.asl - chassis specification for the server.
+ * demo.asl - demo protocol base specification.
+ * demo_access.asl - 'access' class.
+ * demo_basic.asl - 'basic' class.
+ * demo_exchange.asl - 'exchange' class.
+ * demo_queue.asl - 'queue' class.
+
+The demo.asl file inherits from asl_base.asl, so incorporates the connection
+and channel classes from that base specification.  The client and server
+chassis inherit from demo.asl, so include all its classes, plus those from
+asl_base.asl.
+
+The two chassis specifications also inherit from these files, which in the
+current implementation implement rules for the 'stdc' target:
+
+ * asl_client.asl - base specification for a client chassis.
+ * asl_server.asl - base specification for a server chassis.
+
+To generate code, we issue these commands:
+
+    gsl demo_client_proto.asl
+    gsl demo_server_proto.asl
+
+In the ASL project.pdl, these two files are defined using the "gsl data"
+class, which issues the above commands automatically at build time.
+
+Chassis specification for client
+................................
+
+The client chassis specification is the top-level specification for generating
+the client stack.  This specification inherits from demo.asl and asl_client,
+and then adds the information needed to generate the client stack properly:
+
+    <?xml version="1.0"?>
+    <protocol comment = "ASL demo client" script  = "asl_gen" chassis = "client">
+    <inherit name = "demo" />
+    <inherit name = "asl_client" />
+
+The specification sets two options, the first specifies the name that is used
+to identify clients on the wire, and the second tells the stdc target to
+generate a "synchronous client", that is, one which can be used from normal
+applications.  We explain the stdc back-end later.
+
+    <option name = "product_name" value = "ASL Demo Client" />
+    <option name = "syncapi" value = "1" />
+
+The specification declares defaults for a method (this is to test the use
+of defaults):
+
+    <class name = "queue">
+    <defaults method = "declare">
+        <field name = "ticket"       default = "0" />
+        <field name = "passive"      default = "0" />
+        <field name = "durable"      default = "0" />
+        <field name = "exclusive"    default = "0" />
+    </defaults>
+    </class>
+
+The specification then provides code implementations for methods.  This
+is how the protocol implementor adds specific code to the generated
+client stack:
+
+    <class name = "basic">
+    <action name = "get-ok">
+        demo_content_$(class.name)_set_routing_key (
+            self->content, method->exchange, method->routing_key, 0);
+        demo_content_$(class.name)_list_push_back (
+            session->arrived_$(class.name)_list,
+            self->content);
+    </action>
+    </class>
+    </protocol>
+
+Chassis specification for server
+................................
+
+The server chassis specification is the top-level specification for generating
+the server framework.  This specification inherits from demo.asl and asl_server,
+and then adds the information needed to generate the server framework properly:
+
+    <?xml version="1.0"?>
+    <protocol
+        comment = "ASL demo server"
+        script  = "asl_gen"
+        chassis = "server"
+        >
+    <inherit name = "demo" />
+    <inherit name = "asl_server" />
+    <option name = "product_name" value = "ASL Demo Server" />
+
+The specification provides code implementations for methods.  This
+is how the protocol implementor connects the generated server framework
+with custom-written classes that do the actual work.  This interface
+is part of the stdc target and is explained in detail later:
+
+    <class name = "channel">
+        <action name = "flow">
+            channel->active = method->active;
+        </action>
+    </class>
+    ...
+    </protocol>
+
+Demo protocol base specification
+................................
+
+The demo protocol base specification defines the Demo protocol without any
+chassis or target-specific data.  We use the protocol base specification
+to generate documentation, for example.
+
+The specification inherits from asl_base.asl, the ASL base specification.
+It includes all the protocol classes (this is just a way of keeping the
+text readable and editable).  Then, it defines a set of options that are
+used in the generation of the client and server layers:
+
+    <?xml version="1.0"?>
+    <protocol
+        name     = "demo"
+        comment  = "ASL demo protocol"
+        script   = "asl_gen"
+        target   = "stdc"
+        >
+    <inherit name = "asl_base" />
+    <include filename = "demo_access.asl" />
+    <include filename = "demo_exchange.asl" />
+    <include filename = "demo_queue.asl" />
+    <include filename = "demo_basic.asl" />
+
+    <option name = "protocol_name"     value = "DEMO" />
+    <option name = "protocol_port"     value = "7654" />
+    <option name = "protocol_class"    value = "1" />
+    <option name = "protocol_instance" value = "1" />
+    <option name = "protocol_major"    value = "1" />
+    <option name = "protocol_minor"    value = "1" />
+
+The file then defines a set of domains that are shared by all classes in
+this protocol.  Domains can be defined in any of the class files as well;
+it is just convenient to place these in the protocol base specification:
+
+    <domain name = "access ticket" type = "short">
+    ...
+    </domain>
+    ...
+    </protocol>
+
+Access class
+............
+
+The access.asl defines the access class, which is a set of related methods.
+
+    <?xml version="1.0"?>
+    <!--
+        Copyright (c) 1996-2006 iMatix Corporation
+
+        This program is free software; you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation; either version 2 of the License, or (at
+        your option) any later version.
+
+        This program is distributed in the hope that it will be useful, but
+        WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+        General Public License for more details.
+
+        For information on alternative licensing for OEMs, please contact
+        iMatix Corporation.
+    -->
+    <class
+        name    = "access"
+        handler = "connection"
+        index   = "30"
+    >
+    work with access tickets
+
+    <doc>
+    The protocol control access to server resources using access tickets.
+    A client must explicitly request access tickets before doing work.
+    An access ticket grants a client the right to use a specific set of
+    resources - called a "realm" - in specific ways.
+    </doc>
+
+    <doc name = "grammar">
+        access              = C:REQUEST S:REQUEST-OK
+    </doc>
+
+    <chassis name = "server" implement = "MUST" />
+    <chassis name = "client" implement = "MUST" />
+
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+    <method name = "request" synchronous = "1" index = "10">
+    request an access ticket
+    <doc>
+        This method requests an access ticket for an access realm.
+        The server responds by granting the access ticket.  If the
+        client does not have access rights to the requested realm
+        this causes a connection exception.  Access tickets may be
+        shared across channels within a connection and expire with
+        the connection.
+    </doc>
+    <doc name = "rule">
+        The realm name MUST start with either "/data" (for application
+        resources) or "/admin" (for server administration resources).
+    </doc>
+    <doc name = "rule">
+        The server MUST implement the /data realm and MAY implement the
+        /admin realm.  The mapping of resources to realms is not
+        defined in the protocol - this is a server-side configuration
+        issue.
+    </doc>
+    <chassis name = "server" implement = "MUST" />
+    <response name = "request-ok" />
+
+    <field name = "realm" domain = "path" >
+        name of requested realm
+    </field>
+
+    <field name = "exclusive" type = "bit">
+        request exclusive access
+        <doc>
+        Request exclusive access to the realm. If the server cannot grant
+        this - because there are other active tickets for the realm - it
+        raises a channel exception.
+        </doc>
+    </field>
+
+    <field name = "passive" type = "bit">
+        request passive access
+        <doc>
+        Request message passive access to the specified access realm.
+        Passive access lets a client get information about resources in
+        the realm but not to make any changes to them.
+        </doc>
+    </field>
+
+    <field name = "active" type = "bit">
+        request active access
+        <doc>
+        Request message active access to the specified access realm.
+        Acvtive access lets a client get create and delete resources in
+        the realm.
+        </doc>
+    </field>
+
+    <field name = "write" type = "bit">
+        request write access
+        <doc>
+        Request write access to the specified access realm.  Write access
+        lets a client publish messages to all exchanges in the realm.
+        </doc>
+    </field>
+
+    <field name = "read" type = "bit">
+        request read access
+        <doc>
+        Request read access to the specified access realm.  Read access
+        lets a client consume messages from queues in the realm.
+        </doc>
+    </field>
+    </method>
+
+    <method name = "request-ok" synchronous = "1" index = "11">
+    grant access to server resources
+    <doc>
+        This method provides the client with an access ticket. The access
+        ticket is valid within the current channel and for the lifespan of
+        the channel.
+    </doc>
+    <doc name = "rule">
+        The client MUST NOT use access tickets except within the same
+        channel as originally granted.
+    </doc>
+    <doc name = "rule">
+        The server MUST isolate access tickets per channel and treat an
+        attempt by a client to mix these as a connection exception.
+    </doc>
+    <chassis name = "client" implement = "MUST" />
+
+    <field name = "ticket" domain = "access ticket" />
+    </method>
+
+    </class>
+
+
+Basic class
+...........
+
+    <?xml version="1.0"?>
+    <!--
+        Copyright (c) 1996-2006 iMatix Corporation
+
+        This program is free software; you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation; either version 2 of the License, or (at
+        your option) any later version.
+
+        This program is distributed in the hope that it will be useful, but
+        WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+        General Public License for more details.
+
+        For information on alternative licensing for OEMs, please contact
+        iMatix Corporation.
+    -->
+    <class
+        name    = "basic"
+        handler = "channel"
+        index   = "60"
+    >
+    work with basic content
+
+    <doc>
+    The Basic class provides methods that support the standard basic content
+    API. Basic messages have a minimal set of properties.  Trivial messages
+    are not subject to transactions.
+    </doc>
+
+    <doc name = "grammar">
+        basic               = C:PUBLISH content
+                            / C:GET ( S:GET-OK content / S:GET-EMPTY )
+    </doc>
+
+    <chassis name = "server" implement = "MUST" />
+    <chassis name = "client" implement = "MAY"  />
+
+    <!--  These are the properties for a Basic content  -->
+
+    <field name = "content type" type = "shortstr">
+        MIME content type
+    </field>
+    <field name = "content encoding" type = "shortstr">
+        MIME content encoding
+    </field>
+    <field name = "headers" type = "table">
+        Message header field table
+    </field>
+    <field name = "message id" type = "shortstr">
+        The application message identifier
+    </field>
+
+
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+    <method name = "publish" synchronous = "0" content = "1" index = "10">
+    publish a message
+    <doc>
+        This method publishes a message to a specific exchange. The message
+        will be forwarded to all registered queues and distributed to any
+        active consumers when the transaction is committed.
+    </doc>
+    <chassis name = "server" implement = "MUST" />
+
+    <field name = "ticket" domain = "access ticket">
+        <doc name = "rule">
+        The client MUST provide a valid access ticket giving "write"
+        access rights to the access realm for the exchange.
+        </doc>
+    </field>
+
+    <field name = "exchange" domain = "exchange name">
+        <doc>
+        Specifies the name of the exchange to publish to.  If the exchange
+        does not exist the server will raise a channel exception.
+        </doc>
+        <assert check = "notnull" />
+    </field>
+
+    <field name = "routing key" type = "shortstr">
+        Message routing key
+        <doc>
+        Specifies the routing key for the message.  The routing key is
+        a value that is used for routing messages depending on the exchange
+        configuration.
+        </doc>
+    </field>
+    </method>
+
+
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+    <method name = "get" synchronous = "1" index = "20">
+    direct access to a queue
+    <doc>
+        This method provides a direct access to the messages in a queue
+        using a synchronous dialogue that is designed for specific types of
+        application where functionality is more important than performance.
+    </doc>
+    <response name = "get-ok" />
+    <response name = "get-empty" />
+    <chassis name = "server" implement = "MUST" />
+
+    <field name = "ticket" domain = "access ticket">
+        <doc name = "rule">
+        The client MUST provide a valid access ticket giving "read"
+        access rights to the realm for the queue.
+        </doc>
+    </field>
+
+    <field name = "queue" domain = "queue name">
+        <doc>
+        Specifies the name of the queue to get a message from.
+        </doc>
+    </field>
+    </method>
+
+    <method name = "get-ok" synchronous = "1" content = "1" index = "21">
+    provide client with a message
+    <doc>
+        This method delivers a message to the client following a get
+        method.
+    </doc>
+    <chassis name = "client" implement = "MAY" />
+
+    <field name = "exchange" domain = "exchange name">
+        <doc>
+        Specifies the name of the exchange that the message was
+        originally published to.
+        </doc>
+        <assert check = "notnull" />
+    </field>
+
+    <field name = "routing key" type = "shortstr">
+        Message routing key
+        <doc>
+        Specifies the routing key name specified when the message was
+        published.
+        </doc>
+    </field>
+
+    <field name = "message count" type = "long" >
+        number of messages pending
+        <doc>
+        This field reports the number of messages pending on the queue,
+        excluding the message being delivered.  Note that this figure is
+        indicative, not reliable, and can change arbitrarily as messages
+        are added to the queue and removed by other clients.
+        </doc>
+    </field>
+    </method>
+
+
+    <method name = "get-empty" synchronous = "1" index = "22">
+    indicate no messages available
+    <doc>
+        This method tells the client that the queue has no messages
+        available for the client.
+    </doc>
+    <chassis name = "client" implement = "MAY" />
+    </method>
+
+    </class>
+
+
+Exchange class
+..............
+
+    <?xml version="1.0"?>
+    <!--
+        Copyright (c) 1996-2006 iMatix Corporation
+
+        This program is free software; you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation; either version 2 of the License, or (at
+        your option) any later version.
+
+        This program is distributed in the hope that it will be useful, but
+        WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+        General Public License for more details.
+
+        For information on alternative licensing for OEMs, please contact
+        iMatix Corporation.
+    -->
+    <class
+        name    = "exchange"
+        handler = "channel"
+        index   = "40"
+    >
+    work with exchanges
+
+    <doc>
+    Exchanges match and distribute messages across queues.  Exchanges can be
+    configured in the server or created at runtime.
+    </doc>
+
+    <doc name = "grammar">
+        exchange            = C:DECLARE S:DECLARE-OK
+                            / C:DELETE  S:DELETE-OK
+    </doc>
+
+    <chassis name = "server" implement = "MUST" />
+    <chassis name = "client" implement = "MUST" />
+
+
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+    <method name = "declare" synchronous = "1" index = "10">
+    declare exchange, create if needed
+    <doc>
+        This method creates or checks an exchange. When creating a new exchange
+        the client can specify various properties that control the durability
+        of the exchange and the level of sharing for the exchange.
+    </doc>
+    <chassis name = "server" implement = "MUST" />
+    <response name = "declare-ok" />
+
+    <field name = "ticket" domain = "access ticket">
+        <doc>
+        When a client defines a new exchange, this belongs to the access realm
+        of the ticket used.  All further work done with that exchange must be
+        done with an access ticket for the same realm.
+        </doc>
+        <doc name = "rule">
+        The client MUST provide a valid access ticket giving "active" access
+        to the realm in which the exchange exists or will be created, or
+        "passive" access if the if-exists flag is set.
+        </doc>
+    </field>
+
+    <field name = "exchange" domain = "exchange name">
+        <assert check = "regexp" value = "^[a-zA-Z0-9-_]+$" />
+    </field>
+
+    <field name = "type" type = "shortstr">
+        exchange class
+        <doc>
+        Specifies the name of an exchange class, which is a server defined
+        class that defines the exchange functionality.
+        </doc>
+        <assert check = "regexp" value = "^[a-zA-Z0-9-_]+$" />
+    </field>
+
+    <field name = "passive" type = "bit">
+        do not create exchange
+        <doc>
+        If set, the server will report the status of an exchange if it
+        exists and raise a channel assertion if not.  This flag lets
+        clients discover the status of non-existent exchanges without
+        creating them.
+        </doc>
+    </field>
+
+    <field name = "durable" type = "bit">
+        request a durable exchange
+        <doc>
+        If set when creating a new exchange, the exchange will be marked as
+        durable.  Durable exchanges remain active when a server restarts.
+        Non-durable exchanges (transient exchanges) are purged if/when a
+        server restarts.
+        </doc>
+        <doc name = "rule">
+        The server MUST support both durable and transient exchanges.
+        </doc>
+        <doc name = "rule">
+        The server MUST ignore the durable field if the exchange already
+        exists.
+        </doc>
+    </field>
+
+    <field name = "auto delete" type = "bit">
+        auto-delete when unused
+        <doc>
+        If set, the exchange is deleted when all queues have finished
+        using it.
+        </doc>
+        <doc name = "rule">
+        The server SHOULD allow for a reasonable delay between the point
+        when it determines that an exchange is not being used (or no longer
+        used), and the point when it deletes the exchange.  At the least it
+        must allow a client to create an exchange and then bind a queue to
+        it, with a small but non-zero delay between these two actions.
+        </doc>
+        <doc name = "rule">
+        The server MUST ignore the auto-delete field if the exchange already
+        exists.
+        </doc>
+    </field>
+    </method>
+
+
+    <method name = "declare-ok" synchronous = "1" index = "11">
+    confirms an exchange declaration
+    <doc>
+        This method confirms a Declare method and confirms the name of the
+        exchange, essential for automatically-named exchanges.
+    </doc>
+    <chassis name = "client" implement = "MUST" />
+    </method>
+
+
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+    <method name = "delete" synchronous = "1" index = "20">
+    delete an exchange
+    <doc>
+        This method deletes an exchange.  When an exchange is deleted all queue
+        bindings on the exchange are cancelled.
+    </doc>
+    <chassis name = "server" implement = "MUST" />
+    <response name = "delete-ok" />
+
+    <field name = "ticket" domain = "access ticket">
+        <doc name = "rule">
+        The client MUST provide a valid access ticket giving "active"
+        access rights to the exchange's access realm.
+        </doc>
+    </field>
+
+    <field name = "exchange" domain = "exchange name">
+        <doc name = "rule">
+        The exchange must exist. Attempting to delete a non-existing exchange
+        causes a channel exception.
+        </doc>
+        <assert check = "notnull" />
+    </field>
+
+    <field name = "if unused" type = "bit">
+        delete only if unused
+        <doc>
+        If set, the server will only delete the exchange if it has no queue
+        bindings. If the exchange has queue bindings the server does not
+        delete it but raises a channel exception instead.
+        </doc>
+    </field>
+    </method>
+
+
+    <method name = "delete-ok" synchronous = "1" index = "21">
+    confirm deletion of an exchange
+    <doc>
+        This method confirms the deletion of an exchange.
+    </doc>
+    <chassis name = "client" implement = "MUST" />
+    </method>
+
+    </class>
+
+Queue class
+...........
+
+    <?xml version="1.0"?>
+    <!--
+        Copyright (c) 1996-2006 iMatix Corporation
+
+        This program is free software; you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation; either version 2 of the License, or (at
+        your option) any later version.
+
+        This program is distributed in the hope that it will be useful, but
+        WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+        General Public License for more details.
+
+        For information on alternative licensing for OEMs, please contact
+        iMatix Corporation.
+    -->
+    <class
+        name    = "queue"
+        handler = "channel"
+        index   = "50"
+    >
+    work with queues
+
+    <doc>
+    Queues store and forward messages.  Queues can be configured in the server
+    or created at runtime.  Queues must be attached to at least one exchange
+    in order to receive messages from publishers.
+    </doc>
+
+    <doc name = "grammar">
+        queue               = C:DECLARE  S:DECLARE-OK
+                            / C:BIND     S:BIND-OK
+                            / C:CANCEL   S:CANCEL-OK
+                            / C:PURGE    S:PURGE-OK
+                            / C:DELETE   S:DELETE-OK
+    </doc>
+
+    <chassis name = "server" implement = "MUST" />
+    <chassis name = "client" implement = "MUST" />
+
+
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+    <method name = "declare" synchronous = "1" index = "10">
+    declare queue, create if needed
+    <doc>
+        This method creates or checks a queue.  When creating a new queue
+        the client can specify various properties that control the durability
+        of the queue and its contents, and the level of sharing for the queue.
+    </doc>
+    <chassis name = "server" implement = "MUST" />
+    <response name = "declare-ok" />
+
+    <field name = "ticket" domain = "access ticket">
+        <doc>
+        When a client defines a new queue, this belongs to the access realm
+        of the ticket used.  All further work done with that queue must be
+        done with an access ticket for the same realm.
+        </doc>
+        <doc name = "rule">
+        The client MUST provide a valid access ticket giving "active" access
+        to the realm in which the queue exists or will be created, or
+        "passive" access if the if-exists flag is set.
+        </doc>
+    </field>
+
+    <field name = "queue" domain = "queue name">
+        <assert check = "regexp" value = "^[a-zA-Z0-9-_]+$" />
+    </field>
+
+    <field name = "passive" type = "bit">
+        do not create queue
+        <doc>
+        If set, the server will report the status of a queue if it
+        exists and raise a channel assertion if not.  This flag lets
+        clients discover the status of non-existent queues without
+        creating them.
+        </doc>
+    </field>
+
+    <field name = "durable" type = "bit">
+        request a durable queue
+        <doc>
+        If set when creating a new queue, the queue will be marked as
+        durable.  Durable queues remain active when a server restarts.
+        Non-durable queues (transient queues) are purged if/when a
+        server restarts.  Note that durable queues do not necessarily
+        hold persistent messages, although it does not make sense to
+        send persistent messages to a transient queue.
+        </doc>
+        <doc name = "rule">
+        The server MUST support both durable and transient queues.
+        </doc>
+        <doc name = "rule">
+        The server MUST ignore the durable field if the queue already
+        exists.
+        </doc>
+    </field>
+
+    <field name = "exclusive" type = "bit">
+        request an exclusive queue
+        <doc>
+        If set when creating a new queue, the queue will be private and
+        owned by the current client. This will fail if the queue already
+        exists and is owned by another client. Private queues cannot be
+        consumed from by clients except the owner.
+        </doc>
+        <doc name = "rule">
+        The server MUST support both private and shared queues.
+        </doc>
+        <doc name = "rule">
+        The server MUST use the client identifier supplied at connection
+        open time to identify the owner of a private queue.  The client
+        identifier is persistent even if the client disconnects and
+        reconnects.
+        </doc>
+        <doc name = "rule">
+        The server MUST ignore the private field if the queue already
+        exists.
+        </doc>
+    </field>
+
+    <field name = "auto delete" type = "bit">
+        auto-delete queue when unused  
+        <doc>
+        If set, the queue is deleted when all clients have finished
+        using it.
+        </doc>
+        <doc name = "rule">
+        The server SHOULD allow for a reasonable delay between the point
+        when it determines that a queue is not being used (or no longer
+        used), and the point when it deletes the queue.  At the least it
+        must allow a client to create a queue and then create a consumer
+        to read from it, with a small but non-zero delay between these
+        two actions.  The server should equally allow for clients that may
+        be disconnected prematurely, and wish to re-consume from the same
+        queue without losing messages.  We would recommend a configurable
+        timeout, with a suitable default value being one minute.
+        </doc>
+        <doc name = "rule">
+        The server MUST ignore the auto-delete field if the queue already
+        exists.
+        </doc>
+    </field>
+    </method>
+
+
+    <method name = "declare-ok" synchronous = "1" index = "11">
+    confirms a queue definition
+    <doc>
+        This method confirms a Declare method and confirms the name of the
+        queue, essential for automatically-named queues.
+    </doc>
+    <chassis name = "client" implement = "MUST" />
+
+    <field name = "queue" domain = "queue name">
+        <doc>
+        Reports the name of the queue. If the server generated a queue
+        name, this field contains that name.
+        </doc>
+        <assert check = "notnull" />
+    </field>
+
+    <field name = "exchange" domain = "exchange name"> 
+        <doc>
+        Reports the name of the last-bound exchange for the queue.
+        In the case of newly-created queues this will be empty.
+        </doc>
+        <doc name = "rule">
+        The server MUST NOT bind newly-created queues with exchanges
+        implicitly or automatically. The decision of what exchanges to use
+        is taken by the client application responsible for administrating
+        the server.  However the server SHOULD store durable bindings so
+        that on a server restart these can be recreated.
+        </doc>
+    </field>
+
+    <field name = "message count" type = "long">
+        number of messages in queue 
+        <doc>
+        Reports the number of messages in the queue, which will be zero
+        for newly-created queues.
+        </doc>
+    </field>
+
+    <field name = "consumer count" type = "long">
+        number of consumers
+        <doc>
+        Reports the number of active consumers for the queue. Note that
+        consumers can suspend activity (Channel.Flow) in which case they
+        do not appear in this count.
+        </doc>
+    </field>
+    </method>
+
+
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+    <method name = "bind" synchronous = "1" index = "20">
+    bind queue to an exchange
+    <doc>
+        This method binds a queue to an exchange.  Until a queue is
+        bound it will not receive any messages.  In a classic messaging
+        model, store-and-forward queues are bound to a dest-name exchange
+        and subscription queues are bound to a dest-wild exchange.
+    </doc>
+    <doc name = "rule">
+        A server MUST allow ignore duplicate bindings - that is, two or
+        more bind methods for a specific queue, with identical arguments
+        - without treating these as an error.
+    </doc>
+    <doc name = "rule">
+        If a bind fails, the server MUST raise a connection exception.
+    </doc>
+    <doc name = "rule">
+        The server MUST NOT allow a durable queue to bind to a transient
+        exchange. If the client attempts this the server MUST raise a
+        channel exception.
+    </doc>
+    <doc name = "rule">
+        Bindings for durable queues are automatically durable and the
+        server SHOULD restore such bindings after a server restart.
+    </doc>
+    <chassis name = "server" implement = "MUST" />
+    <response name = "bind-ok" />
+
+    <field name = "ticket" domain = "access ticket">
+        <doc name = "rule">
+        The client MUST provide a valid access ticket giving "active"
+        access rights to the queue's access realm.
+        </doc>
+    </field>
+
+    <field name = "queue" domain = "queue name">
+        <doc name = "rule">
+        The queue must exist. Attempting to query a non-existing queue
+        causes a channel exception.
+        </doc>
+        <assert check = "notnull" />
+    </field>
+
+    <field name = "exchange" domain = "exchange name">
+        <doc>
+        The name of the exchange to bind to. If the exchange does not
+        exist the server will raise a channel exception.
+        </doc>
+    </field>
+
+    <field name = "arguments" type = "table">
+        arguments for binding
+        <doc>
+        A set of arguments for the binding.  The syntax and semantics of
+        these arguments depends on the exchange class.
+        </doc>
+    </field>
+    </method>
+
+    <method name = "bind-ok" synchronous = "1" index = "21">
+    confirm bind successful
+    <doc>
+        This method confirms that the bind was successful.
+    </doc>
+    <chassis name = "client" implement = "MUST" />
+    </method>
+
+
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+    <method name = "purge" synchronous = "1" index = "30">
+    purge a queue 
+    <doc>
+        This method removes all messages from a queue.  It does not cancel
+        consumers.  Purged messages are deleted without any formal "undo"
+        mechanism.
+    </doc>
+    <doc name = "rule">
+        On transacted channels the server MUST not purge messages that have
+        already been sent to a client but not yet acknowledged.
+    </doc>
+    <doc name = "rule">
+        The server MAY implement a purge queue or log that allows system
+        administrators to recover accidentally-purged messages.  The server
+        SHOULD NOT keep purged messages in the same storage spaces as the
+        live messages since the volumes of purged messages may get very
+        large.
+    </doc>
+    <chassis name = "server" implement = "MUST" />
+    <response name = "purge-ok" />
+
+    <field name = "ticket" domain = "access ticket">
+        <doc>
+        The access ticket must be for the access realm that holds the
+        queue.
+        </doc>
+        <doc name = "rule">
+        The client MUST provide a valid access ticket giving "read" access
+        rights to the queue's access realm.  Note that purging a queue is
+        equivalent to reading all messages and discarding them.
+        </doc>
+    </field>
+
+    <field name = "queue" domain = "queue name">
+        <doc name = "rule">
+        The queue must exist. Attempting to purge a non-existing queue
+        causes a channel exception.
+        </doc>
+        <assert check = "notnull" />
+    </field>
+    </method>
+
+
+    <method name = "purge-ok" synchronous = "1" index = "31">
+    confirms a queue purge
+    <doc>
+        This method confirms the purge of a queue.
+    </doc>
+    <chassis name = "client" implement = "MUST" />
+
+    <field name = "message count" type = "long">
+        number of messages purged
+        <doc>
+        Reports the number of messages purged.
+        </doc>
+    </field>
+    </method>
+
+
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+    <method name = "delete" synchronous = "1" index = "40">
+    delete a queue
+    <doc>
+        This method deletes a queue.  When a queue is deleted any pending
+        messages are sent to a dead-letter queue if this is defined in the
+        server configuration, and all consumers on the queue are cancelwled.
+    </doc>
+    <doc name = "rule">
+        The server SHOULD use a dead-letter queue to hold messages that
+        were pending on a deleted queue, and MAY provide facilities for
+        a system administrator to move these messages back to an active
+        queue.
+    </doc>
+    <chassis name = "server" implement = "MUST" />
+    <response name = "delete-ok" />
+
+    <field name = "ticket" domain = "access ticket">
+        <doc name = "rule">
+        The client MUST provide a valid access ticket giving "active"
+        access rights to the queue's access realm.
+        </doc>
+    </field>
+
+    <field name = "queue" domain = "queue name">
+        <doc name = "rule">
+        The queue must exist. Attempting to delete a non-existing queue
+        causes a channel exception.
+        </doc>
+        <assert check = "notnull" />
+    </field>
+
+    <field name = "if unused" type = "bit">
+        delete only if unused
+        <doc>
+        If set, the server will only delete the queue if it has no
+        consumers. If the queue has consumers the server does does not
+        delete it but raises a channel exception instead.
+        </doc>
+    </field>
+
+    <field name = "if empty" type = "bit">
+        delete only if empty
+        <doc>
+        If set, the server will only delete the queue if it has no
+        messages. If the queue is not empty the server raises a channel
+        exception.
+        </doc>
+    </field>
+    </method>
+
+
+    <method name = "delete-ok" synchronous = "1" index = "41">
+    confirm deletion of a queue
+    <doc>
+        This method confirms the deletion of a queue.
+    </doc>
+    <chassis name = "client" implement = "MUST" />
+
+    <field name = "message count" type = "long">
+        number of messages purged
+        <doc>
+        Reports the number of messages purged.
+        </doc>
+    </field>
+    </method>
+
+    </class>
+
+Base specification for client chassis
+.....................................
+
+    <?xml version="1.0"?>
+    <!--
+        Copyright (c) 1996-2006 iMatix Corporation
+
+        This program is free software; you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation; either version 2 of the License, or (at
+        your option) any later version.
+
+        This program is distributed in the hope that it will be useful, but
+        WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+        General Public License for more details.
+
+        For information on alternative licensing for OEMs, please contact
+        iMatix Corporation.
+    -->
+    <protocol
+        comment = "ASL standard client actions"
+        abstract = "1"
+        >
+
+    <class name = "connection">
+    <context>
+        icl_shortstr_t
+            server_host;
+        icl_shortstr_t
+            server_name;
+        icl_shortstr_t
+            server_product;                 //  Reported by server
+        icl_shortstr_t
+            server_version;
+        icl_shortstr_t
+            server_platform;
+        icl_shortstr_t
+            server_copyright;
+        icl_shortstr_t
+            server_information;
+        icl_shortstr_t
+            server_instance;
+    </context>
+
+    <action name = "start">
+        <local>
+        asl_field_list_t
+            *fields;                        //  Decoded responses
+        </local>
+        //
+        fields = asl_field_list_new (method->server_properties);
+        if (fields) {
+            asl_field_list_cpy (fields, connection->server_host,            "host");
+            asl_field_list_cpy (fields, connection->server_instance,        "instance");
+            asl_field_list_cpy (fields, connection->server_product,         "product");
+            asl_field_list_cpy (fields, connection->server_version,         "version");
+            asl_field_list_cpy (fields, connection->server_platform,        "platform");
+            asl_field_list_cpy (fields, connection->server_copyright,       "copyright");
+            asl_field_list_cpy (fields, connection->server_information,     "information");
+            asl_field_list_destroy (&fields);
+        }
+    </action>
+
+    <action name = "close">
+        if (!connection->silent)
+            icl_console_print ("W: connection closed: %d - %s",
+                connection->reply_code, connection->reply_text);
+    </action>
+    </class>
+
+    <class name = "channel">
+    <action name = "alert">
+        if (!session->silent)
+            icl_console_print ("W: alert from server: %d - %s",
+                session->reply_code, session->reply_text);
+    </action>
+    <action name = "close">
+        if (!session->silent)
+            icl_console_print ("W: channel closed: %d - %s",
+                session->reply_code, session->reply_text);
+    </action>
+    </class>
+
+    </protocol>
+
+Base specification for server chassis
+.....................................
+
+    <?xml version="1.0"?>
+    <!--
+        Copyright (c) 1996-2006 iMatix Corporation
+
+        This program is free software; you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation; either version 2 of the License, or (at
+        your option) any later version.
+
+        This program is distributed in the hope that it will be useful, but
+        WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+        General Public License for more details.
+
+        For information on alternative licensing for OEMs, please contact
+        iMatix Corporation.
+    -->
+    <protocol
+        comment = "ASL standard server actions"
+        abstract = "1"
+        >
+
+    <class name = "connection">
+    <action name = "start-ok">
+        $(basename)_connection_start_ok (connection, method);
+    </action>
+
+    <action name = "tune-ok">
+        $(basename)_connection_tune_ok (connection, method);
+    </action>
+
+    <action name = "open">
+        $(basename)_connection_open (connection, method);
+    </action>
+    </class>
+
+    </protocol>
+
+
+
+
+ASL Framework Architecture
+==========================
+
+The stdc Target
+===============
+
+- options
+<option name = "protocol_name"     value = "DEMO" />
+<option name = "protocol_port"     value = "7654" />
+<option name = "protocol_class"    value = "1" />
+<option name = "protocol_instance" value = "1" />
+<option name = "protocol_major"    value = "1" />
+<option name = "protocol_minor"    value = "1" />
+
+
+
+The doc Target
+==============
+
+The pal Target
+==============
+
+
+
+Reference
+=========
