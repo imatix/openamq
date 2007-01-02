@@ -33,7 +33,7 @@
             <queue_declare exclusive = "1" />
             <queue_bind queue = "$queue" exchange = "amq.direct" routing_key = "stable" />
             <queue_bind queue = "$queue" exchange = "amq.direct" routing_key = "burst" />
-            <queue_bind queue = "$queue" exchange = "amq.match">
+            <queue_bind queue = "$queue" exchange = "amq.headers">
                 <arguments>
                     <field name = "M01" value = "VALUE" />
                     <field name = "M02" value = "" />
