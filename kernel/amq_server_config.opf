@@ -372,6 +372,6 @@ $\(selftype)
 <!-- These sections are allowed but ignored -->
 <path name = "queue_profile" />
 <path name = "security" />
-<path name = "cluster-mta" />
+<path name = "cluster_mta" />
 
 </opf>
