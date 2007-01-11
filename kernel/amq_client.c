@@ -253,7 +253,7 @@ main (int argc, char *argv [])
             for (the_index = 0; the_index < nbr_active; the_index++) {
                 session = a_sessions [the_index];
                 if (amq_client_session_basic_publish (
-                    session, content, ticket, "amq.direct", session->queue, FALSE, FALSE)
+                    session, content, ticket, "", session->queue, FALSE, FALSE)
                 ) {
                     icl_console_print ("E: [%s] could not send message to server - %s",
                         session->queue, session->error_text);
