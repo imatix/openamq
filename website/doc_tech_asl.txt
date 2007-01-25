@@ -1313,6 +1313,27 @@ Base specification for server chassis
 ASL Framework Architecture
 ==========================
 
+Split between ASL and OpenAMQ
+-----------------------------
+
+    (what goes where)
+
+
+Generation relationships
+-------------------------
+
+    (e.g. if I pick a completely random file like say, asl_channel.icl, where does it fit in?)
+
+
+States and transitions between them in ASL FSMs
+-----------------------------------------------
+
+ASL FSMs interface
+------------------
+
+    (asl_client_agent, syncapi=0 vs. syncapi=1)
+    (asl_server_agent)
+
 The stdc Target
 ===============
 
