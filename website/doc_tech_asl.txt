@@ -23,7 +23,7 @@ ASL framework is the ASL grammar itself.
 
 Note that the ASL grammar is not fully compatible with the AMQP protocol,
 which was forked and modified separately starting from June 2006.  The
-public initial release of AMQP had no concept of grammar at all.
+first public release of AMQP had no concept of grammar at all.
 
 What is an ASL Specification?
 -----------------------------
@@ -51,7 +51,7 @@ do.  ASL itself defines no fixed architecture on the produced code.
 These targets have been developed:
 
 1. A standard C stack (stdc), which produces a full client stack (also called
-   an API), and a server structure into which the developer adds custom code.
+   an API), and a server stack into which the developer adds custom code.
 2. Prototype stacks in perl, Java, and C#.  These generate only the client
    stacks.
 3. A documentation target (doc) that produces extensive documentation for the
@@ -130,7 +130,7 @@ We can look at some specific examples from the demo protocol:
    as a single file.
 
 Worked Example - Demo protocol
-------------------------------
+==============================
 
 The ASL project includes a complete worked example, 'demo', which uses
 the base specifications.  The demo protocol implements a simple message
@@ -142,7 +142,7 @@ protocol uses the stdc target, which uses two chassis specifications,
 one for the server and one for the client.
 
 Helicopter overview
-...................
+-------------------
 
 The specifications themselves are composed of these ASL files:
 
@@ -167,16 +167,19 @@ current implementation implement rules for the 'stdc' target:
 
 To generate code, we issue these commands:
 
+    gsl demo.asl
     gsl demo_client_proto.asl
     gsl demo_server_proto.asl
 
-In the ASL project.pdl, these two files are defined using the "gsl data"
-class, which issues the above commands automatically at build time.
+In the ASL project.pdl, these three files are defined using the "gsl data"
+or "gsl public data" classes, which issue the above commands automatically at build time.
+(The difference between the classes is that the public class also installs the file
+into the $IBASE/bin directory for reuse by further applications.)
 
 Chassis specification for client
-................................
+--------------------------------
 
-The client chassis specification is the top-level specification for generating
+The client chassis specification (demo_client_proto.asl) is the top-level specification for generating
 the client stack.  This specification inherits from demo.asl and asl_client,
 and then adds the information needed to generate the client stack properly:
 
@@ -221,11 +224,11 @@ client stack:
     </protocol>
 
 Chassis specification for server
-................................
+--------------------------------
 
-The server chassis specification is the top-level specification for generating
-the server framework.  This specification inherits from demo.asl and asl_server,
-and then adds the information needed to generate the server framework properly:
+The server chassis specification (demo_server_proto.asl) is the top-level specification
+for generating the stack.  This specification inherits from demo.asl and
+asl_server, and then adds the information needed to generate the server stack properly:
 
     <?xml version="1.0"?>
     <protocol
@@ -238,7 +241,7 @@ and then adds the information needed to generate the server framework properly:
     <option name = "product_name" value = "ASL Demo Server" />
 
 The specification provides code implementations for methods.  This
-is how the protocol implementor connects the generated server framework
+is how the protocol implementor connects the generated server stack
 with custom-written classes that do the actual work.  This interface
 is part of the stdc target and is explained in detail later:
 
@@ -251,11 +254,11 @@ is part of the stdc target and is explained in detail later:
     </protocol>
 
 Demo protocol base specification
-................................
+--------------------------------
 
-The demo protocol base specification defines the Demo protocol without any
-chassis or target-specific data.  We use the protocol base specification
-to generate documentation, for example.
+The demo protocol base specification (demo.asl) defines the Demo protocol
+without any chassis or target-specific data.  We use the protocol base
+specification to generate documentation, for example.
 
 The specification inherits from asl_base.asl, the ASL base specification.
 It includes all the protocol classes (this is just a way of keeping the
@@ -292,165 +295,186 @@ it is just convenient to place these in the protocol base specification:
     ...
     </protocol>
 
-Access class
-............
+The access class
+----------------
 
-The access.asl defines the access class, a set of methods that do access
+The demo_access.asl file defines the access class, a set of methods that do access
 control work.  The class file defines the name and index and continues
 with a mix of documentation, chassis rules, and method specifications.
 The specific grammar for a class is explained in detail later.
 
     <?xml version="1.0"?>
-    <class name = "access" index = "30">
+    <class
+        name    = "access"
+        handler = "connection"
+        index   = "30"
+    >
+    work with access tickets
     <doc>
-    ...
+    The protocol control access to server resources using access tickets.
+    A client must explicitly request access tickets before doing work.
+    An access ticket grants a client the right to use a specific set of
+    resources - called a "realm" - in specific ways.
     </doc>
+
+    <doc name = "grammar">
+        access              = C:REQUEST S:REQUEST-OK
+    </doc>
+
     <chassis name = "server" implement = "MUST" />
     <chassis name = "client" implement = "MUST" />
+
     <method name = "request" synchronous = "1" index = "10">
-    ...
+    request an access ticket
+    ... (method body ommitted for brevity)
     </method>
-    ...
+
+    <method name = "request-ok" synchronous = "1" index = "11">
+    grant access to server resources
+    ... (method body ommitted for brevity)
+    </method>
+
     </class>
 
+The exchange class
+------------------
 
-Exchange class
-..............
+The demo_exchange.asl file defines the exchange class, a set of methods to
+work with server-side exchange entities.  In the demo protocol, exchanges
+are simple routing entities that direct messages into message queues.
 
-Queue class
-...........
-ame = "ticket" domain = "access ticket">
-        <doc>
-        The access ticket must be for the access realm that holds the
-        queue.
-        </doc>
-        <doc name = "rule">
-        The client MUST provide a valid access ticket giving "read" access
-        rights to the queue's access realm.  Note that purging a queue is
-        equivalent to reading all messages and discarding them.
-        </doc>
-    </field>
+    <?xml version="1.0"?>
+    <class
+        name    = "exchange"
+        handler = "channel"
+        index   = "40"
+    >
+    work with exchanges
+    <doc>
+    Exchanges match and distribute messages across queues.  Exchanges can be
+    configured in the server or created at runtime.
+    </doc>
 
-    <field name = "queue" domain = "queue name">
-        <doc name = "rule">
-        The queue must exist. Attempting to purge a non-existing queue
-        causes a channel exception.
-        </doc>
-        <assert check = "notnull" />
-    </field>
+    <doc name = "grammar">
+        exchange            = C:DECLARE S:DECLARE-OK
+                            / C:DELETE  S:DELETE-OK
+    </doc>
+
+    <chassis name = "server" implement = "MUST" />
+    <chassis name = "client" implement = "MUST" />
+
+    <method name = "declare" synchronous = "1" index = "10">
+    declare exchange, create if needed
+    ... (method body ommitted for brevity)
     </method>
 
+    <method name = "declare-ok" synchronous = "1" index = "11">
+    confirms an exchange declaration
+    ... (method body ommitted for brevity)
+    </method>
+
+    <method name = "delete" synchronous = "1" index = "20">
+    delete an exchange
+    ... (method body ommitted for brevity)
+    </method>
+
+    <method name = "delete-ok" synchronous = "1" index = "21">
+    confirm deletion of an exchange
+    ... (method body ommitted for brevity)
+    </method>
+
+    </class>
+
+The queue class
+---------------
+
+The demo_queue.asl class defines the queue class, a set of methods to
+work with server-side message queues.  In the demo protocol, message
+queues hold messages until they can be consumed by applications.
+
+    <?xml version="1.0"?>
+    <class
+        name    = "queue"
+        handler = "channel"
+        index   = "50"
+    >
+    work with queues
+    <doc>
+    Queues store and forward messages.  Queues can be configured in the server
+    or created at runtime.  Queues must be attached to at least one exchange
+    in order to receive messages from publishers.
+    </doc>
+
+    <doc name = "grammar">
+        queue               = C:DECLARE  S:DECLARE-OK
+                            / C:BIND     S:BIND-OK
+                            / C:CANCEL   S:CANCEL-OK
+                            / C:PURGE    S:PURGE-OK
+                            / C:DELETE   S:DELETE-OK
+    </doc>
+
+    <chassis name = "server" implement = "MUST" />
+    <chassis name = "client" implement = "MUST" />
+
+    <method name = "declare" synchronous = "1" index = "10">
+    declare queue, create if needed
+    ... (method body ommitted for brevity)
+    </method>
+
+    <method name = "declare-ok" synchronous = "1" index = "11">
+    confirms a queue definition
+    ... (method body ommitted for brevity)
+    </method>
+
+    <method name = "bind" synchronous = "1" index = "20">
+    bind queue to an exchange
+    ... (method body ommitted for brevity)
+    </method>
+
+    <method name = "bind-ok" synchronous = "1" index = "21">
+    confirm bind successful
+    ... (method body ommitted for brevity)
+    </method>
+
+    <method name = "purge" synchronous = "1" index = "30">
+    ... (method body ommitted for brevity)
+    </method>
 
     <method name = "purge-ok" synchronous = "1" index = "31">
     confirms a queue purge
-    <doc>
-        This method confirms the purge of a queue.
-    </doc>
-    <chassis name = "client" implement = "MUST" />
-
-    <field name = "message count" type = "long">
-        number of messages purged
-        <doc>
-        Reports the number of messages purged.
-        </doc>
-    </field>
+    ... (method body ommitted for brevity)
     </method>
-
-
-    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
     <method name = "delete" synchronous = "1" index = "40">
     delete a queue
-    <doc>
-        This method deletes a queue.  When a queue is deleted any pending
-        messages are sent to a dead-letter queue if this is defined in the
-        server configuration, and all consumers on the queue are cancelwled.
-    </doc>
-    <doc name = "rule">
-        The server SHOULD use a dead-letter queue to hold messages that
-        were pending on a deleted queue, and MAY provide facilities for
-        a system administrator to move these messages back to an active
-        queue.
-    </doc>
-    <chassis name = "server" implement = "MUST" />
-    <response name = "delete-ok" />
-
-    <field name = "ticket" domain = "access ticket">
-        <doc name = "rule">
-        The client MUST provide a valid access ticket giving "active"
-        access rights to the queue's access realm.
-        </doc>
-    </field>
-
-    <field name = "queue" domain = "queue name">
-        <doc name = "rule">
-        The queue must exist. Attempting to delete a non-existing queue
-        causes a channel exception.
-        </doc>
-        <assert check = "notnull" />
-    </field>
-
-    <field name = "if unused" type = "bit">
-        delete only if unused
-        <doc>
-        If set, the server will only delete the queue if it has no
-        consumers. If the queue has consumers the server does does not
-        delete it but raises a channel exception instead.
-        </doc>
-    </field>
-
-    <field name = "if empty" type = "bit">
-        delete only if empty
-        <doc>
-        If set, the server will only delete the queue if it has no
-        messages. If the queue is not empty the server raises a channel
-        exception.
-        </doc>
-    </field>
+    ... (method body ommitted for brevity)
     </method>
-
 
     <method name = "delete-ok" synchronous = "1" index = "41">
     confirm deletion of a queue
-    <doc>
-        This method confirms the deletion of a queue.
-    </doc>
-    <chassis name = "client" implement = "MUST" />
-
-    <field name = "message count" type = "long">
-        number of messages purged
-        <doc>
-        Reports the number of messages purged.
-        </doc>
-    </field>
+    ... (method body ommitted for brevity)
     </method>
 
     </class>
 
 Base specification for client chassis
-.....................................
+-------------------------------------
+
+The asl_client.asl base class defines common specifications for all protocol
+client layers that are generated from the default backends (which generate ANSI
+C layers).  Thus all protocols (demo included) start with this base set of
+specifications.
 
     <?xml version="1.0"?>
-    <!--
-        Copyright (c) 1996-2006 iMatix Corporation
-
-        This program is free software; you can redistribute it and/or modify
-        it under the terms of the GNU General Public License as published by
-        the Free Software Foundation; either version 2 of the License, or (at
-        your option) any later version.
-
-        This program is distributed in the hope that it will be useful, but
-        WITHOUT ANY WARRANTY; without even the implied warranty of
-        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-        General Public License for more details.
-
-        For information on alternative licensing for OEMs, please contact
-        iMatix Corporation.
-    -->
     <protocol
         comment = "ASL standard client actions"
         abstract = "1"
         >
+
+The specifications are defined per class.  For the connection class, we define
+a set of properties, called the "context", that exist for each client-side
+connection.  Note that these are populated by the pre-supplied client protocol
+stack implementation.
 
     <class name = "connection">
     <context>
@@ -472,6 +496,12 @@ Base specification for client chassis
             server_instance;
     </context>
 
+The base specification, like the chassis specification that is derived from
+it, can specify code to be executed when protocol methods are received.  In
+the following example we specify code to be executed when the server sends
+us a Connection.Start method.  Note that the ASL entity is "action", which
+can be read as "action to take when this method is received".
+
     <action name = "start">
         <local>
         asl_field_list_t
@@ -491,100 +521,250 @@ Base specification for client chassis
         }
     </action>
 
-    <action name = "close">
-        if (!connection->silent)
-            icl_console_print ("W: connection closed: %d - %s",
-                connection->reply_code, connection->reply_text);
-    </action>
-    </class>
-
-    <class name = "channel">
-    <action name = "alert">
-        if (!session->silent)
-            icl_console_print ("W: alert from server: %d - %s",
-                session->reply_code, session->reply_text);
-    </action>
-    <action name = "close">
-        if (!session->silent)
-            icl_console_print ("W: channel closed: %d - %s",
-                session->reply_code, session->reply_text);
-    </action>
-    </class>
-
-    </protocol>
+All contexts and actions are inherited to the derived chassis class, which
+can add further context variables, and further class actions.
 
 Base specification for server chassis
-.....................................
+-------------------------------------
+
+The asl_server.asl base class defines common specifications for all protocol
+server layers that are generated from the default backends (which generate ANSI
+C layers).  Thus all protocols (demo included) start with this base set of
+specifications.
 
     <?xml version="1.0"?>
-    <!--
-        Copyright (c) 1996-2006 iMatix Corporation
-
-        This program is free software; you can redistribute it and/or modify
-        it under the terms of the GNU General Public License as published by
-        the Free Software Foundation; either version 2 of the License, or (at
-        your option) any later version.
-
-        This program is distributed in the hope that it will be useful, but
-        WITHOUT ANY WARRANTY; without even the implied warranty of
-        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-        General Public License for more details.
-
-        For information on alternative licensing for OEMs, please contact
-        iMatix Corporation.
-    -->
     <protocol
         comment = "ASL standard server actions"
         abstract = "1"
         >
 
+The specifications are defined per class.  For the server chassis, we define
+a set of actions; this is the glue that tells the generated code how to 
+implement a given protocol method:
+
     <class name = "connection">
     <action name = "start-ok">
         $(basename)_connection_start_ok (connection, method);
     </action>
-
     <action name = "tune-ok">
         $(basename)_connection_tune_ok (connection, method);
     </action>
-
     <action name = "open">
         $(basename)_connection_open (connection, method);
     </action>
     </class>
 
-    </protocol>
+If we do not specify an action for a protocol method, the method has no effect.
+Most often - as in the above example - we pass the protocol method to some
+hand-written code that implements the necessary work.
+
+Required hand-written files
+---------------------------
+
+The stdc target assumes a number of hand-written files, apart from the ASL model
+files needed to define the protocol and the chassis.  The hand-written files we
+defined for demo protocol implementation can be used as a basis for other protocols.
+We explain these files, and what they do, in more detail in the section on the stdc
+target.  We will now provide a summary explanation.
+
+Hand-written files for client stack
+...................................
+
+These hand-written client stack files are assumed by the stdc target and must
+be provided by the developer:
+
+ * demo_client_classes.icl - collection of all classes used in client stack.
+ * demo_client_channel.icl - implementation of client channel class.
+ * demo_client_config.opf - OPF configuration specification for client stack.
+
+This file is optional, but useful, and normally copied from ASL at the same time
+as the above files:
+
+ * demo_cli.c - test program for demo protocol.
+
+Hand-written files for server stack
+...................................
+
+These hand-written server stack files are assumed by the stdc target and must
+be provided by the developer:
+
+ * demo_server_classes.icl - collection of all classes used in server stack.
+ * demo_server_connection.icl - implementation of server connection class.
+ * demo_server_channel.icl - implementation of server channel class.
+ * demo_broker.icl - implementation of server broker class.
+ * demo_server_config.opf - OPF configuration specification for server stack.
+
+These files are optional but useful, since they define the main server program:
+
+ * demo_srv.c - example mainline program.
+ * demo_server_main.inc - actual mainline code.
+ * demo_srv_base.cfg - configuration data used by default.
+
+These files are additionally used by the demo protocol server chassis (the classes
+are included from demo_server_classes, and the methods they contain are referred to
+in demo_server_proto.asl:
+
+ * demo_exchange.icl - exchange class.
+ * demo_queue.icl - queue master class.
+ * demo_queue_basic.icl - basic queue class.
+ * demo_queue_list.icl - queue list class.
+
+Code generation process
+-----------------------
+
+The demo protocol uses the stdc target.  This defines two stacks, one for the
+client and one for the server.  Each of these is generated independently.  There
+are also shared files, which are generated from the demo protocol base
+specification, the demo.asl file.
+
+Generating the client stack
+...........................
+
+To generate the client stack manually we issue this gsl command:
+
+    gsl demo_client_proto.asl
+
+In a PDL project file, this is expressed as:
+
+    <file name = "demo_client_proto.asl" class = "gsl data" />
+
+The generated client stack consists of these files:
+
+ * demo_client_agent.smt - the client-side protocol state machine.
+ * demo_client_connection.icl - the connection class.
+ * demo_client_session.icl - the session class.
+ * demo_client_method.icl - the client method glue class.
+
+We explain the purpose of each of these in more detail when we explain how
+the stdc target is constructed.
+
+These files are all models, and themselves need to be "compiled" via code
+generation.  When we do this fully, we get this additional set of generated
+files for the client stack (with indentation showing the relationship between
+further generated files and their parents):
+
+    demo_client_agent.smt
+        demo_client_agent.c
+        demo_client_agent.h
+    demo_client_channel.icl
+        demo_client_channel.c
+        demo_client_channel.h
+        demo_client_channel_test.c
+        demo_client_channel_table.icl
+            demo_client_channel_table.c
+            demo_client_channel_table.h
+            demo_client_channel_table_test.c
+    demo_client_classes.icl
+        demo_client_classes.c
+        demo_client_classes.h
+    demo_client_config.opf
+        demo_client_config.icl
+            demo_client_config.c
+            demo_client_config.h
+            demo_client_config_test.c
+    demo_client_connection.icl
+        demo_client_connection.c
+        demo_client_connection.h
+        demo_client_connection_test.c
+    demo_client_method.icl
+        demo_client_method.c
+        demo_client_method.h
+        demo_client_method_test.c
+    demo_client_session.icl
+        demo_client_session.c
+        demo_client_session.h
+        demo_client_session_test.c
+
+See base2/asl/project.pdl for the project specification needed
+for the demo client stack, providing Boom with all information necessary
+to generate, compile, link, and install the files.
+
+Generating the server stack
+...........................
+
+To generate the server stack manually we issue this gsl command:
+
+    gsl demo_server_proto.asl
+
+In a PDL project file, this is expressed as:
+
+    <file name = "demo_server_proto.asl" class = "gsl data" />
+
+The generated server stack consists of these files:
+
+ * demo_server_agent.smt - the server-side protocol state machine.
+ * demo_server_method.icl - the server method glue class.
+
+These files are all models, and themselves need to be "compiled" via code
+generation.  When we do this fully, we get this additional set of generated
+files for the server stack (with .c and .f files generated for classes not
+shown, for brevity):
+
+    demo_broker_agent.smt
+    demo_exchange_agent.smt
+    demo_exchange_table.icl
+    demo_queue_agent.smt
+    demo_queue_table.icl
+    demo_server_agent.smt
+    demo_server_channel_agent.smt
+    demo_server_channel_table.icl
+    demo_server_config.icl
+    demo_server_connection_list.icl
+    demo_server_connection_table.icl
+    demo_server_method.icl
+
+See base2/asl/project.pdl for the project specification needed
+for the demo server stack, providing Boom with all information necessary
+to generate, compile, link, and install the files.
+
+Generating the common classes
+.............................
+
+A number of classes are shared by the client and server stack.  These
+are generated from the protocol base specification (demo.asl).  We
+would issue this gsl command by hand:
+
+    gsl demo.asl
+
+In a PDL project file, this is expressed as:
+
+    <file name = "demo.asl" class = "gsl public data" />
+
+The generated shared classes consist of these files:
+
+ * demo_constants.icl - protocol constants.
+ * demo_content_basic.icl - the shared Basic content class.
+ * demo_content_basic_list.icl - list of Basic contents.
+
+These are the final files generated when we compile all the models:
+
+    demo_constants.icl
+        demo_constants.c
+        demo_constants.h
+    demo_content_basic.icl
+        demo_content_basic.c
+        demo_content_basic.h
+        demo_content_basic_test.c
+    demo_content_basic_list.icl
+        demo_content_basic_list.c
+        demo_content_basic_list.h
+        demo_content_basic_list_test.c
+
+See base2/asl/project.pdl for the project specification needed
+for the demo shared clases, providing Boom with all information necessary
+to generate, compile, link, and install the files.
 
 
 
 
-ASL Framework Architecture
-==========================
-
-Split between ASL and OpenAMQ
------------------------------
-
-    (what goes where)
-
-
-Generation relationships
--------------------------
-
-    (e.g. if I pick a completely random file like say, asl_channel.icl, where does it fit in?)
-
-
-States and transitions between them in ASL FSMs
------------------------------------------------
-
-ASL FSMs interface
-------------------
-
-    (asl_client_agent, syncapi=0 vs. syncapi=1)
-    (asl_server_agent)
-
-The stdc Target
+The stdc target
 ===============
 
-- options
+Protocol options
+----------------
+
+specified in protocol base specification.
+
 <option name = "protocol_name"     value = "DEMO" />
 <option name = "protocol_port"     value = "7654" />
 <option name = "protocol_class"    value = "1" />
@@ -592,14 +772,68 @@ The stdc Target
 <option name = "protocol_major"    value = "1" />
 <option name = "protocol_minor"    value = "1" />
 
+in client chassis
+
+<option name = "product_name" value = "ASL Demo Client" />
+<option name = "syncapi"      value = "1" />
+
+in server chassis
+
+<option name = "product_name" value = "ASL Demo Server" />
 
 
-The doc Target
+Architecture of client stack
+----------------------------
+
+- layers
+- sync. vs async
+
+
+Client session handling
+.......................
+
+- general design
+- synchronisation
+
+Client protocol state machine
+.............................
+
+- general design
+- each state
+- error handling
+
+Hand-written files for client stack
+...................................
+
+ * demo_client_classes.icl - collection of all classes used in client stack.
+ * demo_client_channel.icl - implementation of client channel class.
+ * demo_client_config.opf - OPF configuration specification for client stack.
+
+Architecture of server stack
+----------------------------
+
+Server protocol state machine
+.............................
+
+- general design
+- each state
+- error handling
+
+Hand-written files for server stack
+...................................
+
+ * demo_server_classes.icl - collection of all classes used in server stack.
+ * demo_server_connection.icl - implementation of server connection class.
+ * demo_server_channel.icl - implementation of server channel class.
+ * demo_broker.icl - implementation of server broker class.
+ * demo_server_config.opf - OPF configuration specification for server stack.
+
+
+The doc target
 ==============
 
-The pal Target
+The pal target
 ==============
-
 
 
 Reference
