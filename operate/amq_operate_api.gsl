@@ -1,3 +1,26 @@
+#   This script extracts the operator API.
+#
+#   <data>
+#     <class name = "" label = "">
+#       <field name = "" label = "" type = "string | int | bool | time">
+#         <get>copy into field_value</get>
+#         <put>copy from field_value</put>
+#       </field>
+#       <class name = "" label = "" [source = ""] [repeat = "1"]>
+#         <local></local>
+#         <get>copy id into field_value</get>
+#         <next>get next id into field_value</next>
+#       </class>
+#       <method>
+#         <exec>...</exec>
+#       </method>
+#     </class>
+#  </data>
+
+shuffle = 2
+xml from "amq_console_schema.xml"
+for ->root.class
+.template
 .if !defined (switches.quiet)
 .   echo "Generating amq_mgt_$(name).icl..."
 .endif
@@ -1083,4 +1106,5 @@ s_show_help (void)
 </method>
 
 </class>
-
+.endtemplate
+endfor

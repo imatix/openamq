@@ -117,6 +117,7 @@
 <file name = "amq_console_class.icl"     class = "icl private class" >Console class definition</file>
 <file name = "amq_console_schema.gsl"    class = "private resource"  >Console generator</file>
 <file name = "amq_console_schema.cml"    class = "generated resource">Console schema</file>
+<file name = "amq_console_schema.xml"    class = "generated resource">Console schema in raw form</file>
 <file name = "amq_console_config.gsl"    class = "private resource"  >OPF plugin for console</file>
 <file name = "amq_console_config.icl"    class = "icl private cont"  >Config wrapper class</file>
 <file name = "amq_console_config_agent.smt"
