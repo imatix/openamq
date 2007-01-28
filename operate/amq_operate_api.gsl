@@ -17,6 +17,10 @@
 #     </class>
 #  </data>
 
+function abort_xml_error ()
+   abort xml.error
+endfunction 
+
 shuffle = 2
 xml from "amq_console_schema.xml"
 for ->root.class
@@ -860,7 +864,7 @@ s_list_children ($\(selftype) *self, char *command, FILE *xml_data)
     }
 .for class
     if (!childname || ipr_str_prefixed ("$(name)", childname)) {
-.   for root.class as child where name = class.name
+.   for root->root.class as child where name = class.name
 .       for field where count (rule, name = "ip address")
         icl_shortstr_t
             $(name)_fmt;
