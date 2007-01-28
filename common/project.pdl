@@ -1,0 +1,70 @@
+<?xml?>
+<pdl
+    name      = "OpenAMQ Common"
+    version   = "1.2b0"
+    workflow  = "standard.pwl"
+    library   = "libamqc"
+    copyright = "Copyright (c) 1996-2006 iMatix Corporation"
+    >
+
+<include filename = "prelude.pdl" />
+<inherit filename = "icl_classes.pdl" />
+
+<file name = "version.h"                 class = "c version"         >Project version file</file>
+<file name = "libamqc"                   class = "public library"    >Object library</file>
+
+<!-- AMQ protocol specification -->
+<file name = "amq.asl"                   class = "gsl public data"   >AMQ protocol definition</file>
+<file name = "amq_access.asl"            class = "public resource"   >Access control</file>
+<file name = "amq_exchange.asl"          class = "public resource"   >Exchange management</file>
+<file name = "amq_queue.asl"             class = "public resource"   >Queue management</file>
+<file name = "amq_basic.asl"             class = "public resource"   >Basic content</file>
+<file name = "amq_file.asl"              class = "public resource"   >File content</file>
+<file name = "amq_stream.asl"            class = "public resource"   >Stream content</file>
+<file name = "amq_tx.asl"                class = "public resource"   >Transactions</file>
+<file name = "amq_dtx.asl"               class = "public resource"   >Distributed transactions</file>
+<file name = "amq_tunnel.asl"            class = "public resource"   >Method tunneling</file>
+
+<!-- PAL/AMQ code generator -->
+<file name = "amq_pal.xnf"               class = "generated" />
+<file name = "amq_pal_stdc.gsl"          class = "generated resource" />
+<file name = "amq_pal_codegen.gsl"       class = "generated resource" />
+<file name = "amq_pal_gen.gsl"           class = "generated resource" />
+<file name = "amq_pal_inherit.gsl"       class = "generated resource" />
+<file name = "amq_pal_parse.gsl"         class = "generated resource" />
+<file name = "amq_pal_preproc.gsl"       class = "generated resource" />
+
+<!-- Shared classes & resources -->
+<file name = "amq_constants.icl"         class = "icl public data"   generated = "1"
+                                                                     >Constants class</file>
+<file name = "amq_content_basic.icl"     class = "icl public cont"   >Basic content class</file>
+<file name = "amq_content_file.icl"      class = "icl public cont"   >File content class</file>
+<file name = "amq_content_stream.icl"    class = "icl public cont"   >Stream content class</file>
+<file name = "amq_content_tunnel.icl"    class = "icl public cont"   >Tunnel content class</file>
+<file name = "amq_content_stream_list.icl"
+                                         class = "icl public cont"   >List of stream contents</file>
+<file name = "amq_content_tunnel_list.icl"
+                                         class = "icl public cont"   >List of tunnel contents</file>
+<file name = "amq_content_basic_list.icl"
+                                         class = "icl public cont"   >List of basic contents</file>
+<file name = "amq_content_file_list.icl" class = "icl public cont"   >List of file contents</file>
+
+<!-- Generate AMQ protocol documentation -->
+<actions>
+  <generate>
+    <execute>
+    gsl -q -quiet:1 -target:doc amq.asl
+    </execute>
+  </generate>
+</actions>
+<!-- Build PAL toolkit for AMQ protocol -->
+<actions>
+  <generate>
+    <execute>
+    gsl -q -quiet:1 -target:pal amq.asl
+    gsl -q -quiet:1 amq_pal.xnf
+    </execute>
+  </generate>
+</actions>
+
+</pdl>
