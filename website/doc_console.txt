@@ -4,8 +4,8 @@ gdl
     product   = OpenAMQ
     author    = iMatix Corporation
     date      = 2006/07/16
-    copyright = Copyright (c) 1996-2006 iMatix Corporation
-    version   = 1.0e0
+    copyright = Copyright (c) 1996-2007 iMatix Corporation
+    version   = 1.0e1
 end gdl
 
 Cover
@@ -19,20 +19,21 @@ This document is an end-user reference aimed at software developers.
 Copyright and License
 =====================
 
-Copyright (c) 1996-2006 iMatix Corporation
+Copyright (c) 1996-2007 iMatix Corporation
 
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2 of the License, or (at your
-option) any later version.
+This documentation is licensed under the the Creative Commons
+Attribution-Share Alike 2.5 License.
 
-This program is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
-Public License for more details.
+You are free to copy, distribute, and display the work, and to make
+derivative works under the following conditions: you must attribute the
+work in the manner specified by the author or licensor; if you alter,
+transform, or build upon this work, you may distribute the resulting
+work only under a license identical to this one. For any reuse or
+distribution, you must make clear to others the license terms of this
+work. Any of these conditions can be waived if you get permission from
+the copyright holder.
 
-For information on alternative licensing for OEMs, please contact iMatix
-Corporation.
+For more details see: http://creativecommons.org/licenses/by-sa/2.5/.
 
 Abstract
 ========
