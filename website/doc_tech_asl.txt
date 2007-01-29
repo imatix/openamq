@@ -56,39 +56,41 @@ Overview of ASL
 What is ASL?
 ------------
 
-The Abstract Syntax Layer (ASL) is a framework for specifying and building
-protocol stacks.  The ASL framework is based on a protocol specification
-grammar (asl), tools that validate and interpret this grammar, and a set of target 
-code generators that produce outputs from protocol specifications written in
-the ASL grammar.
+The Abstract Syntax Layer (ASL) is a framework for specifying and
+building protocol stacks. The ASL framework is based on a protocol
+specification grammar (asl), tools that validate and interpret this
+grammar, and a set of target code generators that produce outputs from
+protocol specifications written in the ASL grammar.
 
 The current set of targets are broadly aimed at multi-channel connected
-protocols.  The AMQP protocol (for which ASL was developed) is a specific instance 
-of such a protocol.  Targets cover functionality ranging from basic serialisation 
-code to full frameworks for client APIs and server implementations.
+protocols. The AMQP protocol (for which ASL was developed) is a specific
+instance of such a protocol. Targets cover functionality ranging from
+basic serialisation code to full frameworks for client APIs and server
+implementations.
 
-ASL is designed to be easy to extend and modify; the range of code generation
-targets and their functionality is not pre-defined.  The only fixed part of the whole
-ASL framework is the ASL grammar itself.
+ASL is designed to be easy to extend and modify; the range of code
+generation targets and their functionality is not pre-defined. The only
+fixed part of the whole ASL framework is the ASL grammar itself.
 
-Note that the ASL grammar is not fully compatible with the AMQP protocol,
-which was forked and modified separately starting from June 2006.  The
-first public release of AMQP had no concept of grammar at all.
+Note that the ASL grammar is not fully compatible with the AMQP
+protocol, which was forked and modified separately starting from June
+2006. The first public release of AMQP had no concept of grammar at all.
 
 What is an ASL Specification?
 -----------------------------
 
-In gross terms, an ASL specification consists of a set of class and method
-definitions, plus a target.  The classes and methods provide a structure for
-the protocol.  The target specifies the name of a back-end code generator
-that will turn the specifications into usable source code.
+In gross terms, an ASL specification consists of a set of class and
+method definitions, plus a target. The classes and methods provide a
+structure for the protocol. The target specifies the name of a back-end
+code generator that will turn the specifications into usable source
+code.
 
 The ASL framework is roughly a front-end that parses, denormalises, and
-checks the protocol specifications, plus a set of back-ends that turn these
-specifications into usable source code.
+checks the protocol specifications, plus a set of back-ends that turn
+these specifications into usable source code.
 
 This front-end/back-end architecture is based on the XNF model oriented
-programming (MOP) concept.  ASL is built using MOP and anyone wanting to
+programming (MOP) concept. ASL is built using MOP and anyone wanting to
 modify or extend ASL should have prior MOP experience.
 
 ASL Targets
@@ -209,8 +211,8 @@ and channel classes from that base specification.  The client and server
 chassis inherit from demo.asl, so include all its classes, plus those from
 asl_base.asl.
 
-The two chassis specifications also inherit from these files, which in the
-current implementation implement rules for the 'stdc' target:
+The two chassis specifications also inherit from these files, which in
+the current implementation implement rules for the 'stdc' target:
 
  * asl_client.asl - base specification for a client chassis.
  * asl_server.asl - base specification for a server chassis.
@@ -221,17 +223,19 @@ To generate code, we issue these commands:
     gsl demo_client_proto.asl
     gsl demo_server_proto.asl
 
-In the ASL project.pdl, these three files are defined using the "gsl data"
-or "gsl public data" classes, which issue the above commands automatically at build time.
-(The difference between the classes is that the public class also installs the file
-into the $IBASE/bin directory for reuse by further applications.)
+In the ASL project.pdl, these three files are defined using the "gsl
+data" or "gsl public data" classes, which issue the above commands
+automatically at build time. (The difference between the classes is that
+the public class also installs the file into the $IBASE/bin directory
+for reuse by further applications.)
 
 Chassis specification for client
 --------------------------------
 
-The client chassis specification (demo_client_proto.asl) is the top-level specification for generating
-the client stack.  This specification inherits from demo.asl and asl_client,
-and then adds the information needed to generate the client stack properly:
+The client chassis specification (demo_client_proto.asl) is the
+top-level specification for generating the client stack. This
+specification inherits from demo.asl and asl_client, and then adds the
+information needed to generate the client stack properly:
 
     <?xml version="1.0"?>
     <protocol comment = "ASL demo client" script  = "asl_gen" chassis = "client">
@@ -276,9 +280,10 @@ client stack:
 Chassis specification for server
 --------------------------------
 
-The server chassis specification (demo_server_proto.asl) is the top-level specification
-for generating the stack.  This specification inherits from demo.asl and
-asl_server, and then adds the information needed to generate the server stack properly:
+The server chassis specification (demo_server_proto.asl) is the
+top-level specification for generating the stack. This specification
+inherits from demo.asl and asl_server, and then adds the information
+needed to generate the server stack properly:
 
     <?xml version="1.0"?>
     <protocol
@@ -348,10 +353,11 @@ it is just convenient to place these in the protocol base specification:
 The access class
 ----------------
 
-The demo_access.asl file defines the access class, a set of methods that do access
-control work.  The class file defines the name and index and continues
-with a mix of documentation, chassis rules, and method specifications.
-The specific grammar for a class is explained in detail later.
+The demo_access.asl file defines the access class, a set of methods that
+do access control work. The class file defines the name and index and
+continues with a mix of documentation, chassis rules, and method
+specifications. The specific grammar for a class is explained in detail
+later.
 
     <?xml version="1.0"?>
     <class
@@ -389,9 +395,10 @@ The specific grammar for a class is explained in detail later.
 The exchange class
 ------------------
 
-The demo_exchange.asl file defines the exchange class, a set of methods to
-work with server-side exchange entities.  In the demo protocol, exchanges
-are simple routing entities that direct messages into message queues.
+The demo_exchange.asl file defines the exchange class, a set of methods
+to work with server-side exchange entities. In the demo protocol,
+exchanges are simple routing entities that direct messages into message
+queues.
 
     <?xml version="1.0"?>
     <class
@@ -439,7 +446,7 @@ The queue class
 ---------------
 
 The demo_queue.asl class defines the queue class, a set of methods to
-work with server-side message queues.  In the demo protocol, message
+work with server-side message queues. In the demo protocol, message
 queues hold messages until they can be consumed by applications.
 
     <?xml version="1.0"?>
@@ -510,10 +517,10 @@ queues hold messages until they can be consumed by applications.
 Base specification for client chassis
 -------------------------------------
 
-The asl_client.asl base class defines common specifications for all protocol
-client layers that are generated from the default backends (which generate ANSI
-C layers).  Thus all protocols (demo included) start with this base set of
-specifications.
+The asl_client.asl base class defines common specifications for all
+protocol client layers that are generated from the default backends
+(which generate ANSI C layers). Thus all protocols (demo included) start
+with this base set of specifications.
 
     <?xml version="1.0"?>
     <protocol
@@ -521,10 +528,10 @@ specifications.
         abstract = "1"
         >
 
-The specifications are defined per class.  For the connection class, we define
-a set of properties, called the "context", that exist for each client-side
-connection.  Note that these are populated by the pre-supplied client protocol
-stack implementation.
+The specifications are defined per class. For the connection class, we
+define a set of properties, called the "context", that exist for each
+client-side connection. Note that these are populated by the
+pre-supplied client protocol stack implementation.
 
     <class name = "connection">
     <context>
@@ -546,11 +553,12 @@ stack implementation.
             server_instance;
     </context>
 
-The base specification, like the chassis specification that is derived from
-it, can specify code to be executed when protocol methods are received.  In
-the following example we specify code to be executed when the server sends
-us a Connection.Start method.  Note that the ASL entity is "action", which
-can be read as "action to take when this method is received".
+The base specification, like the chassis specification that is derived
+from it, can specify code to be executed when protocol methods are
+received. In the following example we specify code to be executed when
+the server sends us a Connection.Start method. Note that the ASL entity
+is "action", which can be read as "action to take when this method is
+received".
 
     <action name = "start">
         <local>
@@ -571,16 +579,16 @@ can be read as "action to take when this method is received".
         }
     </action>
 
-All contexts and actions are inherited to the derived chassis class, which
-can add further context variables, and further class actions.
+All contexts and actions are inherited to the derived chassis class,
+which can add further context variables, and further class actions.
 
 Base specification for server chassis
 -------------------------------------
 
-The asl_server.asl base class defines common specifications for all protocol
-server layers that are generated from the default backends (which generate ANSI
-C layers).  Thus all protocols (demo included) start with this base set of
-specifications.
+The asl_server.asl base class defines common specifications for all
+protocol server layers that are generated from the default backends
+(which generate ANSI C layers). Thus all protocols (demo included) start
+with this base set of specifications.
 
     <?xml version="1.0"?>
     <protocol
@@ -588,9 +596,9 @@ specifications.
         abstract = "1"
         >
 
-The specifications are defined per class.  For the server chassis, we define
-a set of actions; this is the glue that tells the generated code how to 
-implement a given protocol method:
+The specifications are defined per class. For the server chassis, we
+define a set of actions; this is the glue that tells the generated code
+how to implement a given protocol method:
 
     <class name = "connection">
     <action name = "start-ok">
@@ -604,39 +612,40 @@ implement a given protocol method:
     </action>
     </class>
 
-If we do not specify an action for a protocol method, the method has no effect.
-Most often - as in the above example - we pass the protocol method to some
-hand-written code that implements the necessary work.
+If we do not specify an action for a protocol method, the method has no
+effect. Most often - as in the above example - we pass the protocol
+method to some hand-written code that implements the necessary work.
 
 Required hand-written files
 ---------------------------
 
-The stdc target assumes a number of hand-written files, apart from the ASL model
-files needed to define the protocol and the chassis.  The hand-written files we
-defined for demo protocol implementation can be used as a basis for other protocols.
-We explain these files, and what they do, in more detail in the section on the stdc
-target.  We will now provide a summary explanation.
+The stdc target assumes a number of hand-written files, apart from the
+ASL model files needed to define the protocol and the chassis. The
+hand-written files we defined for demo protocol implementation can be
+used as a basis for other protocols. We explain these files, and what
+they do, in more detail in the section on the stdc target. We will now
+provide a summary explanation.
 
 Hand-written files for client stack
 ...................................
 
-These hand-written client stack files are assumed by the stdc target and must
-be provided by the developer:
+These hand-written client stack files are assumed by the stdc target and
+must be provided by the developer:
 
  * demo_client_classes.icl - collection of all classes used in client stack.
  * demo_client_channel.icl - implementation of client channel class.
  * demo_client_config.opf - OPF configuration specification for client stack.
 
-This file is optional, but useful, and normally copied from ASL at the same time
-as the above files:
+This file is optional, but useful, and normally copied from ASL at the
+same time as the above files:
 
  * demo_cli.c - test program for demo protocol.
 
 Hand-written files for server stack
 ...................................
 
-These hand-written server stack files are assumed by the stdc target and must
-be provided by the developer:
+These hand-written server stack files are assumed by the stdc target and
+must be provided by the developer:
 
  * demo_server_classes.icl - collection of all classes used in server stack.
  * demo_server_connection.icl - implementation of server connection class.
@@ -644,15 +653,16 @@ be provided by the developer:
  * demo_broker.icl - implementation of server broker class.
  * demo_server_config.opf - OPF configuration specification for server stack.
 
-These files are optional but useful, since they define the main server program:
+These files are optional but useful, since they define the main server
+program:
 
  * demo_srv.c - example mainline program.
  * demo_server_main.inc - actual mainline code.
  * demo_srv_base.cfg - configuration data used by default.
 
-These files are additionally used by the demo protocol server chassis (the classes
-are included from demo_server_classes, and the methods they contain are referred to
-in demo_server_proto.asl:
+These files are additionally used by the demo protocol server chassis
+(the classes are included from demo_server_classes, and the methods they
+contain are referred to in demo_server_proto.asl:
 
  * demo_exchange.icl - exchange class.
  * demo_queue.icl - queue master class.
@@ -662,10 +672,10 @@ in demo_server_proto.asl:
 Code generation process
 -----------------------
 
-The demo protocol uses the stdc target.  This defines two stacks, one for the
-client and one for the server.  Each of these is generated independently.  There
-are also shared files, which are generated from the demo protocol base
-specification, the demo.asl file.
+The demo protocol uses the stdc target. This defines two stacks, one for
+the client and one for the server. Each of these is generated
+independently. There are also shared files, which are generated from the
+demo protocol base specification, the demo.asl file.
 
 Generating the client stack
 ...........................
@@ -685,13 +695,13 @@ The generated client stack consists of these files:
  * demo_client_session.icl - the session class.
  * demo_client_method.icl - the client method glue class.
 
-We explain the purpose of each of these in more detail when we explain how
-the stdc target is constructed.
+We explain the purpose of each of these in more detail when we explain
+how the stdc target is constructed.
 
-These files are all models, and themselves need to be "compiled" via code
-generation.  When we do this fully, we get this additional set of generated
-files for the client stack (with indentation showing the relationship between
-further generated files and their parents):
+These files are all models, and themselves need to be "compiled" via
+code generation. When we do this fully, we get this additional set of
+generated files for the client stack (with indentation showing the
+relationship between further generated files and their parents):
 
     demo_client_agent.smt
         demo_client_agent.c
@@ -725,9 +735,9 @@ further generated files and their parents):
         demo_client_session.h
         demo_client_session_test.c
 
-See base2/asl/project.pdl for the project specification needed
-for the demo client stack, providing Boom with all information necessary
-to generate, compile, link, and install the files.
+See base2/asl/project.pdl for the project specification needed for the
+demo client stack, providing Boom with all information necessary to
+generate, compile, link, and install the files.
 
 Generating the server stack
 ...........................
@@ -745,10 +755,10 @@ The generated server stack consists of these files:
  * demo_server_agent.smt - the server-side protocol state machine.
  * demo_server_method.icl - the server method glue class.
 
-These files are all models, and themselves need to be "compiled" via code
-generation.  When we do this fully, we get this additional set of generated
-files for the server stack (with .c and .f files generated for classes not
-shown, for brevity):
+These files are all models, and themselves need to be "compiled" via
+code generation. When we do this fully, we get this additional set of
+generated files for the server stack (with .c and .f files generated for
+classes not shown, for brevity):
 
     demo_broker_agent.smt
     demo_exchange_agent.smt
@@ -763,16 +773,16 @@ shown, for brevity):
     demo_server_connection_table.icl
     demo_server_method.icl
 
-See base2/asl/project.pdl for the project specification needed
-for the demo server stack, providing Boom with all information necessary
-to generate, compile, link, and install the files.
+See base2/asl/project.pdl for the project specification needed for the
+demo server stack, providing Boom with all information necessary to
+generate, compile, link, and install the files.
 
 Generating the common classes
 .............................
 
-A number of classes are shared by the client and server stack.  These
-are generated from the protocol base specification (demo.asl).  We
-would issue this gsl command by hand:
+A number of classes are shared by the client and server stack. These are
+generated from the protocol base specification (demo.asl). We would
+issue this gsl command by hand:
 
     gsl demo.asl
 
