@@ -1,3 +1,53 @@
+gdl
+    title     = Programmer's Guide to ASL
+    subtitle  = The Abstract Syntax Layer
+    product   = iMatix Base2
+    author    = Pieter Hintjens <ph@imatix.com>
+    date      = 2007/01/01
+    copyright = Copyright (c) 1996-2007 iMatix Corporation
+    version   = 1.0
+end gdl
+
+Cover
+*****
+
+Copyright and License
+=====================
+
+Copyright (c) 1996-2007 iMatix Corporation
+
+This documentation is licensed under the the Creative Commons Attribution-Share
+Alike 2.5 License.
+
+Abstract
+========
+
+This is a general introduction to the OpenAMQ project, intended for a
+technically-minded readership. It explains the basic AMQ concepts, and
+goes into medium detail on all significant aspects of the architecture
+and technology.
+
+Authors
+=======
+
+This document was written by Pieter Hintjens.
+
+Introduction
+************
+
+Aim of this Document
+====================
+
+This is a general introduction to the OpenAMQ project, intended for a
+technically-minded readership. It explains the basic AMQ concepts, and
+goes into medium detail on all significant aspects of the architecture
+and technology.
+
+Some of the details in this document are out of date, as it reflects the
+state of the OpenAMQ project in mid-2005.
+
+
+
 ASL Manual
 
 Overview of ASL
