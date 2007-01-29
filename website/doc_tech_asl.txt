@@ -1,5 +1,5 @@
 gdl
-    title     = Programmer's Guide to ASL
+    title     = Developer's Guide to ASL
     subtitle  = The Abstract Syntax Layer
     product   = iMatix Base2
     author    = Pieter Hintjens <ph@imatix.com>
@@ -33,10 +33,9 @@ For more details see: http://creativecommons.org/licenses/by-sa/2.5/.
 Abstract
 ========
 
-This is a general introduction to the OpenAMQ project, intended for a
-technically-minded readership. It explains the basic AMQ concepts, and
-goes into medium detail on all significant aspects of the architecture
-and technology.
+ASL is a toolkit for constructing protocol clients and servers.  This
+document explains how to use ASL to build client and server stacks in
+a variety of programming languages.
 
 Authors
 =======
@@ -46,20 +45,15 @@ This document was written by Pieter Hintjens.
 Introduction
 ************
 
-Aim of this Document
+Aim of this document
 ====================
 
-This is a general introduction to the OpenAMQ project, intended for a
-technically-minded readership. It explains the basic AMQ concepts, and
-goes into medium detail on all significant aspects of the architecture
-and technology.
+ASL is a toolkit for constructing protocol clients and servers.  This
+document explains how to use ASL to build client and server stacks in
+a variety of programming languages.
 
-Some of the details in this document are out of date, as it reflects the
-state of the OpenAMQ project in mid-2005.
-
-
-
-ASL Manual
+The reader should be familiar with underlying iMatix technology, most
+importantly XNF, Boom, iCL, iPR, and SMT.
 
 Overview of ASL
 ===============
@@ -87,7 +81,7 @@ Note that the ASL grammar is not fully compatible with the AMQP
 protocol, which was forked and modified separately starting from June
 2006. The first public release of AMQP had no concept of grammar at all.
 
-What is an ASL Specification?
+What is an ASL specification?
 -----------------------------
 
 In gross terms, an ASL specification consists of a set of class and
@@ -104,7 +98,7 @@ This front-end/back-end architecture is based on the XNF model oriented
 programming (MOP) concept. ASL is built using MOP and anyone wanting to
 modify or extend ASL should have prior MOP experience.
 
-ASL Targets
+ASL targets
 -----------
 
 At code generation time, the protocol developer specifies a "target". The
@@ -125,7 +119,7 @@ These targets have been developed:
 Each target is named 'asl_xxx.gsl' where 'xxx' is the target name.  So, you
 can see how the stdc target works by reading asl_stdc.gsl.
 
-Naming Conventions
+Naming conventions
 ------------------
 
 The only naming conventions imposed by ASL are the extensions for files.
@@ -133,7 +127,7 @@ File names themselves can be defined by the protocol developer.  Note
 that complex protocols need large numbers of files, and the names used
 can be quite important for clarity.
 
-ASL Base Specifications
+ASL base specifications
 -----------------------
 
 The ASL framework includes a set of "base specifications", which are an
@@ -146,15 +140,27 @@ specifications (asl_base.asl) define:
 * A number of standard domains such as reply-code.
 
 The base specifications are not mandatory, but they are intended to make
-the development of AMQP-like protocols faster and easier.  The base
-specifications use these files:
+the development of certain classes of protocol faster and easier.  The
+base specifications use these files:
 
  * asl_base.asl - base specifications.
  * asl_constants.asl - protocol constants.
  * asl_connection.asl - the 'connection' class.
  * asl_channel.asl - the 'channel' class.
 
-The Chassis Concept
+The connection and channel classes together provide a level of
+functionality that can be compared to protocol frameworks like BEEP
+(IETF RFCs 3080, 3081).
+
+The connection class provides methods for a client to establish a
+network connection to a server, and for both peers to operate the
+connection thereafter.
+
+The channel class provides methods for a client to establish a virtual
+connection - a channel - to a server and for both peers to operate the
+virtual connection thereafter.
+
+The chassis concept
 -------------------
 
 ASL is used explicitly for asymmetric client-server protocols, and uses
@@ -168,7 +174,7 @@ but not vice-versa, sending code would be generated in the client stack,
 and validating code in server stack.  The chassis information is not used
 by all targets.
 
-Specification Hierarchy
+Specification hierarchy
 -----------------------
 
 ASL uses the MOP inheritence technique very heavily.  That is, one ASL
@@ -192,8 +198,11 @@ We can look at some specific examples from the demo protocol:
    separately; simpler and more convenient than editing the whole protocol
    as a single file.
 
-Worked Example - Demo protocol
-==============================
+Worked Example
+**************
+
+The Demo protocol
+=================
 
 The ASL project includes a complete worked example, 'demo', which uses
 the base specifications.  The demo protocol implements a simple message
@@ -205,7 +214,7 @@ protocol uses the stdc target, which uses two chassis specifications,
 one for the server and one for the client.
 
 Helicopter overview
--------------------
+===================
 
 The specifications themselves are composed of these ASL files:
 
@@ -239,6 +248,12 @@ data" or "gsl public data" classes, which issue the above commands
 automatically at build time. (The difference between the classes is that
 the public class also installs the file into the $IBASE/bin directory
 for reuse by further applications.)
+
+Protocol specifications
+=======================
+
+We look at each part of the demo protocol specifications in more
+detail.
 
 Chassis specification for client
 --------------------------------
@@ -608,27 +623,30 @@ with this base set of specifications.
         >
 
 The specifications are defined per class. For the server chassis, we
-define a set of actions; this is the glue that tells the generated code
-how to implement a given protocol method:
+define a set of actions; this is a dispatcher that tells the generated
+code how to implement a given protocol method:
 
     <class name = "connection">
     <action name = "start-ok">
-        $(basename)_connection_start_ok (connection, method);
+        $\(basename)_connection_start_ok (connection, method);
     </action>
     <action name = "tune-ok">
-        $(basename)_connection_tune_ok (connection, method);
+        $\(basename)_connection_tune_ok (connection, method);
     </action>
     <action name = "open">
-        $(basename)_connection_open (connection, method);
+        $\(basename)_connection_open (connection, method);
     </action>
     </class>
+
+The $\(basename) symbol is provided by one of the hand-written server
+classes - the channel class.
 
 If we do not specify an action for a protocol method, the method has no
 effect. Most often - as in the above example - we pass the protocol
 method to some hand-written code that implements the necessary work.
 
 Required hand-written files
----------------------------
+===========================
 
 The stdc target assumes a number of hand-written files, apart from the
 ASL model files needed to define the protocol and the chassis. The
@@ -638,7 +656,7 @@ they do, in more detail in the section on the stdc target. We will now
 provide a summary explanation.
 
 Hand-written files for client stack
-...................................
+-----------------------------------
 
 These hand-written client stack files are assumed by the stdc target and
 must be provided by the developer:
@@ -653,7 +671,7 @@ same time as the above files:
  * demo_cli.c - test program for demo protocol.
 
 Hand-written files for server stack
-...................................
+-----------------------------------
 
 These hand-written server stack files are assumed by the stdc target and
 must be provided by the developer:
@@ -681,7 +699,7 @@ contain are referred to in demo_server_proto.asl:
  * demo_queue_list.icl - queue list class.
 
 Code generation process
------------------------
+=======================
 
 The demo protocol uses the stdc target. This defines two stacks, one for
 the client and one for the server. Each of these is generated
@@ -689,7 +707,7 @@ independently. There are also shared files, which are generated from the
 demo protocol base specification, the demo.asl file.
 
 Generating the client stack
-...........................
+---------------------------
 
 To generate the client stack manually we issue this gsl command:
 
@@ -704,7 +722,7 @@ The generated client stack consists of these files:
  * demo_client_agent.smt - the client-side protocol state machine.
  * demo_client_connection.icl - the connection class.
  * demo_client_session.icl - the session class.
- * demo_client_method.icl - the client method glue class.
+ * demo_client_method.icl - the client method dispatcher class.
 
 We explain the purpose of each of these in more detail when we explain
 how the stdc target is constructed.
@@ -751,7 +769,7 @@ demo client stack, providing Boom with all information necessary to
 generate, compile, link, and install the files.
 
 Generating the server stack
-...........................
+---------------------------
 
 To generate the server stack manually we issue this gsl command:
 
@@ -764,7 +782,7 @@ In a PDL project file, this is expressed as:
 The generated server stack consists of these files:
 
  * demo_server_agent.smt - the server-side protocol state machine.
- * demo_server_method.icl - the server method glue class.
+ * demo_server_method.icl - the server method dispatcher class.
 
 These files are all models, and themselves need to be "compiled" via
 code generation. When we do this fully, we get this additional set of
@@ -789,11 +807,11 @@ demo server stack, providing Boom with all information necessary to
 generate, compile, link, and install the files.
 
 Generating the common classes
-.............................
+-----------------------------
 
 A number of classes are shared by the client and server stack. These are
-generated from the protocol base specification (demo.asl). We would
-issue this gsl command by hand:
+generated from the protocol base specification (demo.asl). We would issue
+this gsl command by hand:
 
     gsl demo.asl
 
@@ -821,57 +839,162 @@ These are the final files generated when we compile all the models:
         demo_content_basic_list.h
         demo_content_basic_list_test.c
 
-See base2/asl/project.pdl for the project specification needed
-for the demo shared clases, providing Boom with all information necessary
-to generate, compile, link, and install the files.
+See base2/asl/project.pdl for the project specification needed for the
+demo shared clases, providing Boom with all information necessary to
+generate, compile, link, and install the files.
 
-
-
+Predefined targets
+******************
 
 The stdc target
 ===============
 
-Protocol options
-----------------
+The stdc target generates code for an ANSI C client stack, and an ANSI
+C server stack, both of which are built using iMatix model oriented
+technology (iCL, etc.)
 
-specified in protocol base specification.
+Overview of client stack
+------------------------
 
-<option name = "protocol_name"     value = "DEMO" />
-<option name = "protocol_port"     value = "7654" />
-<option name = "protocol_class"    value = "1" />
-<option name = "protocol_instance" value = "1" />
-<option name = "protocol_major"    value = "1" />
-<option name = "protocol_minor"    value = "1" />
+The default client stack provides a synchronous API.  That is, the
+application makes a call, and the stack blocks until the work is
+completed.
 
-in client chassis
+However, the client stack is internally multithreaded and fully
+asynchronous and executes the protocol in the background.
 
-<option name = "product_name" value = "ASL Demo Client" />
-<option name = "syncapi"      value = "1" />
+So we also provide an asynchronous API which works by sending
+method requests and receiving method responses, without blocking.
+This is useful for asynchronous applications written using the
+iMatix Base2 framework.
 
-in server chassis
+To generate a synchronous API, the client chassis must specify:
 
-<option name = "product_name" value = "ASL Demo Server" />
+    <option name = "syncapi" value = "1" />
 
+Otherwise, the stdc target generates an asynchronous client stack.
 
-Architecture of client stack
-----------------------------
+The synchronous stack
+---------------------
 
-- layers
-- sync. vs async
+General architecture
+....................
 
+The synchronous stdc client stack generates a library that consists
+of these generated layers:
 
-Client session handling
-.......................
+ * The connection layer.  A connection is an API object that maps
+   onto protocol connections (as defined by the asl_connection class
+   provided in the ASL base specification).
+ * The session layer.  A session is an API object that maps onto
+   individual channels (as defined by the asl_channel class provided
+   in the ASL base specification).
+ * A protocol agent, which handles the semantics of the protocol
+   methods, from the client point of view.
+ * A framing layer, which encodes and decodes protocol frames.
+ * A method dispatcher layer, which processes incoming protocol methods.
+
+    .---------------------------------------.
+    |       Application that uses AMQP      |      Thread 1
+    +--------------------+------------------+
+    |  Connection class  |  Session class   |
+    +--------------------+------------------+
+           |                     |
+    +--------------------+------------------+   .--------------------.
+    |           Protocol agent              |---|  Network protocol  |
+    +-----------------+---------------------+   `--------------------'
+    |  Framing layer  |  Method dispatcher  |       Thread 2
+    `-----------------+---------------------'
+
+Synchronisation works as follows:
+
+ * The application invokes function calls (synchronous methods) on
+   either a connection or session object.
+ * Each connection and session object has their own method queue.
+ * These object pass those calls to the protocol agent via a method
+   queue, the standard SMT technique for sending requests to an async
+   agent.
+ * The connection or session object waits for a response on their own
+   method queue.  This blocks the
+ * The protocol agent receives and executes these methods in due time,
+   following its own state machine execution.
+ * The protocol agent, when necessary, sends reply methods back to the
+   connection or session object that made the request.
+
+The protocol agent can actually send methods back to an open session
+at any time; this is specifically used to carry messages (contents)
+to the API.
+
+An operation like "wait for message" in the session then becomes:
+
+ * Inspect session method queue, remove any messages.
+ * If there were none, wait until some arrive.
+
+The connection class
+....................
+
+A connection object establishes and manages a single connection to a
+protocol server. The connection can hold many sessions - each is a
+session object.  To use the API, we first create a connection to the
+server, then we create one or more sessions and do work on the sessions.
+Each session represents a serial stream of work. In simple applications,
+a single session is usually sufficient. In multithreaded applications,
+each thread will want its own session.
+
 
 - general design
 - synchronisation
 
-Client protocol state machine
-.............................
+The session class
+.................
+
+- general design
+- synchronisation
+
+The protocol agent
+..................
 
 - general design
 - each state
 - error handling
+
+
+
+The asynchronous client stack
+-----------------------------
+
+General architecture
+....................
+
+
+The asynchronous stdc client stack generates a library that consists of
+these generated layers:
+
+ * A protocol agent, which handles the semantics of the protocol
+   methods, from the client point of view.
+ * A framing layer, which encodes and decodes protocol frames.
+ * A method dispatcher layer, which processes incoming protocol methods.
+
+    .---------------------------------------.   .--------------------.
+    |           Protocol agent              |---|  Network protocol  |
+    +-----------------+---------------------+   `--------------------'
+    |  Framing layer  |  Method dispatcher  |
+    `-----------------+---------------------'
+
+This is very similar to the bottom half of the synchronous stack; the
+connection and session layer in the synchronous stack in fact work to
+provide synchronisation, and are not needed in the async architecture.
+
+The protocol agent is also generated differently, since it does not
+respond to a session/connection but rather to some other application
+object.
+
+The async client stack is really intended to be embedded in a fully
+async application - a server, usually - written using the iMatix Base2
+framework.
+
+
+
 
 Hand-written files for client stack
 ...................................
@@ -899,6 +1022,28 @@ Hand-written files for server stack
  * demo_broker.icl - implementation of server broker class.
  * demo_server_config.opf - OPF configuration specification for server stack.
 
+Protocol options
+----------------
+
+specified in protocol base specification.
+
+<option name = "protocol_name"     value = "DEMO" />
+<option name = "protocol_port"     value = "7654" />
+<option name = "protocol_class"    value = "1" />
+<option name = "protocol_instance" value = "1" />
+<option name = "protocol_major"    value = "1" />
+<option name = "protocol_minor"    value = "1" />
+
+in client chassis
+
+<option name = "product_name" value = "ASL Demo Client" />
+<option name = "syncapi"      value = "1" />
+
+in server chassis
+
+<option name = "product_name" value = "ASL Demo Server" />
+
+
 
 The doc target
 ==============
@@ -907,5 +1052,5 @@ The pal target
 ==============
 
 
-Reference
-=========
+Class reference
+***************
