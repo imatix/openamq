@@ -30,7 +30,7 @@
 <actions>
   <generate>
     <execute>
-    gsl -q amq_operate_api.gsl
+    gsl -q -quiet:1 amq_operate_api.gsl
     </execute>
   </generate>
 </actions>
