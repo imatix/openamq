@@ -1,7 +1,7 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ Common"
-    version   = "1.1a0"
+    version   = "1.2b0"
     workflow  = "standard.pwl"
     library   = "libamqc"
     copyright = "Copyright (c) 1996-2006 iMatix Corporation"
@@ -24,7 +24,6 @@
 <file name = "amq_tx.asl"                class = "public resource"   >Transactions</file>
 <file name = "amq_dtx.asl"               class = "public resource"   >Distributed transactions</file>
 <file name = "amq_tunnel.asl"            class = "public resource"   >Method tunneling</file>
-<file name = "amq_cluster.asl"           class = "public resource"   >Cluster management</file>
 
 <!-- PAL/AMQ code generator -->
 <file name = "amq_pal.xnf"               class = "generated" />

@@ -274,8 +274,13 @@ typedef int (amq_peering_return_fn) (
     Sets a queue binding using the specified queue.bind method. This method
     sends the queue.bind method to the remote server and exchange so that all
     messages which match will be delivered to the peering's private queue.
+    If the corresponding exchange does not exist on the remote server, it is
+    created.
     </doc>
     <argument name = "exchange" type = "char *">Remote exchange name</argument>
+    <argument name = "exchange_type" type = "char*">Remote exchange type</argument>
+    <argument name = "exchange_durable" type = "Bool">Remote exchange durability</argument>
+    <argument name = "exchange_auto_delete" type = "Bool">Remote exchange auto-deletable?</argument>
     <argument name = "routing key" type = "char *">Bind to routing key</argument>
     <argument name = "arguments" type = "icl_longstr_t *">Bind arguments</argument>
     //
@@ -298,18 +303,25 @@ typedef int (amq_peering_return_fn) (
     Bool
         nowait = TRUE;
     amq_peer_method_t
-        *method;
+        *declare_method,
+        *bind_method;
 
-    //  Create a Queue.Bind method
+    //  Create a Exchange.Declare & Queue.Bind methods
     //  Queue is NULL as the only queue used by this connection is the
     //  peering's private queue
-    method = amq_peer_method_new_queue_bind (
+    declare_method = amq_peer_method_new_exchange_declare (
+        ticket, exchange, exchange_type, FALSE, exchange_durable,
+        exchange_auto_delete, FALSE, nowait, NULL);
+    bind_method = amq_peer_method_new_queue_bind (
         ticket, queue, exchange, routing_key, nowait, arguments);
 
     //  We hold onto all outgoing bindings so we can replay them
-    if (self->connected)
-        amq_peer_agent_push (self->peer_agent_thread, self->channel_nbr, method);
-    ipr_looseref_queue (self->bindings, method);
+    if (self->connected) {
+        amq_peer_agent_push (self->peer_agent_thread, self->channel_nbr, declare_method);
+        amq_peer_agent_push (self->peer_agent_thread, self->channel_nbr, bind_method);
+    }
+    ipr_looseref_queue (self->bindings, declare_method);
+    ipr_looseref_queue (self->bindings, bind_method);
     </action>
 </method>
 
@@ -657,7 +669,8 @@ s_test_content_handler (
         //  peering handles if we stop/restart the other server
         apr_sleep (1 * seconds);
         icl_console_print ("I: (TEST) Making binding rk-aaaaaa");
-        amq_peering_bind (peering, "amq.direct", "rk-aaaaaa", NULL);
+        amq_peering_bind (peering, "amq.direct", "direct", FALSE, FALSE,
+            "rk-aaaaaa", NULL);
 
         apr_sleep (1 * seconds);
         icl_console_print ("I: (TEST) Stopping the peering...");
@@ -665,7 +678,8 @@ s_test_content_handler (
 
         apr_sleep (1 * seconds);
         icl_console_print ("I: (TEST) Making binding rk-bbbbbb");
-        amq_peering_bind (peering, "amq.direct", "rk-bbbbbb", NULL);
+        amq_peering_bind (peering, "amq.direct", "direct", FALSE, FALSE, 
+            "rk-bbbbbb", NULL);
 
         apr_sleep (1 * seconds);
         icl_console_print ("I: (TEST) Restarting the peering...");
@@ -674,7 +688,8 @@ s_test_content_handler (
         apr_sleep (1 * seconds);
         icl_console_print ("BIND");
         icl_console_print ("I: (TEST) Making binding rk-cccccc");
-        amq_peering_bind (peering, "amq.direct", "rk-cccccc", NULL);
+        amq_peering_bind (peering, "amq.direct", "direct", FALSE, FALSE,
+            "rk-cccccc", NULL);
 
         //  Publish a message to each binding, check that it arrives
         content = amq_content_basic_new ();

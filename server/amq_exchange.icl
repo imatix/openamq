@@ -17,7 +17,7 @@ for each type of exchange. This is a lock-free asynchronous class.
 <inherit class = "smt_object" />
 <inherit class = "icl_hash_item">
     <option name = "hash_type" value = "str" />
-    <option name = "hash_size" value = "65535" />
+    <option name = "initial_size" value = "15" />
 </inherit>
 <inherit class = "icl_list_item">
     <option name = "prefix" value = "by_vhost" />
@@ -62,6 +62,7 @@ for each type of exchange. This is a lock-free asynchronous class.
 </data>
 
 <import class = "amq_server_classes" />
+<import class = "amq_queue_bindings_list_table" />
 
 <context>
     amq_broker_t
@@ -80,6 +81,8 @@ for each type of exchange. This is a lock-free asynchronous class.
         *object;                        //  Exchange implementation
     amq_binding_list_t
         *binding_list;                  //  Bindings as a list
+    amq_queue_bindings_list_table_t
+        *queue_bindings;                //  Bindings sorted by queues
     ipr_hash_table_t
         *binding_hash;                  //  Bindings hashed by routing_key
     ipr_index_t
@@ -154,6 +157,8 @@ for each type of exchange. This is a lock-free asynchronous class.
     self->binding_list  = amq_binding_list_new ();
     self->binding_hash  = ipr_hash_table_new ();
     self->binding_index = ipr_index_new ();
+    self->queue_bindings
+                        = amq_queue_bindings_list_table_new ();
     icl_shortstr_cpy (self->name, name);
 
     if (self->type == AMQ_EXCHANGE_SYSTEM) {
@@ -198,7 +203,7 @@ for each type of exchange. This is a lock-free asynchronous class.
 
     //  If exchange is configured for message transfer, create MTA agent
     config = ipr_config_dup (amq_server_config->config);
-    ipr_config_locate (config, "/config/cluster-mta", name);
+    ipr_config_locate (config, "/config/cluster_mta", name);
     if (config->located) {
         mta_host  = ipr_config_get (config, "host", NULL);
         mta_vhost = ipr_config_get (config, "vhost", "/");
@@ -220,6 +225,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     ipr_hash_table_destroy (&self->binding_hash);
     amq_binding_list_destroy (&self->binding_list);
     ipr_index_destroy (&self->binding_index);
+    amq_queue_bindings_list_table_destroy (&self->queue_bindings);
     amq_cluster_mta_destroy (&self->mta);
 
     if (self->type == AMQ_EXCHANGE_SYSTEM)
@@ -322,6 +328,8 @@ for each type of exchange. This is a lock-free asynchronous class.
         *binding = NULL;                //  New binding created
     ipr_hash_t
         *hash;                          //  Entry into hash table
+    amq_queue_bindings_list_t
+        *bindings_list;                 //  List of bindings for the queue
 
     if (amq_server_config_debug_route (amq_server_config))
         smt_log_print (amq_broker->debug_log,
@@ -361,6 +369,15 @@ for each type of exchange. This is a lock-free asynchronous class.
                 amq_binding_list_queue (self->binding_list, binding);
         }
     }
+    if (queue) {
+        bindings_list = amq_queue_bindings_list_table_search (
+            self->queue_bindings, queue->name);
+        if (!bindings_list)
+            bindings_list = amq_queue_bindings_list_new (
+                self->queue_bindings, queue->name);
+        amq_queue_bindings_list_push_back (bindings_list, binding);
+        amq_queue_bindings_list_unlink (&bindings_list);
+    }
 
     //  Notify MTA about new binding
     if (self->mta)
@@ -399,12 +416,18 @@ for each type of exchange. This is a lock-free asynchronous class.
     Bool
         returned = FALSE;
 
-    delivered = self->publish (self->object, channel, method);
+    if (self->mta_mode == AMQ_MTA_MODE_BOTH && channel)
+        delivered = 1;
+    else
+        delivered = self->publish (self->object, channel, method);
+
     content_size = ((amq_content_basic_t *) method->content)->body_size;
 
     //  Publish message to MTA if required
-    if (self->mta && (self->mta_mode ==AMQ_MTA_MODE_FORWARD_ALL ||
+    if (self->mta && (self->mta_mode == AMQ_MTA_MODE_FORWARD_ALL ||
+          (self->mta_mode == AMQ_MTA_MODE_BOTH && channel) ||
           (self->mta_mode == AMQ_MTA_MODE_FORWARD_ELSE && !delivered))) {
+
         amq_cluster_mta_message_published (
             self->mta,
             channel,
@@ -429,7 +452,7 @@ for each type of exchange. This is a lock-free asynchronous class.
                         "Message cannot be processed - no route is defined",
                         method->payload.basic_publish.exchange,
                         method->payload.basic_publish.routing_key,
-                        ((amq_content_basic_t *) method->content)->cluster_id,
+                        ((amq_content_basic_t *) method->content)->sender_id,
                         NULL);
                     ((amq_content_basic_t *) method->content)->returned = TRUE;
                 }
@@ -462,7 +485,8 @@ for each type of exchange. This is a lock-free asynchronous class.
 
 <method name = "unbind queue" template = "async function" async = "1">
     <doc>
-    Unbind a queue from the exchange.
+    Unbind a queue from the exchange. Called when queue is being destroyed.
+    All the bindings to specific queue are destoroyed.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">The queue to unbind</argument>
     //
@@ -474,21 +498,88 @@ for each type of exchange. This is a lock-free asynchronous class.
     </release>
     //
     <action>
-    amq_binding_t
-        *binding,
-        *target;
 
-    binding = amq_binding_list_first (self->binding_list);
-    while (binding) {
-        if (amq_binding_unbind_queue (binding, queue)) {
-            //  Allow the exchange implementation the chance to cleanup the
-            //  binding, but be careful to get the next binding first...
-            target = binding;
-            binding = amq_binding_list_next (&binding);
-            self->unbind (self->object, target);
+    amq_queue_bindings_list_t
+        *queue_bindings;
+    amq_binding_t
+        *binding;
+
+    queue_bindings =
+        amq_queue_bindings_list_table_search (self->queue_bindings, queue->name);
+    if (queue_bindings) {
+        while (1) {
+            binding = amq_queue_bindings_list_pop (queue_bindings);
+            if (!binding)
+                break;
+            if (amq_binding_unbind_queue (binding, queue))
+                //  Allow the exchange implementation the chance to cleanup the
+                //  binding, but be careful to get the next binding first...
+                self->unbind (self->object, binding);
+            amq_binding_unlink (&binding);
         }
+        amq_queue_bindings_list_destroy (&queue_bindings);
+    }
+    </action>
+</method>
+
+<method name = "protocol unbind queue" template = "async function" async = "1">
+    <doc>
+    Unbind a queue from the exchange. (Implements Queue.Unbind command.)
+    Looks for a specific binding to destroy (as oposed to unbind_queue that
+    destroys ALL the bindings to specified queue).
+    </doc>
+    <argument name = "channel"     type = "amq_server_channel_t *">Channel for reply</argument>
+    <argument name = "queue"       type = "amq_queue_t *">The queue to bind</argument>
+    <argument name = "routing key" type = "char *">Bind to routing key</argument>
+    <argument name = "arguments"   type = "icl_longstr_t *">Bind arguments</argument>
+    //
+    <possess>
+    channel = amq_server_channel_link (channel);
+    queue = amq_queue_link (queue);
+    arguments = icl_longstr_dup (arguments);
+    routing_key = icl_mem_strdup (routing_key);
+    </possess>
+    <release>
+    amq_server_channel_unlink (&channel);
+    amq_queue_unlink (&queue);
+    icl_longstr_destroy (&arguments);
+    icl_mem_free (routing_key);
+    </release>
+    //
+    <action>
+    amq_queue_bindings_list_t
+        *queue_bindings;
+    amq_queue_bindings_list_iterator_t
+        iterator;
+
+    if (amq_server_config_debug_route (amq_server_config))
+        smt_log_print (amq_broker->debug_log,
+            "X: unbind     %s: queue=%s", self->name, queue->name);
+
+    queue_bindings =
+        amq_queue_bindings_list_table_search (self->queue_bindings, queue->name);
+    if (queue_bindings) {
+        for (iterator = amq_queue_bindings_list_begin (queue_bindings);
+              iterator != NULL;
+              iterator = amq_queue_bindings_list_next (iterator)) {
+
+            if (streq ((*iterator)->routing_key, routing_key)
+                  && ((!((*iterator)->arguments) && arguments->cur_size == 0) ||
+                  icl_longstr_eq ((*iterator)->arguments, arguments))) {
+
+                if (amq_binding_unbind_queue (*iterator, queue)) {
+                    //  Allow the exchange implementation the chance to cleanup the
+                    //  binding, but be careful to get the next binding first...
+                    self->unbind (self->object, *iterator);
+                    amq_queue_bindings_list_erase (queue_bindings, iterator);
+                }
+                break;
+            }
+        }
+        if (amq_queue_bindings_list_size (queue_bindings) == 0)
+            amq_queue_bindings_list_destroy (&queue_bindings);
         else
-            binding = amq_binding_list_next (&binding);
+            amq_queue_bindings_list_unlink (&queue_bindings); 
     }
     </action>
 </method>

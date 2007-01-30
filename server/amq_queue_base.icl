@@ -22,8 +22,7 @@ independent of the queue content type.
     amq_queue_t
         *queue;                         //  Parent queue
     amq_consumer_by_queue_t
-        *active_consumers,              //  Active consumers
-        *paused_consumers;              //  Paused consumers
+        *consumer_list;                 //  List of consumers from the queue
     ipr_looseref_list_t
         *content_list;                  //  List of message contents
 
@@ -37,28 +36,24 @@ independent of the queue content type.
     <argument name = "queue" type = "amq_queue_t *">Parent queue</argument>
     //
     self->queue            = queue;
-    self->active_consumers = amq_consumer_by_queue_new ();
-    self->paused_consumers = amq_consumer_by_queue_new ();
+    self->consumer_list    = amq_consumer_by_queue_new ();
     self->content_list     = ipr_looseref_list_new ();
 </method>
 
 <method name = "destroy">
     <action>
-    s_free_consumer_queue (self->active_consumers);
-    s_free_consumer_queue (self->paused_consumers);
+    s_free_consumer_queue (self->consumer_list);
     </action>
 </method>
 
 <method name = "free">
-    amq_consumer_by_queue_destroy (&self->active_consumers);
-    amq_consumer_by_queue_destroy (&self->paused_consumers);
+    amq_consumer_by_queue_destroy (&self->consumer_list);
     ipr_looseref_list_destroy (&self->content_list);
 </method>
 
 <method name = "stop" template = "function">
     <footer>
-    s_free_consumer_queue (self->active_consumers);
-    s_free_consumer_queue (self->paused_consumers);
+    s_free_consumer_queue (self->consumer_list);
     </footer>
 </method>
 
@@ -67,12 +62,8 @@ independent of the queue content type.
     Attach consumer to appropriate queue consumer list.
     </doc>
     <argument name = "consumer" type = "amq_consumer_t *">Consumer reference</argument>
-    <argument name = "active"   type = "Bool">Create active consumer?</argument>
     //
-    if (active)
-        amq_consumer_by_queue_queue (self->active_consumers, consumer);
-    else
-        amq_consumer_by_queue_queue (self->paused_consumers, consumer);
+    amq_consumer_by_queue_queue (self->consumer_list, consumer);
 </method>
 
 <method name = "cancel" template = "function">
@@ -87,28 +78,12 @@ independent of the queue content type.
     amq_consumer_destroy (&consumer);
 </method>
 
-<method name = "flow" template = "function">
-    <doc>
-    Pause or restart consumer.
-    </doc>
-    <argument name = "consumer" type = "amq_consumer_t *">Consumer reference</argument>
-    <argument name = "active"   type = "Bool">Active consumer?</argument>
-    //
-    amq_consumer_by_queue_remove (consumer);
-    if (active) {
-        amq_consumer_by_queue_queue (self->active_consumers, consumer);
-        amq_queue_dispatch (self->queue);
-    }
-    else
-        amq_consumer_by_queue_queue (self->paused_consumers, consumer);
-</method>
-
 <method name = "consumer count" template = "function">
     <doc>
-    Return number of active consumers for queue.
+    Return number of consumers for queue.
     </doc>
     //
-    rc = amq_consumer_by_queue_count (self->active_consumers);
+    rc = amq_consumer_by_queue_count (self->consumer_list);
 </method>
 
 <method name = "message count" template = "function">
@@ -122,7 +97,8 @@ independent of the queue content type.
 <private name = "header">
 #define CONSUMER_FOUND  0
 #define CONSUMER_NONE   1
-#define CONSUMER_BUSY   2
+#define CONSUMER_BUSY   2 //  Currently not used, pending review of flow control
+#define CONSUMER_PAUSED 3
 
 static int
     s_get_next_consumer ($(selftype) *self, char *producer_id, amq_consumer_t **consumer_p);
@@ -136,6 +112,7 @@ static void
 //  Returns CONSUMER_FOUND if a valid consumer is found
 //  Returns CONSUMER_NONE if no valid consumers are found
 //  Returns CONSUMER_BUSY if there are busy consumers
+//  Returns CONSUMER_PAUSED if there are paused consumers
 
 static int
 s_get_next_consumer (
@@ -145,8 +122,6 @@ s_get_next_consumer (
 {
     amq_consumer_t
         *consumer;
-    smt_thread_t
-        *thread;
     int
         rc = CONSUMER_NONE;
     amq_server_connection_t
@@ -154,37 +129,24 @@ s_get_next_consumer (
     amq_server_channel_t
         *channel;
     Bool
-        channel_active,
-        channel_busy;
+        channel_active;
 
     //  We expect to process the first consumer on the active list
-    consumer = amq_consumer_by_queue_first (self->active_consumers);
+    consumer = amq_consumer_by_queue_first (self->consumer_list);
     while (consumer) {
+
         channel_active = FALSE;
-        channel_busy   = FALSE;
         channel = amq_server_channel_link (consumer->channel);
         if (channel) {
             connection = amq_server_connection_link (channel->connection);
-            if (connection) {
-                thread = smt_thread_link (channel->thread);
-                if (thread) {
-                    channel_active = channel->active;
-                    //  ML: We shouldn't need a lock here since count is 
-                    //  always updated atomically, so at worst we get some
-                    //  past value
-                    channel_busy = (thread->reply_queue->count > 100);
-                }
-                smt_thread_unlink (&thread);
-            }
+            if (connection)
+                channel_active = channel->active;
         }
         else
             connection = NULL;
             
         if (!channel_active)
-            ;                           //  Skip this consumer
-        else
-        if (channel_busy)
-            rc = CONSUMER_BUSY;         //  Unless we have better news
+            rc = CONSUMER_PAUSED;       //  Skip this consumer
         else
         if (consumer->no_local == FALSE)
             rc = CONSUMER_FOUND;        //  We have our consumer

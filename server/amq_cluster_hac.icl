@@ -96,7 +96,8 @@
         self->last_peer_time = apr_time_now ();
 
         //  Subscribe for HA peer's state notifications
-        amq_peering_bind (self->peering, "amq.status", self->primary? "b": "p", NULL);
+        amq_peering_bind (self->peering, "amq.status", "direct", TRUE, FALSE,
+            self->primary? "b": "p", NULL);
         amq_cluster_hac_start_monitoring (self);
 
         self->state_exchange = amq_exchange_table_search (broker->vhost->exchange_table, "amq.status");
@@ -319,7 +320,7 @@ s_content_handler (
     amq_content_basic_set_reader (peer_method->content, &reader, 4096);
     body = amq_content_basic_replay_body (peer_method->content, &reader);
     assert (body);
-    state = atoi (body->data);
+    state = atoi ((char*) body->data);
     ipr_bucket_destroy (&body);
 
     if (self->peer_state != state)

@@ -95,8 +95,8 @@
 <field name = "app id" type = "shortstr">
     The creating application id
 </field>
-<field name = "cluster id" type = "shortstr">
-    Intra-cluster routing identifier
+<field name = "sender id" type = "shortstr">
+    Identifier of application issuing the message (Used to route returned messages back to the application)
 </field>
 
 
@@ -415,6 +415,14 @@
       published.
     </doc>
   </field>
+
+  <field name = "sender id" type = "shortstr">
+     Sender id
+    <doc>
+      For use by cluster applications, should not be used by
+      client applications.
+    </doc>
+  </field>
 </method>
 
 
@@ -546,8 +554,8 @@
   </doc>
   <chassis name = "client" implement = "MAY" />
 
-  <field name = "cluster id" type = "shortstr">
-     Cluster id
+  <field name = "sender id" type = "shortstr">
+     Sender id
     <doc>
       For use by cluster applications, should not be used by
       client applications.
@@ -631,32 +639,6 @@
       a later stage.
     </doc>
   </field>
-</method>
-
-<method name = "recover" index = "100">
-  redeliver unacknowledged messages
-  <doc>
-    This method asks the broker to redeliver all unacknowledged messages on a
-    specified channel. Zero or more messages may be redelivered.  This method
-    is only allowed on non-transacted channels.
-  </doc>
-  <chassis name = "server" implement = "MUST" />
-
-  <field name = "requeue" type = "bit">
-    requeue the message
-    <doc>
-      If this field is zero, the message will be redelivered to the original
-      recipient.  If this bit is 1, the server will attempt to requeue the
-      message, potentially then delivering it to an alternative subscriber.
-    </doc>
-  </field>
-
-    <doc name="rule">
-      The server MUST set the redelivered flag on all messages that are resent.
-    </doc>
-    <doc name="rule">
-    The server MUST raise a channel exception if this is called on a transacted channel.
-    </doc>
 </method>
 
 </class>

@@ -64,7 +64,7 @@ This is an abstract base class for all exchange implementations.
     char
         *routing_key = "",
         *message_id = NULL,
-        *cluster_id = NULL;
+        *sender_id = NULL;
     int
         delivered = 0;                  //  Number of message deliveries
     amq_server_connection_t
@@ -79,7 +79,7 @@ This is an abstract base class for all exchange implementations.
         basic_content = (amq_content_basic_t *) (method->content);
         routing_key   = basic_method->routing_key;
         message_id    = basic_content->message_id;
-        cluster_id     = basic_content->cluster_id;
+        sender_id     = basic_content->sender_id;
         if (amq_server_config_debug_route (amq_server_config))
             smt_log_print (amq_broker->debug_log,
                 "X: publish  %s: routing_key=%s", self->exchange->name, routing_key);

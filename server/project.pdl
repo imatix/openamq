@@ -1,10 +1,10 @@
 <?xml?>
 <pdl
-    name      = "OpenAMQ Server"
-    version   = "1.1a0"
+    name      = "OpenAMQ Kernel"
+    version   = "1.2b0"
+    copyright = "Copyright (c) 1996-2006 iMatix Corporation"
     workflow  = "standard.pwl"
     library   = "libamqs"
-    copyright = "Copyright (c) 1996-2006 iMatix Corporation"
     >
 
 <include filename = "prelude.pdl" />
@@ -15,9 +15,8 @@
 <file name = "libamqs"                   class = "public library"    >Object library</file>
 
 <!-- OpenAMQ server implementation -->
-<file name = "amq_server"                class = "public command"    >Server</file>
-<file name = "amq_server.c"              class = "main program"      >Server main</file>
 <file name = "amq_server.asl"            class = "gsl data"          >Server definition</file>
+<file name = "amq_server.c"              class = "main program"      >Server main</file>
 <file name = "amq_server_main.inc"       class = "private resource"  >Server main core</file>
 <file name = "amq_server_config.opf"     class = "gsl data"          >Server configuration</file>
 <file name = "amq_server_config.icl"     class = "icl private cont"  >Server configuration class</file>
@@ -40,12 +39,22 @@
 <file name = "amq_broker.icl"            class = "icl private class" >Server broker class</file>
 <file name = "amq_broker_agent.smt"      class = "smt public module"
                                          generated = "1"             >Server broker agent</file>
+<file name = "amq_peering.icl"           class = "icl private class" >Server peering class</file>
+<file name = "amq_peering_agent.smt"     class = "smt public module"
+                                         generated = "1"             >Server peering agent</file>
+<file name = "amq_peer.asl"              class = "gsl data"          >Peering method interface</file>
+<file name = "amq_peer_method.icl"       class = "icl public cont"   >Peering methods, generated</file>
+<file name = "amq_peer_config.opf"       class = "gsl data"          >Peering config syntax</file>
+<file name = "amq_peer_config.icl"       class = "icl private cont"  >Peering config class</file>
+<file name = "amq_peer_config.txt"       class = "generated resource">Peering config documentation</file>
+<file name = "amq_peer_agent.smt"        class = "smt public module"
+                                         generated = "1"             >Peering client agent</file>
 <file name = "amq_vhost.icl"             class = "icl private class" >Server vhost class</file>
 <file name = "amq_vhost_agent.smt"       class = "smt public module"
                                          generated = "1"             >Server vhost agent</file>
 <file name = "amq_vhost_config.opf"      class = "gsl data"          >Vhost configuration</file>
 <file name = "amq_vhost_config.icl"      class = "icl private cont"  >Vhost configuration class</file>
-<file name = "amq_exchange.icl"          class = "icl private class" >Server exchange class</file>
+<file name = "amq_exchange.icl"          class = "icl public class"  >Server exchange class</file>
 <file name = "amq_exchange_table.icl"    class = "icl private cont"  >Container for server exchange class</file>
 <file name = "amq_exchange_by_vhost.icl" class = "icl private cont"  >List of exchanges per vhost</file>
 <file name = "amq_exchange_agent.smt"    class = "smt public module"
@@ -58,11 +67,15 @@
 <file name = "amq_exchange_headers.icl"  class = "icl private class" >Server headers exchange class</file>
 <file name = "amq_binding.icl"           class = "icl private class" >Server exchange bindings class</file>
 <file name = "amq_binding_list.icl"      class = "icl private cont"  >Server bindings list</file>
+<file name = "amq_queue_bindings_list.icl"
+                                         class = "icl private class" >List of bindings per queue</file>
+<file name = "amq_queue_bindings_list_table.icl"
+                                         class = "icl private cont"  >Hash of binding lists per queue</file>
 <file name = "amq_hitset.icl"            class = "icl private class" >Server exchange hitset class</file>
 <file name = "amq_index.icl"             class = "icl private class" >Message matching index class</file>
 <file name = "amq_index_hash.icl"        class = "icl private cont"  >Message matching index hash</file>
 <file name = "amq_index_array.icl"       class = "icl private cont"  >Message matching index array</file>
-<file name = "amq_queue.icl"             class = "icl private class" >Server queue envelope class</file>
+<file name = "amq_queue.icl"             class = "icl public class"  >Server queue envelope class</file>
 <file name = "amq_queue_table.icl"       class = "icl private cont"  >Hash of queues per vhost</file>
 <file name = "amq_queue_by_vhost.icl"    class = "icl private cont"  >List of queues per vhost</file>
 <file name = "amq_queue_list.icl"        class = "icl private class" >List of queues</file>
@@ -70,7 +83,7 @@
                                          generated = "1"             >Server queue agent</file>
 <file name = "amq_queue_base.icl"        class = "private resource"  >Queue base class</file>
 <file name = "amq_queue_basic.icl"       class = "icl private class" >Basic content queue class</file>
-<file name = "amq_connection.icl"        class = "icl private class" >Connection mgt class</file>
+<file name = "amq_connection.icl"        class = "icl public class"  >Connection mgt class</file>
 <file name = "amq_connection_agent.smt"  class = "smt public module"
                                          generated = "1"             >Connection mgt agent</file>
 <file name = "amq_connection_by_broker.icl"
@@ -81,26 +94,14 @@
 <file name = "amq_consumer_by_channel.icl"
                                          class = "icl private cont"  >Consumers per channel</file>
 <file name = "amq_consumer_basic.icl"    class = "icl private class" >Basic consumer class</file>
-<file name = "amq_queue_connection.icl"  class = "icl private class" >Queue-connection mgt class</file>
+<file name = "amq_queue_connection.icl"  class = "icl public class"  >Queue-connection mgt class</file>
 <file name = "amq_queue_connection_agent.smt"
-                                         class = "smt public module"
-                                         generated = "1"             >Connection-queue mgt agent</file>
-<file name = "amq_connection_queue.icl"  class = "icl private class" >Connection-queue mgt class</file>
+                                         class = "smt public module"     generated = "1" >Queue-connection mgt agent</file>
+<file name = "amq_connection_queue.icl"  class = "icl public class"  >Connection-queue mgt class</file>
 <file name = "amq_connection_queue_agent.smt"
-                                         class = "smt public module"
-                                         generated = "1"             >Connection-queue mgt agent</file>
+                                         class = "smt public module"     generated = "1" >Connection-queue mgt agent</file>
 <file name = "amq_server_method.icl"     class = "icl private cont"  >Server method class</file>
 <file name = "amq_server_base.cfg"       class = "public resource"   >Server config file</file>
-<file name = "amq_peering.icl"           class = "icl private class" >Server peering class</file>
-<file name = "amq_peering_agent.smt"     class = "smt public module"
-                                         generated = "1"             >Server peering agent</file>
-<file name = "amq_peer.asl"              class = "gsl data"          >Peering method interface</file>
-<file name = "amq_peer_method.icl"       class = "icl public cont"   >Peering methods, generated</file>
-<file name = "amq_peer_config.opf"       class = "gsl data"          >Peering config syntax</file>
-<file name = "amq_peer_config.icl"       class = "icl private cont"  >Peering config class</file>
-<file name = "amq_peer_config.txt"       class = "generated resource">Peering config documentation</file>
-<file name = "amq_peer_agent.smt"        class = "smt public module"
-                                         generated = "1"             >Peering client agent</file>
 <file name = "amq_cluster_mta.icl"       class = "icl private class" >MTA class</file>
 <file name = "amq_cluster_mta_agent.smt" class = "smt public module"
                                          generated = "1"             >MTA agent</file>
@@ -123,6 +124,9 @@
                                          class = "smt public module"
                                          generated = "1"             >Config wrapper agent</file>
 <file name = "amq_cml.icl"               class = "icl public class"  >CML functionality</file>
+
+<!-- OpenAMQ deliverables -->
+<file name = "amq_server"                class = "public command"    >Server</file>
 
 <!-- Generate AMQ Console schema -->
 <actions>

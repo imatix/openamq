@@ -1,4 +1,12 @@
 <?xml?>
+<!--
+    The Object Property Framework
+    Yet Another Production from iMatix Software Engineering.
+
+    OPF generates classes that provide a management framework for
+    object properties. A typical use is for configuration data.
+
+  -->
 <opf
     name    = "amq_server_config"
     comment = "Server configuration properties"
@@ -187,16 +195,6 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "debug cluster" type = "Bool" default = "0" dynamic = "1">
-    Debug cluster activity?
-    <doc>
-    Specifies whether cluster activity is logged or not.  Set this
-    option when you are configuring or debugging high-availability
-    clustering.  For production use, we recommend you do not set this
-    option.
-    </doc>
-    </property>
-
     <property name = "trace" type = "int" default = "0" dynamic = "1">
     Protocol trace level
     <doc>
@@ -224,25 +222,6 @@ $\(selftype)
     Heartbeat timer, seconds
     <doc>
     Defines the timeout for connection heartbeating.
-    </doc>
-    </property>
-
-    <property name = "read timeout" type = "int" default = "30" dynamic = "1">
-    Network read timeout, seconds
-    <doc>
-    Defines the timeout for network reads.  If a peer does not respond
-    within this time, it is considered dead.  If you get unexpected
-    timeout errors in the logs, you may want to increase this value.
-    </doc>
-    </property>
-
-    <property name = "write timeout" type = "int" default = "30" dynamic = "1">
-    Network write timeout, seconds
-    <doc>
-    Defines the timeout for network writes.  If a peer does not accept
-    data within this time, it is considered dead.  If you get
-    unexpected timeout errors in the logs, you may want to increase
-    this value.
     </doc>
     </property>
 
@@ -393,6 +372,6 @@ $\(selftype)
 <!-- These sections are allowed but ignored -->
 <path name = "queue_profile" />
 <path name = "security" />
-<path name = "cluster-mta" />
+<path name = "cluster_mta" />
 
 </opf>

@@ -1,4 +1,13 @@
 <?xml?>
+<!--
+    The Object Property Framework
+    Yet Another Production from The iMatix Industrial Bit Factory
+
+    OPF generates classes that provide a management framework for
+    object properties. A typical use is for configuration data.
+
+  -->
+
 <opf
     name    = "amq_client_config"
     comment = "client configuration properties"
@@ -67,7 +76,6 @@ $\(selftype)
 <!-- These sections are allowed but ignored -->
 <path name = "server" />
 <path name = "resources" />
-<path name = "cluster" />
 <path name = "logging" />
 <path name = "internal" />
 <path name = "queue_profile" />

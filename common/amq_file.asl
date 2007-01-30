@@ -77,7 +77,7 @@
 <field name = "timestamp" type = "timestamp">
     The message timestamp
 </field>
-<field name = "cluster id" type = "shortstr">
+<field name = "sender id" type = "shortstr">
     Intra-cluster routing identifier
 </field>
 

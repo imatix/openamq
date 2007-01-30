@@ -1,13 +1,11 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ Operate"
-    version   = "1.1a0"
+    version   = "1.2b0"
     workflow  = "standard.pwl"
     library   = "libamq_shell"
     copyright = "Copyright (c) 1996-2006 iMatix Corporation"
     >
-
-<!-- TODO: split this into constituent projects -->
 
 <include filename = "prelude.pdl" />
 <inherit filename = "icl_classes.pdl" />
@@ -23,7 +21,6 @@
 <file name = "amq_mgt_broker.icl"       class = "icl public cont"   >Management broker class</file>
 <file name = "amq_mgt_exchange.icl"     class = "icl public cont"   >Management exchange class</file>
 <file name = "amq_mgt_queue.icl"        class = "icl public cont"   >Management queue class</file>
-<file name = "amq_mgt_cluster.icl"      class = "icl public cont"   >Management cluster class</file>
 <file name = "amq_mgt_config.icl"       class = "icl public cont"   >Management config class</file>
 <file name = "amq_mgt_connection.icl"   class = "icl public cont"   >Management connection class</file>
 <file name = "amq_mgt_queue_connection.icl" class = "icl public cont">Management queue connection class</file>
@@ -33,7 +30,7 @@
 <actions>
   <generate>
     <execute>
-    gsl -q amq_operate_api.gsl
+    gsl -q -quiet:1 amq_operate_api.gsl
     </execute>
   </generate>
 </actions>

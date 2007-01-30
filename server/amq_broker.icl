@@ -18,7 +18,7 @@
         </field>
         <field name = "started" label = "Date, time broker started">
           <get>ipr_time_iso8601 (self->started,
-            ipr_date_format_minute, 0, ipr_time_zone (), field_value);</get>
+            ipr_date_format_minute, 0, FALSE, field_value);</get>
         </field>
         <field name = "locked" type = "bool" label = "Broker is locked?">
           <get>icl_shortstr_fmt (field_value, "%d", self->locked);</get>
@@ -56,7 +56,6 @@
         </class>
 
         <class name = "queue" label = "Shared queues" repeat = "1">
-          <rule name = "monitor top" field = "pending" />
           <local>
             amq_queue_t
                 *queue;
@@ -80,7 +79,6 @@
         </class>
 
         <class name = "connection" label = "Connections" repeat = "1">
-          <rule name = "monitor top" field = "pending" />
           <local>
             amq_connection_t
                 *connection;
@@ -97,13 +95,6 @@
           </next>
         </class>
 
-       <!--
-        <class name = "cluster" label = "Cluster">
-          <get>
-            icl_shortstr_fmt (field_value, "%d", amq_cluster->object_id);
-          </get>
-        </class>
-       -->
         <class name = "config" label = "Configuration" source = "amq_console_config">
           <get>
             icl_shortstr_fmt (field_value, "%d", amq_console_config->object_id);
@@ -163,7 +154,7 @@
 
 <context>
     Bool
-        clustered,                      //  Is broker running in clustered mode?
+        clustered,                      //  Is broker part of HAC ?
         locked,                         //  Is broker locked?
         restart;                        //  Restart broker after exit?
     int

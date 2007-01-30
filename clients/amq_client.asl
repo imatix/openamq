@@ -9,68 +9,7 @@
 <option name = "product_name" value = "OpenAMQ Kernel Client" />
 <option name = "syncapi"      value = "1" />
 
-<class name = "queue">
-  <defaults method = "declare">
-    <field name = "ticket"       default = "0" />
-    <field name = "passive"      default = "0" />
-    <field name = "durable"      default = "0" />
-    <field name = "exclusive"    default = "0" />
-    <field name = "nowait"       default = "0" />
-    <field name = "arguments"    default = ""  />
-  </defaults>
-  <defaults method = "bind">
-    <field name = "ticket"       default = "0" />
-    <field name = "nowait"       default = "0" />
-    <field name = "arguments"    default = ""  />
-  </defaults>
-  <defaults method = "purge">
-    <field name = "ticket"       default = "0" />
-    <field name = "nowait"       default = "0" />
-  </defaults>
-  <defaults method = "delete">
-    <field name = "ticket"       default = "0" />
-    <field name = "if unused"    default = "0" />
-    <field name = "nowait"       default = "0" />
-  </defaults>
-</class>
-
-<class name = "exchange">
-  <defaults method = "declare">
-    <field name = "ticket"       default = "0" />
-    <field name = "passive"      default = "0" />
-    <field name = "auto delete"  default = "0" />
-    <field name = "internal"     default = "0" />
-    <field name = "nowait"       default = "0" />
-    <field name = "arguments"    default = ""  />
-  </defaults>
-  <defaults method = "delete">
-    <field name = "ticket"       default = "0" />
-    <field name = "nowait"       default = "0" />
-  </defaults>
-</class>
-
 <class name = "basic">
-  <defaults method = "consume">
-    <field name = "ticket"       default = "0" />
-    <field name = "consumer tag" default = ""  />
-    <field name = "no local"     default = "0" />
-    <field name = "no ack"       default = "1" />
-    <field name = "exclusive"    default = "0" />
-    <field name = "nowait"       default = "0" />
-  </defaults>
-  <defaults method = "cancel">
-    <field name = "nowait"       default = "0" />
-  </defaults>
-  <defaults method = "publish">
-    <field name = "ticket"       default = "0" />
-    <field name = "mandatory"    default = "0" />
-    <field name = "immediate"    default = "0" />
-  </defaults>
-  <defaults method = "get">
-    <field name = "ticket"       default = "0" />
-    <field name = "no ack"       default = "0" />
-  </defaults>
-
   <action name = "get-ok">
     int
         msg_count;
@@ -112,41 +51,8 @@
 </class>
 
 <class name = "file">
-  <defaults method = "consume">
-    <field name = "ticket"       default = "0" />
-    <field name = "consumer tag" default = ""  />
-    <field name = "no local"     default = "0" />
-    <field name = "exclusive"    default = "0" />
-    <field name = "nowait"       default = "0" />
-  </defaults>
-  <defaults method = "cancel">
-    <field name = "nowait"       default = "0" />
-  </defaults>
-  <defaults method = "publish">
-    <field name = "ticket"       default = "0" />
-    <field name = "mandatory"    default = "0" />
-    <field name = "immediate"    default = "0" />
-  </defaults>
   <action name = "deliver" sameas = "basic" />
   <action name = "return"  sameas = "basic" />
-</class>
-
-<class name = "stream">
-  <defaults method = "consume">
-    <field name = "ticket"       default = "0" />
-    <field name = "consumer tag" default = ""  />
-    <field name = "no local"     default = "0" />
-    <field name = "exclusive"    default = "0" />
-    <field name = "nowait"       default = "0" />
-  </defaults>
-  <defaults method = "cancel">
-    <field name = "nowait"       default = "0" />
-  </defaults>
-  <defaults method = "publish">
-    <field name = "ticket"       default = "0" />
-    <field name = "mandatory"    default = "0" />
-    <field name = "immediate"    default = "0" />
-  </defaults>
 </class>
 
 </protocol>

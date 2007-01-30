@@ -65,7 +65,9 @@ maximum number of consumers per channel is set at compile time.
     self->active = active;
     consumer = amq_consumer_by_channel_first (self->consumer_list);
     while (consumer) {
-        amq_queue_flow (consumer->queue, consumer, active);
+        consumer->paused = !active;
+        if (active)
+            amq_queue_dispatch (consumer->queue);
         consumer = amq_consumer_by_channel_next (&consumer);
     }
     amq_server_agent_channel_flow_ok (self->connection->thread, self->number, self->active);
@@ -181,15 +183,15 @@ maximum number of consumers per channel is set at compile time.
     table = amq_server_channel_table_new ();
 
     //  Let's try some edge cases
-    channel = amq_server_channel_new (table, NULL, AMQ_SERVER_CHANNEL_TABLE_MAXSIZE - 1);
+    channel = amq_server_channel_new (table, NULL, AMQ_SERVER_CHANNEL_TABLE_INITIAL_SIZE - 1);
     amq_server_channel_destroy (&channel);
     smt_wait (0);
 
-    channel = amq_server_channel_new (table, NULL, AMQ_SERVER_CHANNEL_TABLE_MAXSIZE);
+    channel = amq_server_channel_new (table, NULL, AMQ_SERVER_CHANNEL_TABLE_INITIAL_SIZE);
     amq_server_channel_destroy (&channel);
     smt_wait (0);
 
-    channel = amq_server_channel_new (table, NULL, AMQ_SERVER_CHANNEL_TABLE_MAXSIZE + 1);
+    channel = amq_server_channel_new (table, NULL, AMQ_SERVER_CHANNEL_TABLE_INITIAL_SIZE + 1);
     amq_server_channel_destroy (&channel);
 
     //  Now some random table bashing

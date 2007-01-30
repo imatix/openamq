@@ -30,7 +30,8 @@
 #define AMQ_MTA_MODE_SUBSCRIBER         1
 #define AMQ_MTA_MODE_FORWARD_ALL        2
 #define AMQ_MTA_MODE_FORWARD_ELSE       3
-#define AMQ_MTA_MODE_VALID(m) (m > 0 && m <= 3)
+#define AMQ_MTA_MODE_BOTH               4
+#define AMQ_MTA_MODE_VALID(m) (m > 0 && m <= 4)
 </public>
 
 <method name = "new">
@@ -70,7 +71,9 @@
     </release>
     //
     <action>
-    amq_peering_bind (self->peering, self->exchange->name, routing_key, arguments);
+    amq_peering_bind (self->peering, self->exchange->name,
+        amq_exchange_type_name (self->exchange->type), self->exchange->durable,
+        self->exchange->auto_delete, routing_key, arguments);
     </action>
 </method>
 
@@ -90,15 +93,14 @@
     //
     <action>
     icl_shortstr_t
-        cluster_id;
+        sender_id;
     
     //  Pulled messages (null channel) cannot be forwarded
     assert (channel);
 
-    icl_shortstr_fmt (cluster_id, "%s|%d", channel->connection->key, channel->number);
-    amq_content_basic_set_cluster_id (content, cluster_id);
+    icl_shortstr_fmt (sender_id, "%s|%d", channel->connection->key, channel->number);
+    amq_content_basic_set_sender_id (content, sender_id);
 
-    icl_console_print ("I: Message pushed to the remote server.");
     amq_peering_forward (
         self->peering,
         self->exchange->name,
@@ -128,7 +130,9 @@ s_content_handler (
     amq_client_method_t
         *client_method;
 
-    if (self->mode == AMQ_MTA_MODE_SUBSCRIBER) {
+    if (self->mode == AMQ_MTA_MODE_SUBSCRIBER ||
+          self->mode == AMQ_MTA_MODE_BOTH) {
+
         assert (peer_method->class_id == AMQ_PEER_BASIC);
         assert (peer_method->method_id == AMQ_PEER_BASIC_DELIVER);
 
@@ -144,7 +148,6 @@ s_content_handler (
         client_method->content = peer_method->content;
         peer_method->content = NULL;
 
-        icl_console_print ("I: Message pulled from remote server.");
         amq_exchange_publish (self->exchange, NULL, (amq_server_method_t *) client_method);
         amq_client_method_unlink (&client_method);
     }
@@ -172,15 +175,15 @@ s_return_handler (
     assert (peer_method->method_id == AMQ_PEER_BASIC_RETURN);
 
     if (self->mode == AMQ_MTA_MODE_FORWARD_ALL
-    ||  self->mode == AMQ_MTA_MODE_FORWARD_ELSE) {
-        //  Split cluster-id "connection-key|channel-nbr" into fields
-        //  NB: compare to previous code
-        icl_shortstr_cpy (connection_id, peer_method->payload.basic_return.cluster_id);
+    ||  self->mode == AMQ_MTA_MODE_FORWARD_ELSE
+    ||  self->mode == AMQ_MTA_MODE_BOTH) {
+        //  Split sender-id "connection-key|channel-nbr" into fields
+        icl_shortstr_cpy (connection_id, peer_method->payload.basic_return.sender_id);
         separator = strchr (connection_id, '|');
 
         //  Does this assertion mean we can crash the server by sending it junk?
         assert (separator);
-        *separator++ = 0;               //  Split cluster-id into fields
+        *separator++ = 0;               //  Split sender-id into fields
         channel_nbr = atoi (separator);
         assert (channel_nbr);
 
@@ -188,7 +191,6 @@ s_return_handler (
         connection = amq_server_connection_table_search (amq_broker->connections, connection_id);
 
         if (connection) {
-            icl_console_print ("I: Message returned from remote server.");
             amq_server_agent_basic_return (
                 connection->thread,
                 channel_nbr,

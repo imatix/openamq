@@ -1,3 +1,0 @@
-#!/bin/sh
-
-perl -Ilib/Log-Log4perl-1.06/lib -IAMQP/Protocol AMQP/Protocol/AMQConnectionState.pl

@@ -35,7 +35,7 @@
                         <field name = "F20" value = "DataDataDataData" />
                     </headers>
                 </basic_content>
-                <basic_publish exchange = "amq.match" routing_key = "" />
+                <basic_publish exchange = "amq.headers" routing_key = "" />
                 <set_random name = "delay" min = "1" max = "$delay_cmdline" />
                 <wait timeout = "$delay" />
             </repeat>
@@ -46,7 +46,7 @@
                     <field name = "M02" value = "WHATEVER" />
                 </headers>
             </basic_content>
-            <basic_publish exchange = "amq.match" routing_key = "" />
+            <basic_publish exchange = "amq.headers" routing_key = "" />
             <set_random name = "delay" min = "1" max = "$delay_cmdline" />
             <wait timeout = "$delay" />
         </repeat>

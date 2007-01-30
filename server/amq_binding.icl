@@ -76,7 +76,9 @@ class.
 </method>
 
 <method name = "destroy">
-    ipr_index_delete (self->exchange->binding_index, self->index);
+    if (self->exchange->binding_index)
+        ipr_index_delete (self->exchange->binding_index, self->index);
+
     amq_queue_list_destroy    (&self->queue_list);
     ipr_looseref_list_destroy (&self->index_list);
     icl_longstr_destroy       (&self->arguments);
@@ -104,14 +106,16 @@ class.
         iterator;
     </local>
     //
-    iterator = amq_queue_list_find (
-        amq_queue_list_begin (self->queue_list), NULL, queue);
-    if (iterator)
-        amq_queue_list_erase (self->queue_list, iterator);
+    if (!self->zombie) {
+        iterator = amq_queue_list_find (
+            amq_queue_list_begin (self->queue_list), NULL, queue);
+        if (iterator)
+            amq_queue_list_erase (self->queue_list, iterator);
 
-    //  Signal to caller if binding is now empty
-    if (amq_queue_list_size (self->queue_list) == 0)
-        rc = -1;
+        //  Signal to caller if binding is now empty
+        if (amq_queue_list_size (self->queue_list) == 0)
+            rc = -1;
+    }
 </method>
 
 <method name = "publish" template = "function">
@@ -132,28 +136,10 @@ class.
     while (iterator) {
         if (amq_server_config_debug_route (amq_server_config))
             smt_log_print (amq_broker->debug_log, "X: deliver  queue=%s", (*iterator)->key);
-        amq_queue_publish (*iterator, channel, method, from_cluster);
+        amq_queue_publish (*iterator, channel, method);
         iterator = amq_queue_list_next (iterator);
         rc++;                           //  Count recepients
     }
-    //  Publish to peers, sending method to async cluster class
-    connection = channel?
-        amq_server_connection_link (channel->connection): NULL;
-    looseref = ipr_looseref_list_first (self->peer_list);
-    while (looseref) {
-        peer = (amq_peer_t *) (looseref->object);
-        if (amq_cluster->enabled
-        &&  connection
-        &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER
-        &&  strneq (connection->client_proxy_name, peer->name)) {
-            if (amq_server_config_debug_route (amq_server_config))
-                smt_log_print (amq_broker->debug_log, "X: publish  peer=%s", peer->name);
-            amq_cluster_peer_push (amq_cluster, peer, method);
-            rc++;                       //  Count recepients
-        }
-        looseref = ipr_looseref_list_next (&looseref);
-    }
-    amq_server_connection_unlink (&connection);
 </method>
 
 <method name = "selftest" />

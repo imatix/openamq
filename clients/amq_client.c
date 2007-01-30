@@ -36,8 +36,7 @@ int
 main (int argc, char *argv [])
 {
     int
-        argn,                           //  Argument number
-        return_code = EXIT_SUCCESS;
+        argn;                           //  Argument number
     Bool
         args_ok = TRUE;                 //  Were the arguments okay?
     char
@@ -68,7 +67,7 @@ main (int argc, char *argv [])
         nbr_active,                     //  Active connections
         nbr_passive,                    //  Passive connections
         out_count,                      //  Messages sent
-        in_count = 0,                   //  Messages received
+        expected,                       //  Messages expected
         messages,
         msgsize,
         repeats;
@@ -185,6 +184,10 @@ main (int argc, char *argv [])
     memset (a_sessions,    0, sizeof (void *) * nbr_active);
     memset (p_sessions,    0, sizeof (void *) * nbr_passive);
     
+    if (atoi (opt_trace) > 2) {
+        amq_client_connection_animate (TRUE);
+        amq_client_session_animate (TRUE);
+    }
     //  Open all connections
     auth_data = amq_client_connection_auth_plain ("guest", "guest");
     for (the_index = 0; the_index < nbr_active; the_index++) {
@@ -213,11 +216,13 @@ main (int argc, char *argv [])
         }
     }        
     if (nbr_active && a_connections [0])
-        icl_console_print ("I: opened %d active connection%s to %s/%s",
+        icl_console_print ("I: opened %d connection%s to %s/%s",
             nbr_active + nbr_passive,
            (nbr_active + nbr_passive) > 1? "s": "",
             a_connections [0]->server_product,
-            a_connections [0]->server_version);
+            a_connections [0]->server_version,
+            a_connections [0]->server_platform,
+            a_connections [0]->server_information);
     
     //  Declare automatic queues
     for (the_index = 0; the_index < nbr_active; the_index++) {
@@ -235,8 +240,8 @@ main (int argc, char *argv [])
     }
     while (repeats) {
         //  Send messages to server
-        icl_console_print ("I: (%d) sending %d message%s to server...",
-            repeats, (messages * nbr_active), messages > 1? "s": "");
+        icl_console_print ("I: (%d) sending %d messages to server...",
+            repeats, messages);
             
         for (out_count = 0; out_count < messages; out_count++) {
             content = amq_content_basic_new ();
@@ -248,7 +253,7 @@ main (int argc, char *argv [])
             for (the_index = 0; the_index < nbr_active; the_index++) {
                 session = a_sessions [the_index];
                 if (amq_client_session_basic_publish (
-                    session, content, ticket, NULL, session->queue, FALSE, FALSE)
+                    session, content, ticket, "", session->queue, FALSE, FALSE)
                 ) {
                     icl_console_print ("E: [%s] could not send message to server - %s",
                         session->queue, session->error_text);
@@ -258,14 +263,14 @@ main (int argc, char *argv [])
             amq_content_basic_unlink (&content);
         }
         //  Read messages back from server, discard them
-        in_count += messages * nbr_active;
-        while (in_count) {
+        expected = messages * nbr_active;
+        while (expected) {
             for (the_index = 0; the_index < nbr_active; the_index++) {
                 session = a_sessions [the_index];
                 content = amq_client_session_basic_arrived (session);
                 if (content) {
                     amq_content_basic_unlink (&content);
-                    in_count--;
+                    expected--;
                 }
                 else
                     amq_client_session_wait (session, 1000);
@@ -274,6 +279,7 @@ main (int argc, char *argv [])
                     goto finished;
                 if (smt_signal_raised) {
                     icl_console_print ("I: SMT signal raised - ending test");
+                    icl_console_print ("I: %d messages not received");
                     goto finished;
                 }
             }
@@ -286,10 +292,6 @@ main (int argc, char *argv [])
         amq_client_session_basic_cancel (session, session->consumer_tag);
     }
     finished:
-    if (in_count > 0) {
-        return_code = EXIT_FAILURE;
-        icl_console_print ("E: %d messages not received", in_count);
-    }
 
     for (the_index = 0; the_index < nbr_active; the_index++) {
         if (a_sessions [the_index])
@@ -312,6 +314,6 @@ main (int argc, char *argv [])
     icl_mem_free (p_sessions);
 
     icl_system_terminate ();
-    return (return_code);
+    return (0);
 }
 

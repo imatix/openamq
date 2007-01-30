@@ -156,13 +156,8 @@
     </footer>
     //
     //  Find queue and create if necessary
-    if (strnull (method->queue)) {
-        if (amq_broker->clustered && !method->exclusive)
-            icl_shortstr_fmt (method->queue, "%s:%d",
-                amq_broker->name, icl_atomic_inc32 (&queue_index));
-        else
-            icl_shortstr_fmt (method->queue, "#%d", icl_atomic_inc32 (&queue_index));
-    }
+    if (strnull (method->queue))
+        icl_shortstr_fmt (method->queue, "#%d", icl_atomic_inc32 (&queue_index));
     queue = amq_queue_table_search (vhost->queue_table, method->queue);
     if (!queue) {
         if (method->passive)
@@ -176,7 +171,8 @@
                 method->durable,
                 method->exclusive,
                 //  Setting the 'exclusive' flag always implies 'auto-delete'
-                method->exclusive? TRUE: method->auto_delete);
+                method->exclusive? TRUE: method->auto_delete,
+                method->arguments);
 
             //  This can fail if two threads create the same queue at the
             //  same time... so let's go find the actual queue object
@@ -258,23 +254,54 @@
                 exchange, channel, queue, method->routing_key, method->arguments);
             if (!method->nowait)
                 amq_server_agent_queue_bind_ok (connection->thread, channel->number);
+            amq_queue_unlink (&queue);
+        }
+        else
+            amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
+        amq_exchange_unlink (&exchange);
+    }
+    else
+        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined");
+  </action>
 
-            //  Tell cluster about new queue binding
-            if (amq_cluster->enabled
-            &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER) {
-                if (queue->clustered)
-                    //  Make same binding on all cluster peers
-                    amq_cluster_tunnel_out (
-                        amq_cluster,
-                        AMQ_CLUSTER_ALL,
-                        self,
-                        AMQ_CLUSTER_DURABLE,
-                        channel);
-                else
-                    //  Make exchange-to-exchange binding on all cluster peers
-                    amq_cluster_bind_exchange (amq_cluster,
-                        method->exchange, method->routing_key, method->arguments);
-            }
+  <action name = "unbind">
+    <local>
+    amq_exchange_t
+        *exchange;                      //  Exchange to unbind from 
+    amq_queue_t
+        *queue;
+    </local>
+    <local>
+    amq_vhost_t
+        *vhost;
+    </local>
+    <header>
+    vhost = amq_vhost_link (amq_broker->vhost);
+    if (vhost) {
+    </header>
+    <footer>
+        amq_vhost_unlink (&vhost);
+    }
+    else
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+    </footer>
+    //
+    //  Use current channel queue if method uses a blank queue
+    if (strnull (method->queue)) {
+        icl_shortstr_cpy (method->queue, channel->current_queue);
+        if (strnull (method->routing_key))
+            icl_shortstr_cpy (method->routing_key, channel->current_queue);
+    }
+    exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
+    if (exchange) {
+        queue = amq_queue_table_search (vhost->queue_table, method->queue);
+        if (queue) {
+            amq_exchange_protocol_unbind_queue (
+                exchange, channel, queue, method->routing_key, method->arguments);
+            if (!method->nowait)
+                amq_server_agent_queue_unbind_ok (connection->thread, channel->number);
+
+            /*  TODO: Clustering code missing  */
             amq_queue_unlink (&queue);
         }
         else
@@ -432,11 +459,6 @@
                 method->routing_key,
                 connection->id);
 
-#ifdef __DISABLED_CLUSTER_TODO__
-//  This was where we set the cluster tag for message returns... not very
-//  elegant.
-            amq_content_$(class.name)_set_cluster_id (content, channel->cluster_id);
-#endif
             amq_exchange_publish (exchange, channel, self);
         }
         else
