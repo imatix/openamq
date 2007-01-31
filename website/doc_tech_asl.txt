@@ -28,7 +28,7 @@ distribution, you must make clear to others the license terms of this
 work. Any of these conditions can be waived if you get permission from
 the copyright holder.
 
-For more details see: http://creativecommons.org/licenses/by-sa/2.5/.
+For more details refer to http://creativecommons.org/licenses/by-sa/2.5/.
 
 Abstract
 ========
@@ -78,8 +78,9 @@ generation targets and their functionality is not pre-defined. The only
 fixed part of the whole ASL framework is the ASL grammar itself.
 
 Note that the ASL grammar is not fully compatible with the AMQP
-protocol, which was forked and modified separately starting from June
-2006. The first public release of AMQP had no concept of grammar at all.
+protocol, which was forked and modified separately starting from
+June 2006. The first public release of AMQP had no concept of
+grammar at all.
 
 What is an ASL specification?
 -----------------------------
@@ -103,7 +104,9 @@ ASL targets
 
 At code generation time, the protocol developer specifies a "target". The
 target defines entirely what kind of code generation the framework will
-do.  ASL itself defines no fixed architecture on the produced code.
+do.  ASL itself defines no fixed architecture on the produced code, though
+we do provide a standard transport layer and wire-level framing which is
+explained at the end of this document.
 
 These targets have been developed:
 
@@ -193,6 +196,7 @@ We can look at some specific examples from the demo protocol:
    specification called demo.asl.  This lets the chassis specifications
    share the same classes and methods, and layer ASL code on top of
    those.
+
  * Each class is defined as a seperate .asl file, and included into the
    base protocol specification.  This lets the author edit each class
    separately; simpler and more convenient than editing the whole protocol
