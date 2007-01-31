@@ -3,7 +3,7 @@
     name      = "OpenAMQ Common"
     version   = "1.2b0"
     workflow  = "standard.pwl"
-    library   = "libamqc"
+    library   = "libamq_common"
     copyright = "Copyright (c) 1996-2006 iMatix Corporation"
     >
 
@@ -11,7 +11,7 @@
 <inherit filename = "icl_classes.pdl" />
 
 <file name = "version.h"                 class = "c version"         >Project version file</file>
-<file name = "libamqc"                   class = "public library"    >Object library</file>
+<file name = "libamq_common"             class = "public library"    >Object library</file>
 
 <!-- AMQ protocol specification -->
 <file name = "amq.asl"                   class = "gsl public data"   >AMQ protocol definition</file>
