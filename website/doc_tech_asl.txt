@@ -146,10 +146,10 @@ The base specifications are not mandatory, but they are intended to make
 the development of certain classes of protocol faster and easier.  The
 base specifications use these files:
 
- * asl_base.asl - base specifications.
- * asl_constants.asl - protocol constants.
- * asl_connection.asl - the 'connection' class.
- * asl_channel.asl - the 'channel' class.
+* asl_base.asl - base specifications.
+* asl_constants.asl - protocol constants.
+* asl_connection.asl - the 'connection' class.
+* asl_channel.asl - the 'channel' class.
 
 The connection and channel classes together provide a level of
 functionality that can be compared to protocol frameworks like BEEP
@@ -192,12 +192,12 @@ files.
 
 We can look at some specific examples from the demo protocol:
 
- * The two chassis specifications inherit from the same base protocol
+* The two chassis specifications inherit from the same base protocol
    specification called demo.asl.  This lets the chassis specifications
    share the same classes and methods, and layer ASL code on top of
    those.
 
- * Each class is defined as a seperate .asl file, and included into the
+* Each class is defined as a seperate .asl file, and included into the
    base protocol specification.  This lets the author edit each class
    separately; simpler and more convenient than editing the whole protocol
    as a single file.
@@ -222,13 +222,13 @@ Helicopter overview
 
 The specifications themselves are composed of these ASL files:
 
- * demo_client_proto.asl - chassis specification for the client.
- * demo_server_proto.asl - chassis specification for the server.
- * demo.asl - demo protocol base specification.
- * demo_access.asl - 'access' class.
- * demo_basic.asl - 'basic' class.
- * demo_exchange.asl - 'exchange' class.
- * demo_queue.asl - 'queue' class.
+* demo_client_proto.asl - chassis specification for the client.
+* demo_server_proto.asl - chassis specification for the server.
+* demo.asl - demo protocol base specification.
+* demo_access.asl - 'access' class.
+* demo_basic.asl - 'basic' class.
+* demo_exchange.asl - 'exchange' class.
+* demo_queue.asl - 'queue' class.
 
 The demo.asl file inherits from asl_base.asl, so incorporates the connection
 and channel classes from that base specification.  The client and server
@@ -238,8 +238,8 @@ asl_base.asl.
 The two chassis specifications also inherit from these files, which in
 the current implementation implement rules for the 'stdc' target:
 
- * asl_client.asl - base specification for a client chassis.
- * asl_server.asl - base specification for a server chassis.
+* asl_client.asl - base specification for a client chassis.
+* asl_server.asl - base specification for a server chassis.
 
 To generate code, we issue these commands:
 
@@ -663,14 +663,14 @@ Hand-written files for client stack
 These hand-written client stack files are assumed by the stdc target and
 must be provided by the developer:
 
- * demo_client_classes.icl - collection of all classes used in client stack.
+* demo_client_classes.icl - collection of all classes used in client stack.
    You can add any hand-written classes into this file to ensure they are
    properly linked into the client stack library and available to
    hand-written code in the client chassis (the method actions).
- * demo_client_channel.icl - implementation of client channel class.  This
+* demo_client_channel.icl - implementation of client channel class.  This
    defines the basename symbol that is needed to generate proper filenames
    for the client stack.
- * demo_client_config.opf - OPF configuration specification for client stack.
+* demo_client_config.opf - OPF configuration specification for client stack.
    This file provides the configuration framework for the client stack.
 
 The prefix for these file ('demo') must match the 'protocol_name' option
@@ -685,7 +685,7 @@ the cleanest, but simple.
 This file is optional, but useful, and normally copied from ASL at the
 same time as the above files:
 
- * demo_cli.c - test program for demo protocol.
+* demo_cli.c - test program for demo protocol.
 
 Hand-written files for server stack
 -----------------------------------
@@ -693,11 +693,11 @@ Hand-written files for server stack
 These hand-written server stack files are assumed by the stdc target and
 must be provided by the developer:
 
- * demo_server_classes.icl - collection of all classes used in server stack.
- * demo_server_connection.icl - implementation of server connection class.
- * demo_server_channel.icl - implementation of server channel class.
- * demo_broker.icl - implementation of server broker class.
- * demo_server_config.opf - OPF configuration specification for server stack.
+* demo_server_classes.icl - collection of all classes used in server stack.
+* demo_server_connection.icl - implementation of server connection class.
+* demo_server_channel.icl - implementation of server channel class.
+* demo_broker.icl - implementation of server broker class.
+* demo_server_config.opf - OPF configuration specification for server stack.
 
 The prefix for these file ('demo') must match the 'protocol_name' option
 specified in the protocol base specification (the demo.asl file, in this
@@ -706,18 +706,18 @@ case).
 These files are optional but useful, since they define the main server
 program:
 
- * demo_srv.c - example mainline program.
- * demo_server_main.inc - actual mainline code.
- * demo_srv_base.cfg - configuration data used by default.
+* demo_srv.c - example mainline program.
+* demo_server_main.inc - actual mainline code.
+* demo_srv_base.cfg - configuration data used by default.
 
 These files are additionally used by the demo protocol server chassis
 (the classes are included from demo_server_classes, and the methods they
 contain are referred to in demo_server_proto.asl:
 
- * demo_exchange.icl - exchange class.
- * demo_queue.icl - queue master class.
- * demo_queue_basic.icl - basic queue class.
- * demo_queue_list.icl - queue list class.
+* demo_exchange.icl - exchange class.
+* demo_queue.icl - queue master class.
+* demo_queue_basic.icl - basic queue class.
+* demo_queue_list.icl - queue list class.
 
 Code generation process
 =======================
@@ -740,10 +740,10 @@ In a PDL project file, this is expressed as:
 
 The generated client stack consists of these files:
 
- * demo_client_agent.smt - the client-side protocol state machine.
- * demo_client_connection.icl - the connection class.
- * demo_client_session.icl - the session class.
- * demo_client_method.icl - the client method dispatcher class.
+* demo_client_agent.smt - the client-side protocol state machine.
+* demo_client_connection.icl - the connection class.
+* demo_client_session.icl - the session class.
+* demo_client_method.icl - the client method dispatcher class.
 
 We explain the purpose of each of these in more detail when we explain
 how the stdc target is constructed.
@@ -802,8 +802,8 @@ In a PDL project file, this is expressed as:
 
 The generated server stack consists of these files:
 
- * demo_server_agent.smt - the server-side protocol state machine.
- * demo_server_method.icl - the server method dispatcher class.
+* demo_server_agent.smt - the server-side protocol state machine.
+* demo_server_method.icl - the server method dispatcher class.
 
 These files are all models, and themselves need to be "compiled" via
 code generation. When we do this fully, we get this additional set of
@@ -842,9 +842,9 @@ In a PDL project file, this is expressed as:
 
 The generated shared classes consist of these files:
 
- * demo_constants.icl - protocol constants.
- * demo_content_basic.icl - the shared Basic content class.
- * demo_content_basic_list.icl - list of Basic contents.
+* demo_constants.icl - protocol constants.
+* demo_content_basic.icl - the shared Basic content class.
+* demo_content_basic_list.icl - list of Basic contents.
 
 These are the final files generated when we compile all the models:
 
@@ -904,16 +904,16 @@ General architecture
 The synchronous stdc client stack generates a library that consists
 of these generated layers:
 
- * The connection layer.  A connection is an API object that maps
+* The connection layer.  A connection is an API object that maps
    onto protocol connections (as defined by the asl_connection class
    provided in the ASL base specification).
- * The session layer.  A session is an API object that maps onto
+* The session layer.  A session is an API object that maps onto
    individual channels (as defined by the asl_channel class provided
    in the ASL base specification).
- * A protocol agent, which handles the semantics of the protocol
+* A protocol agent, which handles the semantics of the protocol
    methods, from the client point of view.
- * A framing layer, which encodes and decodes protocol frames.
- * A method dispatcher layer, which processes incoming protocol methods.
+* A framing layer, which encodes and decodes protocol frames.
+* A method dispatcher layer, which processes incoming protocol methods.
 
     .---------------------------------------.
     |    Application that uses protocol     |      Thread 1
@@ -929,17 +929,17 @@ of these generated layers:
 
 Synchronisation works as follows:
 
- * The application invokes function calls (synchronous methods) on
+* The application invokes function calls (synchronous methods) on
    either a connection or session object.
- * Each connection and session object has their own method queue.
- * These object pass those calls to the protocol agent via a method
+* Each connection and session object has their own method queue.
+* These object pass those calls to the protocol agent via a method
    queue, the standard SMT technique for sending requests to an async
    agent.
- * The connection or session object waits for a response on their own
+* The connection or session object waits for a response on their own
    method queue.  This blocks the
- * The protocol agent receives and executes these methods in due time,
+* The protocol agent receives and executes these methods in due time,
    following its own state machine execution.
- * The protocol agent, when necessary, sends reply methods back to the
+* The protocol agent, when necessary, sends reply methods back to the
    connection or session object that made the request.
 
 The protocol agent can actually send methods back to an open session
@@ -948,8 +948,8 @@ to the API.
 
 An operation like "wait for message" in the session then becomes:
 
- * Inspect session method queue, remove any messages.
- * If there were none, wait until some arrive.
+* Inspect session method queue, remove any messages.
+* If there were none, wait until some arrive.
 
 The connection class
 ....................
@@ -991,29 +991,29 @@ thread).
 
 The methods that the agent accepts are:
 
- * channel open - open a new channel.
- * channel close - close a specified channel.
- * connection close - close the current connection.
- * [class_name] [method_name] - send protocol method to server.
- * push - send a formatted protocol method frame to the server.
+* channel open - open a new channel.
+* channel close - close a specified channel.
+* connection close - close the current connection.
+* [class_name] [method_name] - send protocol method to server.
+* push - send a formatted protocol method frame to the server.
 
 The main states that the agent implements are:
 
- * initialise connection - opens the connection and handles the whole
+* initialise connection - opens the connection and handles the whole
    connection negotiation sub-protocol.
- * connection active - the main state, in which we handle either a
+* connection active - the main state, in which we handle either a
    method from the session/connection objects, or incoming frames from
    the server.  When we get incoming frames from the server this state
    passes control to a "have_" state to process the frame.
- * have method class - in this state we process the different classes
+* have method class - in this state we process the different classes
    of method frames incoming from the server. Note that connection and
    channel are predefined in the stdc target specification, and the
    other classes are taken from the protocol specification.
- * have connection method - this state handles the different connection
+* have connection method - this state handles the different connection
    methods incoming from the server.
- * have channel method - this state handles the different channel
+* have channel method - this state handles the different channel
    methods incoming from the server.
- * defaults - the defaults state handles events and methods that are not
+* defaults - the defaults state handles events and methods that are not
    explicitly handled in the current thread state.  This is used both
    to simplify the state machine (by centralising event handling)
    and for error handling (to trap unexpected events).
@@ -1021,18 +1021,18 @@ The main states that the agent implements are:
 Additionally the agent implements a number of sub-states, which are
 called from other states to perform some specific work:
 
- * read non heartbeat frame - read a non-heartbeat frame from the
+* read non heartbeat frame - read a non-heartbeat frame from the
    connection, return when we have a non-heartbeat frame.
- * read [class.name] content - this state reads a content sent from the
+* read [class.name] content - this state reads a content sent from the
    server, frame by frame, return when the content is complete.
- * active close - close the connection using the handshake model defined
+* active close - close the connection using the handshake model defined
    in the connection sub-protocol.
 
 The client protocol agent has these known limitations:
 
- * It cannot handle contents sent on multiple channels at once.  The
+* It cannot handle contents sent on multiple channels at once.  The
    "read [class.name] content" state does not allow this.
- * It serialises network input and output.  For very high-volume
+* It serialises network input and output.  For very high-volume
    scenarios it would be more efficient to use two threads per
    connection, one for input and one for output.  The server agent
    implements such a model.  (Note that this is also significantly
@@ -1079,10 +1079,10 @@ General architecture
 The asynchronous stdc client stack generates a library that consists of
 these generated layers:
 
- * A protocol agent, which handles the semantics of the protocol
+* A protocol agent, which handles the semantics of the protocol
    methods, from the client point of view.
- * A framing layer, which encodes and decodes protocol frames.
- * A method dispatcher layer, which processes incoming protocol methods.
+* A framing layer, which encodes and decodes protocol frames.
+* A method dispatcher layer, which processes incoming protocol methods.
 
     .---------------------------------------.   .--------------------.
     |           Protocol agent              |---|  Network protocol  |
@@ -1149,10 +1149,10 @@ General architecture
 The server stack is a framework that handles the protocol on behalf of a
 set of server classes.  These are the generated layers in that framework:
 
- * A protocol agent, which handles the semantics of the protocol
+* A protocol agent, which handles the semantics of the protocol
    methods, from the client point of view.
- * A framing layer, which encodes and decodes protocol frames.
- * A method dispatcher layer, which processes incoming protocol methods.
+* A framing layer, which encodes and decodes protocol frames.
+* A method dispatcher layer, which processes incoming protocol methods.
 
     .---------------------------------------.   .--------------------.
     |           Protocol agent              |---|  Network protocol  |
@@ -1173,9 +1173,9 @@ hash structure (a table container).
 
 The agent has these thread types:
 
- * master - this thread handles socket connection requests.
- * connection - this thread handles connection start-up, and output.
- * input - this thread handles socket input.
+* master - this thread handles socket connection requests.
+* connection - this thread handles connection start-up, and output.
+* input - this thread handles socket input.
 
 Each thread progresses through a set of states, each state accepts a
 well-defined set of events (from thread actions) and/or methods (from
@@ -1183,41 +1183,41 @@ application objects).
 
 The methods that the agent accepts are:
 
- * set trace - set trace level on a specific connection.
- * kill connection - kill a specific connection.
- * connection open ok - send Connection.Open-Ok to the client.
- * connection redirect - send Connection.Redirect to the client.
- * [class_name] [method_name] - send outgoing protocol method to client.
- * push - send a formatted protocol method frame to the client.
+* set trace - set trace level on a specific connection.
+* kill connection - kill a specific connection.
+* connection open ok - send Connection.Open-Ok to the client.
+* connection redirect - send Connection.Redirect to the client.
+* [class_name] [method_name] - send outgoing protocol method to client.
+* push - send a formatted protocol method frame to the client.
 
 The master thread monitors the network socket for new connections.
 This thread has the following states:
 
- * initialise master - open the socket and accept incoming connection
+* initialise master - open the socket and accept incoming connection
    requests.
- * new connection - create a new connection thread, and accept another
+* new connection - create a new connection thread, and accept another
    connection.
 
 The connection thread does connection start-up negotiation, and handles
 outgoing methods.  It has these states:
 
- * initialise connection - opens the connection and handles the whole
+* initialise connection - opens the connection and handles the whole
    connection negotiation sub-protocol.
- * connection active - the main state, in which we handle methods from
+* connection active - the main state, in which we handle methods from
    application objects.
 
 The input thread waits for socket input and handles incoming protocol
 frames, in parallel with the connection thread, so that input and
 output can happen simultaneously.  It has these states:
 
- * start - this state starts the input cycle by reading the first frame.
- * have method class - in this state we process the different classes
+* start - this state starts the input cycle by reading the first frame.
+* have method class - in this state we process the different classes
    of method frames incoming from the server. Note that connection and
    channel are predefined in the stdc target specification, and the
    other classes are taken from the protocol specification.
- * have connection method - this state handles the different connection
+* have connection method - this state handles the different connection
    methods incoming from the server.
- * have channel method - this state handles the different channel
+* have channel method - this state handles the different channel
    methods incoming from the server.
 
 Default states are used at two levels: in the connection and input
@@ -1226,11 +1226,11 @@ threads, and also at the top level of the state machine.
 Additionally the connection and input threads use a number of sub-states
 that are called from other states to perform some specific work:
 
- * read non heartbeat frame - read a non-heartbeat frame from the
+* read non heartbeat frame - read a non-heartbeat frame from the
    connection, return when we have a non-heartbeat frame.
- * read [class.name] content - this state reads a content sent from the
+* read [class.name] content - this state reads a content sent from the
    server, frame by frame, return when the content is complete.
- * active close - close the connection using the handshake model defined
+* active close - close the connection using the handshake model defined
    in the connection sub-protocol.
 
 Error handling is done in the defaults states, which trap all unexpected
@@ -1280,22 +1280,22 @@ specification.  These are (with example values):
 
 See demo.asl for an example.  The meaning of each of these is:
 
- * protocol_name - the name of the protocol, which acts as the prefix for
+* protocol_name - the name of the protocol, which acts as the prefix for
    hand-written files, and some generated files.
- * protocol_port - the default port for protocol network connections.
- * protocol_class - the 'class' used in version negotiation.
- * protocol_instance - the 'instance' used in version negotiation.
- * protocol_major - the major version number.
- * protocol_minor - the minor version number.
+* protocol_port - the default port for protocol network connections.
+* protocol_class - the 'class' used in version negotiation.
+* protocol_instance - the 'instance' used in version negotiation.
+* protocol_major - the major version number.
+* protocol_minor - the minor version number.
 
 In the client chassis, these options are allowed:
 
     <option name = "product_name" value = "ASL Demo Client" />
     <option name = "syncapi"      value = "1" />
 
- * product_name - a string that is sent to the server at connection
+* product_name - a string that is sent to the server at connection
    time, and used for logging.
- * syncapi - if 1, the stdc target generates a synchronous client stack;
+* syncapi - if 1, the stdc target generates a synchronous client stack;
    if 0, or not specified, the stdc target generates an async client
    stack.
 
@@ -1303,7 +1303,7 @@ In the server chassis, these options are allowed:
 
     <option name = "product_name" value = "ASL Demo Server" />
 
- * product_name - a string that is sent to the client at connection
+* product_name - a string that is sent to the client at connection
    time, and used for logging.
 
 The doc target
@@ -1338,10 +1338,10 @@ alone gurudoc-to-XHTML convertor.
 The doc target produces these files (for the demo protocol as an
 example):
 
- * demo_full.txt - full documentation for each class and method.
- * demo_quick.txt - summaries of each class and method.
- * demo_ids.txt - a reference of class and method numbering (IDs).
- * demo_replies.txt - a summary of the protocol reply codes.
+* demo_full.txt - full documentation for each class and method.
+* demo_quick.txt - summaries of each class and method.
+* demo_ids.txt - a reference of class and method numbering (IDs).
+* demo_replies.txt - a summary of the protocol reply codes.
 
 The pal target
 ==============
@@ -1349,14 +1349,14 @@ The pal target
 PAL is the Protocol Automation Language, and documented elsewhere.  PAL
 is a protocol scripting framework.  It works as follows:
 
- * From the protocol specification, the pal target generates a grammar
-   for a protocol automation language that specifically supports the
-   protocol in question.  E.g. from demo.asl we get a grammar for a
-   scripting language specifically for the demo protocol.
+* From the protocol specification, the pal target generates a grammar
+  for a protocol automation language that specifically supports the
+  protocol in question.  E.g. from demo.asl we get a grammar for a
+  scripting language specifically for the demo protocol.
 
- * From the grammar, PAL generates a compiler for the language; this
-   compiler takes scripts and turns them into source code in target
-   languages - the default is stdc.
+* From the grammar, PAL generates a compiler for the language; this
+  compiler takes scripts and turns them into source code in target
+  languages - the default is stdc.
 
 The actual code generation process is complex but we can ignore it, and
 focus on the results, and how to use them.
@@ -1402,10 +1402,10 @@ rapidly.
 
 This standard transport layer is implemented in:
 
- * A number of pre-supplied ASL specifications that define the class/method
-   semantics for the transport layer
- * The pre-supplied targets, especially stdc, which generate code for the
-   transport layer.
+* A number of pre-supplied ASL specifications that define the class/method
+  semantics for the transport layer
+* The pre-supplied targets, especially stdc, which generate code for the
+  transport layer.
 
 Wire-level protocol model
 -------------------------
