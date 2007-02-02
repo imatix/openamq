@@ -9,9 +9,13 @@
 <include filename = "prelude.pdl" />
 
 <file name = "grm_receiver.pal"      class = "pal script" />
-<file name = "grm_sender_reqrep_stable.pal"
+<file name = "grm_sender_req_stable.pal"
                                      class = "pal script" />
-<file name = "grm_sender_reqrep_burst.pal"
+<file name = "grm_sender_req_burst.pal"
+                                     class = "pal script" />
+<file name = "grm_sender_resp_stable.pal"
+                                     class = "pal script" />
+<file name = "grm_sender_resp_burst.pal"
                                      class = "pal script" />
 <file name = "grm_sender_pubsub_stable.pal"
                                      class = "pal script" />
