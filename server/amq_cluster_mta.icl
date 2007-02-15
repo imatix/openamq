@@ -78,29 +78,17 @@
 </method>
 
 <method name = "message published" template = "async function" async = "1">
-    <argument name = "channel" type = "amq_server_channel_t *" />
     <argument name = "content" type = "amq_content_basic_t *" />
     <argument name = "mandatory" type = "Bool" />
     <argument name = "immediate" type = "Bool" />
     <possess>
-    channel = amq_server_channel_link (channel);
     content = amq_content_basic_link (content);
     </possess>
     <release>
-    amq_server_channel_unlink (&channel);
     amq_content_basic_unlink (&content);
     </release>
     //
     <action>
-    icl_shortstr_t
-        sender_id;
-    
-    //  Pulled messages (null channel) cannot be forwarded
-    assert (channel);
-
-    icl_shortstr_fmt (sender_id, "%s|%d", channel->connection->key, channel->number);
-    amq_content_basic_set_sender_id (content, sender_id);
-
     amq_peering_forward (
         self->peering,
         self->exchange->name,
