@@ -70,6 +70,7 @@ This class implements the connection class for the AMQ server.
 
 <method name = "own queue" template = "function">
     <argument name = "queue" type = "amq_queue_t *">Queue reference</argument>
+    <inherit name = "wrlock" />
     assert (queue->exclusive);
     amq_queue_list_push_back (self->own_queue_list, queue);
 </method>
@@ -79,6 +80,7 @@ This class implements the connection class for the AMQ server.
     Unbind a queue from the connection.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">The queue to unbind</argument>
+    <inherit name = "wrlock" />
     <local>
     amq_queue_list_iterator_t
         iterator;
@@ -103,9 +105,10 @@ This class implements the connection class for the AMQ server.
     <argument name = "self" type = "amq_server_connection_t *" />
     <argument name = "reply code" type = "dbyte" >Error code</argument>
     <argument name = "reply text" type = "char *">Error text</argument>
+    <inherit name = "wrlock" />
     //
     if (self)
-        amq_server_connection_exception (self, reply_code, reply_text);
+        self_exception (self, reply_code, reply_text);
     else
         smt_log_print (amq_broker->alert_log,
             "E: connection exception: (%d) %s", reply_code, reply_text);

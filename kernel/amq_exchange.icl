@@ -415,22 +415,32 @@ for each type of exchange. This is a lock-free asynchronous class.
         *connection;
     Bool
         returned = FALSE;
+    icl_shortstr_t
+        sender_id;
 
-    if (self->mta_mode == AMQ_MTA_MODE_BOTH && channel)
+    //  Set sender_id before passing content to any other object to 
+    //  prevent races
+    if (self->mta && channel) {
+        icl_shortstr_fmt (sender_id, "%s|%d", channel->connection->key, channel->number);
+        amq_content_basic_set_sender_id (method->content, sender_id);
+    }
+    //  Channel is not present if message was delivered via MTA
+    //  In this case don't resend the message to prevent looping
+    //  TODO: Fix AMQ_MTA_MODE_BOTH properly
+    if (self->mta && self->mta_mode == AMQ_MTA_MODE_BOTH && channel)
         delivered = 1;
     else
+        //  Publish message locally
         delivered = self->publish (self->object, channel, method);
 
     content_size = ((amq_content_basic_t *) method->content)->body_size;
 
-    //  Publish message to MTA if required
+    //  Publish message to MTA if enabled
     if (self->mta && (self->mta_mode == AMQ_MTA_MODE_FORWARD_ALL ||
           (self->mta_mode == AMQ_MTA_MODE_BOTH && channel) ||
           (self->mta_mode == AMQ_MTA_MODE_FORWARD_ELSE && !delivered))) {
-
         amq_cluster_mta_message_published (
             self->mta,
-            channel,
             method->content,
             method->payload.basic_publish.mandatory,
             method->payload.basic_publish.immediate);
