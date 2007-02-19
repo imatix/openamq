@@ -108,7 +108,7 @@ This class implements the connection class for the AMQ server.
     <inherit name = "wrlock" />
     //
     if (self)
-        amq_server_connection_exception (self, reply_code, reply_text);
+        self_exception (self, reply_code, reply_text);
     else
         smt_log_print (amq_broker->alert_log,
             "E: connection exception: (%d) %s", reply_code, reply_text);
