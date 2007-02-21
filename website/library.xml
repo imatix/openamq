@@ -1,0 +1,63 @@
+<page
+    name = "library"
+    title = "Documentation"
+    subtitle = "Documentation"
+    >
+<content type = "gurudoc">
+
+Technical Whitepapers
+*********************
+
+ - OpenAMQ Clustering - [/doc_clustering.txt_flat.html:flat HTML] | [/doc_clustering.html:full HTML] | [/doc_clustering.pdf:PDF (X pages)]
+
+Analyses the requirements for OpenAMQ local-area and wide-area clustering
+and defines a generic clustering model based on simple and easy to manage
+elements.  The clustering model provides two main functionalities: the use
+of high-availability pairs of servers and the ability to partition groups of
+client applications, for reasons of scalability and geographic distribution.
+
+ - AMQ Background - [/doc_background.txt_flat.html:flat HTML] | [/doc_background.html:full HTML] | [/doc_background.pdf:PDF (29 pages)]
+
+Explains the rationale behind the development of AMQ as an architecture
+and AMQP as a new industry standard protocol.  This document is designed
+as useful background material for people wishing to understand the AMQP
+design.
+
+ - OpenAMQ Matching - [/doc_matching.txt_flat.html:flat HTML] | [/doc_matching.html:full HTML] | [/doc_matching.pdf:PDF (8 pages)]
+
+Describes a matching algorithm that provides all the functionality needed
+for topic matching and most of the functionality needed for content-based
+routing.
+
+ - OpenAMQ Concepts - [/doc_concepts.txt_flat.html:flat HTML] | [/doc_concepts.html:full HTML] | [/doc_concepts.pdf:PDF (X pages)]
+
+A general introduction to the OpenAMQ project, intended for a
+technically-minded readership. It explains the basic AMQ concepts, and
+goes into medium detail on all significant aspects of the architecture
+and technology.
+
+Annex Specifications
+********************
+
+ - The WireAPI Specifications - [/doc_wireapi.txt_flat.html:flat HTML] | [/doc_wireapi.html:full HTML] | [/doc_wireapi.pdf:PDF (17 pages)]
+
+Describes a standard API for application developers that wish to use
+the AMQP for messaging services in their applications.  WireAPI is a
+standard cross-language API that gives developers full access to the
+full functionality of the AMQP protocol.
+
+ - OpenAMQ Console Interface - [/doc_console.txt_flat.html:flat HTML] | [/doc_console.html:full HTML] | [/doc_console.pdf:PDF (17 pages)]
+
+Defines a standard for remote administration of OpenAMQ servers; the
+standard consists of an XML language that defines objects and methods,
+and a transport mechanism that is itself built on top of AMQP.
+
+Documentation FAQ
+*****************
+
+ - !Do I need this documentation to use OpenAMQ?! Answer: no, everything
+   you need is explained on the site's web pages.  These documents provide
+   more detail for people who need it.
+
+</content>
+</page>

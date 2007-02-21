@@ -1,0 +1,164 @@
+<page
+    name = "deploy"
+    title = "Deployment"
+    subtitle = "Running Your Server"
+    >
+<content type = "gurudoc">
+
+Running the OpenAMQ Server on Unix Systems
+******************************************
+
+Required Files
+==============
+
+The OpenAMQ server is installed into the $IBASE/bin directory.  If
+you wish to move the server elsewhere (e.g. to a different machine),
+you need to copy these files:
+
+ - amq_server
+ - amq_server_base.cfg
+ - amq_console_schema.cml
+
+No other files are required.
+
+Starting the Server
+===================
+
+To start the server in a console window run this command:
+
+    amq_server
+
+You can run the server as a detached binary process using this command:
+
+    amq_server -b
+
+Working Directories
+===================
+
+It is best to start amq_server in a specific working directory which
+has appropriate permissions.  You can start many instances of the server
+in the same directory.  The server will create two subdirectories:
+
+ - logs, in which the server will create current log files.
+ - archive, to which the server will move old (yesterday's) log files.
+
+Stopping the Server
+===================
+
+To stop the server, press Ctrl-C or find the process ID and use the kill
+command.  Alternatively, [/admin.html:use the amq_shell] to stop the server,
+especially if you are doing remote administration.
+
+Important Server Options
+========================
+
+To see the current version of the server, type this command:
+
+    amq_server -v
+
+To see a short list of all server options, type this command:
+
+    amq_server -h
+
+If you want to run several instances of the server on the same machine
+you must start them on different ports.  The default AMQP port is 5672.
+To start the server on a different port, type this command:
+
+    amq_server --port !portnumber!
+
+Instant Help for Options
+========================
+
+To see a long list of all server options, with full explanations,
+type this command:
+
+    amq_server --help
+
+Unix Deployment FAQ
+*******************
+
+ - !How much memory does the amq_server need?! Answer: from 50Mb upwards.
+   You can specify a limit for the server's memory usage in the
+   [config.html:server configuration].
+
+ - !Do I need root access to run the server?! Answer: no, it runs in user
+   space, and the official AMQP port 5672) does not need root access.
+
+ - !Does OpenAMQ support connections across firewalls?! Answer: yes, so
+   long as you have network addressability, but the current product does not
+   have encryption and you should not use it for Internet-based access.
+
+Running the OpenAMQ Server on Windows Systems
+*********************************************
+
+Required Files
+==============
+
+The OpenAMQ server is installed into the %IBASE%/bin directory.  If
+you wish to move the server elsewhere (e.g. to a different machine),
+you need to copy these files:
+
+ - amq_server.exe
+ - amq_server_base.cfg
+ - amq_console_schema.cml
+
+No other files are required.
+
+Starting the Server
+===================
+
+To start the server in a console window run this command:
+
+    amq_server
+
+Working Directories
+===================
+
+It is best to start amq_server in a specific working directory which
+has appropriate permissions.  You can start many instances of the server
+in the same directory.  The server will create two subdirectories:
+
+ - logs, in which the server will create current log files.
+ - archive, to which the server will move old (yesterday's) log files.
+
+Stopping the Server
+===================
+
+To stop the server, press Ctrl-C or use on the Task Manager.
+
+Important Server Options
+========================
+
+To see the current version of the server, type this command:
+
+    amq_server -v
+
+To see a short list of all server options, type this command:
+
+    amq_server -h
+
+If you want to run several instances of the server on the same machine
+you must start them on different ports.  The default AMQP port is 5672.
+To start the server on a different port, type this command:
+
+    amq_server --port !portnumber!
+
+Instant Help for Options
+========================
+
+To see a long list of all server options, with full explanations,
+type this command:
+
+    amq_server --help
+
+Windows Deployment FAQ
+**********************
+
+ - !Can I start the serve as a Windows service?! Answer: yes, use the
+   *srvany* tool that is part of the Windows Resource Kit.
+
+ - !Is there a graphical user interface for OpenAMQ on Windows?! Answer:
+   no, not yet.
+
+</content>
+</page>

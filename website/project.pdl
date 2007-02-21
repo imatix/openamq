@@ -1,0 +1,18 @@
+<?xml?>
+<pdl
+    name      = "OpenAMQ Website"
+    version   = "1.0"
+    copyright = "Copyright (c) 2004-2006 iMatix Corporation"
+    workflow  = "scripted.pwl"
+    >
+<include filename = "prelude.pdl" />
+<file name = "site.xml"           class = "gsl data">Site cover file</file>
+<file name = "*.html"             class = "generated">HTML output</file>
+<file name = "doc_concepts.txt"   class = "gurudoc text" />
+<file name = "doc_wireapi.txt"    class = "gurudoc text" />
+<file name = "doc_console.txt"    class = "gurudoc text" />
+<file name = "doc_clustering.txt" class = "gurudoc text" />
+<file name = "doc_background.txt" class = "gurudoc text" />
+<file name = "doc_matching.txt"   class = "gurudoc text" />
+
+</pdl>

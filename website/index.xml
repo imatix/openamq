@@ -1,0 +1,78 @@
+<page
+    name = "index"
+    title = "OpenAMQ.org"
+    subtitle = "Fast, Easy, Free Commodity Middleware"
+    >
+<content type = "gurudoc">
+{rule:floating frames}
+
+Welcome
+*******
+
+Your problem: to connect your applications cheaply and safely without
+paying a fortune for dead-end proprietary products.
+
+Our proposal: a complete AMQ message queueing broker that gives you
+[/performance.html:extreme performance] but remains easy to use and
+[/reliability.html:highly reliable].
+
+More: [page:features]
+
+License
+*******
+
+The OpenAMQ server is free software licensed under the Free Software
+Foundation's [http://www.gnu.org/licenses/gpl.html:GPL].
+
+The OpenAMQ client libraries (WireAPI) are free software licensed under
+the [http://www.opensource.org/licenses/bsd-license.php:BSD License].
+
+More: [page:license]
+
+Getting Started
+***************
+
+You can download and install OpenAMQ in just a few minutes for your Linux,
+Windows, or Solaris system.
+
+No package dependencies, no DLLs - the OpenAMQ package comes with everything
+you need to get started.
+
+More: [page:download]
+
+The OpenAMQ Server
+******************
+
+The OpenAMQ server (broker) installs and runs out-of-the-box with zero
+configuration except setting an admin password.
+
+Of course you can also tune the server's performance, logging, security,
+and other functions.
+
+More: [page:deploy]
+
+The WireAPI Clients
+*******************
+
+The WireAPI clients give your applications the power of messaging in a
+simple and consistent API.
+
+An easy-to-use alternative to JMS that works with C, C++, Perl, Java,
+Python, COM, and more languages.
+
+More: [page:wireapi]
+
+Community
+*********
+
+The OpenAMQ community keeps it simple. Mailing lists, a public wiki, and a
+public [http://www.atlassian.com/software/jira/:Jira] for bug tracking and
+change requests.
+
+If you're wondering about OpenAMQ, join one of the [/maillist.html:mailing lists]
+and see what other people say about it.
+
+More: [page:community]
+
+</content>
+</page>

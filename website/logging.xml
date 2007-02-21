@@ -1,0 +1,160 @@
+<page
+    name = "logging"
+    title = "Logging"
+    subtitle = "Server Logging System"
+    >
+<content type = "gurudoc">
+
+General Description
+*******************
+
+The OpenAMQ server keeps three levels of logs in the *logs* subdirectory:
+
+1. Alert logs, which contain all errors and alerts.
+2. Daily logs, which contain normal activity data, as well as all the
+   contents of the alert logs.
+3. Debug logs, which contain debugging and tracing output as requested by
+   runtime or configuration options, as well as all the contents of the
+   daily logs.
+
+Each server process opens three log files, which are named thus:
+
+    alert_[portnumber].log
+    daily_[portnumber].log
+    debug_[portnumber].log
+
+The log files are cycled when the server restarts, or at midnight. The
+cycle process does the following:
+
+1. It closes the current log files (if the server is still running).
+2. It moves the log files to the *archive* subdirectory.
+3. It optionally executes a user-configurable archiving command.
+4. It reopens new log files for the application.
+
+Logged Data
+***********
+
+The OpenAMQ log files are text, intended for human readability rather than
+formalised scanning.
+
+A user or script never needs to scan multiple log files from one server
+since they are hierarchical: thus the debug logs contain !all! logged data.
+
+This is an example the logs produced by a short server run.
+
+The alert log:
+
+    2006-05-14 18:30:04: I: amq_server binding to 192.168.55.64:5672
+    2006-05-14 18:30:04: I: amq_server binding to 192.168.55.107:5672
+    2006-05-14 18:30:04: I: amq_server binding to 127.0.0.1:5672
+    2006-05-14 18:30:05: I: server ready for incoming AMQ connections
+    2006-05-14 18:30:10: I: cnn=1 msg=2 mem=2K/10439K exc=7 que=1 csm=1 bnd=2
+
+The daily log:
+
+    2006-05-14 18:30:04: I: starting virtual host '/'
+    2006-05-14 18:30:04: I: amq_server binding to 192.168.55.64:5672
+    2006-05-14 18:30:04: I: amq_server binding to 192.168.55.107:5672
+    2006-05-14 18:30:04: I: amq_server binding to 127.0.0.1:5672
+    2006-05-14 18:30:05: I: server ready for incoming AMQ connections
+    2006-05-14 18:30:07: I: start login from=127.0.0.1:40441 -
+                            product=OpenAMQ Kernel Client version=1.0c0
+    2006-05-14 18:30:07: I: valid login from=127.0.0.1:40441 user=console -
+                            group=console
+    2006-05-14 18:30:10: I: cnn=1 msg=2 mem=2K/10439K exc=7 que=1 csm=1 bnd=2
+    2006-05-14 18:30:12: I: start login from=127.0.0.1:40442 -
+                            product=OpenAMQ Kernel Client version=1.0c0
+
+The debug log:
+
+    2006-05-14 18:30:04: ###########  Process Environment Variables  ###########
+    2006-05-14 18:30:04: KDE_MULTIHEAD=false
+    2006-05-14 18:30:04: SSH_AGENT_PID=1821
+    2006-05-14 18:30:04: TERM=vt220
+    2006-05-14 18:30:04: ...
+    2006-05-14 18:30:04: ##############  Configuration Settings  ###############
+    2006-05-14 18:30:04: port=5672
+    2006-05-14 18:30:04: background=0
+    2006-05-14 18:30:04: queue_timeout=0
+    2006-05-14 18:30:04: max_memory_mb=512
+    2006-05-14 18:30:04: per_client=0
+    2006-05-14 18:30:04: ...
+    2006-05-14 18:30:07: I: start login from=127.0.0.1:40441 -
+                         product=OpenAMQ Kernel Client version=1.0c0
+    2006-05-14 18:30:07: I: valid login from=127.0.0.1:40441 user=console -
+                         group=console
+    2006-05-14 18:30:07: X: bind     $default$: queue=#0
+    2006-05-14 18:30:07: X: compile  $default$: routing_key=#0
+    2006-05-14 18:30:07: X: bind     amq.direct: queue=#0
+    2006-05-14 18:30:07: X: compile  amq.direct: routing_key=#0
+    2006-05-14 18:30:07: X: publish  amq.system: routing_key=amq.console
+    2006-05-14 18:30:07: X: publish  amq.direct: routing_key=#0
+    2006-05-14 18:30:07: X: route    amq.direct: routing_key=#0
+    2006-05-14 18:30:07: X: deliver  queue=#0
+    2006-05-14 18:30:07: X: publish  amq.system: routing_key=amq.console
+    2006-05-14 18:30:07: X: publish  amq.direct: routing_key=#0
+    2006-05-14 18:30:07: X: route    amq.direct: routing_key=#0
+    2006-05-14 18:30:07: X: deliver  queue=#0
+    2006-05-14 18:30:07: X: publish  amq.system: routing_key=amq.console
+    2006-05-14 18:30:07: X: publish  amq.direct: routing_key=#0
+    2006-05-14 18:30:07: X: route    amq.direct: routing_key=#0
+    2006-05-14 18:30:07: X: deliver  queue=#0
+    2006-05-14 18:30:08: I: incoming rate=10 mean=10 peak=10
+    2006-05-14 18:30:08: I: outgoing rate=5 mean=5 peak=5 iomean=15
+    2006-05-14 18:30:12: I: start login from=127.0.0.1:40442 -
+                         product=OpenAMQ Kernel Client version=1.0c0
+
+Custom Log File Names
+*********************
+
+You can override the names of the log files using these command-line
+options:
+
+    --alert_log alert.log          Error log file name
+    --daily_log daily.log          Daily log file name
+    --debug_log debug.log          Debug log file name
+
+You can also specify these in the [/options.html:server configuration file].
+
+Custom Log File Cycling
+***********************
+
+The built-in cycling mechanism just copies old log files to the *archive*
+subdirectory and renames them using the current date and time.
+
+You can customise the cycling mechanism by specifying your own cycling
+command, which is a shell command that amq_server will execute after
+moving the log files to their archive directory.  The log file name is
+passed to this command as its first and only argument:
+
+    --archive_cmd value            Archive log file command
+
+You can also specify this in the [/options.html:server configuration file].
+
+Server Tracing Options
+**********************
+
+You can set various server debug and trace levels using these command-line
+options:
+
+    --debug_route 0                Debug message routing?
+    --debug_queue 0                Debug queue activity?
+    --debug_cluster 0              Debug cluster messages?
+    --debug_console 0              Debug console I/O?
+    --trace 0                      Protocol trace level
+
+You can also specify these in the [/options.html:server configuration file].
+
+Logging FAQ
+***********
+
+ - !What is the log file format?! Answer: logged data always shows the
+   date and time, then a single letter to indicate the type or severity
+   of the message.  E is an error, W is a warning, I is information,
+   and other letters are used to trace different types of activity.
+
+ - !Can I disable logging!? Answer: yes, use the --keep_logs 0 option to
+   disable logging.
+
+</content>
+</page>

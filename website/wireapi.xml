@@ -1,0 +1,19 @@
+<page
+    name = "wireapi"
+    title = "WireAPI"
+    subtitle = "Programming AMQP"
+    >
+<content type = "gurudoc">
+
+WireAPI - a Standard AMQP API
+*****************************
+
+Describes a standard API for application developers that wish to use
+the AMQP for messaging services in their applications.  WireAPI is a
+standard cross-language API that gives developers full access to the
+full functionality of the AMQP protocol.
+
+ - The WireAPI Specifications - [/doc_wireapi.txt_flat.html:flat HTML] | [/doc_wireapi.html:full HTML] | [/doc_wireapi.pdf:PDF (17 pages)]
+
+</content>
+</page>

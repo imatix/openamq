@@ -1,0 +1,118 @@
+<page
+    name = "imatix"
+    title = "About iMatix Corporation"
+    subtitle = "Software Engineering is our Business"
+    >
+<content type = "gurudoc">
+
+Developers of the AMQ Standard
+******************************
+
+iMatix Corporation, together with engineers from JPMorganChase,
+developed the concepts that make up the AMQ standard, in 2004-5. We
+wrote the original standards document and iMatix Corporation was one of
+the four original firms that created the AMQP Standard Working Group,
+together with JPMorganChase, Red Hat, and IONA.
+
+Company Information
+*******************
+
+The imatix.com project website was launched in 1995, and iMatix was
+founded as a business by Pieter Hintjens, in Belgium in 1998, building
+boutique projects for large firms.
+
+Among its major clients were Heineken (who needed an electronic ordering
+and payments system for Nigeria), Manpower (who needed a global
+web-based ordering platform), CBR (who needed automation for cement
+factories in Belgium), and AirTours (who needed a reservation system
+server). iMatix projects are categorised by their quality. For example
+the AirTours system was put into operation in 1992 and still runs today,
+serving thousands of travel agents around Europe. Manpower use the
+UltraSource application built by iMatix, in Europe and Asia.
+
+We even designed and built hardware, designing kiosks for CBR's cement
+factory in Ghent, Belgium. These PCs had to run non-stop, in harsh
+conditions. We designed the casing, selected all components and built a
+custom Linux platform that allowed CBR to plug new kiosks into the
+network and instantly start using them. The kiosks were installed in
+November 2002 and have worked since without a single reported failure.
+
+But our speciality is software, and specifically high-performance
+portable servers, which is why we wrote Xitami, a very popular web
+server up to 2000, and why JPMorganChase chose iMatix to develop AMQ
+from a concept into a production-quality standard and product.
+
+Model Oriented Programming
+**************************
+
+Since 1991, Pieter Hintjens and Jonathan Schultz have developed the
+concept of [http://www.imatix.net/mop:"model oriented programming"], or
+MOP. MOP is a radical step forwards in software engineering. Using MOP,
+a developer does not write source code. He write models and an architect
+writes code generators that turn those models into source code.
+
+MOP is not a more complex programming language. It is a way of writing
+simpler programming languages, dozens of them, cheaply enough that
+whatever new problem we face as programmers and architects, an architect
+can invent a new modeling language and write the necessary code
+generators to hide a complex expression with a simpler one.
+
+More importantly, the process is cheap enough that an expert can invent,
+improve, and discard models almost negligently.  Rather than attempting
+to design a perfect model by sheer investment, MOP lets an architect
+design a perfect model by evolutive trial and error.
+
+A good example of a MOP model is the AMQ Protocol itself, which iMatix
+designed this way. The AMQP design is the third complete design: iMatix
+built and threw out two working AMQ implementations in 2004 because they
+were not (yet) satisfied with the protocol.
+
+MOP leverages high-volume code generation, based on languages that
+iMatix has developed over a long time. The first versions of the iMatix
+code generation language, GSL, were built in 1995, and these were based
+on code generation concepts developed as long ago as 1985 by Pieter
+Hintjens and Leif Svalgaard.
+
+Pieter Hintjens
+***************
+
+Pieter Hintjens grew up in Africa, and Scotland, and graduated with
+honours in Computer Science from the University of York before moving to
+Belgium to do his military service. He worked for five years in the R&D
+department of the largest Belgian IT firm at the time (SOBEMAP). Sobemap
+became Sema Group, and Pieter Hintjens became a free-lance consultant,
+for Sema Group and other firms. He started imatix.com in 1995, and
+iMatix Corporation in 1998, with the vision of applying enterprise IT
+models to the Internet, which at the time still thought CGI was a big
+deal. In 1996 his team built the Xitami web server, based on an
+architecture and toolset that set a new standard for building fast,
+portable internet servers. He is the main architect and visionary
+beind the iMatix approach to technology simplification.
+
+His hobbies include percussion, writing, travelling, sociology, and
+political activism in the IT domain. He is currently president of the
+[http://www.ffii.org:FFII], an international association that represents
+several thousand IT professionals and SMEs in over 20 countries, and
+fights for open competition, standards, and copyright. The FFII has been
+particularly active and effective in fighting against software patents
+in Europe since 2000.
+
+Jonathan Schultz
+****************
+
+Jonathan Schultz graduated with honours in Mathematics and Computer
+Science from the Australian National University, and with first class
+honours in History and Political Science from the University of Western
+Australia. He has worked with Pieter Hintjens since 1992, developing
+code generation languages and frameworks. In 2003-4 he was the lead
+developer in the iMatix STEP project (a secure middleware platform for
+unreliable networks). Since 2004 he has been the chief technologist for
+OpenAMQ.
+
+His hobbies include rock-climbing, bush-walking, yoga, travelling.
+Current affairs, politics, philosophy, and environmental and social
+activism.  He is currently completing a doctorate thesis in Political
+Science at the University of Western Australia.
+
+</content>
+</page>

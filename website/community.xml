@@ -1,0 +1,29 @@
+<page
+    name = "community"
+    title = "OpenAMQ Community"
+    subtitle = "Software is People"
+    >
+<content type = "gurudoc">
+
+OpenAMQ Community
+*****************
+
+The main OpenAMQ community site is at http://openamq.wikidot.com.
+
+More information and background documents on the AMQP architecture are available at http://wiki.amqp.org/
+
+Quick links:
+
+ * [http://openamq.wikidot.com/forum:new-thread/c/358:Report a problem]
+ * [http://openamq.wikidot.com/forum:new-thread/c/355:Ask for help]
+ * [http://openamq.wikidot.com/forum:new-thread/c/357:Make a change request or suggestion]
+
+Community FAQ
+*************
+
+ - !Can I get free OpenAMQ support?! Answer: yes, you will find the OpenAMQ
+   community lively and ready to provide support on all questions.  If you
+   need guaranteed support levels, [page:contact] us for a proposal.
+
+</content>
+</page>

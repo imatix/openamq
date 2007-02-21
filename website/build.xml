@@ -1,0 +1,63 @@
+<page
+    name = "build"
+    title = "Build Instructions"
+    subtitle = "Building from Source"
+    >
+<content type = "gurudoc">
+
+Why Build from Source?
+**********************
+
+Building from source lets you tune and customise your OpenAMQ software:
+
+ - Building for other platforms than those we provide binaries for.
+ - Choosing a single-threaded or multithreaded version, to get the best
+   performance out of your hardware.
+ - Choosing a release or debug build.
+ - Enabling other compile-time options.
+
+Overview of the Build Process
+*****************************
+
+The Unix and Windows packages have identical contents but the text
+files they contain are formatted for Unix and Windows respectively.
+If you attempt to build the Windows file on Linux, Solaris or an other
+Unix system, you will get shell errors unless you convert all files
+(using zip or some similar tool).
+
+OpenAMQ depends on multiple supporting packages, which are built as
+part of the process. However, you do not need to download any other
+software to build and run OpenAMQ - the OpenAMQ source kits are
+self-complete and contain qualified and tested versions of all required
+supporting packages.
+
+Quick Guide to Building on Unix
+*******************************
+
+These shell commands build OpenAMQ from the Unix source kit:
+
+    $ IBASE=$HOME/ibase
+    $ export IBASE
+    $ PATH=$IBASE/bin:$PATH
+    $ export PATH
+    $ tar zxvf /path/to/OpenAMQ-$(main_version).tar.gz
+    $ cd /path/to/OpenAMQ-$(main_version)
+    $ sh build.sh
+
+More information: [page:build_unix]
+
+Quick Guide to Building on Windows
+**********************************
+
+These Windows console commands build OpenAMQ from the Windows source kit:
+
+    > set IBASE=c:\\ibase
+    > set PATH=%IBASE%\\bin;%PATH%
+    > unzip \\path\\to\\OpenAMQ-$(main_version).zip
+    > cd \\path\\to\\OpenAMQ-$(main_version)
+    > build
+
+More information: [page:build_win32]
+
+</content>
+</page>

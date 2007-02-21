@@ -1,0 +1,7 @@
+<page
+    name = "options"
+    title = "Runtime Options"
+    subtitle = "Fine-tune Your Server"
+    >
+<content type = "gurudoc" filename = "amq_server_config.txt" />
+</page>

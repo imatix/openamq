@@ -1,0 +1,59 @@
+.template 1
+.- iMatix standard website template
+.-
+.- Run once for each page and language
+.-
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<head>
+  <title>$(site.name): $(page.title)</title>
+  <link rel="stylesheet" href="default.css" type="text/css"/>
+  <link rel="stylesheet" href="custom.css" type="text/css"/>
+  <link rel="stylesheet" type="text/css" href="niftyCorners.css" />
+  <script type="text/javascript" src="niftycube.js"></script>
+  <script type="text/javascript" src="layout.js"></script>
+</head>
+<body>
+  <div id="left_container">
+    <div id="logo_container">
+      <a href="index.html"><img id="logo" src="logo.gif"/></a>
+    </div>
+    <div id="menu_container">
+.for site.section where defined (section.name)
+      <div class="menu_section">
+        <h1 class="menu_title">$(name)</h1>
+.   for page as menu_page
+.       if menu_page.name = page.name
+          <p class="menu_curr"><a href="$(menu_page.name).html">$(menu_page.title)</a></p>
+.       else
+          <p class="menu_item"><a href="$(menu_page.name).html">$(menu_page.title)</a></p>
+.       endif
+.   endfor
+      </div>
+.endfor
+    </div>
+    <div id="copyright">
+.for site.copyright
+      $(copyright.string ())
+.endfor
+    </div>
+  </div>
+
+  <div id="right_container">
+    <div id="title_container">
+      <h1 id="title">$(page.title)</h1>
+      <h2 id="title">$(page.subtitle)</h2>
+    </div>
+    <div id="content_container">
+
+    <!-- Page content -->
+.for page.content
+    $(content.string ())
+.endfor
+    <p>&nbsp;</p>
+    <!-- End page content -->
+    </div>
+  </div>
+</body>
+</html>
+.endtemplate

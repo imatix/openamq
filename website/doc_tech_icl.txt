@@ -1,0 +1,86 @@
+Overview
+========
+  
+Objects
+=======
+
+Anatomy of a basic iCL object
+-----------------------------
+
+Object/Class Types
+------------------
+
+(e.g. full class vs. "collection of functions" such as ipr_str)
+
+Method templates
+-----------------
+
+Constructors, Destructors
+-------------------------
+
+Other predefined methods
+------------------------
+
+Links and reference counting
+============================
+
+How it works
+------------
+
+Best current practice
+---------------------
+
+Containers
+==========
+
+Types of containers
+-------------------
+
+Creating a new container
+------------------------
+
+Creating complex containers
+---------------------------
+
+    (e.g.hash of lists)
+
+Implementation
+--------------
+
+    (how they work, the relationship between a container and it's contents)
+
+Containers and links
+--------------------
+
+Examples
+--------
+
+    Examples (create a new container, traverse a container, sort a container, etc.)
+
+Special containers
+------------------
+
+    (e.g. looseref lists & when to use them)
+
+Thready-safety and locking
+==========================
+
+Locking on objects
+------------------
+
+Locking on containers
+---------------------
+
+Reference to various locking options
+------------------------------------
+
+Asynchronous objects
+====================
+
+   (what they are and how do they relate to SMT)
+   (there's already a section about async objects in SMT docs)
+
+Reference
+=========
+
+     (generated from code)

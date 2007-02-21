@@ -1,0 +1,49 @@
+<page
+    name = "partners"
+    title = "Partners"
+    subtitle = "OpenAMQ Partners"
+    >
+<content type = "gurudoc">
+
+OpenAMQ Partners
+****************
+
+Our partners offer a wide range of OpenAMQ-related services and support
+that match the needs and expectations of your business.
+
+Global Partners
+===============
+
+ - Xyz, Inc. offers OpenAMQ-based enterprise messaging systems designed
+   specifically for the financial market.  The Xyz, Inc. range of products
+   come with a global service and support package.  More: website link.
+
+ - Abcd, Inc. provides certified OpenAMQ engineers to global businesses
+   seeking to leverage OpenAMQ in their enterprise architectures.
+   More: website link.
+
+ - Jklm Inc,., the leader in financial standards conformance, offers their
+   range of JklmTools packages running on OpenAMQ. More: website link.
+
+Regional Partners
+=================
+
+Europe
+------
+
+Americas
+--------
+
+Local Partners
+==============
+
+Become an OpenAMQ Partner
+*************************
+
+Commodity middleware like OpenAMQ creates wide-ranging opportunities for
+new business and service models. We work with the leaders in respective
+fields to define robust, well-integrated value propositions that benefit
+our customers. If your firm fits the profile, contact us.
+
+</content>
+</page>

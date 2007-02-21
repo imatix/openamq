@@ -1,0 +1,58 @@
+<?xml version = "1.0" ?>
+<site
+    name = "OpenAMQ"
+    script = "site.gsl"
+    main_version = "1.0d1"
+    >
+    <section name = "Welcome">
+        <page name = "index" />
+        <page name = "license" />
+        <page name = "features" />
+        <!--
+        <page name = "partners" />
+        -->
+    </section>
+    <section name = "Getting Started">
+        <page name = "download" />
+        <page name = "build" />
+    </section>
+    <section name = "OpenAMQ Server">
+        <page name = "deploy" />
+        <page name = "security" />
+        <page name = "options" />
+        <page name = "logging" />
+        <page name = "cluster" />
+        <page name = "admin" />
+        <page name = "tuning" />
+    </section>
+    <section name = "OpenAMQ WireAPI">
+        <page name = "wireapi" />
+        <page name = "pal" />
+        <!--
+        <page name = "examples" />
+        -->
+    </section>
+    <section name = "Community">
+        <page name = "community" />
+        <page name = "library" />
+        <page name = "maillist" />
+    </section>
+    <section name = "Footer">
+        <page name = "contact" />
+        <page name = "imatix" />
+        <page name = "about" />
+    </section>
+    <!-- Pages that are not shown in the index but linked to from
+         elsewhere -->
+    <section>
+        <page name = "build_unix" />
+        <page name = "build_win32" />
+        <page name = "performance" />
+        <page name = "reliability" />
+    </section>
+    <copyright>
+    Layout and content copyright &copy; 2004-2006 iMatix Corporation.
+    OpenAMQ is free software distributed under the GPL/LGPL. OpenAMQ is
+    a trademark of iMatix Corporation.
+    </copyright>
+</site>

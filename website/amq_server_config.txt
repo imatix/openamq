@@ -1,0 +1,333 @@
+Using Command-line Options
+**************************
+
+You can set these options from the command-line; they affect only
+the specific instance of the running server:
+
+    --port 5672                    Server port for clients
+    --queue_timeout 0              Timeout for auto-deleted queues
+    --max_memory_mb 512            Maximum allowed memory, MBytes
+    --per_client 0                 Default messages per client
+    --monitor 0                    Monitor interval, seconds
+    --dump_state 60                Dump state interval, seconds
+    --record_stats 0               Record performance statistics
+    --log_path logs                Active log file directory
+    --keep_logs 1                  Keep log files
+    --archive_path archive         Archive log file directory
+    --archive_cmd value            Archive log file command
+    --alert_log alert.log          Error log file name
+    --daily_log daily.log          Daily log file name
+    --debug_log debug.log          Debug log file name
+    --debug_route 0                Debug message routing?
+    --debug_queue 0                Debug queue activity?
+    --debug_peering 0              Debug peering messages?
+    --debug_console 0              Debug console I/O?
+    --debug_cluster 0              Debug cluster activity?
+    --trace 0                      Protocol trace level
+    --packio 0                     Pack network writes?
+    --heartbeat 2                  Heartbeat timer, seconds
+    --read_timeout 30              Network read timeout, seconds
+    --write_timeout 30             Network write timeout, seconds
+    --polling_threads 4            Number of polling OS threads
+    --working_threads 4            Number of working OS threads
+    --poll_frequency 0             Kernel polling frequency
+    --tcp_nodelay 1                TCP/IP NDELAY option
+    --tcp_rcvbuf 0                 TCP/IP receive buffer, in bytes
+    --tcp_sndbuf 0                 TCP/IP send buffer, in bytes
+    --frame_max 32768              Maximum size of AMQP content frames
+    --cluster_vhost /              Cluster virtual host
+    --primary_peer                 HA primary peer address
+    --is_primary 0                 Server is HA primary
+    --backup_peer                  HA backup peer address
+    --is_backup 0                  Server is HA backup
+    --auto_crash 0                 Auto-crash test timer, seconds
+    --auto_block 0                 Auto-freeze test timer, seconds
+    --kernel_limit 0               SMT kernel limit
+
+Creating a Configuration File
+*****************************
+
+You can also set the above options in an XML text file, to affect
+all future instances of the running server. To create a new XML
+configuration file, copy the following block to an editor session,
+and then:
+
+ 1. Delete all options you want to leave as default.
+ 2. Delete this comment and update your name and the date.
+ 3. Save file as new amq_server.cfg or merge with existing copy.
+ 4. Restart the server.
+
+    <?xml version="1.0"?>
+    <!--
+        Revised: yyyy/mm/dd by yourname
+     -->
+    
+    <config>
+        <server
+            port = "5672"
+            queue_timeout = "0"
+        />
+        <resources
+            max_memory_mb = "512"
+            per_client = "0"
+            monitor = "0"
+            dump_state = "60"
+            record_stats = "0"
+        />
+        <logging
+            log_path = "logs"
+            keep_logs = "1"
+            archive_path = "archive"
+            archive_cmd = "value"
+            alert_log = "alert.log"
+            daily_log = "daily.log"
+            debug_log = "debug.log"
+            debug_route = "0"
+            debug_queue = "0"
+            debug_peering = "0"
+            debug_console = "0"
+            debug_cluster = "0"
+            trace = "0"
+        />
+        <tuning
+            packio = "0"
+            heartbeat = "2"
+            read_timeout = "30"
+            write_timeout = "30"
+            polling_threads = "4"
+            working_threads = "4"
+            poll_frequency = "0"
+            tcp_nodelay = "1"
+            tcp_rcvbuf = "0"
+            tcp_sndbuf = "0"
+            frame_max = "32768"
+        />
+        <cluster
+            cluster_vhost = "/"
+            primary_peer = ""
+            is_primary = "0"
+            backup_peer = ""
+            is_backup = "0"
+        />
+        <internal
+            auto_crash = "0"
+            auto_block = "0"
+            kernel_limit = "0"
+        />
+    </config>
+
+Setting Server Options
+*************************
+
+port = "5672":
+    Specifies the port on which the server should open its connections.
+    Default value is 5672.                                             
+queue_timeout = "0":
+    Specifies the delay, in seconds, after which auto-deleted queues are
+    effectively deleted, following disconnection of their last consumer.
+    If zero, queues are deleted immediately. Default value is 0. This   
+    option can be changed at runtime.                                   
+
+Setting Resources Options
+*************************
+
+max_memory_mb = "512":
+    Specifies the maximum memory allowed for the server, in MB. When the  
+    server reaches this limit, it will slow down publishers. If zero, no  
+    limit is enforced. Default value is 512. This option can be changed at
+    runtime.                                                              
+per_client = "0":
+    Specifies the limit per client, in messages. Clients that exceed this 
+    limit will be disconnected, and their messages discarded. Applies only
+    to messages held on private queues belonging to one client. Default   
+    value is 0. This option can be changed at runtime.                    
+monitor = "0":
+    Specifies the interval in seconds at which the server will report its 
+    message rates. If zero, no monitoring is shown. The recommended value 
+    is 1, if monitoring is desired. Default value is 0. This option can be
+    changed at runtime.                                                   
+dump_state = "60":
+    Specifies the interval at which the server will report its state. This
+    shows the number of messages, queues, consumers, etc. used by the     
+    server. If zero, no state is logged. Default value is 60. This option 
+    can be changed at runtime.                                            
+record_stats = "0":
+    Specifies whether or not the server records performance statistics in 
+    a format suitable for importing into a spreadsheet. If set, the server
+    creates a file called 'amq_server_stats_(portnumber).del' which       
+    contains performance statistics in a comma-delimited format. For this 
+    setting to take effect, the monitor option must also be set. Default  
+    value is 0. This option can be changed at runtime.                    
+
+Setting Logging Options
+*************************
+
+log_path = "logs":
+    Specifies the directory path into which active log files are placed.
+    Default value is logs.                                              
+keep_logs = "1":
+    Specifies whether or not the server should keep logs. If zero, the 
+    server will not keep logs. If 1, it will keep an alert log, a daily
+    log, and a debug log as specified. Default value is 1.             
+archive_path = "archive":
+    Specifies the directory path into which archived log files are placed.
+    This can be the same as the active path; archived log files are       
+    renamed to avoid conflict with active log files. Default value is     
+    archive.                                                              
+archive_cmd = "value":
+    If specified, this command is run on all archived log files. You can 
+    use this option to compress archived log files, or clean up old and  
+    unwanted files. When the command is run, the name of the archived log
+    file is provided to it as a single argument. Default value is not    
+    defined.                                                             
+alert_log = "alert.log":
+    The name of the alert log file, which records all errors and warnings 
+    issued by the server. Note that the server port number is always added
+    to the name of the log file. Default value is alert.log.              
+daily_log = "daily.log":
+    The name of the daily log file, which records all normal activity as
+    well as errors. Note that the server port number is always added to 
+    the name of the log file. Default value is daily.log.               
+debug_log = "debug.log":
+    The name of the debug log file, which records all normal activity,   
+    errors, and debug trace information. Note that the server port number
+    is always added to the name of the log file. Default value is        
+    debug.log.                                                           
+debug_route = "0":
+    Specifies whether exchange routing is logged or not. Set this option
+    when you are debugging a message routing design. For production use,
+    we recommend you do not set this option. Default value is 0. This   
+    option can be changed at runtime.                                   
+debug_queue = "0":
+    Specifies whether queue dispatching is logged or not. Set this option 
+    when you are debugging message processing in the server. For          
+    production use, we recommend you do not set this option. Default value
+    is 0. This option can be changed at runtime.                          
+debug_peering = "0":
+    Specifies whether peering activity is logged or not. Set this option  
+    when you are configuring or debugging peerings. For production use, we
+    recommend you do not set this option. Default value is 0. This option 
+    can be changed at runtime.                                            
+debug_console = "0":
+    Specifies whether console activity is logged or not. Set this option  
+    when you are configuring or debugging the console. For production use,
+    we recommend you do not set this option. Default value is 0. This     
+    option can be changed at runtime.                                     
+debug_cluster = "0":
+    Specifies whether cluster activity is logged or not. Set this option
+    when you are configuring or debugging high-availability clustering. 
+    For production use, we recommend you do not set this option. Default
+    value is 0. This option can be changed at runtime.                  
+trace = "0":
+    Specifies the protocol debug level, which can be 0 (no tracing), 1    
+    (show information and protocol methods), 2 (show protocol animation), 
+    3 (show wire-level data). You should not use any tracing on production
+    servers except in low-volume scenarios. Default value is 0. This      
+    option can be changed at runtime.                                     
+
+Setting Tuning Options
+*************************
+
+packio = "0":
+    If set, data is packed into larger buffers before writing. This can   
+    improve performance significantly on some systems, especially Windows 
+    and Linux with 2.4 kernels. If you disable this setting, you should   
+    test the performance using a bulk message transfer test. Default value
+    is 0. This option can be changed at runtime.                          
+heartbeat = "2":
+    Defines the timeout for connection heartbeating. Default value is 2.
+    This option can be changed at runtime.                              
+read_timeout = "30":
+    Defines the timeout for network reads. If a peer does not respond     
+    within this time, it is considered dead. If you get unexpected timeout
+    errors in the logs, you may want to increase this value. Default value
+    is 30. This option can be changed at runtime.                         
+write_timeout = "30":
+    Defines the timeout for network writes. If a peer does not accept data
+    within this time, it is considered dead. If you get unexpected timeout
+    errors in the logs, you may want to increase this value. Default value
+    is 30. This option can be changed at runtime.                         
+polling_threads = "4":
+    On multithreaded builds, defines the number of OS threads dedicated to
+    socket polling. Default value is 4.                                   
+working_threads = "4":
+    On multithreaded builds, defines the number of OS threads dedicated to
+    processing, that is, tasks other than socket polling. Default value is
+    4.                                                                    
+poll_frequency = "0":
+    To experiment with the effect of different socket polling strategies  
+    we allow the user to set the frequency of non-essential socket        
+    polling. Zero means no non-essential polling, one means maximal       
+    non-essential polling, and in general N means do non-essential polling
+    one time in N. The maximum valid value for this setting is 1024.      
+    Default value is 0. This option can be changed at runtime.            
+tcp_nodelay = "1":
+    If this value is 1, socket data is written immediately, which is     
+    usually good for latency. If this value is 0, data is buffered until 
+    there is a full packet, which is usually good for throughput. Default
+    value is 1. This option can be changed at runtime.                   
+tcp_rcvbuf = "0":
+    If this value is greater than zero, all client connections will use  
+    the specified value. Note: setting this value is delicate, do not use
+    this option unless you know what you are doing. Default value is 0.  
+    This option can be changed at runtime.                               
+tcp_sndbuf = "0":
+    If this value is greater than zero, all client connections will use  
+    the specified value. Note: setting this value is delicate, do not use
+    this option unless you know what you are doing. Default value is 0.  
+    This option can be changed at runtime.                               
+frame_max = "32768":
+    Defines the maximum frame size the server will accept. Larger frame
+    sizes are useful for applications that create very large message   
+    headers but will cause congestion on multi-channel connections.    
+    Default value is 32768. Minimum value is 2048. Maximum value is    
+    4194304.                                                           
+
+Setting Cluster Options
+*************************
+
+cluster_vhost = "/":
+    Specifies the cluster vhost name, which must be identical for both HA
+    peers. Any string, up to 255 chars long, may be used. By convention  
+    virtual host names are formatted as POSIX paths, starting with '/'.  
+    Note that all applications must use the same virtual host name when  
+    connecting to the cluster. Default value is /.                       
+primary_peer = "":
+    Specifies the primary high-availability peer address. This should    
+    consist of a servername:portnumber combination that allows the backup
+    peer to correctly address the primary peer. Default value is .       
+is_primary = "0":
+    Specifies whether or not this server instance is the HA primary peer.
+    If this option is set, the cluster backup-peer option must be set as 
+    well. Default value is 0.                                            
+backup_peer = "":
+    Specifies the backup high-availability peer address. This should      
+    consist of a servername:portnumber combination that allows the primary
+    peer to correctly address the backup peer. Default value is .         
+is_backup = "0":
+    Specifies whether or not this server instance is the HA backup peer. 
+    If this option is set, the cluster primary-peer option must be set as
+    well. Default value is 0.                                            
+
+Setting Internal Options
+*************************
+
+auto_crash = "0":
+    If set, the server will crash at irregular intervals, being some     
+    random point within the number of seconds specified. This is used    
+    specifically to test applications for failover and robustness. Set to
+    zero for all real usage. Default value is 0. This option can be      
+    changed at runtime.                                                  
+auto_block = "0":
+    If set, the server will block at irregular intervals, being some     
+    random point within the number of seconds specified. This is used    
+    specifically to test applications for failover and robustness. Set to
+    zero for all real usage. Default value is 0. This option can be      
+    changed at runtime.                                                  
+kernel_limit = "0":
+    Sets an action limit for the SMT kernel: after this many steps it will
+    exit. Use this to break the server for failure testing. Set to zero   
+    for all real usage. Default value is 0. This option can be changed at 
+    runtime.                                                              
+
+
