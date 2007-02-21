@@ -2,12 +2,12 @@
 <pdl
     name      = "OpenAMQ"
     version   = "1.2b0"
-    workflow  = "product.pwl"
     copyright = "Copyright (c) 2007 iMatix Corporation"
+    workflow  = "product.pwl"
     >
 <inherit filename = "classes.pdl" />
 
-<file name = "project.pdl"  class = "private resource" />Project Definition</file>
+<file name = "project.pdl"  class = "private resource">Project Definition</file>
 
 <distrib name = "OpenAMQ source" type = "source">
     <project directory = "common"  />
