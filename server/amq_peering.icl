@@ -52,10 +52,15 @@ works only with Basic contents.
 The selftest method demonstrates fairly sophisticated peering use.  To test
 this, set the environment variable AMQ_PEERING_TEST=1 and run an amq_server.
 
+Note that the current amq_peering implementation is limited to a signle
+exchange per amq_peering instance.
+
 This is a summary of the amq_peering API:
 
-    peering = amq_peering_new (remote-host-name, virtual-host, trace-level)
-        Create a new peering to the specified host and virtual host.
+    peering = amq_peering_new (remote-host-name, virtual-host, trace-level, 
+                               exchange-name)
+        Create a new peering to the specified host, virtual host and 
+        remote exchange.
 
     amq_peering_set_login (peering, login-name)
         Tell the peering to login using the specified login-name, which
@@ -73,12 +78,15 @@ This is a summary of the amq_peering API:
     amq_peering_stop (peering)
         Disable the peering, disconnect from remote server if necessary.
 
-    amq_peering_bind (peering, exchange-name, routing-key, arguments)
-        Replicate a binding onto the specified remote exchange.
+    amq_peering_bind (peering, routing-key, arguments)
+        Replicate a binding to the remote server.
 
-    amq_peering_forward (peering, exchange-name, routing-key, content, madatory,
-        immediate)
-        Publish a message to the specified remote exchange.
+    amq_peering_unbind (peering, routing-key, arguments)
+        Replicate a queue.unbind to the remote server.  Also removes the
+        binding from the list of bindings to replay.
+
+    amq_peering_forward (peering, routing-key, content, madatory, immediate)
+        Publish a message to the remote server.
 
     amq_peering_destroy (&peering)
         Destroy the peering.
@@ -108,7 +116,12 @@ typedef int (amq_peering_return_fn) (
         offlined;                       //  Peer has gone offline
     icl_shortstr_t
         host,                           //  Peer host name
-        virtual_host;                   //  Virtual host name
+        virtual_host,                   //  Virtual host name
+        exchange,                       //  Remote exchange name
+        exchange_type;                  //  Remote exchange type
+    Bool
+        exchange_durable,               //  Remote exchange durable?
+        exchange_auto_delete;           //  Remote exchange auto-deletable?
     icl_longstr_t
         *auth_data;                     //  Authentication data
     int
@@ -142,9 +155,17 @@ typedef int (amq_peering_return_fn) (
     <argument name = "host" type = "char *">Host to connect to</argument>
     <argument name = "virtual host" type = "char *">Virtual host</argument>
     <argument name = "trace" type = "int">Trace level, 0 - 3</argument>
+    <argument name = "exchange" type = "char *">Remote exchange name</argument>
+    <argument name = "exchange_type" type = "char*">Remote exchange type</argument>
+    <argument name = "exchange_durable" type = "Bool">Remote exchange durability</argument>
+    <argument name = "exchange_auto_delete" type = "Bool">Remote exchange auto-deletable?</argument>
     //
     icl_shortstr_cpy (self->host, host);
     icl_shortstr_cpy (self->virtual_host, virtual_host);
+    icl_shortstr_cpy (self->exchange, exchange);
+    icl_shortstr_cpy (self->exchange_type, exchange_type);
+    self->exchange_durable = exchange_durable;
+    self->exchange_auto_delete = exchange_auto_delete;
     self->trace = trace;
 
     //  Create binding state lists
@@ -271,26 +292,18 @@ typedef int (amq_peering_return_fn) (
 
 <method name = "bind" template = "async function" async = "1">
     <doc>
-    Sets a queue binding using the specified queue.bind method. This method
+    Sets up a queue binding using the specified queue.bind method. This method
     sends the queue.bind method to the remote server and exchange so that all
     messages which match will be delivered to the peering's private queue.
-    If the corresponding exchange does not exist on the remote server, it is
-    created.
     </doc>
-    <argument name = "exchange" type = "char *">Remote exchange name</argument>
-    <argument name = "exchange_type" type = "char*">Remote exchange type</argument>
-    <argument name = "exchange_durable" type = "Bool">Remote exchange durability</argument>
-    <argument name = "exchange_auto_delete" type = "Bool">Remote exchange auto-deletable?</argument>
     <argument name = "routing key" type = "char *">Bind to routing key</argument>
     <argument name = "arguments" type = "icl_longstr_t *">Bind arguments</argument>
     //
     <possess>
-    exchange = icl_mem_strdup (exchange);
     routing_key = icl_mem_strdup (routing_key);
     arguments = icl_longstr_dup (arguments);
     </possess>
     <release>
-    icl_mem_free (exchange);
     icl_mem_free (routing_key);
     icl_longstr_destroy (&arguments);
     </release>
@@ -303,25 +316,74 @@ typedef int (amq_peering_return_fn) (
     Bool
         nowait = TRUE;
     amq_peer_method_t
-        *declare_method,
         *bind_method;
 
-    //  Create a Exchange.Declare & Queue.Bind methods
-    //  Queue is NULL as the only queue used by this connection is the
-    //  peering's private queue
-    declare_method = amq_peer_method_new_exchange_declare (
-        ticket, exchange, exchange_type, FALSE, exchange_durable,
-        exchange_auto_delete, FALSE, nowait, NULL);
-    bind_method = amq_peer_method_new_queue_bind (
-        ticket, queue, exchange, routing_key, nowait, arguments);
-
-    //  We hold onto all outgoing bindings so we can replay them
-    if (self->connected) {
-        amq_peer_agent_push (self->peer_agent_thread, self->channel_nbr, declare_method);
-        amq_peer_agent_push (self->peer_agent_thread, self->channel_nbr, bind_method);
+    //  Treat empty arguments as null
+    if (arguments && arguments->cur_size == 0)
+        arguments = NULL;
+    //  If this is a new binding (routing_key and arguments are unique),
+    //  create a Queue.Bind method and propagate it to the remote server
+    //  if connected.
+    if (s_binding_exists (self->bindings, routing_key, arguments) == NULL) {
+        //  Queue is NULL as the only queue used by this connection is the
+        //  peering's private queue
+        bind_method = amq_peer_method_new_queue_bind (
+            ticket, queue, self->exchange, routing_key, nowait, arguments);
+        if (self->connected)
+            amq_peer_agent_push (self->peer_agent_thread, self->channel_nbr, bind_method);
+        //  We hold onto all outgoing bindings so we can replay them
+        ipr_looseref_queue (self->bindings, bind_method);
     }
-    ipr_looseref_queue (self->bindings, declare_method);
-    ipr_looseref_queue (self->bindings, bind_method);
+    </action>
+</method>
+
+<method name = "unbind" template = "async function" async = "1">
+    <doc>
+    Removes a queue binding using the specified queue.unbind method. This method
+    sends the queue.unbind method to the remote server.  It also removes the
+    matching queue.bind method from the list of bindings to replay.
+    </doc>
+    <argument name = "routing key" type = "char *">Bind to routing key</argument>
+    <argument name = "arguments" type = "icl_longstr_t *">Bind arguments</argument>
+    //
+    <possess>
+    routing_key = icl_mem_strdup (routing_key);
+    arguments = icl_longstr_dup (arguments);
+    </possess>
+    <release>
+    icl_mem_free (routing_key);
+    icl_longstr_destroy (&arguments);
+    </release>
+    //
+    <action>
+    int
+        ticket = 0;
+    char
+        *queue = NULL;
+    Bool
+        nowait = TRUE;
+    amq_peer_method_t
+        *unbind_method,
+        *bind_method;
+    ipr_looseref_t
+        *looseref;
+
+    //  Treat empty arguments as null
+    if (arguments && arguments->cur_size == 0)
+        arguments = NULL;
+    //  If connected, propagate Queue.Unbind to remote server
+    if (self->connected) {
+        unbind_method = amq_peer_method_new_queue_unbind (
+            ticket, queue, self->exchange, routing_key, nowait, arguments);
+        amq_peer_agent_push (self->peer_agent_thread, self->channel_nbr, unbind_method);
+        amq_peer_method_unlink (&unbind_method);
+    }
+    //  Search list of bindings for the matching Queue.Bind and remove it
+    looseref = s_binding_exists (self->bindings, routing_key, arguments);
+    assert (looseref);
+    bind_method = (amq_peer_method_t *) (looseref->object);
+    ipr_looseref_list_remove (looseref);
+    amq_peer_method_unlink (&bind_method);
     </action>
 </method>
 
@@ -329,19 +391,16 @@ typedef int (amq_peering_return_fn) (
     <doc>
     Forwards a basic content to the remote peer.
     </doc>
-    <argument name = "exchange" type = "char *">Remote exchange name</argument>
     <argument name = "routing key" type = "char *">Routing key for publish</argument>
     <argument name = "content" type = "amq_content_basic_t *">Content to publish</argument>
     <argument name = "mandatory" type = "Bool">Mandatory routing</argument>
     <argument name = "immediate" type = "Bool">Immediate delivery</argument>
     //
     <possess>
-    exchange = icl_mem_strdup (exchange);
     routing_key = icl_mem_strdup (routing_key);
     content = amq_content_basic_link (content);
     </possess>
     <release>
-    icl_mem_free (exchange);
     icl_mem_free (routing_key);
     amq_content_basic_unlink (&content);
     </release>
@@ -354,7 +413,7 @@ typedef int (amq_peering_return_fn) (
 
     //  Create a Basic.Publish method
     method = amq_peer_method_new_basic_publish (
-        ticket, exchange, routing_key, mandatory, immediate);
+        ticket, self->exchange, routing_key, mandatory, immediate);
     method->content = amq_content_basic_link (content);
 
     //  We only hold forwards if the connection is currently down
@@ -510,6 +569,8 @@ typedef int (amq_peering_return_fn) (
 <private name = "async header">
 static void s_initialise_peering (amq_peering_t *self);
 static void s_terminate_peering  (amq_peering_t *self);
+static ipr_looseref_t *s_binding_exists (ipr_looseref_list_t *bindings, 
+    char *routing_key, icl_longstr_t *arguments);
 </private>
 
 <private name = "async footer">
@@ -553,6 +614,12 @@ s_initialise_peering (amq_peering_t *self)
             self->peer_agent_thread, self->channel_nbr,
             ticket, queue, consumer_tag, no_local, no_ack, exclusive, nowait);
 
+        //  Declare remote exchange on peer
+        amq_peer_agent_exchange_declare (
+            self->peer_agent_thread, self->channel_nbr,
+            ticket, self->exchange, self->exchange_type, FALSE, self->exchange_durable,
+            self->exchange_auto_delete, FALSE, nowait, NULL);
+
         //  Replicate all bindings to remote peer
         looseref = ipr_looseref_list_first (self->bindings);
         while (looseref) {
@@ -586,6 +653,35 @@ s_terminate_peering (amq_peering_t *self)
         if (self->status_fn)
             (self->status_fn) (self->status_caller, self, FALSE);
     }
+}
+
+//  Used by peering_bind and peering_unbind to determine if binding is unique.
+//  Searches provided looseref list for a queue.bind method matching the 
+//  provided routing_key and arguments.  Returns looseref if found, NULL if
+//  no match found.
+static ipr_looseref_t *
+s_binding_exists (
+    ipr_looseref_list_t *bindings, 
+    char *routing_key, 
+    icl_longstr_t *arguments)
+{
+    ipr_looseref_t
+        *looseref;
+    amq_peer_method_t
+        *method;
+
+    looseref = ipr_looseref_list_first (bindings);
+    while (looseref) {
+        method = (amq_peer_method_t *) (looseref->object);
+        assert (method->class_id  == AMQ_PEER_QUEUE);
+        assert (method->method_id == AMQ_PEER_QUEUE_BIND);
+        //  If routing_key and arguments are equal, we have a match
+        if (streq (method->payload.queue_bind.routing_key, routing_key) &&
+            icl_longstr_eq (method->payload.queue_bind.arguments, arguments))
+            break;
+        looseref = ipr_looseref_list_next (&looseref);
+    }
+    return looseref;
 }
 </private>
 
@@ -653,7 +749,8 @@ s_test_content_handler (
 
         //  **************   Peering example starts here   *******************
         //  Create a new peering to local AMQP server
-        peering = amq_peering_new ("localhost", "/", 1);
+        peering = amq_peering_new ("localhost", "/", 1, "amq.direct", 
+            "direct", FALSE, FALSE);
 
         //  Set login credentials
         amq_peering_set_login (peering, "peering");
@@ -669,8 +766,7 @@ s_test_content_handler (
         //  peering handles if we stop/restart the other server
         apr_sleep (1 * seconds);
         icl_console_print ("I: (TEST) Making binding rk-aaaaaa");
-        amq_peering_bind (peering, "amq.direct", "direct", FALSE, FALSE,
-            "rk-aaaaaa", NULL);
+        amq_peering_bind (peering, "rk-aaaaaa", NULL);
 
         apr_sleep (1 * seconds);
         icl_console_print ("I: (TEST) Stopping the peering...");
@@ -678,8 +774,7 @@ s_test_content_handler (
 
         apr_sleep (1 * seconds);
         icl_console_print ("I: (TEST) Making binding rk-bbbbbb");
-        amq_peering_bind (peering, "amq.direct", "direct", FALSE, FALSE, 
-            "rk-bbbbbb", NULL);
+        amq_peering_bind (peering, "rk-bbbbbb", NULL);
 
         apr_sleep (1 * seconds);
         icl_console_print ("I: (TEST) Restarting the peering...");
@@ -688,17 +783,13 @@ s_test_content_handler (
         apr_sleep (1 * seconds);
         icl_console_print ("BIND");
         icl_console_print ("I: (TEST) Making binding rk-cccccc");
-        amq_peering_bind (peering, "amq.direct", "direct", FALSE, FALSE,
-            "rk-cccccc", NULL);
+        amq_peering_bind (peering, "rk-cccccc", NULL);
 
         //  Publish a message to each binding, check that it arrives
         content = amq_content_basic_new ();
-        amq_peering_forward (peering, "amq.direct", "rk-aaaaaa", content,
-            FALSE, FALSE);
-        amq_peering_forward (peering, "amq.direct", "rk-bbbbbb", content,
-            FALSE, FALSE);
-        amq_peering_forward (peering, "amq.direct", "rk-cccccc", content,
-            FALSE, FALSE);
+        amq_peering_forward (peering, "rk-aaaaaa", content, FALSE, FALSE);
+        amq_peering_forward (peering, "rk-bbbbbb", content, FALSE, FALSE);
+        amq_peering_forward (peering, "rk-cccccc", content, FALSE, FALSE);
         amq_content_basic_unlink (&content);
 
         icl_console_print ("I: (TEST) Finished - press Ctrl-C when done");

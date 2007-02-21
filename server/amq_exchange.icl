@@ -330,6 +330,8 @@ for each type of exchange. This is a lock-free asynchronous class.
         *hash;                          //  Entry into hash table
     amq_queue_bindings_list_t
         *bindings_list;                 //  List of bindings for the queue
+    amq_queue_bindings_list_iterator_t
+        iterator;
 
     if (amq_server_config_debug_route (amq_server_config))
         smt_log_print (amq_broker->debug_log,
@@ -375,14 +377,18 @@ for each type of exchange. This is a lock-free asynchronous class.
         if (!bindings_list)
             bindings_list = amq_queue_bindings_list_new (
                 self->queue_bindings, queue->name);
-        amq_queue_bindings_list_push_back (bindings_list, binding);
+        //  Search per-queue bindings_list for a matching binding
+        for (iterator = amq_queue_bindings_list_begin (bindings_list); 
+             iterator != NULL;
+             iterator = amq_queue_bindings_list_next (iterator)) {
+            if (*iterator == binding)
+                break;
+        }
+        //  And only add binding to per-queue bindings_list once
+        if (!iterator)
+            amq_queue_bindings_list_push_back (bindings_list, binding);
         amq_queue_bindings_list_unlink (&bindings_list);
     }
-
-    //  Notify MTA about new binding
-    if (self->mta)
-        amq_cluster_mta_binding_created (self->mta, routing_key, arguments);
-
     amq_binding_bind_queue (binding, queue);
     amq_binding_unlink (&binding);
     ipr_hash_unlink (&hash);
@@ -496,7 +502,7 @@ for each type of exchange. This is a lock-free asynchronous class.
 <method name = "unbind queue" template = "async function" async = "1">
     <doc>
     Unbind a queue from the exchange. Called when queue is being destroyed.
-    All the bindings to specific queue are destoroyed.
+    All the bindings to specific queue are destroyed.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">The queue to unbind</argument>
     //
@@ -508,25 +514,25 @@ for each type of exchange. This is a lock-free asynchronous class.
     </release>
     //
     <action>
-
     amq_queue_bindings_list_t
-        *queue_bindings;
+        *queue_bindings;                //  List of bindings for queue
     amq_binding_t
         *binding;
 
     queue_bindings =
         amq_queue_bindings_list_table_search (self->queue_bindings, queue->name);
     if (queue_bindings) {
+        //  Iterate over queue_bindings list, removing each binding
         while (1) {
             binding = amq_queue_bindings_list_pop (queue_bindings);
             if (!binding)
                 break;
             if (amq_binding_unbind_queue (binding, queue))
-                //  Allow the exchange implementation the chance to cleanup the
-                //  binding, but be careful to get the next binding first...
+                //  If binding is now empty, destroy it
                 self->unbind (self->object, binding);
             amq_binding_unlink (&binding);
         }
+        //  Per-queue bindings list is now empty, destroy it
         amq_queue_bindings_list_destroy (&queue_bindings);
     }
     </action>
@@ -534,9 +540,10 @@ for each type of exchange. This is a lock-free asynchronous class.
 
 <method name = "protocol unbind queue" template = "async function" async = "1">
     <doc>
-    Unbind a queue from the exchange. (Implements Queue.Unbind command.)
-    Looks for a specific binding to destroy (as oposed to unbind_queue that
-    destroys ALL the bindings to specified queue).
+    Unbind a queue from the exchange.  This method implements the queue.unbind 
+    protocol command.  We search for the specific binding to unbind, as opposed
+    to the "unbind queue" method which destroys all the bindings from a
+    specified queue.
     </doc>
     <argument name = "channel"     type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "queue"       type = "amq_queue_t *">The queue to bind</argument>
@@ -558,7 +565,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     //
     <action>
     amq_queue_bindings_list_t
-        *queue_bindings;
+        *queue_bindings;                //  List of bindings for queue
     amq_queue_bindings_list_iterator_t
         iterator;
 
@@ -566,26 +573,26 @@ for each type of exchange. This is a lock-free asynchronous class.
         smt_log_print (amq_broker->debug_log,
             "X: unbind     %s: queue=%s", self->name, queue->name);
 
+    //  Treat empty arguments as null, to simplify comparisons
+    if (arguments && arguments->cur_size == 0)
+        arguments = NULL;
     queue_bindings =
         amq_queue_bindings_list_table_search (self->queue_bindings, queue->name);
     if (queue_bindings) {
+        //  Search queue_bindings list for the matching binding
         for (iterator = amq_queue_bindings_list_begin (queue_bindings);
               iterator != NULL;
               iterator = amq_queue_bindings_list_next (iterator)) {
-
-            if (streq ((*iterator)->routing_key, routing_key)
-                  && ((!((*iterator)->arguments) && arguments->cur_size == 0) ||
-                  icl_longstr_eq ((*iterator)->arguments, arguments))) {
-
-                if (amq_binding_unbind_queue (*iterator, queue)) {
-                    //  Allow the exchange implementation the chance to cleanup the
-                    //  binding, but be careful to get the next binding first...
+            if (streq ((*iterator)->routing_key, routing_key) &&
+                icl_longstr_eq ((*iterator)->arguments, arguments)) {
+                if (amq_binding_unbind_queue (*iterator, queue))
+                    //  If binding is now empty, destroy it
                     self->unbind (self->object, *iterator);
-                    amq_queue_bindings_list_erase (queue_bindings, iterator);
-                }
+                amq_queue_bindings_list_erase (queue_bindings, iterator);
                 break;
             }
         }
+        //  If per-queue binding list is now empty, destroy it
         if (amq_queue_bindings_list_size (queue_bindings) == 0)
             amq_queue_bindings_list_destroy (&queue_bindings);
         else

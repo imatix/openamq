@@ -35,6 +35,10 @@
 </public>
 
 <method name = "new">
+    <doc>
+    Creates a new MTA instance connected to the specified remote server and
+    exchange, using the specified operation mode.
+    </doc>
     <argument name = "host" type = "char *">Host to connect to</argument>
     <argument name = "virtual host" type = "char *" />
     <argument name = "login" type = "char *" />
@@ -45,7 +49,9 @@
     
     self->exchange = amq_exchange_link (exchange);
     self->mode = mode;
-    self->peering = amq_peering_new (host, virtual_host, amq_server_config_trace (amq_server_config));
+    self->peering = amq_peering_new (host, virtual_host, amq_server_config_trace (amq_server_config),
+                                     self->exchange->name, amq_exchange_type_name (self->exchange->type),
+                                     self->exchange->durable, self->exchange->auto_delete);
     amq_peering_set_login           (self->peering, login);
     amq_peering_set_content_handler (self->peering, s_content_handler, self);
     amq_peering_set_return_handler  (self->peering, s_return_handler, self);
@@ -59,6 +65,9 @@
 </method>
 
 <method name = "binding created" template = "async function" async = "1">
+    <doc>
+    Called from amq_binding constructor to notify MTA of binding creation.
+    </doc>
     <argument name = "routing key" type = "char*" />
     <argument name = "arguments" type = "icl_longstr_t *" />
     <possess>
@@ -71,13 +80,35 @@
     </release>
     //
     <action>
-    amq_peering_bind (self->peering, self->exchange->name,
-        amq_exchange_type_name (self->exchange->type), self->exchange->durable,
-        self->exchange->auto_delete, routing_key, arguments);
+    amq_peering_bind (self->peering, routing_key, arguments);
+    </action>
+</method>
+
+<method name = "binding destroyed" template = "async function" async = "1">
+    <doc>
+    Called from amq_binding destructor to notify MTA of binding destruction.
+    </doc>
+    <argument name = "routing key" type = "char*" />
+    <argument name = "arguments" type = "icl_longstr_t *" />
+    <possess>
+    arguments = icl_longstr_dup (arguments);
+    routing_key = icl_mem_strdup (routing_key);
+    </possess>
+    <release>
+    icl_longstr_destroy (&arguments);
+    icl_mem_free (routing_key);
+    </release>
+    //
+    <action>
+    amq_peering_unbind (self->peering, routing_key, arguments);
     </action>
 </method>
 
 <method name = "message published" template = "async function" async = "1">
+    <doc>
+    Called from parent exchange publish method, publishes a message to
+    the remote exchange.
+    </doc>
     <argument name = "content" type = "amq_content_basic_t *" />
     <argument name = "mandatory" type = "Bool" />
     <argument name = "immediate" type = "Bool" />
@@ -91,7 +122,6 @@
     <action>
     amq_peering_forward (
         self->peering,
-        self->exchange->name,
         content->routing_key,
         content,
         mandatory,
@@ -107,6 +137,8 @@ static int
 </private>
 
 <private name = "footer">
+//  Callback handler called by our amq_peering instance when a basic.deliver is
+//  received from the peering connection.
 static int
 s_content_handler (
     void *vself,
@@ -142,6 +174,8 @@ s_content_handler (
     return (0);
 }
 
+//  Callback handler called by our amq_peering instance when a basic.return is
+//  received from the peering connection.
 static int
 s_return_handler (
     void *vself,

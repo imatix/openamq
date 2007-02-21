@@ -73,9 +73,18 @@ class.
             "E: too many bindings in %s exchange", exchange->name);
         self_destroy (&self);
     }
+    //  Notify MTA about new binding
+    if (self->exchange->mta)
+        amq_cluster_mta_binding_created (self->exchange->mta, 
+            self->routing_key, self->arguments);
 </method>
 
 <method name = "destroy">
+    //  Notify MTA about binding being destroyed
+    if (self->exchange->mta)
+        amq_cluster_mta_binding_destroyed (self->exchange->mta,
+            self->routing_key, self->arguments);
+
     if (self->exchange->binding_index)
         ipr_index_delete (self->exchange->binding_index, self->index);
 
@@ -86,7 +95,7 @@ class.
 
 <method name = "bind queue" template = "function">
     <doc>
-    Attach queue to current binding if it is not already there.
+    Attach queue to queue_list.  Called by parent exchange during queue bind.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">Queue to bind</argument>
     //
@@ -97,8 +106,9 @@ class.
 
 <method name = "unbind queue" template = "function">
     <doc>
-    Remove queue from current binding it is there.  Returns -1 if the
-    binding is empty after this operation.
+    Remove queue from queue_list.  Returns -1 if the binding is empty (has no
+    queues) after this operation.  Called by parent exchange during queue
+    unbind.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">Queue to unbind</argument>
     <local>
