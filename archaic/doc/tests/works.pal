@@ -1,9 +1,0 @@
-<?xml?>
-<pal
-    script = "amq_pal_gen"
-    desc   = "PAL MUST return 0 on success"
-    >
-    <echo>this should work</echo>    
-</pal>
-
-

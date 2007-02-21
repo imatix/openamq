@@ -1,4 +1,0 @@
-Changes
-    2006/05/09 - frame-max is server-configurable
-    2006/05/09 - connection thread trace is dynamically configurable
-

@@ -1,8 +1,0 @@
-<?xml?>
-<pal
-    script = "amq_pal_gen"
-    desc   = "AMQ-450" >
-    <session>
-        <queue_declare queue = "myqueue" exclusive = "1" auto_delete = "1" />
-    </session>
-</pal>
