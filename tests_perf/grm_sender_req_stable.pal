@@ -1,0 +1,33 @@
+<?xml?>
+<pal script = "amq_pal_gen">
+    Publishes a stable stream of "request" messages to the "grm.s" exchange.
+
+    Command line arguments:
+    -A maximal interval between messages (in milliseconds)
+    -B maximal size of a message (in bytes)
+    -M message ID (default is RQS)
+    -S sync ID (default is RQS-SYNC)
+    <set name = "delay_cmdline" value = "200" cmdline = "A" />
+    <set name = "msg_size_cmdline" value = "1024" cmdline = "B" />
+    <set name = "msg_id" value = "RQS" cmdline = "M" />
+    <set name = "sync_id" value = "RQS-SYNC" cmdline = "S" />
+    <session>
+        <exchange_declare exchange = "grm.s" type = "direct" />
+        <repeat>
+            <!-- Publish 9 common messages -->
+            <repeat times = "9">
+                <set_random name = "msg_size" max = "$msg_size_cmdline" />
+                <basic_content size = "$msg_size" message_id = "$msg_id"/>
+                <basic_publish exchange = "grm.s" routing_key = "stable" />
+                <set_random name = "delay" min = "1" max = "$delay_cmdline" />
+                <wait timeout = "$delay" />
+            </repeat>
+            <!-- Publish synchronisation message -->
+            <set_random name = "msg_size" max = "$msg_size_cmdline" />
+            <basic_content size = "$msg_size" message_id = "$sync_id"/>
+            <basic_publish exchange = "grm.s" routing_key = "stable" />
+            <set_random name = "delay" min = "1" max = "$delay_cmdline" />
+            <wait timeout = "$delay" />
+        </repeat>
+    </session>
+</pal>

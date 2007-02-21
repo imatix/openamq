@@ -1,15 +1,21 @@
 <?xml?>
 <pal script = "amq_pal_gen">
-    Publishes a stable stream of publish/subscribe (headers exchange) messages.
+    Publishes a stable stream of publish/subscribe messages to the "grm.p" 
+    headers exchange.
 
     Command line arguments:
     -A maximal interval between messages (in milliseconds)
+    -M message ID (default is PSS)
+    -S sync ID (default is PSS-SYNC)
     <set name = "delay_cmdline" value = "200" cmdline = "A" />
+    <set name = "msg_id" value = "PSS" cmdline = "M" />
+    <set name = "sync_id" value = "PSS-SYNC" cmdline = "S" />
     <session>
+        <exchange_declare exchange = "grm.p" type = "headers" />
         <repeat>
             <!-- Publish 9 common messages -->
             <repeat times = "9" counter = "counter1">
-                <basic_content size = "0" message_id = "PSS" >
+                <basic_content size = "0" message_id = "$msg_id" >
                     <headers>
                         <field name = "M01" value = "VALUE" />
                         <field name = "M02" value = "ANYTHING" />
@@ -35,18 +41,18 @@
                         <field name = "F20" value = "DataDataDataData" />
                     </headers>
                 </basic_content>
-                <basic_publish exchange = "amq.headers" routing_key = "" />
+                <basic_publish exchange = "grm.p" routing_key = "" />
                 <set_random name = "delay" min = "1" max = "$delay_cmdline" />
                 <wait timeout = "$delay" />
             </repeat>
             <!-- Publish synchronisation message  -->
-            <basic_content size = "0" message_id = "PSS-SYNC" >
+            <basic_content size = "0" message_id = "$sync_id" >
                 <headers>
                     <field name = "M01" value = "VALUE" />
                     <field name = "M02" value = "WHATEVER" />
                 </headers>
             </basic_content>
-            <basic_publish exchange = "amq.headers" routing_key = "" />
+            <basic_publish exchange = "grm.p" routing_key = "" />
             <set_random name = "delay" min = "1" max = "$delay_cmdline" />
             <wait timeout = "$delay" />
         </repeat>

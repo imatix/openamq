@@ -1,0 +1,38 @@
+<?xml?>
+<pal script = "amq_pal_gen">
+    Publishes "response" messages to the "grm.r" exchange in bursts.
+
+    Command line parameters:
+    -A maximal delay between individual bursts (in milliseconds)
+    -B maximal number of messages in a burst (in tens)
+    -C maximal size of message (in bytes)
+    -M message ID (default is RSB)
+    -S sync ID (default is RSB-SYNC)
+    <set name = "delay_cmdline" value = "10000" cmdline = "A" />
+    <set name = "msg_nbr_cmdline" value = "1000" cmdline = "B" />
+    <set name = "msg_size_cmdline" value = "1024" cmdline = "C" />
+    <set name = "msg_id" value = "RSB" cmdline = "M" />
+    <set name = "sync_id" value = "RSB-SYNC" cmdline = "S" />
+    <session>
+        <exchange_declare exchange = "grm.r" type = "direct" />
+        <!-- Individual bursts -->
+        <repeat>
+            <set_random name = "delay" min = "1" max = "$delay_cmdline" />
+            <wait timeout = "$delay" />
+
+            <set_random name = "msg_nbr" max = "$msg_nbr_cmdline" />
+            <repeat times = "$msg_nbr" counter = "counter_1" >
+                <!-- Publish 9 common messages -->
+                <repeat times = "9" counter = "counter_2" >
+                    <set_random name = "msg_size" max = "$msg_size_cmdline" />
+                    <basic_content size = "$msg_size" message_id = "$msg_id"/>
+                    <basic_publish exchange = "grm.r" routing_key = "burst" />
+                </repeat>
+                <!-- Publish synchronisation message -->
+                <set_random name = "msg_size" max = "$msg_size_cmdline" />
+                <basic_content size = "$msg_size" message_id = "$sync_id"/>
+                <basic_publish exchange = "grm.r" routing_key = "burst" />
+            </repeat>
+        </repeat>
+    </session>
+</pal>

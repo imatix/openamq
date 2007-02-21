@@ -1,13 +1,19 @@
 <?xml?>
 <pal script = "amq_pal_gen">
-    Publishes publish/subscribe (headers exhcnage) messages in bursts.
+    Publishes publish/subscribe messages to the "grm.p" headers exchange, 
+    in bursts.
 
     Command line parameters:
     -A maximal delay between individual bursts (in milliseconds)
     -B maximal number of messages in a burst (in tens)
+    -M message ID (default is PSB)
+    -S sync ID (default is PSB-SYNC)
     <set name = "delay_cmdline" value = "10000" cmdline = "A" />
     <set name = "msg_nbr_cmdline" value = "1000" cmdline = "B" />
+    <set name = "msg_id" value = "PSB" cmdline = "M" />
+    <set name = "sync_id" value = "PSB-SYNC" cmdline = "S" />
     <session>
+        <exchange_declare exchange = "grm.p" type = "headers" />
         <!-- Individual bursts -->
         <repeat>
             <set_random name = "delay" min = "1" max = "$delay_cmdline" />
@@ -17,7 +23,7 @@
             <repeat times = "$msg_nbr" counter = "counter_1" >
                 <!-- Publish 9 common messages -->
                 <repeat times = "9" counter = "counter_2" >
-                    <basic_content size = "0" message_id = "PSB" >
+                    <basic_content size = "0" message_id = "$msg_id" >
                         <headers>
                             <field name = "M01" value = "VALUE" />
                             <field name = "M02" value = "ANYTHING" />
@@ -43,16 +49,16 @@
                             <field name = "F20" value = "DataDataDataData" />
                         </headers>
                     </basic_content>
-                    <basic_publish exchange = "amq.headers" routing_key = "" />
+                    <basic_publish exchange = "grm.p" routing_key = "" />
                 </repeat>
                 <!-- Publish synchronisation message -->
-                <basic_content size = "0" message_id = "PSB-SYNC" >
+                <basic_content size = "0" message_id = "$sync_id" >
                     <headers>
                         <field name = "M01" value = "VALUE" />
                         <field name = "M02" value = "WHATEVER" />
                     </headers>
                 </basic_content>
-                <basic_publish exchange = "amq.headers" routing_key = "" />
+                <basic_publish exchange = "grm.p" routing_key = "" />
             </repeat>
         </repeat>
     </session>

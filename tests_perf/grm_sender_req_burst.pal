@@ -1,15 +1,20 @@
 <?xml?>
 <pal script = "amq_pal_gen">
-    Publishes request/reply (direct exchange) messages in bursts.
+    Publishes "request" messages to the "grm.s" exchange, in bursts.
 
     Command line parameters:
     -A maximal delay between individual bursts (in milliseconds)
     -B maximal number of messages in a burst (in tens)
     -C maximal size of message (in bytes)
+    -M message ID (default is RQB)
+    -S sync ID (default is RQB-SYNC)
     <set name = "delay_cmdline" value = "10000" cmdline = "A" />
     <set name = "msg_nbr_cmdline" value = "1000" cmdline = "B" />
     <set name = "msg_size_cmdline" value = "1024" cmdline = "C" />
+    <set name = "msg_id" value = "RQB" cmdline = "M" />
+    <set name = "sync_id" value = "RQB-SYNC" cmdline = "S" />
     <session>
+        <exchange_declare exchange = "grm.s" type = "direct" />
         <!-- Individual bursts -->
         <repeat>
             <set_random name = "delay" min = "1" max = "$delay_cmdline" />
@@ -20,13 +25,13 @@
                 <!-- Publish 9 common messages -->
                 <repeat times = "9" counter = "counter_2" >
                     <set_random name = "msg_size" max = "$msg_size_cmdline" />
-                    <basic_content size = "$msg_size" message_id = "RRB"/>
-                    <basic_publish exchange = "amq.direct" routing_key = "burst" />
+                    <basic_content size = "$msg_size" message_id = "$msg_id"/>
+                    <basic_publish exchange = "grm.s" routing_key = "burst" />
                 </repeat>
                 <!-- Publish synchronisation message -->
                 <set_random name = "msg_size" max = "$msg_size_cmdline" />
-                <basic_content size = "$msg_size" message_id = "RRB-SYNC"/>
-                <basic_publish exchange = "amq.direct" routing_key = "burst" />
+                <basic_content size = "$msg_size" message_id = "$sync_id"/>
+                <basic_publish exchange = "grm.s" routing_key = "burst" />
             </repeat>
         </repeat>
     </session>

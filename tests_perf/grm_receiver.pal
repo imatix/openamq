@@ -1,56 +1,110 @@
 <?xml?>
 <pal script = "amq_pal_gen">
-    Restarts virtual grm application in a infinite loop.
-    (Infinite loop is broker due to pal limitations, test should be started
-    in infinte loop by user.)
-    On its startup it creates subscription burst.
-    When it ends, subscriptions are canceled.
-    When the app is running it receives messages from all senders and
-    tests whether none are missing.
+    Receiver counterpart to grm_sender_*.pal.
+
+    On startup creates a random subscription burst of up to the amount
+    specified by the -C option.  Subscribes to the messages produced by the
+    grm_sender_*.pal scripts and checks that messages are flowing correctly by
+    counting messages received.  All subscriptions are cancelled upon exit.
+
+    This application should run in a loop, but that's not currently possible due to
+    PAL limitations, thus the user should run this using a suitable harness script.
 
     Command line parameters:
         -A maximal interval between shutdown of application and start
              of another one (in milliseconds)
         -B maximal lifetime of the application (in messages received)
         -C maximal number of subscriptions by application
+        -D subscribe to "stable" senders? (default 1)
+        -E subscribe to "burst" senders? (default 1)
+        -F subscrube to "pubsub" senders? (default 1)
     <set name = "delay_cmdline" value = "10000" cmdline = "A" />
     <set name = "lifetime_cmdline" value = "10000" cmdline = "B" />
     <set name = "subscriptions_cmdline" value = "3400" cmdline = "C" />
+    <set name = "subscribe_stable" value = "1" cmdline = "D" />
+    <set name = "subscribe_burst" value = "1" cmdline = "E" />
+    <set name = "subscribe_pubsub" value = "1" cmdline = "F" />
     <repeat>
         <set_random name = "delay" min = "1" max = "$delay_cmdline" />
         <wait timeout = "$delay" />
 
         <session>
+            <!-- Declare exchanges if not present -->
+            <exchange_declare exchange = "grm.r" type = "direct" />
+            <exchange_declare exchange = "grm.s" type = "direct" />
+            <exchange_declare exchange = "grm.p" type = "headers" />
+
             <!-- Subscription burst -->
-            <set_random name = "subscriptions" max = "$subscriptions_cmdline" />
-            <repeat times = "$subscriptions" counter = "counter_1">
-                <queue_declare exclusive = "1" />
-                <queue_bind queue = "$queue" exchange = "amq.direct" routing_key = "$queue" />
-                <basic_consume queue = "$queue" />
-            </repeat>
+            <if name = "subscriptions_cmdline" test = "ne" value = "0">
+                <set_random name = "subscriptions" max = "$subscriptions_cmdline" />
+                <repeat times = "$subscriptions" counter = "counter_1">
+                    <queue_declare exclusive = "1" />
+                    <queue_bind queue = "$queue" exchange = "grm.r" routing_key = "$queue" />
+                    <basic_consume queue = "$queue" />
+                </repeat>
+            </if>
 
             <!-- Subscriptions for actual senders -->
             <queue_declare exclusive = "1" />
-            <queue_bind queue = "$queue" exchange = "amq.direct" routing_key = "stable" />
-            <queue_bind queue = "$queue" exchange = "amq.direct" routing_key = "burst" />
-            <queue_bind queue = "$queue" exchange = "amq.headers">
-                <arguments>
-                    <field name = "M01" value = "VALUE" />
-                    <field name = "M02" value = "" />
-                </arguments>
-            </queue_bind>
+            <if name = "subscribe_stable" value = "1">
+                <queue_bind queue = "$queue" exchange = "grm.r" routing_key = "stable" />
+                <queue_bind queue = "$queue" exchange = "grm.s" routing_key = "stable" />
+            </if>
+            <if name = "subscribe_burst" value = "1">
+                <queue_bind queue = "$queue" exchange = "grm.r" routing_key = "burst" />
+                <queue_bind queue = "$queue" exchange = "grm.s" routing_key = "burst" />
+            </if>
+            <if name = "subscribe_pubsub" value = "1">
+                <queue_bind queue = "$queue" exchange = "grm.p">
+                    <arguments>
+                        <field name = "M01" value = "VALUE" />
+                        <field name = "M02" value = "" />
+                    </arguments>
+                </queue_bind>
+            </if>
             <basic_consume queue = "$queue" />
 
             <!-- Read the messages -->
             <set_random name = "lifetime" max = "$lifetime_cmdline" />
-            <set name = "rrs_active" value = "0" />
-            <set name = "rrb_active" value = "0" />
-            <set name = "rrs_counter" value = "0" />
-            <set name = "rrb_counter" value = "0" />
+            <!-- Counters for default set of publishers -->
+            <set name = "rqs_active" value = "0" />
+            <set name = "rqb_active" value = "0" />
+            <set name = "rqs_counter" value = "0" />
+            <set name = "rqb_counter" value = "0" />
+            <set name = "rss_active" value = "0" />
+            <set name = "rsb_active" value = "0" />
+            <set name = "rss_counter" value = "0" />
+            <set name = "rsb_counter" value = "0" />
             <set name = "pss_active" value = "0" />
             <set name = "psb_active" value = "0" />
             <set name = "pss_counter" value = "0" />
             <set name = "psb_counter" value = "0" />
+            <!-- Counters for optional second set of publishers -->
+            <set name = "xrqs_active" value = "0" />
+            <set name = "xrqb_active" value = "0" />
+            <set name = "xrqs_counter" value = "0" />
+            <set name = "xrqb_counter" value = "0" />
+            <set name = "xrss_active" value = "0" />
+            <set name = "xrsb_active" value = "0" />
+            <set name = "xrss_counter" value = "0" />
+            <set name = "xrsb_counter" value = "0" />
+            <set name = "xpss_active" value = "0" />
+            <set name = "xpsb_active" value = "0" />
+            <set name = "xpss_counter" value = "0" />
+            <set name = "xpsb_counter" value = "0" />
+            <!-- Counters for optional third set of publishers -->
+            <set name = "yrqs_active" value = "0" />
+            <set name = "yrqb_active" value = "0" />
+            <set name = "yrqs_counter" value = "0" />
+            <set name = "yrqb_counter" value = "0" />
+            <set name = "yrss_active" value = "0" />
+            <set name = "yrsb_active" value = "0" />
+            <set name = "yrss_counter" value = "0" />
+            <set name = "yrsb_counter" value = "0" />
+            <set name = "ypss_active" value = "0" />
+            <set name = "ypsb_active" value = "0" />
+            <set name = "ypss_counter" value = "0" />
+            <set name = "ypsb_counter" value = "0" />
 
             <repeat>
                 <wait/>
@@ -62,51 +116,93 @@
 
                     <set name = "message_id" value = "$message_id" />
 
-                    <!-- Request/reply stable sender -->
-                    <if name = "message_id" test = "eq" value = "RRS">
-                        <if name = "rrs_active" value = "1">
-                            <inc name = "rrs_counter" />
-                            <if name = "rrs_counter" value = "10">
-                                <echo>E: Sync message missing (reqrep,stable)</echo>
-                                <exit/>
+                    <!-- Default set of publishers -->
+
+                    <!-- Request stable sender -->
+                    <if name = "message_id" test = "eq" value = "RQS">
+                        <if name = "rqs_active" value = "1">
+                            <inc name = "rqs_counter" />
+                            <if name = "rqs_counter" value = "10">
+                                <abort>E: Sync message missing (req,stable)</abort>
                             </if>
                         </if>
                     </if>
-                    <if name = "message_id" test = "eq" value = "RRS-SYNC">
-                        <if name = "rrs_active" value = "1">
-                            <if name = "rrs_counter" test = "ne" value = "9">
-                                <echo>E: Sync message too early (reqrep,stable)</echo>
-                                <exit/>
+                    <if name = "message_id" test = "eq" value = "RQS-SYNC">
+                        <if name = "rqs_active" value = "1">
+                            <if name = "rqs_counter" test = "ne" value = "9">
+                                <abort>E: Sync message too early (req,stable)</abort>
                             </if>
-                            <set name = "rrs_counter" value = "0" />
+                            <set name = "rqs_counter" value = "0" />
                         </if>
-                        <if name = "rrs_active" value = "0">
-                            <set name = "rrs_active" value = "1" />
-                            <set name = "rrs_counter" value = "0" />
+                        <if name = "rqs_active" value = "0">
+                            <set name = "rqs_active" value = "1" />
+                            <set name = "rqs_counter" value = "0" />
                         </if>
                     </if>
 
-                    <!-- Request/reply burst sender -->
-                    <if name = "message_id" test = "eq" value = "RRB">
-                        <if name = "rrb_active" value = "1">
-                            <inc name = "rrb_counter" />
-                            <if name = "rrb_counter" value = "10">
-                                <echo>E: Sync message missing (reqrep,burst)</echo>
-                                <exit/>
+                    <!-- Request burst sender -->
+                    <if name = "message_id" test = "eq" value = "RQB">
+                        <if name = "rqb_active" value = "1">
+                            <inc name = "rqb_counter" />
+                            <if name = "rqb_counter" value = "10">
+                                <abort>E: Sync message missing (req,burst)</abort>
                             </if>
                         </if>
                     </if>
-                    <if name = "message_id" test = "eq" value = "RRB-SYNC">
-                        <if name = "rrb_active" value = "1">
-                            <if name = "rrb_counter" test = "ne" value = "9">
-                                <echo>E: Sync message too early (reqrep,burst)</echo>
-                                <exit/>
+                    <if name = "message_id" test = "eq" value = "RQB-SYNC">
+                        <if name = "rqb_active" value = "1">
+                            <if name = "rqb_counter" test = "ne" value = "9">
+                                <abort>E: Sync message too early (req,burst)</abort>
                             </if>
-                            <set name = "rrb_counter" value = "0" />
+                            <set name = "rqb_counter" value = "0" />
                         </if>
-                        <if name = "rrb_active" value = "0">
-                            <set name = "rrb_active" value = "1" />
-                            <set name = "rrb_counter" value = "0" />
+                        <if name = "rqb_active" value = "0">
+                            <set name = "rqb_active" value = "1" />
+                            <set name = "rqb_counter" value = "0" />
+                        </if>
+                    </if>
+
+                    <!-- Response stable sender -->
+                    <if name = "message_id" test = "eq" value = "RSS">
+                        <if name = "rss_active" value = "1">
+                            <inc name = "rss_counter" />
+                            <if name = "rss_counter" value = "10">
+                                <abort>E: Sync message missing (resp,stable)</abort>
+                            </if>
+                        </if>
+                    </if>
+                    <if name = "message_id" test = "eq" value = "RSS-SYNC">
+                        <if name = "rss_active" value = "1">
+                            <if name = "rss_counter" test = "ne" value = "9">
+                                <abort>E: Sync message too early (resp,stable)</abort>
+                            </if>
+                            <set name = "rss_counter" value = "0" />
+                        </if>
+                        <if name = "rss_active" value = "0">
+                            <set name = "rss_active" value = "1" />
+                            <set name = "rss_counter" value = "0" />
+                        </if>
+                    </if>
+
+                    <!-- Request burst sender -->
+                    <if name = "message_id" test = "eq" value = "RSB">
+                        <if name = "rsb_active" value = "1">
+                            <inc name = "rsb_counter" />
+                            <if name = "rsb_counter" value = "10">
+                                <abort>E: Sync message missing (resp,burst)</abort>
+                            </if>
+                        </if>
+                    </if>
+                    <if name = "message_id" test = "eq" value = "RSB-SYNC">
+                        <if name = "rsb_active" value = "1">
+                            <if name = "rsb_counter" test = "ne" value = "9">
+                                <abort>E: Sync message too early (resp,burst)</abort>
+                            </if>
+                            <set name = "rsb_counter" value = "0" />
+                        </if>
+                        <if name = "rsb_active" value = "0">
+                            <set name = "rsb_active" value = "1" />
+                            <set name = "rsb_counter" value = "0" />
                         </if>
                     </if>
 
@@ -115,16 +211,14 @@
                         <if name = "pss_active" value = "1">
                             <inc name = "pss_counter" />
                             <if name = "pss_counter" value = "10">
-                                <echo>E: Sync message too early (pubsub,stable)</echo>
-                                <exit/>
+                                <abort>E: Sync message too early (pubsub,stable)</abort>
                             </if>
                         </if>
                     </if>
                     <if name = "message_id" test = "eq" value = "PSS-SYNC">
                         <if name = "pss_active" value = "1">
                             <if name = "pss_counter" test = "ne" value = "9">
-                                <echo>E: Sync message missing (pubsub,stable)</echo>
-                                <exit/>
+                                <abort>E: Sync message missing (pubsub,stable)</abort>
                             </if>
                             <set name = "pss_counter" value = "0" />
                         </if>
@@ -139,16 +233,14 @@
                         <if name = "psb_active" value = "1">
                             <inc name = "psb_counter" />
                             <if name = "psb_counter" value = "10">
-                                <echo>E: Sync message too early (pubsub,burst)</echo>
-                                <exit/>
+                                <abort>E: Sync message too early (pubsub,burst)</abort>
                             </if>
                         </if>
                     </if>
                     <if name = "message_id" test = "eq" value = "PSB-SYNC">
                         <if name = "psb_active" value = "1">
                             <if name = "psb_counter" test = "ne" value = "9">
-                                <echo>E: Sync message missing (pubsub,burst)</echo>
-                                <exit/>
+                                <abort>E: Sync message missing (pubsub,burst)</abort>
                             </if>
                             <set name = "psb_counter" value = "0" />
                         </if>
@@ -157,6 +249,275 @@
                             <set name = "psb_counter" value = "0" />
                         </if>
                     </if>
+
+                    <!-- Optional second set of publishers -->
+
+                    <!-- Request stable sender -->
+                    <if name = "message_id" test = "eq" value = "XRQS">
+                        <if name = "xrqs_active" value = "1">
+                            <inc name = "xrqs_counter" />
+                            <if name = "xrqs_counter" value = "10">
+                                <abort>E: Sync message missing (req,stable)</abort>
+                            </if>
+                        </if>
+                    </if>
+                    <if name = "message_id" test = "eq" value = "XRQS-SYNC">
+                        <if name = "xrqs_active" value = "1">
+                            <if name = "xrqs_counter" test = "ne" value = "9">
+                                <abort>E: Sync message too early (req,stable)</abort>
+                            </if>
+                            <set name = "xrqs_counter" value = "0" />
+                        </if>
+                        <if name = "xrqs_active" value = "0">
+                            <set name = "xrqs_active" value = "1" />
+                            <set name = "xrqs_counter" value = "0" />
+                        </if>
+                    </if>
+
+                    <!-- Request burst sender -->
+                    <if name = "message_id" test = "eq" value = "XRQB">
+                        <if name = "xrqb_active" value = "1">
+                            <inc name = "xrqb_counter" />
+                            <if name = "xrqb_counter" value = "10">
+                                <abort>E: Sync message missing (req,burst)</abort>
+                            </if>
+                        </if>
+                    </if>
+                    <if name = "message_id" test = "eq" value = "XRQB-SYNC">
+                        <if name = "xrqb_active" value = "1">
+                            <if name = "xrqb_counter" test = "ne" value = "9">
+                                <abort>E: Sync message too early (req,burst)</abort>
+                            </if>
+                            <set name = "xrqb_counter" value = "0" />
+                        </if>
+                        <if name = "xrqb_active" value = "0">
+                            <set name = "xrqb_active" value = "1" />
+                            <set name = "xrqb_counter" value = "0" />
+                        </if>
+                    </if>
+
+                    <!-- Response stable sender -->
+                    <if name = "message_id" test = "eq" value = "XRSS">
+                        <if name = "xrss_active" value = "1">
+                            <inc name = "xrss_counter" />
+                            <if name = "xrss_counter" value = "10">
+                                <abort>E: Sync message missing (resp,stable)</abort>
+                            </if>
+                        </if>
+                    </if>
+                    <if name = "message_id" test = "eq" value = "XRSS-SYNC">
+                        <if name = "xrss_active" value = "1">
+                            <if name = "xrss_counter" test = "ne" value = "9">
+                                <abort>E: Sync message too early (resp,stable)</abort>
+                            </if>
+                            <set name = "xrss_counter" value = "0" />
+                        </if>
+                        <if name = "xrss_active" value = "0">
+                            <set name = "xrss_active" value = "1" />
+                            <set name = "xrss_counter" value = "0" />
+                        </if>
+                    </if>
+
+                    <!-- Request burst sender -->
+                    <if name = "message_id" test = "eq" value = "XRSB">
+                        <if name = "xrsb_active" value = "1">
+                            <inc name = "xrsb_counter" />
+                            <if name = "xrsb_counter" value = "10">
+                                <abort>E: Sync message missing (resp,burst)</abort>
+                            </if>
+                        </if>
+                    </if>
+                    <if name = "message_id" test = "eq" value = "XRSB-SYNC">
+                        <if name = "xrsb_active" value = "1">
+                            <if name = "xrsb_counter" test = "ne" value = "9">
+                                <abort>E: Sync message too early (resp,burst)</abort>
+                            </if>
+                            <set name = "xrsb_counter" value = "0" />
+                        </if>
+                        <if name = "xrsb_active" value = "0">
+                            <set name = "xrsb_active" value = "1" />
+                            <set name = "xrsb_counter" value = "0" />
+                        </if>
+                    </if>
+
+                    <!-- Publish/subscribe stable sender -->
+                    <if name = "message_id" test = "eq" value = "XPSS">
+                        <if name = "xpss_active" value = "1">
+                            <inc name = "xpss_counter" />
+                            <if name = "xpss_counter" value = "10">
+                                <abort>E: Sync message too early (pubsub,stable)</abort>
+                            </if>
+                        </if>
+                    </if>
+                    <if name = "message_id" test = "eq" value = "XPSS-SYNC">
+                        <if name = "xpss_active" value = "1">
+                            <if name = "xpss_counter" test = "ne" value = "9">
+                                <abort>E: Sync message missing (pubsub,stable)</abort>
+                            </if>
+                            <set name = "xpss_counter" value = "0" />
+                        </if>
+                        <if name = "xpss_active" value = "0">
+                            <set name = "xpss_active" value = "1" />
+                            <set name = "xpss_counter" value = "0" />
+                        </if>
+                    </if>
+
+                    <!-- Publish/subscribe stable sender -->
+                    <if name = "message_id" test = "eq" value = "XPSB">
+                        <if name = "xpsb_active" value = "1">
+                            <inc name = "xpsb_counter" />
+                            <if name = "xpsb_counter" value = "10">
+                                <abort>E: Sync message too early (pubsub,burst)</abort>
+                            </if>
+                        </if>
+                    </if>
+                    <if name = "message_id" test = "eq" value = "XPSB-SYNC">
+                        <if name = "xpsb_active" value = "1">
+                            <if name = "xpsb_counter" test = "ne" value = "9">
+                                <abort>E: Sync message missing (pubsub,burst)</abort>
+                            </if>
+                            <set name = "xpsb_counter" value = "0" />
+                        </if>
+                        <if name = "xpsb_active" value = "0">
+                            <set name = "xpsb_active" value = "1" />
+                            <set name = "xpsb_counter" value = "0" />
+                        </if>
+                    </if>
+ 
+                    <!-- Optional third set of publishers -->
+
+                    <!-- Request stable sender -->
+                    <if name = "message_id" test = "eq" value = "YRQS">
+                        <if name = "yrqs_active" value = "1">
+                            <inc name = "yrqs_counter" />
+                            <if name = "yrqs_counter" value = "10">
+                                <abort>E: Sync message missing (req,stable)</abort>
+                            </if>
+                        </if>
+                    </if>
+                    <if name = "message_id" test = "eq" value = "YRQS-SYNC">
+                        <if name = "yrqs_active" value = "1">
+                            <if name = "yrqs_counter" test = "ne" value = "9">
+                                <abort>E: Sync message too early (req,stable)</abort>
+                            </if>
+                            <set name = "yrqs_counter" value = "0" />
+                        </if>
+                        <if name = "yrqs_active" value = "0">
+                            <set name = "yrqs_active" value = "1" />
+                            <set name = "yrqs_counter" value = "0" />
+                        </if>
+                    </if>
+
+                    <!-- Request burst sender -->
+                    <if name = "message_id" test = "eq" value = "YRQB">
+                        <if name = "yrqb_active" value = "1">
+                            <inc name = "yrqb_counter" />
+                            <if name = "yrqb_counter" value = "10">
+                                <abort>E: Sync message missing (req,burst)</abort>
+                            </if>
+                        </if>
+                    </if>
+                    <if name = "message_id" test = "eq" value = "YRQB-SYNC">
+                        <if name = "yrqb_active" value = "1">
+                            <if name = "yrqb_counter" test = "ne" value = "9">
+                                <abort>E: Sync message too early (req,burst)</abort>
+                            </if>
+                            <set name = "yrqb_counter" value = "0" />
+                        </if>
+                        <if name = "yrqb_active" value = "0">
+                            <set name = "yrqb_active" value = "1" />
+                            <set name = "yrqb_counter" value = "0" />
+                        </if>
+                    </if>
+
+                    <!-- Response stable sender -->
+                    <if name = "message_id" test = "eq" value = "YRSS">
+                        <if name = "yrss_active" value = "1">
+                            <inc name = "yrss_counter" />
+                            <if name = "yrss_counter" value = "10">
+                                <abort>E: Sync message missing (resp,stable)</abort>
+                            </if>
+                        </if>
+                    </if>
+                    <if name = "message_id" test = "eq" value = "YRSS-SYNC">
+                        <if name = "yrss_active" value = "1">
+                            <if name = "yrss_counter" test = "ne" value = "9">
+                                <abort>E: Sync message too early (resp,stable)</abort>
+                            </if>
+                            <set name = "yrss_counter" value = "0" />
+                        </if>
+                        <if name = "yrss_active" value = "0">
+                            <set name = "yrss_active" value = "1" />
+                            <set name = "yrss_counter" value = "0" />
+                        </if>
+                    </if>
+
+                    <!-- Request burst sender -->
+                    <if name = "message_id" test = "eq" value = "YRSB">
+                        <if name = "yrsb_active" value = "1">
+                            <inc name = "yrsb_counter" />
+                            <if name = "yrsb_counter" value = "10">
+                                <abort>E: Sync message missing (resp,burst)</abort>
+                            </if>
+                        </if>
+                    </if>
+                    <if name = "message_id" test = "eq" value = "YRSB-SYNC">
+                        <if name = "yrsb_active" value = "1">
+                            <if name = "yrsb_counter" test = "ne" value = "9">
+                                <abort>E: Sync message too early (resp,burst)</abort>
+                            </if>
+                            <set name = "yrsb_counter" value = "0" />
+                        </if>
+                        <if name = "yrsb_active" value = "0">
+                            <set name = "yrsb_active" value = "1" />
+                            <set name = "yrsb_counter" value = "0" />
+                        </if>
+                    </if>
+
+                    <!-- Publish/subscribe stable sender -->
+                    <if name = "message_id" test = "eq" value = "YPSS">
+                        <if name = "ypss_active" value = "1">
+                            <inc name = "ypss_counter" />
+                            <if name = "ypss_counter" value = "10">
+                                <abort>E: Sync message too early (pubsub,stable)</abort>
+                            </if>
+                        </if>
+                    </if>
+                    <if name = "message_id" test = "eq" value = "YPSS-SYNC">
+                        <if name = "ypss_active" value = "1">
+                            <if name = "ypss_counter" test = "ne" value = "9">
+                                <abort>E: Sync message missing (pubsub,stable)</abort>
+                            </if>
+                            <set name = "ypss_counter" value = "0" />
+                        </if>
+                        <if name = "ypss_active" value = "0">
+                            <set name = "ypss_active" value = "1" />
+                            <set name = "ypss_counter" value = "0" />
+                        </if>
+                    </if>
+
+                    <!-- Publish/subscribe stable sender -->
+                    <if name = "message_id" test = "eq" value = "YPSB">
+                        <if name = "ypsb_active" value = "1">
+                            <inc name = "ypsb_counter" />
+                            <if name = "ypsb_counter" value = "10">
+                                <abort>E: Sync message too early (pubsub,burst)</abort>
+                            </if>
+                        </if>
+                    </if>
+                    <if name = "message_id" test = "eq" value = "YPSB-SYNC">
+                        <if name = "ypsb_active" value = "1">
+                            <if name = "ypsb_counter" test = "ne" value = "9">
+                                <abort>E: Sync message missing (pubsub,burst)</abort>
+                            </if>
+                            <set name = "ypsb_counter" value = "0" />
+                        </if>
+                        <if name = "ypsb_active" value = "0">
+                            <set name = "ypsb_active" value = "1" />
+                            <set name = "ypsb_counter" value = "0" />
+                        </if>
+                    </if>
+ 
                 </basic_arrived>
             </repeat>
         </session>

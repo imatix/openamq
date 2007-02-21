@@ -103,7 +103,7 @@ This is an abstract base class for all exchange implementations.
     Unbinds the binding for the exchange.
     </doc>
     <argument name = "self_v"  type = "void *">The exchange cast as a void *</argument>
-    <argument name = "binding" type = "amq_binding_t *">Binding to compile</argument>
+    <argument name = "binding" type = "amq_binding_t *">Binding to unbind</argument>
     <declare name = "rc" type = "int" default = "0">Return code</declare>
     <local>
     $(selftype)

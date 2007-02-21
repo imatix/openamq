@@ -85,7 +85,8 @@
         self->peering = amq_peering_new (
             ha_peer,
             amq_server_config_cluster_vhost (amq_server_config),
-            amq_server_config_trace (amq_server_config));
+            amq_server_config_trace (amq_server_config),
+            "amq.status", "direct", TRUE, FALSE);
         amq_peering_set_login (self->peering, "peering");
         amq_peering_set_content_handler (self->peering, s_content_handler, self);
         amq_peering_start (self->peering);
@@ -96,8 +97,7 @@
         self->last_peer_time = apr_time_now ();
 
         //  Subscribe for HA peer's state notifications
-        amq_peering_bind (self->peering, "amq.status", "direct", TRUE, FALSE,
-            self->primary? "b": "p", NULL);
+        amq_peering_bind (self->peering, self->primary? "b": "p", NULL);
         amq_cluster_hac_start_monitoring (self);
 
         self->state_exchange = amq_exchange_table_search (broker->vhost->exchange_table, "amq.status");
