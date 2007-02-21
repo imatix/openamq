@@ -3,18 +3,16 @@
     name      = "OpenAMQ Client"
     version   = "1.2b0"
     workflow  = "standard.pwl"
-    library   = "libamqp"
+    library   = "libamq_wireapi"
     copyright = "Copyright (c) 1996-2006 iMatix Corporation"
     >
-
-<!-- TODO: split this into constituent projects -->
 
 <include filename = "prelude.pdl" />
 <inherit filename = "icl_classes.pdl" />
 <inherit filename = "smt_classes.pdl" />
 
 <file name = "version.h"             class = "c version"         >Project version file</file>
-<file name = "libamqp"               class = "public library"    >Object library</file>
+<file name = "libamq_wireapi"        class = "public library"    >Object library</file>
 
 <!-- OpenAMQ WireAPI/C implementation -->
 <file name = "amq_client"            class = "public command"    >Client</file>
