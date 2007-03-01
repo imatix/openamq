@@ -459,7 +459,6 @@ for each type of exchange. This is a lock-free asynchronous class.
                 connection = channel?
                     amq_server_connection_link (channel->connection): NULL;
                 if (connection) {
-                    icl_console_print ("I: Returning message to sender.");
                     amq_server_agent_basic_return (
                         connection->thread,
                         channel->number,
@@ -468,7 +467,6 @@ for each type of exchange. This is a lock-free asynchronous class.
                         "Message cannot be processed - no route is defined",
                         method->payload.basic_publish.exchange,
                         method->payload.basic_publish.routing_key,
-                        ((amq_content_basic_t *) method->content)->sender_id,
                         NULL);
                     ((amq_content_basic_t *) method->content)->returned = TRUE;
                 }
