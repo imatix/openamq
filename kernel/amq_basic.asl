@@ -96,7 +96,7 @@
     The creating application id
 </field>
 <field name = "sender id" type = "shortstr">
-    Identifier of application issuing the message (Used to route returned messages back to the application)
+    Identifier of connection sending the message
 </field>
 
 
@@ -413,14 +413,6 @@
     <doc>
       Specifies the routing key name specified when the message was
       published.
-    </doc>
-  </field>
-
-  <field name = "sender id" type = "shortstr">
-     Sender id
-    <doc>
-      For use by cluster applications, should not be used by
-      client applications.
     </doc>
   </field>
 </method>

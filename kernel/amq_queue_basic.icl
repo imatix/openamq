@@ -164,7 +164,6 @@ runs lock-free as a child of the asynchronous queue class.
                         "No immediate consumers for Basic message",
                         content->exchange,
                         content->routing_key,
-                        content->sender_id,
                         NULL);
                     amq_server_connection_unlink (&connection);
                 }
@@ -321,6 +320,8 @@ runs lock-free as a child of the asynchronous queue class.
         *content;                       //  Content object reference
     amq_server_connection_t
         *connection;
+    icl_shortstr_t
+        sender_id;
     </local>
     //
     //  Get next message off list, if any
@@ -343,9 +344,11 @@ runs lock-free as a child of the asynchronous queue class.
 
             amq_content_basic_unlink (&content);
         }
-        else
+        else {
+            icl_shortstr_fmt (sender_id, "%s|%d", connection->key, channel->number);
             amq_server_agent_basic_get_empty (
-                connection->thread, channel->number, NULL);
+                connection->thread, channel->number, sender_id);
+        }
 
         amq_server_connection_unlink (&connection);
     }
