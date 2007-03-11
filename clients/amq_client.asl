@@ -11,8 +11,10 @@
 
 <class name = "basic">
   <action name = "get-ok">
+  <local>
     int
         msg_count;
+  </local>
 
     amq_content_$(class.name)_set_routing_key (
         self->content, method->exchange, method->routing_key, 0);
@@ -25,8 +27,10 @@
   </action>
 
   <action name = "deliver">
+  <local>
     int
         msg_count;
+  </local>
 
     amq_content_$(class.name)_set_routing_key (
         self->content, method->exchange, method->routing_key, 0);
