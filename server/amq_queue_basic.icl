@@ -220,8 +220,10 @@ runs lock-free as a child of the asynchronous queue class.
     if (amq_server_config_debug_queue (amq_server_config) 
         && active_consumer_count == 0)
         smt_log_print (amq_broker->debug_log,
-            "Q: paused   queue=%s message=%s",
-            self->queue->name, content->message_id);
+            "Q: paused   queue=%s nbr_messages=%d nbr_consumers=%d",
+            self->queue->name,
+            ipr_looseref_list_count (self->content_list),
+            amq_consumer_by_queue_count (self->consumer_list));
 
     while (active_consumer_count &&
         ipr_looseref_list_count (self->content_list)) {
