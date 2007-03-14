@@ -28,6 +28,7 @@
 <inherit filename = "icl_classes.pdl" />
 <inherit filename = "smt_classes.pdl" />
 
+<file name = "gpl_output"                class = "private resource"  >Generated code is licensed under the GPL</file>
 <file name = "version.h"                 class = "c version"         >Project version file</file>
 <file name = "libamq_server"             class = "public library"    >Object library</file>
 
