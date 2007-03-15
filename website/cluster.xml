@@ -46,11 +46,11 @@ HA Configuration
 You can share the same configuration for both brokers by specifying the key
 options on the command-line.  In amq_server.cfg, add this section:
 
-    <cluster
+    &lt;cluster
         vhost = "/"
         primary_peer = "localhost:5555"
         backup_peer = "localhost:6666"
-    />
+    /&gt;
 
 Then start the two brokers as follows (you can use any legal values for the
 port numbers):
@@ -61,19 +61,19 @@ port numbers):
 Alternatively you can use two separate configuration files, with the primary
 server using this:
 
-    <cluster
+    &lt;cluster
         vhost = "/"
         is_primary = "1"
         backup_peer = "localhost:6666"
-    />
+    /&gt;
 
 And the backup server using this:
 
-    <cluster
+    &lt;cluster
         vhost = "/"
         is_backup = "1"
         primary_peer = "localhost:5555"
-    />
+    /&gt;
 
 Virtual Host
 ------------
@@ -110,13 +110,13 @@ published centrally.
 
 The configuration looks like this:
 
-    <cluster-mta
+    &lt;cluster-mta
         name = "exchange-name"
         vhost = "virtual-host-name"
         host = "remotehost:port"
         login = "peering"
         mode = "1"
-    />
+    /&gt;
 
 All bindings made to the specified exchange are copied to the specified remote
 host exchange.
@@ -142,13 +142,13 @@ local clients and remote ones.
 
 The configuration looks like this:
 
-    <cluster-mta
+    &lt;cluster-mta
         name = "exchange-name"
         vhost = "virtual-host-name"
         host = "remotehost:port"
         login = "peering"
         mode = "2"
-    />
+    /&gt;
 
 All messages published to the local exchange are automatically published to the
 remote exchange as well.
@@ -163,13 +163,13 @@ be either local, or remote.
 
 The configuration looks like this:
 
-    <cluster-mta
+    &lt;cluster-mta
         name = "exchange-name"
         vhost = "virtual-host-name"
         host = "remotehost:port"
         login = "peering"
         mode = "3"
-    />
+    /&gt;
 
 All messages published to the local exchange are automatically published to the
 remote exchange only if they are not delivered locally.

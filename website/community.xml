@@ -20,29 +20,23 @@ Quick links:
 OpenAMQ Email Lists
 *******************
 
-amq-announce
-============
+openamq-announce
+================
 
 For persons who want to track the AMQ project without being
 involved in the development process.
 
-This is a private list.  Your subscription will be verified
-by the list manager before you are allowed to join.
+ - [http://lists.openamq.org/mailman/listinfo/openamq-announce:Subscribe]
+ - [http://lists.openamq.org/pipermail/openamq-announce/:List Archives]
 
- - [http://amq.imatix.net/mailman/listinfo/amq-announce:Subscribe]
- - [http://amq.imatix.net/mailman/admin/amq-announce:Administration interface]
-
-amq-dev
-=======
+openamq-dev
+===========
 
 For developers involved in the AMQ project or using it in their
 applications.
 
-This is a private list.  Your subscription will be verified by the
-list manager before you are allowed to join.
-
- - [http://amq.imatix.net/mailman/listinfo/amq-dev:Subscribe]
- - [http://amq.imatix.net/mailman/admin/amq-dev:Administration interface]
+ - [http://lists.openamq.org/mailman/listinfo/openamq-dev:Subscribe]
+ - [http://lists.openamq.org/pipermail/openamq-dev/:List Archives]
 
 Community FAQ
 *************

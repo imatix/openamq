@@ -1,8 +1,8 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ Website"
-    version   = "1.0"
-    copyright = "Copyright (c) 2004-2006 iMatix Corporation"
+    version   = "1.2c0"
+    copyright = "Copyright (c) 2007 iMatix Corporation"
     workflow  = "scripted.pwl"
     >
     <include filename = "prelude.pdl" />

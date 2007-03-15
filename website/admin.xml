@@ -103,31 +103,24 @@ The Console Prompt
 When the Console connects successfully to the default or specified OpenAMQ
 server it will display a prompt so that you can enter commands:
 
-    amq_shell/1.0c0 - Management Console for OpenAMQ Brokers
-    Copyright (c) 2004-2006 JPMorganChase
+    amq_shell/1.2b0 - Management Console for OpenAMQ Brokers
+    Copyright (c) 2007 iMatix Corporation
 
-    Connected to OpenAMQ Server/1.0c0 on 192.168.55.64:5672
+    Connected to OpenAMQ Server/1.2b0 on 62.176.172.196:5672
 
-    0) broker = "OpenAMQ 1.0c0"
-    Date, time broker started ............. 1970-00-01T00:05+00:00
-    Broker is locked? ..................... No
-    Memory used for all data .............. 10128K
-    Memory used for messages .............. 0K
-    Number of queued messages ............. 1
-    Number of message exchanges ........... 7
-    Number of message queues .............. 1
-    Number of queue consumers ............. 1
-    Number of queue bindings .............. 2
-    Number of virtual hosts ............... 1
-    Number of connections ................. 1
-    [shutdown] [lock] [shake]
-    1) vhost = "/"
-    11) connection = "0-1" address="localhost (127.0.0.1:50976)" -
-        instance="amq_shell" traffic_in=0 traffic_out=0
-    10) cluster = "Standalone" ready=No master=No
-    9) config = "amq_server.cfg"
-    Type item number to see details, or [cmd]
-    /192.168.55.64:5672>
+     broker = "OpenAMQ 1.2b0" 
+     Date, time broker started ............. 2007-03-15T12:55+01:00
+     Broker is locked? ..................... no
+     Memory used for all data .............. 10604K
+     Memory used for messages .............. 1K
+     Number of queued messages ............. 2
+     Number of queue consumers ............. 1
+     Number of queue bindings .............. 2
+     Number of message exchanges ........... 8 [ls exchange]
+     Number of shared queues ............... 0 [ls queue]
+     Number of connections ................. 1 [ls connection]
+     [shutdown] [lock] [shake]
+    /62.176.172.196:5672>
 
 Note that:
 

@@ -8,8 +8,8 @@
 Requirements for OpenAMQ on Windows
 ***********************************
 
- - Any modern Windows platform
- - Microsoft Visual C/C++ 6.x or Visual Studio 7.x
+ - Windows 2000 or newer
+ - Microsoft Visual C/C++ 6.x or Visual Studio .NET 2003 7.1
  - 1 gigabyte of available disk space
  - A standard unzip tool (note: WinZip does not handle the tar.gz files
    correctly).
@@ -28,6 +28,9 @@ correctly.  Otherwise follow these instructions:
  - When you open a console box, the MSVCDir variable must point correctly
    to the MSVC application directory.
  - You can set this manually in the system environment variables.
+
+Note that Visual Studio 2005 (including the Express Edition) is not currently
+supported.
 
 Specify the IBASE Directory
 ***************************
@@ -100,7 +103,7 @@ After a successful build, start the server as follows:
     OpenAMQ/$(main_version)
     Production release
 
-    Copyright (c) 2004-2006 iMatix Corporation
+    Copyright (c) 2007 iMatix Corporation
     This is free software; see the source for copying conditions.  There is NO
     warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 

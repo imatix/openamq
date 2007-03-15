@@ -66,7 +66,7 @@ Random Factlets
  - The team's opinion on OpenAMQ performance: *"it's still too slow!"*
  - First production data flow through OpenAMQ: *9 May 2006 (JPMorganChase).*
  - Global production rollout at JPMorganChase: 20 December, 2006.
- - Highest number of messages per day for one application: 100,000,000 (JPMorganChase, December 2007)
+ - Highest number of messages per day for one application: 100,000,000 (JPMorganChase, December 2006)
  - Number of animals harmed in the production of OpenAMQ: *none.*
 
 Technology
