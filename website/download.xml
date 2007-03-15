@@ -12,7 +12,7 @@ This package contains the full OpenAMQ source code for Unix systems, for
 full control over build options. Easy to build using GCC or another ANSI
 C compiler:
 
-1. [/download/OpenAMQ-$(main_version).tar.gz:Download tar.gz (9Mb)].
+1. [/download/OpenAMQ-$(main_version).tar.gz:Download tar.gz (8Mb)].
 2. [/build_unix.html:How to build and test].
 
 More: [page:build]
@@ -24,7 +24,7 @@ This package contains the full OpenAMQ source code for Windows, for full
 control over build options (e.g. to get debug libraries). Requires Microsoft
 Visual C++ 6.x or Visual Studio .NET 2003 7.1:
 
-1. [/download/OpenAMQ-$(main_version).zip:Download zip (10Mb)].
+1. [/download/OpenAMQ-$(main_version).zip:Download zip (12Mb)].
 2. [/build_win32.html:How to build and test].
 
 More: [page:build]
