@@ -1,3 +1,61 @@
+1.2c0 - 2007/03/15
+---------------------------------------------------------------------
+
+Initial Open Source release.
+
+IMPORTANT NOTE for users of previous releases:
+
+  This release is now AMQP 0.9 compliant.  This means that your old 1.0,
+  1.1 clients will *NOT* interoperate with this release and will need to
+  be rebuilt using new client libraries.
+  
+  Also note that the library names and openamq/ directory structure have
+  changed, so if you are linking applications without the use of iMatix
+  Boom, you will have to update your build process.
+
+
+Bugfixes:
+    JAMQ-66    Use Queue.Unbind in MTA
+
+     FOR-14    Build system fixes for Solaris x86
+
+  BASE2-263    Bitrot: SMT single-threaded build is broken
+
+    JAMQ-74    ipr_str_matches: Incorrect buffer size allocated for converted
+               regexp can cause memory corruption
+
+  BASE2-264    smt_thread, smt_os_thread: Replace _status_e enumerated types
+               with #defines
+
+    JAMQ-75    Fix for JAMQ-51 introduced uninitialized use of variable in
+               amq_queue_basic.icl
+
+  BASE2-265    ASL: Incorrect code generation in asl_client.asl
+
+     FOR-15    Win32: Link with LIBRPCRT4.LIB to get UuidCreate
+
+    AMQ-537    Remove remains of old clustering code from v1.1
+
+
+Changes:
+   BASE2-74    Integrate native atomic operations available in Solaris 10
+
+  BASE2-262    Change default memory allocator to direct for some MT builds
+
+    BASE-55    Set default BOOM_MODEL to mt,release for Linux & Solaris
+
+    AMQ-539    Add channel-id and resume command to comply with AMQP 0-9
+
+  BASE2-258    Remove "alert" command from AMQP
+
+  BASE2-256    Add void field type to field tables
+
+    JAMQ-38    Add queue.unbind to protocol and server
+
+    AMQ-540    Implement field table within field table
+
+    AMQ-541    Change protocol version to 0.9
+
 1.1b5 - 2007/03/01
 ---------------------------------------------------------------------
 
