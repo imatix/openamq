@@ -13,8 +13,8 @@ The Producers
 
  - Produced by [http://www.imatix.com:iMatix Corporation]
  - Written and directed by Pieter Hintjens & Jonathan Schultz
- - Assistant directors: Martin Lucina & Martin Sustrik
- - Associate producers: John O'Hara
+ - Executive producers: Martin Lucina & Martin Sustrik
+ - Supporting lead: Gustavo Broos
 
 Principal Crew
 ==============
@@ -35,7 +35,6 @@ With Thanks To
  - Steve Connelly
  - Samiullah Shaikh
  - Mahesh Karmarkar
- - Robert Grieg
 
 Supporting Cast
 ===============
@@ -50,8 +49,8 @@ Supporting Cast
  - Philip Hazel's [http://www.pcre.org/:PCRE library]
  - Greg Roelofs and Jean-loup Gailly's [http://www.zlib.net/:zlib library]
 
-Statistics
-**********
+Random Factlets
+***************
 
  - Current version of OpenAMQ software: *$(main_version)*.
  - Number of versions of OpenAMQ released and tested before 1.0d0: *55.*
@@ -66,6 +65,7 @@ Statistics
  - Theoretical limit on a gigabit network: *512,000 500-byte messages/second.*
  - The team's opinion on OpenAMQ performance: *"it's still too slow!"*
  - First production data flow through OpenAMQ: *9 May 2006 (JPMorganChase).*
+ - Global production rollout at JPMorganChase: 20 December, 2006.
  - Highest number of messages per day for one application: 100,000,000 (JPMorganChase, December 2007)
  - Number of animals harmed in the production of OpenAMQ: *none.*
 
@@ -117,7 +117,8 @@ multithreaded servers for Digital VMS in 1991 (systems that still run
 today, 15 years later). We used it successfully as the basis for the
 [http://www.xitami.com/awards.htm: Xitami web server]. Today we're on
 the fifth major version of SMT. It builds single-threaded or multithreaded
-C applications that do their own virtual threading.
+C applications that do their own virtual threading.  We're thinking about
+the sixth generation.
 
 SMT hides a lot, but not all, of the pain of writing multithreaded code
 in C, a language that has !no! language support for concurrency. C++ is
@@ -147,7 +148,7 @@ tools. GSL is not, sadly, written using our modern MOP tools, but still
 rests on substrata of older iMatix tools - Libero, SFL, and a non-MOP
 version of SMT.
 
-This web site, however, !is! built using MOP. I hope that settles any
+This web site, however, !is! built using MOP. We hope that settles any
 doubts you have about whether or not MOP produces readable output.
 
 </content>

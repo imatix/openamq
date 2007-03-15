@@ -8,7 +8,7 @@
 Technical Whitepapers
 *********************
 
- - OpenAMQ Clustering - [/doc_clustering.txt_flat.html:flat HTML] | [/doc_clustering.html:full HTML] | [/doc_clustering.pdf:PDF (X pages)]
+ - OpenAMQ Clustering - [/doc_clustering.txt_flat.html:flat HTML] | [/doc_clustering.html:full HTML] | [/doc_clustering.pdf:PDF]
 
 Analyses the requirements for OpenAMQ local-area and wide-area clustering
 and defines a generic clustering model based on simple and easy to manage
@@ -16,20 +16,20 @@ elements.  The clustering model provides two main functionalities: the use
 of high-availability pairs of servers and the ability to partition groups of
 client applications, for reasons of scalability and geographic distribution.
 
- - AMQ Background - [/doc_background.txt_flat.html:flat HTML] | [/doc_background.html:full HTML] | [/doc_background.pdf:PDF (29 pages)]
+ - AMQ Background - [/doc_background.txt_flat.html:flat HTML] | [/doc_background.html:full HTML] | [/doc_background.pdf:PDF]
 
 Explains the rationale behind the development of AMQ as an architecture
 and AMQP as a new industry standard protocol.  This document is designed
 as useful background material for people wishing to understand the AMQP
 design.
 
- - OpenAMQ Matching - [/doc_matching.txt_flat.html:flat HTML] | [/doc_matching.html:full HTML] | [/doc_matching.pdf:PDF (8 pages)]
+ - OpenAMQ Matching - [/doc_matching.txt_flat.html:flat HTML] | [/doc_matching.html:full HTML] | [/doc_matching.pdf:PDF]
 
 Describes a matching algorithm that provides all the functionality needed
 for topic matching and most of the functionality needed for content-based
 routing.
 
- - OpenAMQ Concepts - [/doc_concepts.txt_flat.html:flat HTML] | [/doc_concepts.html:full HTML] | [/doc_concepts.pdf:PDF (X pages)]
+ - OpenAMQ Concepts - [/doc_concepts.txt_flat.html:flat HTML] | [/doc_concepts.html:full HTML] | [/doc_concepts.pdf:PDF]
 
 A general introduction to the OpenAMQ project, intended for a
 technically-minded readership. It explains the basic AMQ concepts, and
@@ -58,6 +58,11 @@ Documentation FAQ
  - !Do I need this documentation to use OpenAMQ?! Answer: no, everything
    you need is explained on the site's web pages.  These documents provide
    more detail for people who need it.
+ - !If I want to hack OpenAMQ, where do I start?! Answer: start by reading
+   the OpenAMQ Concepts.  Then, read about
+   [http://download.imatix.com/mop/:Model Oriented Programming].  Then,
+   you'll need to stop by the [http://www.imatix.com iMatix website] to
+   get some more stuff.  You might want to drop us a line on the way.
 
 </content>
 </page>

@@ -22,12 +22,9 @@ the specific instance of the running server:
     --debug_queue 0                Debug queue activity?
     --debug_peering 0              Debug peering messages?
     --debug_console 0              Debug console I/O?
-    --debug_cluster 0              Debug cluster activity?
     --trace 0                      Protocol trace level
     --packio 0                     Pack network writes?
     --heartbeat 2                  Heartbeat timer, seconds
-    --read_timeout 30              Network read timeout, seconds
-    --write_timeout 30             Network write timeout, seconds
     --polling_threads 4            Number of polling OS threads
     --working_threads 4            Number of working OS threads
     --poll_frequency 0             Kernel polling frequency
@@ -36,10 +33,10 @@ the specific instance of the running server:
     --tcp_sndbuf 0                 TCP/IP send buffer, in bytes
     --frame_max 32768              Maximum size of AMQP content frames
     --cluster_vhost /              Cluster virtual host
-    --primary_peer                 HA primary peer address
     --is_primary 0                 Server is HA primary
-    --backup_peer                  HA backup peer address
     --is_backup 0                  Server is HA backup
+    --primary_peer                 HA primary peer address
+    --backup_peer                  HA backup peer address
     --auto_crash 0                 Auto-crash test timer, seconds
     --auto_block 0                 Auto-freeze test timer, seconds
     --kernel_limit 0               SMT kernel limit
@@ -86,14 +83,11 @@ and then:
             debug_queue = "0"
             debug_peering = "0"
             debug_console = "0"
-            debug_cluster = "0"
             trace = "0"
         />
         <tuning
             packio = "0"
             heartbeat = "2"
-            read_timeout = "30"
-            write_timeout = "30"
             polling_threads = "4"
             working_threads = "4"
             poll_frequency = "0"
@@ -104,10 +98,10 @@ and then:
         />
         <cluster
             cluster_vhost = "/"
-            primary_peer = ""
             is_primary = "0"
-            backup_peer = ""
             is_backup = "0"
+            primary_peer = ""
+            backup_peer = ""
         />
         <internal
             auto_crash = "0"
@@ -213,11 +207,6 @@ debug_console = "0":
     when you are configuring or debugging the console. For production use,
     we recommend you do not set this option. Default value is 0. This     
     option can be changed at runtime.                                     
-debug_cluster = "0":
-    Specifies whether cluster activity is logged or not. Set this option
-    when you are configuring or debugging high-availability clustering. 
-    For production use, we recommend you do not set this option. Default
-    value is 0. This option can be changed at runtime.                  
 trace = "0":
     Specifies the protocol debug level, which can be 0 (no tracing), 1    
     (show information and protocol methods), 2 (show protocol animation), 
@@ -237,16 +226,6 @@ packio = "0":
 heartbeat = "2":
     Defines the timeout for connection heartbeating. Default value is 2.
     This option can be changed at runtime.                              
-read_timeout = "30":
-    Defines the timeout for network reads. If a peer does not respond     
-    within this time, it is considered dead. If you get unexpected timeout
-    errors in the logs, you may want to increase this value. Default value
-    is 30. This option can be changed at runtime.                         
-write_timeout = "30":
-    Defines the timeout for network writes. If a peer does not accept data
-    within this time, it is considered dead. If you get unexpected timeout
-    errors in the logs, you may want to increase this value. Default value
-    is 30. This option can be changed at runtime.                         
 polling_threads = "4":
     On multithreaded builds, defines the number of OS threads dedicated to
     socket polling. Default value is 4.                                   
@@ -292,22 +271,22 @@ cluster_vhost = "/":
     virtual host names are formatted as POSIX paths, starting with '/'.  
     Note that all applications must use the same virtual host name when  
     connecting to the cluster. Default value is /.                       
-primary_peer = "":
-    Specifies the primary high-availability peer address. This should    
-    consist of a servername:portnumber combination that allows the backup
-    peer to correctly address the primary peer. Default value is .       
 is_primary = "0":
     Specifies whether or not this server instance is the HA primary peer.
     If this option is set, the cluster backup-peer option must be set as 
     well. Default value is 0.                                            
-backup_peer = "":
-    Specifies the backup high-availability peer address. This should      
-    consist of a servername:portnumber combination that allows the primary
-    peer to correctly address the backup peer. Default value is .         
 is_backup = "0":
     Specifies whether or not this server instance is the HA backup peer. 
     If this option is set, the cluster primary-peer option must be set as
     well. Default value is 0.                                            
+primary_peer = "":
+    Specifies the primary high-availability peer address. This should    
+    consist of a servername:portnumber combination that allows the backup
+    peer to correctly address the primary peer. Default value is .       
+backup_peer = "":
+    Specifies the backup high-availability peer address. This should      
+    consist of a servername:portnumber combination that allows the primary
+    peer to correctly address the backup peer. Default value is .         
 
 Setting Internal Options
 *************************

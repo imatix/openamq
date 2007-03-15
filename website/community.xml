@@ -1,29 +1,55 @@
 <page
     name = "community"
     title = "OpenAMQ Community"
-    subtitle = "Software is People"
+    subtitle = "Heaven is other people"
     >
 <content type = "gurudoc">
 
 OpenAMQ Community
 *****************
 
-The main OpenAMQ community site is at http://openamq.wikidot.com.
-
-More information and background documents on the AMQP architecture are available at http://wiki.amqp.org/
+The [http://openamq.wikidot.com:OpenAMQ community site] is hosted by
+[http://wikidot.com:Wikidot.com].
 
 Quick links:
 
- * [http://openamq.wikidot.com/forum:new-thread/c/358:Report a problem]
- * [http://openamq.wikidot.com/forum:new-thread/c/355:Ask for help]
- * [http://openamq.wikidot.com/forum:new-thread/c/357:Make a change request or suggestion]
+ - [http://openamq.wikidot.com/forum:new-thread/c/358:Report a problem]
+ - [http://openamq.wikidot.com/forum:new-thread/c/355:Ask for help]
+ - [http://openamq.wikidot.com/forum:new-thread/c/357:Make a change request or suggestion]
+
+OpenAMQ Email Lists
+*******************
+
+amq-announce
+============
+
+For persons who want to track the AMQ project without being
+involved in the development process.
+
+This is a private list.  Your subscription will be verified
+by the list manager before you are allowed to join.
+
+ - [http://amq.imatix.net/mailman/listinfo/amq-announce:Subscribe]
+ - [http://amq.imatix.net/mailman/admin/amq-announce:Administration interface]
+
+amq-dev
+=======
+
+For developers involved in the AMQ project or using it in their
+applications.
+
+This is a private list.  Your subscription will be verified by the
+list manager before you are allowed to join.
+
+ - [http://amq.imatix.net/mailman/listinfo/amq-dev:Subscribe]
+ - [http://amq.imatix.net/mailman/admin/amq-dev:Administration interface]
 
 Community FAQ
 *************
 
  - !Can I get free OpenAMQ support?! Answer: yes, you will find the OpenAMQ
    community lively and ready to provide support on all questions.  If you
-   need guaranteed support levels, [page:contact] us for a proposal.
+   need absoloutely guaranteed 24/7 support levels, [page:contact us].
 
 </content>
 </page>
