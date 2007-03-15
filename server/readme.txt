@@ -1,5 +1,10 @@
-ASL
+OpenAMQ server
 
-This is the iMatix Abstract Syntax language.
+Copyright (c) 2007 iMatix Corporation
 
-A fat programming language for frame-based servers and clients.
+The "OpenAMQ server" source code is provided under the GNU General
+Public License (GPL) for free software developers, and the iMatix
+General Terms of Business for commercial developers.
+
+Please see the 'index.html' file in the top-level website subdirectory
+for more information.

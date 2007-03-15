@@ -1,3 +1,156 @@
+1.1b5 - 2007/03/01
+---------------------------------------------------------------------
+
+Bugfixes:
+    JAMQ-72    Frame errors in Java client with new OpenAMQ_Server
+
+1.1b4 - 2007/02/19
+---------------------------------------------------------------------
+
+Bugfixes:
+    JAMQ-42    SEGFAULT in amq_server_connection_queue_unbind
+
+    JAMQ-67    Fix some SMT errors (catch-all issue for SMT stability 
+  (BASE2-260)  problems found by sustained testing)
+
+    JAMQ-68    Make 'function' methods reject zombies in synchronous 
+  (BASE2-259)  objects
+
+    JAMQ-69    Deadlock in amq_server_connection_exception
+
+    JAMQ-63    Solaris 5.8 version of Proxy AMQ Server core-dumps
+
+1.1b3 - 2006/12/13
+---------------------------------------------------------------------
+
+Bugfixes:
+    JAMQ-59    Publish messages on Proxy Server from local clients are not
+               passed onto clients connected to remote Broker
+
+1.1b2 - 2006/12/11
+---------------------------------------------------------------------
+
+Bugfixes:
+    BASE2-257  ICL: JAMQ-36 changes break ST build
+
+    JAMQ-43    SMT problem: assert (!thread->os_thread)
+
+    JAMQ-46    Console: 'top' command gives bogus output
+
+    JAMQ-49    ipr_str_matches: Bug in conversion of glob expression to regexp
+               could lead to incorrect matches
+
+    JAMQ-51    Broker dropping messages when channel flow is suspended
+
+    JAMQ-52    ipr_time_iso8601: timezone handling is broken
+
+    JAMQ-54    ASL: Design flaw in heartbeat algorithm (broker side fix only)
+
+    JAMQ-55    Broker: Throttle message flow on outgoing path (queue ->
+               connection threadlet -> TCP) (reporting fix only)
+
+Changes:
+
+    JAMQ-50    Replace hash table container with a more suitable algorithm
+
+    JAMQ-48    Provide option to clean up pending messages in queue
+               (implemented as profile= argument on queue.declare)
+
+Known issues:
+
+    * Client-side fix for JAMQ-54 will be in a future release
+    
+    * Full fix for JAMQ-55 will be in a future release
+
+    * Correct functionality of JAMQ-48 change is dependent on a
+      full fix for JAMQ-55
+
+1.1b1 - 2006/10/31
+---------------------------------------------------------------------
+Note the version number change - the new clustering code will as of now
+use the 1.1 series.  This release has no functional changes in
+clustering from 1.0e0.
+
+Bugfixes:
+    JAMQ-36    Memory leaks due to incorrect use of APR pools
+  (BASE2-250)
+    JAMQ-33    Negative number of consumers on queue
+   (AMQ-529)
+    JAMQ-31    amq_server: smt_socket_request.c:836:
+  (BASE2-255)  smt_socket_request_destroy_: Assertion
+               `self->thread->pending_count' failed
+    JAMQ-22    Assertion failed: item->by_status_head == self, file 
+               smt_thread_by_status.c, line 739
+
+Changes:
+    JAMQ-35    Remove message/traffic statistics from asl_broker
+  (BASE2-254)
+    JAMQ-34    Make destroying queues more efficient
+   (AMQ-534)   Also resolves: JAMQ-25, JAMQ-7
+    BASE2-252  Add random values to PAL
+    BASE2-251  PAL: Add -i option to clients to enable setting instance name
+               passed to server
+    AMQ-533    Move flow control to consumer
+    AMQ-532    Implement Client API flow control using channel.flow
+
+1.0e0 - 2006/09/25
+---------------------------------------------------------------------
+This is an initial release of the new high availability and briding
+functionality that replaces the old clustering implementation in OpenAMQ
+1.0c and 1.0d.
+
+This release incorporates all applicable bug fixes up to and including
+those in OpenAMQ 1.0d5.
+
+1.0d5 - 2006/09/25
+---------------------------------------------------------------------
+Bugfixes:
+    JAMQ-16    amq_server: amq_consumer_by_queue.c:1492: 
+               amq_consumer_by_queue_count: Assertion `self' failed.
+
+1.0d4 - 2006/09/07
+---------------------------------------------------------------------
+Bugfixes (backport):    
+    JAMQ-10    Server assertion failure at amq_console_agent.c:2646:
+               action_register: Assertion `hash' failed.
+    JAMQ-11    debugging message removed from this release
+    AMQ-527    console: Race condition accessing destroyed objects can cause a
+               server crash
+
+1.0d3 - 2006/08/04
+---------------------------------------------------------------------
+Bugfixes (backport):    
+    JAMQ-9     amq_shell is missing certain features which are necessary for
+               monitoring individual connections.
+    AMQ-524    amq_console: "normal user attempted super-user function" message
+               should show client IP, instance name
+    AMQ-525    amq_console: Improve feedback when asked to manipulate objects
+               that have gone away
+    AMQ-526    Server needs to allow infinite read timeout when not
+               heartbeating (e.g. talking to ST clients)
+
+1.0d2 - 2006/07/20
+---------------------------------------------------------------------
+Bugfixes (backport):
+    JAMQ-9     amq_shell is missing certain features which are necessary for
+               monitoring individual connections.
+
+1.0d1 - 2006/06/08
+---------------------------------------------------------------------
+Bugfixes (backport):
+    JAMQ-4     Old queues are recreated on primary server after restart in
+               cluster mode.
+    JAMQ-2     Assertion failure on `self->object_tag == 0xFABB' in
+               amq_consumer_unlink_ at amq_consumer.c:1238
+    JAMQ-3     amq_shell does not display the correct start time of a
+               connection
+    JAMQ-1     server dumps while setting trace level using amq_shell
+
+Bugfixes:
+    AMQ-504    amq_shell does not display the correct start time of a
+               connection
+    BASE2-236  smt_thread item inserted into multiple queue containers
+
 1.0d0 - 2006/06/08
 ---------------------------------------------------------------------
 Changes:
