@@ -14,6 +14,14 @@
     <file name = "doc_clustering.txt" class = "gurudoc text" />
     <file name = "doc_background.txt" class = "gurudoc text" />
     <file name = "doc_matching.txt"   class = "gurudoc text" />
+    <file name = "custom.css"         class = "web resource" />
+    <file name = "default.css"        class = "web resource" />
+    <file name = "gdstyle.css"        class = "web resource" />
+    <file name = "niftyCorners.css"   class = "web resource" />
+    <file name = "mainlogo.jpg"       class = "web resource" />
+    <file name = "logo.png"           class = "web resource" />
+    <file name = "logo.gif"           class = "web resource" />
+    <file name = "topfade.png"        class = "web resource" />
 
     <actions>
       <generate>
