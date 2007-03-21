@@ -1,0 +1,42 @@
+iMatix Corporation announces major new messaging product
+
+Brussels, 15 March 2007: iMatix Corporation has released OpenAMQ/1.2,
+a major new messaging product, as free software.  OpenAMQ is a mature
+and tested AMQP product consisting of: high-performance messaging
+broker, client libraries for C/C++, protocol scripting framework,
+remote operator console, failover clustering, broker federation,
+extensive documentation.
+
+iMatix CEO Pieter Hintjens says, "iMatix's free software has a
+reputation for being tough, fast, easy to use, and well documented.
+OpenAMQ is no exception: we spent over eighteen months hardening this
+software for production use in large-scale deployments."  In December
+2006, JPMorgan deployed the iMatix OpenAMQ infrastructure as the
+backbone for a global mission critical front-office application
+accessed by thousands of users in its Equities line of business.
+
+JPMorgan chose iMatix for its proven track record, sound architecture,
+and its adherence to open standards and principles, thus enabling easy
+integration and future flexibility.  "OpenAMQ has stood the test of
+sustained production use in a demanding environment, proving to be
+capable and predictable", said R. John O'Hara, executive director and
+senior architect at JPMorgan.  "Also, iMatix has been an excellent
+partner, demonstrating high levels of commitment which allowed us to
+roll out the project efficiently and deliver the exceptional market
+services our customers demand."
+
+OpenAMQ focuses on simplicity of use, speed, and reliability.
+Hintjens explains: "we don't try to do everything.  We focus on making
+the most reliable, unbreakable server possible.  Less is more: while
+the protocol (AMQP) provides some very complex features, we implement
+the most essential core, and we make it fast and robust."
+
+OpenAMQ is built in C/C++, is fully multithreaded, supports up to
+128-way SMP, and runs on Linux, Solaris, and Windows.  OpenAMQ
+interoperates with other AMQP products such as RabbitMQ and Qpid.
+
+OpenAMQ/1.2 is released under the GPL (broker) and BSD license (client
+libraries) at www.openamq.org.
+
+For more information on iMatix Corporation see www.imatix.com or
+contact Martin Lucina on mato@imatix.com.

@@ -31,6 +31,7 @@ H2#title {
     border-color: #b9cdd8;
 }
 #content_container pre {
+    font-size: 95%;
     background-color: #cfdee7;
 }
 A:active {

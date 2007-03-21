@@ -1,4 +1,21 @@
 <?xml?>
+<!--
+    Copyright (c) 2007 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
 <class
     name      = "amq_exchange"
     comment   = "Polymorphic exchange class"
@@ -459,7 +476,6 @@ for each type of exchange. This is a lock-free asynchronous class.
                 connection = channel?
                     amq_server_connection_link (channel->connection): NULL;
                 if (connection) {
-                    icl_console_print ("I: Returning message to sender.");
                     amq_server_agent_basic_return (
                         connection->thread,
                         channel->number,
@@ -468,7 +484,6 @@ for each type of exchange. This is a lock-free asynchronous class.
                         "Message cannot be processed - no route is defined",
                         method->payload.basic_publish.exchange,
                         method->payload.basic_publish.routing_key,
-                        ((amq_content_basic_t *) method->content)->sender_id,
                         NULL);
                     ((amq_content_basic_t *) method->content)->returned = TRUE;
                 }

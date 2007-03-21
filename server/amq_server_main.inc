@@ -1,15 +1,29 @@
 /*===========================================================================
-
-    Main set-up for amq_servers
-
-    This file is defined as an include file so that it can be invoked
-    directly from the main, setting up static variables that are used
-    at different points in the initialisation process.  The separation
-    of this code from the main code is intended to ease the creation
-    of customised main programs without duplication of this code.
-
-    Copyright (c) 2004-2005 iMatix Corporation
+ *
+ *  Main set-up for amq_servers
+ *
+ *  Copyright (c) 2007 iMatix Corporation
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or (at
+ *  your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  General Public License for more details.
+ *
+ *  For information on alternative licensing for OEMs, please contact
+ *  iMatix Corporation.
+ *
  *===========================================================================*/
+
+//  This file is defined as an include file so that it can be invoked
+//  directly from the main, setting up static variables that are used
+//  at different points in the initialisation process.  The separation
+//  of this code from the main code is intended to ease the creation
+//  of customised main programs without duplication of this code.
 
 #include "asl.h"
 #include "version.h"

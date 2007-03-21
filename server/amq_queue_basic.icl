@@ -1,4 +1,21 @@
 <?xml?>
+<!--
+    Copyright (c) 2007 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
 <class
     name      = "amq_queue_basic"
     comment   = "Basic content queue manager"
@@ -164,7 +181,6 @@ runs lock-free as a child of the asynchronous queue class.
                         "No immediate consumers for Basic message",
                         content->exchange,
                         content->routing_key,
-                        content->sender_id,
                         NULL);
                     amq_server_connection_unlink (&connection);
                 }
@@ -221,8 +237,10 @@ runs lock-free as a child of the asynchronous queue class.
     if (amq_server_config_debug_queue (amq_server_config) 
         && active_consumer_count == 0)
         smt_log_print (amq_broker->debug_log,
-            "Q: paused   queue=%s message=%s",
-            self->queue->name, content->message_id);
+            "Q: paused   queue=%s nbr_messages=%d nbr_consumers=%d",
+            self->queue->name,
+            ipr_looseref_list_count (self->content_list),
+            amq_consumer_by_queue_count (self->consumer_list));
 
     while (active_consumer_count &&
         ipr_looseref_list_count (self->content_list)) {
@@ -321,6 +339,8 @@ runs lock-free as a child of the asynchronous queue class.
         *content;                       //  Content object reference
     amq_server_connection_t
         *connection;
+    icl_shortstr_t
+        sender_id;
     </local>
     //
     //  Get next message off list, if any
@@ -343,9 +363,11 @@ runs lock-free as a child of the asynchronous queue class.
 
             amq_content_basic_unlink (&content);
         }
-        else
+        else {
+            icl_shortstr_fmt (sender_id, "%s|%d", connection->key, channel->number);
             amq_server_agent_basic_get_empty (
-                connection->thread, channel->number, NULL);
+                connection->thread, channel->number, sender_id);
+        }
 
         amq_server_connection_unlink (&connection);
     }

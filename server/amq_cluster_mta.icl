@@ -1,4 +1,21 @@
 <?xml?>
+<!--
+    Copyright (c) 2007 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
 <class
     name      = "amq_cluster_mta"
     comment   = "Mesage transfer agent"
@@ -187,7 +204,7 @@ s_return_handler (
     char
         *separator;
     icl_shortstr_t
-        connection_id;
+        sender_id;
     dbyte
         channel_nbr;
     amq_server_connection_t
@@ -195,13 +212,15 @@ s_return_handler (
 
     assert (peer_method->class_id == AMQ_PEER_BASIC);
     assert (peer_method->method_id == AMQ_PEER_BASIC_RETURN);
+    assert (peer_method->content);
 
     if (self->mode == AMQ_MTA_MODE_FORWARD_ALL
     ||  self->mode == AMQ_MTA_MODE_FORWARD_ELSE
     ||  self->mode == AMQ_MTA_MODE_BOTH) {
         //  Split sender-id "connection-key|channel-nbr" into fields
-        icl_shortstr_cpy (connection_id, peer_method->payload.basic_return.sender_id);
-        separator = strchr (connection_id, '|');
+        icl_shortstr_cpy (sender_id, 
+            amq_content_basic_get_sender_id ((amq_content_basic_t *)peer_method->content));
+        separator = strchr (sender_id, '|');
 
         //  Does this assertion mean we can crash the server by sending it junk?
         assert (separator);
@@ -210,7 +229,7 @@ s_return_handler (
         assert (channel_nbr);
 
         //  Find the connection that sent the message
-        connection = amq_server_connection_table_search (amq_broker->connections, connection_id);
+        connection = amq_server_connection_table_search (amq_broker->connections, sender_id);
 
         if (connection) {
             amq_server_agent_basic_return (
@@ -221,7 +240,6 @@ s_return_handler (
                 peer_method->payload.basic_return.reply_text,
                 peer_method->payload.basic_return.exchange,
                 peer_method->payload.basic_return.routing_key,
-                NULL,
                 NULL);
 
             amq_server_connection_unlink (&connection);

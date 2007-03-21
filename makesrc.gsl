@@ -83,6 +83,12 @@ fi
 
 carp "Building $(name:) $(release:) full package..."
 mkdir $PKGROOT || croak
+cat <<EOF >$PKGROOT/readme.txt
+This is the $(name:) $(release:) source distribution.
+
+Please see $(name:)-$(release:)/readme.txt to get started.
+EOF
+
 cat <<EOF >$PKGROOT/build.sh
 #!/bin/sh
 #  Build and install $(name:) $(release:) and dependent products

@@ -2,7 +2,7 @@
 <site
     name = "OpenAMQ"
     script = "site.gsl"
-    main_version = "1.0d1"
+    main_version = "1.2c0"
     >
     <section name = "Welcome">
         <page name = "index" />
@@ -35,11 +35,9 @@
     <section name = "Community">
         <page name = "community" />
         <page name = "library" />
-        <page name = "maillist" />
     </section>
     <section name = "Footer">
         <page name = "contact" />
-        <page name = "imatix" />
         <page name = "about" />
     </section>
     <!-- Pages that are not shown in the index but linked to from
@@ -51,8 +49,8 @@
         <page name = "reliability" />
     </section>
     <copyright>
-    Layout and content copyright &copy; 2004-2006 iMatix Corporation.
-    OpenAMQ is free software distributed under the GPL/LGPL. OpenAMQ is
-    a trademark of iMatix Corporation.
+    Layout and content copyright &copy; 2004-2007 iMatix Corporation.
+    OpenAMQ is free software distributed under the GPL and BSD.
+    OPENAMQ and IMATIX are registered trademarks of iMatix Corporation.
     </copyright>
 </site>

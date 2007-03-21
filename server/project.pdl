@@ -1,8 +1,25 @@
 <?xml?>
+<!--
+    Copyright (c) 2007 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
 <pdl
     name      = "OpenAMQ Server"
-    version   = "1.2b0"
-    copyright = "Copyright (c) 1996-2006 iMatix Corporation"
+    version   = "1.2c0"
+    copyright = "Copyright (c) 2007 iMatix Corporation"
     workflow  = "standard.pwl"
     library   = "libamq_server"
     >
@@ -11,6 +28,7 @@
 <inherit filename = "icl_classes.pdl" />
 <inherit filename = "smt_classes.pdl" />
 
+<file name = "gpl_output"                class = "private resource"  >Generated code is licensed under the GPL</file>
 <file name = "version.h"                 class = "c version"         >Project version file</file>
 <file name = "libamq_server"             class = "public library"    >Object library</file>
 

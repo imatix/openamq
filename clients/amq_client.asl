@@ -1,4 +1,21 @@
 <?xml version="1.0"?>
+<!--
+    Copyright (c) 2007 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
 <protocol
     comment = "OpenAMQ server protocol methods"
     script  = "asl_gen"
@@ -11,8 +28,10 @@
 
 <class name = "basic">
   <action name = "get-ok">
+  <local>
     int
         msg_count;
+  </local>
 
     amq_content_$(class.name)_set_routing_key (
         self->content, method->exchange, method->routing_key, 0);
@@ -25,8 +44,10 @@
   </action>
 
   <action name = "deliver">
+  <local>
     int
         msg_count;
+  </local>
 
     amq_content_$(class.name)_set_routing_key (
         self->content, method->exchange, method->routing_key, 0);
