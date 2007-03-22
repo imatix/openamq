@@ -1,89 +1,105 @@
-.-------------------------------------------------
-.-  Codebot for AMQP Wireshark dissector plug-in
-.-------------------------------------------------
+.#--------------------------------------------------------------------
+.#   Codebot for AMQP Wireshark dissector plug-in
+.#
+.#   Copyright (c) 1996-2007 iMatix Corporation
+.#
+.#   This program is free software; you can redistribute it and/or modify
+.#   it under the terms of the GNU General Public License as published by
+.#   the Free Software Foundation; either version 2 of the License, or (at
+.#   your option) any later version.
+.#
+.#   This program is distributed in the hope that it will be useful, but
+.#   WITHOUT ANY WARRANTY; without even the implied warranty of
+.#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.#   General Public License for more details.
+.#
+.#   For information on alternative licensing for OEMs, please contact
+.#   iMatix Corporation.
+.#
+.-----------------------------------------------------------------------
 .
 .macro add_field_format (prefix)
-.            type = field.type ? amqp->domain (name = field.domain).type
-.            if type <> "bit"
-.                bitoffset = 1
-.            endif
+.   type = field.type ? amqp->domain (name = field.domain).type
+.   if type <> "bit"
+.       bitoffset = 1
+.   endif
     {&hf_amqp_$(my.prefix)_$(field.name:c), {
         "$(field.name:neat)", "",
-.            if type = "bit"
+.   if type = "bit"
         FT_BOOLEAN, BASE_NONE, NULL, $(bitoffset),
-.                bitoffset = bitoffset * 2
-.            elsif type = "octet"
+.       bitoffset = bitoffset * 2
+.   elsif type = "octet"
         FT_UINT8, BASE_DEC, NULL, 0,
-.            elsif type = "short"
+.   elsif type = "short"
          FT_UINT16, BASE_DEC, NULL, 0,
-.            elsif type = "long"
+.   elsif type = "long"
         FT_UINT32, BASE_DEC, NULL, 0,
-.            elsif type = "longlong"
+.   elsif type = "longlong"
         FT_UINT64, BASE_DEC, NULL, 0,
-.            elsif type = "timestamp"
+.   elsif type = "timestamp"
         FT_UINT64, BASE_DEC, NULL, 0,
-.            elsif type = "shortstr"
+.   elsif type = "shortstr"
         FT_STRING, BASE_NONE, NULL, 0,
-.            elsif type = "longstr"
+.   elsif type = "longstr"
         FT_BYTES, BASE_NONE, NULL, 0,
-.            elsif type = "table"
+.   elsif type = "table"
         FT_NONE, BASE_NONE, NULL, 0,
-.            endif
+.   endif
         "$(field.name)", HFILL}},
 .endmacro
 .
 .macro add_field (prefix, tree)
-.            type = field.type ? amqp->domain (name = field.domain).type
-.            if type <> "bit"
-.                if bitoffset <> 1
+.   type = field.type ? amqp->domain (name = field.domain).type
+.   if type <> "bit"
+.       if bitoffset <> 1
                     argptr += 1;
-.                endif
-.                bitoffset = 1
-.            endif
+.       endif
+.       bitoffset = 1
+.   endif
                     /*  $(field.name) ($(type))  */
-.            if type = "bit"
+.   if type = "bit"
                     proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
                         tvb, argptr, 1, FALSE);
-.                bitoffset = bitoffset * 2
-.                if bitoffset = 256
-.                    bitoffset = 1
+.       bitoffset = bitoffset * 2
+.       if bitoffset = 256
+.           bitoffset = 1
                     argptr += 1;
-.                endif
-.            elsif type = "octet"
+.       endif
+.   elsif type = "octet"
                     proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
                         tvb, argptr, 1, FALSE);
                     argptr += 1;
-.            elsif type = "short"
+.   elsif type = "short"
                     proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
                         tvb, argptr, 2, FALSE);
                     argptr += 2;
-.            elsif type = "long"
+.   elsif type = "long"
                     proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
                         tvb, argptr, 4, FALSE);
                     argptr += 4;
-.            elsif type = "longlong"
+.   elsif type = "longlong"
                     proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
                         tvb, argptr, 8, FALSE);
                     argptr += 8;
-.            elsif type = "timestamp"
+.   elsif type = "timestamp"
                     proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
                         tvb, argptr, 8, FALSE);
                     argptr += 8;
-.            elsif type = "shortstr"
+.   elsif type = "shortstr"
                     proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
                         tvb, argptr + 1, tvb_get_guint8 (tvb, argptr), FALSE);
                     argptr += (1 + tvb_get_guint8 (tvb, argptr));
-.            elsif type = "longstr"
+.   elsif type = "longstr"
                     proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
                         tvb, argptr + 4, tvb_get_ntohl (tvb, argptr), FALSE);
                     argptr += (4 + tvb_get_ntohl (tvb, argptr));
-.            elsif type = "table"
+.   elsif type = "table"
                     ti = proto_tree_add_item (
                         $(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
                         tvb, argptr + 4, tvb_get_ntohl (tvb, argptr), FALSE);
                     dissect_amqp_field_table (tvb, argptr + 4, tvb_get_ntohl (tvb, argptr), ti);
                     argptr += (4 + tvb_get_ntohl (tvb, argptr));
-.            endif
+.   endif
 .endmacro
 .
 .output "packet-amqp.c"
