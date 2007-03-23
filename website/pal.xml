@@ -34,6 +34,18 @@ functionality with an example. Here is a sample PAL script:
         &lt;/echo&gt;
     &lt;/pal&gt;
 
+To compile the script use "pal" command. It will create an executable for
+you. You can run the executable straight away. Use "-h" option to get
+command line parameters for the executable.
+
+    $ pal hello.pal
+    2007/03/23 06:46:41: gsl/4 M: Generating hello.c...
+    Compiling hello...
+    Linking hello...
+    $ ./hello
+    06:46:56: Hello world!
+    $
+
 Here is a script that demonstrates some of the standard PAL control
 commands:
 
