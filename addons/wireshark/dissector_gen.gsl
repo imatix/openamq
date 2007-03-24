@@ -48,53 +48,54 @@
 .   type = field.type ? amqp->domain (name = field.domain).type
 .   if type <> "bit"
 .       if bitoffset <> 1
-                    argptr += 1;
+    argptr += 1;
 .       endif
 .       bitoffset = 1
 .   endif
-                    /*  $(field.name) ($(type))  */
+
+    /*  $(field.name) ($(type))  */
 .   if type = "bit"
-                    proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
-                        tvb, argptr, 1, FALSE);
+    proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
+        tvb, argptr, 1, FALSE);
 .       bitoffset = bitoffset * 2
 .       if bitoffset = 256
 .           bitoffset = 1
-                    argptr += 1;
+    argptr += 1;
 .       endif
 .   elsif type = "octet"
-                    proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
-                        tvb, argptr, 1, FALSE);
-                    argptr += 1;
+    proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
+        tvb, argptr, 1, FALSE);
+    argptr += 1;
 .   elsif type = "short"
-                    proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
-                        tvb, argptr, 2, FALSE);
-                    argptr += 2;
+    proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
+        tvb, argptr, 2, FALSE);
+    argptr += 2;
 .   elsif type = "long"
-                    proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
-                        tvb, argptr, 4, FALSE);
-                    argptr += 4;
+    proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
+        tvb, argptr, 4, FALSE);
+    argptr += 4;
 .   elsif type = "longlong"
-                    proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
-                        tvb, argptr, 8, FALSE);
-                    argptr += 8;
+    proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
+        tvb, argptr, 8, FALSE);
+    argptr += 8;
 .   elsif type = "timestamp"
-                    proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
-                        tvb, argptr, 8, FALSE);
-                    argptr += 8;
+    proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
+        tvb, argptr, 8, FALSE);
+    argptr += 8;
 .   elsif type = "shortstr"
-                    proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
-                        tvb, argptr + 1, tvb_get_guint8 (tvb, argptr), FALSE);
-                    argptr += (1 + tvb_get_guint8 (tvb, argptr));
+    proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
+        tvb, argptr + 1, tvb_get_guint8 (tvb, argptr), FALSE);
+    argptr += (1 + tvb_get_guint8 (tvb, argptr));
 .   elsif type = "longstr"
-                    proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
-                        tvb, argptr + 4, tvb_get_ntohl (tvb, argptr), FALSE);
-                    argptr += (4 + tvb_get_ntohl (tvb, argptr));
+    proto_tree_add_item ($(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
+        tvb, argptr + 4, tvb_get_ntohl (tvb, argptr), FALSE);
+    argptr += (4 + tvb_get_ntohl (tvb, argptr));
 .   elsif type = "table"
-                    ti = proto_tree_add_item (
-                        $(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
-                        tvb, argptr + 4, tvb_get_ntohl (tvb, argptr), FALSE);
-                    dissect_amqp_field_table (tvb, argptr + 4, tvb_get_ntohl (tvb, argptr), ti);
-                    argptr += (4 + tvb_get_ntohl (tvb, argptr));
+    ti = proto_tree_add_item (
+        $(my.tree), hf_amqp_$(my.prefix)_$(field.name:c),
+        tvb, argptr + 4, tvb_get_ntohl (tvb, argptr), FALSE);
+    dissect_amqp_field_table (tvb, argptr + 4, tvb_get_ntohl (tvb, argptr), ti);
+    argptr += (4 + tvb_get_ntohl (tvb, argptr));
 .   endif
 .endmacro
 .
@@ -131,19 +132,28 @@
 /*  Generic data  */
 
 static int amqp_port = 5672;
-static dissector_handle_t amqp_handle;
 
 /*  Generic defines  */
 
-#define AMQP_FRAME_TYPE_METHOD                 1
-#define AMQP_FRAME_TYPE_CONTENT_HEADER         2
-#define AMQP_FRAME_TYPE_CONTENT_BODY           3
-#define AMQP_FRAME_TYPE_OOB_METHOD             4
-#define AMQP_FRAME_TYPE_OOB_CONTENT_HEADER     5
-#define AMQP_FRAME_TYPE_OOB_CONTENT_BODY       6
-#define AMQP_FRAME_TYPE_TRACE                  7
-#define AMQP_FRAME_TYPE_HEARTBEAT              8
+#define AMQP_FRAME_TYPE_METHOD                                    1
+#define AMQP_FRAME_TYPE_CONTENT_HEADER                            2
+#define AMQP_FRAME_TYPE_CONTENT_BODY                              3
+#define AMQP_FRAME_TYPE_OOB_METHOD                                4
+#define AMQP_FRAME_TYPE_OOB_CONTENT_HEADER                        5
+#define AMQP_FRAME_TYPE_OOB_CONTENT_BODY                          6
+#define AMQP_FRAME_TYPE_TRACE                                     7
+#define AMQP_FRAME_TYPE_HEARTBEAT                                 8
 
+.for class
+#define AMQP_CLASS_$(class.name:c,upper)                          $(class.index)
+.endfor
+
+.for class
+.    for method
+#define AMQP_METHOD_$(class.name:c,upper)_$(method.name:c,upper)  $(method.index)
+.    endfor
+
+.endfor
 /*  Registration functions for the dissctor  */
 
 void proto_register_amqp ();
@@ -151,14 +161,18 @@ void proto_reg_handoff_amqp ();
 
 /*  Private functions  */
 
-static void dissect_amqp (tvbuff_t *tvb, packet_info *pinfo,
-    proto_tree *tree);
-static guint get_amqp_message_len (packet_info *pinfo, tvbuff_t *tvb,
-    int offset);
-static void dissect_amqp_message (tvbuff_t *tvb, packet_info *pinfo,
-    proto_tree *tree);
-static void dissect_amqp_field_table (tvbuff_t *tvb, size_t offset,
-    size_t length, proto_item *item);
+static void dissect_amqp (tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree);
+static guint get_amqp_message_len (packet_info *pinfo, tvbuff_t *tvb, int offset);
+static void dissect_amqp_field_table (tvbuff_t *tvb, size_t offset, size_t length, proto_item *item);
+static void dissect_amqp_frame (tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree);
+.for class
+.    for method
+static size_t dissect_amqp_method_$(class.name:c)_$(method.name:c) (tvbuff_t *tvb, size_t argptr, proto_tree *args_tree);
+.    endfor
+.endfor
+.for class where count (field) > 0
+static size_t dissect_amqp_content_header_$(class.name:c) (tvbuff_t *tvb, size_t argptr, proto_tree *prop_tree);
+.endfor
 
 /*  Various handles  */
 
@@ -193,19 +207,10 @@ static int hf_amqp_header_$(class.name:c)_$(field.name:c) = -1;
 .endfor
 static int hf_amqp_payload = -1;
 
-/*  Setup of protocol subtree array  */
-
 static gint ett_amqp = -1;
 static gint ett_args = -1;
 static gint ett_props = -1;
 static gint ett_field_table = -1;
-
-static gint *ett [] = {
-     &ett_amqp,
-     &ett_args,
-     &ett_props,
-     &ett_field_table
-};
 
 /*  Various enumerations  */
 
@@ -235,211 +240,19 @@ static const value_string amqp_method_$(class.name:c)_methods [] = {
 .    endfor
     {0, NULL}
 };
+
 .endfor
-
-/*  Formatting info for different elements of AMQP protocol  */
-
-static hf_register_info hf[] = {
-    {&hf_amqp_info, {
-        "Info", "",
-        FT_NONE, BASE_NONE, NULL, 0x0,
-        "Dissector info", HFILL}},
-    {&hf_amqp_type, {
-        "Type", "amqp.type",
-        FT_UINT8, BASE_DEC, VALS (amqp_frame_types), 0x0,
-        "Frame type", HFILL}},
-    {&hf_amqp_channel,{
-        "Channel", "amqp.channel",
-        FT_UINT16, BASE_DEC, NULL, 0x0,
-        "Channel ID", HFILL}},
-    {&hf_amqp_length, {
-        "Length", "amqp.length",
-        FT_UINT32, BASE_DEC, NULL, 0x0,
-        "Length of the frame", HFILL}},
-    {&hf_amqp_method_class_id, {
-        "Class", "amqp.method.class",
-        FT_UINT16, BASE_DEC, VALS (amqp_method_classes), 0x0,
-        "Class ID", HFILL}},
-.for class
-    {&hf_amqp_method_$(class.name:c)_method_id, {
-        "Method", "amqp.method.method",
-        FT_UINT16, BASE_DEC, VALS (amqp_method_$(class.name:c)_methods), 0x0,
-        "Method ID", HFILL}},
-.endfor
-    {&hf_amqp_method_arguments, {
-        "Arguments", "",
-        FT_NONE, 0, NULL, 0x0,
-        "Method arguments", HFILL}},
-.for class
-.    for method
-.        bitoffset = 1
-.        for field
-.           add_field_format ("method_$(class.name:c)_$(method.name:c)")
-.        endfor
-.    endfor
-.endfor
-    {&hf_amqp_field, {
-        "", "",
-        FT_NONE, BASE_NONE, NULL, 0,
-        "", HFILL}},
-    {&hf_amqp_header_class_id, {
-        "Class ID", "amqp.header.class",
-        FT_UINT16, BASE_DEC, VALS (amqp_method_classes), 0,
-        "Class ID", HFILL}},
-    {&hf_amqp_header_weight, {
-        "Weight", "amqp.header.weight",
-        FT_UINT16, BASE_DEC, NULL, 0,
-        "Weight", HFILL}},
-    {&hf_amqp_header_body_size, {
-        "Body size", "amqp.header.body-size",
-        FT_UINT64, BASE_DEC, NULL, 0,
-        "Body size", HFILL}},
-    {&hf_amqp_header_property_flags, {
-        "Property flags", "amqp.header.property-flags",
-        FT_UINT16, BASE_HEX, NULL, 0,
-        "Property flags", HFILL}},
-    {&hf_amqp_header_properties, {
-        "Properties", "",
-        FT_NONE, 0, NULL, 0x0,
-        "Message properties", HFILL}},
-.for class
-.    bitoffset = 1
-.    for field
-.        add_field_format ("header_$(class.name:c)")
-.    endfor
-.endfor
-    {&hf_amqp_payload, {
-        "Payload", "amqp.payload",
-        FT_BYTES, BASE_NONE, NULL, 0,
-        "Message payload", HFILL}},
-};
-
-/*  Basic registration functions  */
-
-void proto_register_amqp (void)
-{
-    module_t *amqp_module;
-    if (proto_amqp == -1) {
-        proto_amqp = proto_register_protocol (
-            "Advanced Message Queueing Protocol", "AMQP", "amqp");
-	proto_register_field_array (proto_amqp, hf, array_length(hf));
-	proto_register_subtree_array (ett, array_length(ett));
-    }
-    amqp_module = prefs_register_protocol (proto_amqp, proto_reg_handoff_amqp);
-}
-
-void proto_reg_handoff_amqp (void)
-{
-    static int initialised = FALSE;
-    if (!initialised) {
-        amqp_handle = create_dissector_handle (dissect_amqp, proto_amqp);
-        dissector_add ("tcp.port", amqp_port, amqp_handle);
-    }
-}
-
 /*  Main dissection routine  */
 
 static void dissect_amqp (tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
     tcp_dissect_pdus (tvb, pinfo, tree, TRUE, 7,
-                     get_amqp_message_len, dissect_amqp_message);
+                     get_amqp_message_len, dissect_amqp_frame);
 }
 
 static guint get_amqp_message_len(packet_info *pinfo, tvbuff_t *tvb, int offset)
 {
     return (guint) tvb_get_ntohl (tvb, offset + 3) + 8;
-}
-
-/*  Dissection routine for AMQP frames  */
-
-static void dissect_amqp_message (tvbuff_t *tvb, packet_info *pinfo,
-    proto_tree *tree)
-{
-    proto_item 
-        *ti,
-        *amqp_tree,
-        *args_tree,
-        *prop_tree;
-    size_t
-        argptr;
-    guint16
-        prop_flags;
-
-    if (check_col (pinfo->cinfo, COL_PROTOCOL))
-        col_set_str (pinfo->cinfo, COL_PROTOCOL, "AMQP");
-    if (check_col (pinfo->cinfo, COL_INFO)) {
-        col_clear (pinfo->cinfo, COL_INFO);
-    }
-
-    if (tree) {
-        
-        ti = proto_tree_add_item (tree, proto_amqp, tvb, 0, -1, FALSE);
-        amqp_tree = proto_item_add_subtree (ti, ett_amqp);
-	proto_tree_add_item (amqp_tree, hf_amqp_type, tvb, 0, 1, FALSE);
-	proto_tree_add_item (amqp_tree, hf_amqp_channel, tvb, 1, 2, FALSE);
-	proto_tree_add_item (amqp_tree, hf_amqp_length, tvb, 3, 4, FALSE);
-        switch (tvb_get_guint8(tvb, 0)) {
-        case AMQP_FRAME_TYPE_METHOD:
-            proto_tree_add_item (amqp_tree, hf_amqp_method_class_id,
-                tvb, 7, 2, FALSE);
-            switch (tvb_get_ntohs (tvb, 7)) {
-.for class
-            case $(class.index):
-                proto_tree_add_item (amqp_tree, hf_amqp_method_$(class.name:c)_method_id,
-                    tvb, 9, 2, FALSE);              
-                ti = proto_tree_add_item (amqp_tree, hf_amqp_method_arguments,
-                    tvb, 11, -1, FALSE);
-                args_tree = proto_item_add_subtree (ti, ett_args);
-                switch (tvb_get_ntohs (tvb, 9)) {
-.    for method
-                case $(method.index):
-                    argptr = 11;
-.        bitoffset = 1
-.        for field
-.            add_field ("method_$(class.name:c)_$(method.name:c)", "args_tree")
-.        endfor
-                    break;
-.    endfor
-                }
-                break;
-.endfor
-            }
-            break;
-        case AMQP_FRAME_TYPE_CONTENT_HEADER:
-            proto_tree_add_item (amqp_tree, hf_amqp_header_class_id,
-                tvb, 7, 2, FALSE);
-            proto_tree_add_item (amqp_tree, hf_amqp_header_weight,
-                tvb, 9, 2, FALSE);
-            proto_tree_add_item (amqp_tree, hf_amqp_header_body_size,
-                tvb, 11, 8, FALSE);
-            proto_tree_add_item (amqp_tree, hf_amqp_header_property_flags,
-                tvb, 19, 2, FALSE);
-            ti = proto_tree_add_item (amqp_tree, hf_amqp_header_properties,
-                tvb, 21, -1, FALSE);
-            prop_tree = proto_item_add_subtree (ti, ett_props);
-            argptr = 21;
-            prop_flags = tvb_get_ntohs (tvb, 19);
-            switch (tvb_get_ntohs (tvb, 7)) {
-.for class
-            case $(class.index):
-.    bitoffset = 1
-.    for field
-.        type = field.type ? amqp->domain (name = field.domain).type
-                if (prop_flags & 0x8000) {
-.            add_field ("header_$(class.name:c)", "prop_tree")
-                }
-                prop_flags <<= 1;
-.    endfor
-                break;
-.endfor
-            }
-            break;
-        case AMQP_FRAME_TYPE_CONTENT_BODY:
-            proto_tree_add_item (amqp_tree, hf_amqp_payload,
-                tvb, 7, -1, FALSE);
-            break;
-        }
-    }
 }
 
 /*  Dissection routine for AMQP field tables  */
@@ -530,4 +343,229 @@ static void dissect_amqp_field_table (tvbuff_t *tvb, size_t offset,
     }
 }
 
+/*  Dissection routine for AMQP frames  */
+
+static void dissect_amqp_frame (tvbuff_t *tvb, packet_info *pinfo,
+    proto_tree *tree)
+{
+    proto_item 
+        *ti,
+        *amqp_tree,
+        *args_tree,
+        *prop_tree;
+    size_t
+        length,
+        argptr;
+
+    if (check_col (pinfo->cinfo, COL_PROTOCOL))
+        col_set_str (pinfo->cinfo, COL_PROTOCOL, "AMQP");
+    if (check_col (pinfo->cinfo, COL_INFO)) {
+        col_clear (pinfo->cinfo, COL_INFO);
+    }
+
+    if (tree) {
+        
+        ti = proto_tree_add_item (tree, proto_amqp, tvb, 0, -1, FALSE);
+        amqp_tree = proto_item_add_subtree (ti, ett_amqp);
+	proto_tree_add_item (amqp_tree, hf_amqp_type, tvb, 0, 1, FALSE);
+	proto_tree_add_item (amqp_tree, hf_amqp_channel, tvb, 1, 2, FALSE);
+	proto_tree_add_item (amqp_tree, hf_amqp_length, tvb, 3, 4, FALSE);
+        length = tvb_get_ntohl (tvb, 3);
+        switch (tvb_get_guint8(tvb, 0)) {
+        case AMQP_FRAME_TYPE_METHOD:
+            proto_tree_add_item (amqp_tree, hf_amqp_method_class_id,
+                tvb, 7, 2, FALSE);
+            switch (tvb_get_ntohs (tvb, 7)) {
+.for class
+            case AMQP_CLASS_$(class.name:c,upper):
+                proto_tree_add_item (amqp_tree, hf_amqp_method_$(class.name:c)_method_id,
+                    tvb, 9, 2, FALSE);              
+                ti = proto_tree_add_item (amqp_tree, hf_amqp_method_arguments,
+                    tvb, 11, length - 4, FALSE);
+                args_tree = proto_item_add_subtree (ti, ett_args);
+                switch (tvb_get_ntohs (tvb, 9)) {
+.    for method
+                case AMQP_METHOD_$(class.name:c,upper)_$(method.name:c,upper):
+                    argptr = dissect_amqp_method_$(class.name:c)_$(method.name:c) (tvb, 11, args_tree);
+                    break;
+.    endfor
+                }
+                break;
+.endfor
+            }
+            break;
+        case AMQP_FRAME_TYPE_CONTENT_HEADER:
+            proto_tree_add_item (amqp_tree, hf_amqp_header_class_id,
+                tvb, 7, 2, FALSE);
+            proto_tree_add_item (amqp_tree, hf_amqp_header_weight,
+                tvb, 9, 2, FALSE);
+            proto_tree_add_item (amqp_tree, hf_amqp_header_body_size,
+                tvb, 11, 8, FALSE);
+            proto_tree_add_item (amqp_tree, hf_amqp_header_property_flags,
+                tvb, 19, 2, FALSE);
+            ti = proto_tree_add_item (amqp_tree, hf_amqp_header_properties,
+                tvb, 21, length - 14, FALSE);
+            prop_tree = proto_item_add_subtree (ti, ett_props);
+            argptr = 21;
+            switch (tvb_get_ntohs (tvb, 7)) {
+.for class where count (field) > 0
+            case AMQP_CLASS_$(class.name:c,upper):
+                argptr = dissect_amqp_content_header_$(class.name:c) (tvb, argptr, prop_tree);
+                break;
+.endfor
+            }
+            break;
+        case AMQP_FRAME_TYPE_CONTENT_BODY:
+            proto_tree_add_item (amqp_tree, hf_amqp_payload,
+                tvb, 7, length, FALSE);
+            break;
+        }
+    }
+}
+
+.for class
+.    for method
+/*  Dissection routine for method $(class.name:neat).$(method.name:neat)  */
+
+static size_t dissect_amqp_method_$(class.name:c)_$(method.name:c) (tvbuff_t *tvb, size_t argptr, proto_tree *args_tree)
+{
+    proto_item
+        *ti;
+.        bitoffset = 1
+.        for field
+.            add_field ("method_$(class.name:c)_$(method.name:c)", "args_tree")
+.        endfor
+
+    return argptr;
+}
+
+.    endfor
+.endfor
+
+.for class where count (field) > 0
+/*  Dissection routine for content headers of class $(class.name)  */
+
+static size_t dissect_amqp_content_header_$(class.name:c) (tvbuff_t *tvb, size_t argptr, proto_tree *prop_tree)
+{
+    proto_item
+        *ti;
+    guint16
+        prop_flags;
+
+    prop_flags = tvb_get_ntohs (tvb, 19);
+.    bitoffset = 1
+.    for field
+.        type = field.type ? amqp->domain (name = field.domain).type
+    if (prop_flags & 0x8000) {
+.            add_field ("header_$(class.name:c)", "prop_tree")
+    }
+    prop_flags <<= 1;
+.    endfor
+
+    return argptr;
+}
+.endfor
+
+/*  Setup of field format array  */
+
+static hf_register_info hf[] = {
+    {&hf_amqp_info, {
+        "Info", "",
+        FT_NONE, BASE_NONE, NULL, 0x0,
+        "Dissector info", HFILL}},
+    {&hf_amqp_type, {
+        "Type", "amqp.type",
+        FT_UINT8, BASE_DEC, VALS (amqp_frame_types), 0x0,
+        "Frame type", HFILL}},
+    {&hf_amqp_channel,{
+        "Channel", "amqp.channel",
+        FT_UINT16, BASE_DEC, NULL, 0x0,
+        "Channel ID", HFILL}},
+    {&hf_amqp_length, {
+        "Length", "amqp.length",
+        FT_UINT32, BASE_DEC, NULL, 0x0,
+        "Length of the frame", HFILL}},
+    {&hf_amqp_method_class_id, {
+        "Class", "amqp.method.class",
+        FT_UINT16, BASE_DEC, VALS (amqp_method_classes), 0x0,
+        "Class ID", HFILL}},
+.for class
+    {&hf_amqp_method_$(class.name:c)_method_id, {
+        "Method", "amqp.method.method",
+        FT_UINT16, BASE_DEC, VALS (amqp_method_$(class.name:c)_methods), 0x0,
+        "Method ID", HFILL}},
+.endfor
+    {&hf_amqp_method_arguments, {
+        "Arguments", "",
+        FT_NONE, 0, NULL, 0x0,
+        "Method arguments", HFILL}},
+.for class
+.    for method
+.        bitoffset = 1
+.        for field
+.           add_field_format ("method_$(class.name:c)_$(method.name:c)")
+.        endfor
+.    endfor
+.endfor
+    {&hf_amqp_field, {
+        "", "",
+        FT_NONE, BASE_NONE, NULL, 0,
+        "", HFILL}},
+    {&hf_amqp_header_class_id, {
+        "Class ID", "amqp.header.class",
+        FT_UINT16, BASE_DEC, VALS (amqp_method_classes), 0,
+        "Class ID", HFILL}},
+    {&hf_amqp_header_weight, {
+        "Weight", "amqp.header.weight",
+        FT_UINT16, BASE_DEC, NULL, 0,
+        "Weight", HFILL}},
+    {&hf_amqp_header_body_size, {
+        "Body size", "amqp.header.body-size",
+        FT_UINT64, BASE_DEC, NULL, 0,
+        "Body size", HFILL}},
+    {&hf_amqp_header_property_flags, {
+        "Property flags", "amqp.header.property-flags",
+        FT_UINT16, BASE_HEX, NULL, 0,
+        "Property flags", HFILL}},
+    {&hf_amqp_header_properties, {
+        "Properties", "",
+        FT_NONE, 0, NULL, 0x0,
+        "Message properties", HFILL}},
+.for class
+.    bitoffset = 1
+.    for field
+.        add_field_format ("header_$(class.name:c)")
+.    endfor
+.endfor
+    {&hf_amqp_payload, {
+        "Payload", "amqp.payload",
+        FT_BYTES, BASE_NONE, NULL, 0,
+        "Message payload", HFILL}},
+};
+
+/*  Setup of protocol subtree array  */
+
+static gint *ett [] = {
+     &ett_amqp,
+     &ett_args,
+     &ett_props,
+     &ett_field_table
+};
+
+/*  Basic registration functions  */
+
+void proto_register_amqp (void)
+{
+    proto_amqp = proto_register_protocol (
+        "Advanced Message Queueing Protocol", "AMQP", "amqp");
+    proto_register_field_array (proto_amqp, hf, array_length(hf));
+    proto_register_subtree_array (ett, array_length(ett));
+    prefs_register_protocol (proto_amqp, proto_reg_handoff_amqp);
+}
+
+void proto_reg_handoff_amqp (void)
+{
+    dissector_add ("tcp.port", amqp_port,
+        create_dissector_handle (dissect_amqp, proto_amqp));
+}
 .close
