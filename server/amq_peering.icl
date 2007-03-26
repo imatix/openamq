@@ -612,7 +612,7 @@ s_initialise_peering (amq_peering_t *self)
 
         amq_peer_agent_basic_consume (
             self->peer_agent_thread, self->channel_nbr,
-            ticket, queue, consumer_tag, no_local, no_ack, exclusive, nowait);
+            ticket, queue, consumer_tag, no_local, no_ack, exclusive, nowait, NULL);
 
         //  Declare remote exchange on peer
         amq_peer_agent_exchange_declare (

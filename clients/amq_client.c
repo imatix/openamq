@@ -250,7 +250,8 @@ main (int argc, char *argv [])
             NULL,                       //  Client key
             FALSE,                      //  No local messages
             TRUE,                       //  Auto-acknowledge
-            FALSE);                     //  Exclusive access to queue
+            FALSE,                      //  Exclusive access to queue
+            NULL);                      //  Arguments
     }
     while (repeats) {
         //  Send messages to server
