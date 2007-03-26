@@ -8,17 +8,20 @@
 OpenAMQ Community
 *****************
 
-The [http://openamq.wikidot.com:OpenAMQ community site] is hosted by
+The [http://wiki.openamq.org:OpenAMQ community site] is hosted by
 [http://wikidot.com:Wikidot.com].
 
 Quick links:
 
- - [http://openamq.wikidot.com/forum:new-thread/c/358:Report a problem]
- - [http://openamq.wikidot.com/forum:new-thread/c/355:Ask for help]
- - [http://openamq.wikidot.com/forum:new-thread/c/357:Make a change request or suggestion]
+ - [http://wiki.openamq.org/forum:new-thread/c/358:Report a problem]
+ - [http://wiki.openamq.org/forum:new-thread/c/355:Ask for help]
+ - [http://wiki.openamq.org/forum:new-thread/c/357:Make a change request or suggestion]
 
 OpenAMQ Email Lists
 *******************
+
+We provide several mailing lists on openamq.org.  The lists are public,
+but you must subscribe to post messages.
 
 openamq-announce
 ================
@@ -37,6 +40,14 @@ applications.
 
  - [http://lists.openamq.org/mailman/listinfo/openamq-dev:Subscribe]
  - [http://lists.openamq.org/pipermail/openamq-dev/:List Archives]
+
+openamq-users
+=============
+
+For discussion and support among OpenAMQ users.
+
+ - [http://lists.openamq.org/mailman/listinfo/openamq-users:Subscribe]
+ - [http://lists.openamq.org/pipermail/openamq-users/:List Archives]
 
 Community FAQ
 *************
