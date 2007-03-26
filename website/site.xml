@@ -2,7 +2,7 @@
 <site
     name = "OpenAMQ"
     script = "site.gsl"
-    main_version = "1.2c0"
+    main_version = "1.2c1"
     >
     <section name = "Welcome">
         <page name = "index" />

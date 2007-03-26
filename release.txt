@@ -1,3 +1,16 @@
+1.2c1 - 2007/03/26
+---------------------------------------------------------------------
+
+This release fixes some interoperability problems with other AMQP 0.9
+implementations, and removes the dependency on libuuid which was causing
+build problems for some people (BASE2-267).
+
+Bugfixes:
+    AMQ-546    AMQP 0.9 interoperability fixes for OpenAMQ 1.2c1
+
+Changes:
+  BASE2-267    Change channel id to use 64-bit atomic sequence
+
 1.2c0 - 2007/03/15
 ---------------------------------------------------------------------
 
