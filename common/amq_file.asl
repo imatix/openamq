@@ -362,6 +362,10 @@
     method it will raise a channel or connection exception.
     </doc>
   </field>
+
+  <field name = "arguments" type = "table">
+    The syntax and semantics depends on the providers implementation
+  </field>
 </method>
 
 <method name = "consume-ok" synchronous = "1" index = "21">
