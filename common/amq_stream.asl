@@ -362,6 +362,7 @@
       A set of arguments for the consume.  The syntax and semantics
       depends on the server implementation.
     </doc>
+  </field>
 </method>
 
 
