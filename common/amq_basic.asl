@@ -383,14 +383,18 @@
   <field name = "nowait" type = "bit">
     do not send a reply method
     <doc>
-    If set, the server will not respond to the method. The client should
-    not wait for a reply method.  If the server could not complete the
-    method it will raise a channel or connection exception.
+      If set, the server will not respond to the method. The client should
+      not wait for a reply method.  If the server could not complete the
+      method it will raise a channel or connection exception.
     </doc>
   </field>
 
   <field name = "arguments" type = "table">
-    The syntax and semantics depends on the providers implementation
+    arguments for consume
+    <doc>
+      A set of arguments for the consume.  The syntax and semantics
+      depends on the server implementation.
+    </doc>
   </field>
 </method>
 
