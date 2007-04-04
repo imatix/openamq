@@ -11,43 +11,21 @@ OpenAMQ Community
 The [http://wiki.openamq.org:OpenAMQ community site] is hosted by
 [http://wikidot.com:Wikidot.com].
 
-Quick links:
+The aim of the community site is to provides FAQs, examples and other useful
+information for OpenAMQ users and developers alike.
 
- - [http://wiki.openamq.org/forum:new-thread/c/358:Report a problem]
- - [http://wiki.openamq.org/forum:new-thread/c/355:Ask for help]
- - [http://wiki.openamq.org/forum:new-thread/c/357:Make a change request or suggestion]
+Mailing lists
+*************
 
-OpenAMQ Email Lists
-*******************
+For technical support, bug reports or submitting change requests or
+suggestions, 
+[http://lists.openamq.org/mailman/listinfo/openamq-dev:register] on
+the [http://lists.openamq.org/pipermail/openamq-dev/:openamq-dev] mailing list
+and send us your question. You'll get a reply within minutes from the OpenAMQ
+team or one of the expert users on this list.
 
-We provide several mailing lists on openamq.org.  The lists are public,
-but you must subscribe to post messages.
-
-openamq-announce
-================
-
-For persons who want to track the AMQ project without being
-involved in the development process.
-
- - [http://lists.openamq.org/mailman/listinfo/openamq-announce:Subscribe]
- - [http://lists.openamq.org/pipermail/openamq-announce/:List Archives]
-
-openamq-dev
-===========
-
-For developers involved in the AMQ project or using it in their
-applications.
-
- - [http://lists.openamq.org/mailman/listinfo/openamq-dev:Subscribe]
- - [http://lists.openamq.org/pipermail/openamq-dev/:List Archives]
-
-openamq-users
-=============
-
-For discussion and support among OpenAMQ users.
-
- - [http://lists.openamq.org/mailman/listinfo/openamq-users:Subscribe]
- - [http://lists.openamq.org/pipermail/openamq-users/:List Archives]
+To view the openamq-dev archives (useful for browsing past discussion on the
+list), [http://lists.openamq.org/pipermail/openamq-dev/:click here].
 
 Community FAQ
 *************
