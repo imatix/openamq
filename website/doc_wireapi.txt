@@ -125,7 +125,7 @@ program does no error handling so you should *not* copy this code:
         //  Open session to local server
         auth_data  = amq_client_connection_auth_plain ("guest", "guest");
         connection = amq_client_connection_new (
-            "localhost", "/", auth_data, 0, 30000);
+            "localhost", "/", auth_data, "test", 0, 30000);
         icl_longstr_destroy (&auth_data);
         session = amq_client_session_new (connection);
 
@@ -177,7 +177,7 @@ this:
 
     auth_data  = amq_client_connection_auth_plain ("guest", "guest");
     connection = amq_client_connection_new (
-        "localhost", "/", auth_data, 0, 30000);
+        "localhost", "/", auth_data, "test", 0, 30000);
     icl_longstr_destroy (&auth_data);
     if (!connection) {
         icl_console_print ("E: could not open connection");
@@ -227,7 +227,7 @@ Creates a new connection to the server.
 
     auth_data  = amq_client_connection_auth_plain ("guest", "guest");
     connection = amq_client_connection_new (
-        "localhost", "/", auth_data, 0, 30000);
+        "localhost", "/", auth_data, "test", 0, 30000);
 
     icl_longstr_destroy (&auth_data);
     if (connection)
