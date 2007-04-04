@@ -3,7 +3,7 @@ gdl
     subtitle  = A Standard API for AMQP
     product   = OpenAMQ
     author    = iMatix Corporation
-    date      = 2005/10/28
+    date      = 2007/04/04
     copyright = Copyright (c) 2004-2007 iMatix Corporation
     version   = 1.0b1
 end gdl
@@ -135,7 +135,7 @@ program does no error handling so you should *not* copy this code:
         amq_content_basic_set_message_id (content, "ID001");
         amq_client_session_basic_publish (
             session, content, 0, "to-address", NULL, FALSE, FALSE);
-        amq_content_basic_set_destroy (&content);
+        amq_content_basic_destroy (&content);
 
         //  Shutdown connection and session
         amq_client_session_destroy    (&session);
@@ -197,7 +197,7 @@ And the correct way to call a method like publish is:
     ...
     rc = amq_client_session_basic_publish (
         session, content, 0, "queue", "mydest", FALSE, FALSE);
-    amq_content_basic_set_destroy (&content);
+    amq_content_basic_destroy (&content);
     if (rc) {
         icl_console_print ("E: could not publish message");
         return (1);
