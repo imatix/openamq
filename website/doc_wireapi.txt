@@ -482,14 +482,14 @@ Basic content has these specific properties:
 To set any of a basic content's properties, do not modify the property
 directly but use the method:
 
-    amq_content_basic_set_<propertyname> (content, newvalue)
+    amq_content_basic_set_[propertyname] (content, newvalue)
 
 Content Body Data
 =================
 
 To set a content's body, use this method (depending on the content class):
 
-    amq_content_<class>_set_body (content, byte *data, size_t size, free_fn)
+    amq_content_[class]_set_body (content, byte *data, size_t size, free_fn)
 
 Where the free_fn is a function of type 'icl_mem_free_fn *' (compatible
 with the standard library free() function).  If free_fn is not null, it
@@ -498,7 +498,7 @@ destroyed, or if you call _set_body() again.
 
 To get a content's body, use this method:
 
-    amq_content_<class>_get_body (content, byte *buffer, size_t limit)
+    amq_content_[class]_get_body (content, byte *buffer, size_t limit)
 
 Where the buffer is at least as large as content->body_size.  This method
 returns the number of bytes copied, or -1 if the buffer was too small.
