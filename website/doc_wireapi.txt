@@ -350,8 +350,8 @@ Content Access Methods
 For each content class (Basic, File, Stream), WireAPI provides a set of
 methods to access arrived and returned content:
 
-    amq_client_session_<classname>_<arrived|returned> ()
-    amq_client_session_<classname>_<arrived|returned>_count ()
+    amq_client_session_[classname]_[arrived|returned] ()
+    amq_client_session_[classname]_[arrived|returned]_count ()
 
 The first method returns the oldest content waiting to be processed,
 the second methods returns the number of contents waiting.  For example:
