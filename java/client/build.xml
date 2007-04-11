@@ -1,0 +1,213 @@
+<?xml version="1.0"?>
+
+<!-- OpenAMQ Java build file -->
+
+<project name="blaze-client" default="jar" basedir=".">
+    <property name="lib" value="${basedir}/lib"/>
+    <property name="common.dir" value="${basedir}/../common"/>
+    <property name="client.dir" value="${basedir}"/>
+    <property name="common.src" value="${common.dir}/src"/>
+    <property name="common.resources" value="${common.dir}/resources"/>
+    <property name="common.classes" value="${common.dir}/classes"/>
+    <property name="client.src" value="${client.dir}/src"/>
+    <property name="client.tests" value="${client.dir}/test"/>
+    <property name="client.classes" value="${client.dir}/classes"/>
+    <property name="client.testclasses" value="${client.dir}/testclasses"/>
+    <property name="generated.java.src" value="${common.dir}/generated/java"/>
+    <property name="broker.classes" value="${basedir}/../broker/classes"/>
+    <property name="broker.testclasses" value="${basedir}/../broker/testclasses"/>
+    <property name="dist" value="${basedir}/dist"/>
+
+    <!-- Setup details -->
+    <target name="init">
+        <tstamp>
+            <format property="release" pattern="-dMMMyy" locale="en" timezone="GMT"/>
+        </tstamp>
+
+        <mkdir dir="${common.classes}"/>
+        <mkdir dir="${client.classes}"/>
+        <mkdir dir="${client.testclasses}"/>
+    </target>
+
+    <path id="openamq.classpath">
+        <fileset dir="${basedir}/lib">
+            <include name="**/*.jar"/>
+        </fileset>
+        <fileset dir="${common.dir}/lib">
+            <include name="**/*.jar"/>
+        </fileset>
+        <pathelement path="${common.classes}"/>
+        <pathelement path="${client.classes}"/>
+        <pathelement path="${client.testclasses}/"/>
+        <pathelement path="${broker.classes}/"/>
+        <pathelement path="${broker.testclasses}/"/>
+    </path>
+
+    <!-- Remove all built files -->
+    <target name="clean" depends="init">
+        <delete dir="${common.classes}"/>
+        <delete dir="${client.classes}"/>
+        <delete dir="${client.testclasses}"/>
+    </target>
+
+    <!-- Compile Java -->
+    <target name="compile" depends="init, generate">
+        <javac destdir="${common.classes}" target="1.5" source="1.5" debug="on">
+            <classpath refid="openamq.classpath"/>
+            <src path="${common.src}"/>
+            <src path="${generated.java.src}"/>
+        </javac>
+
+        <javac destdir="${client.classes}" target="1.5" source="1.5" debug="on">
+            <classpath refid="openamq.classpath"/>
+            <src path="${client.src}"/>
+        </javac>
+
+        <copy todir="${common.classes}">
+            <!-- copy any non java src files into the build tree, e.g. log4j.properties -->
+            <fileset dir="${common.src}">
+                <exclude name="**/*.java"/>
+                <exclude name="**/package.html"/>
+            </fileset>
+            <fileset dir="${common.resources}">
+                <exclude name="**/*.java"/>
+                <exclude name="**/package.html"/>
+            </fileset>
+        </copy>
+
+        <copy todir="${client.classes}">
+            <!-- copy any non java src files into the build tree, e.g. log4j.properties -->
+            <fileset dir="${client.src}">
+                <exclude name="**/*.java"/>
+                <exclude name="**/package.html"/>
+            </fileset>
+        </copy>
+    </target>
+
+
+    <target name="compiletests" depends="compile">
+        <javac destdir="${client.testclasses}" target="1.5" source="1.5" classpathref="openamq.classpath" debug="on">
+            <src path="${client.tests}"/>
+        </javac>
+
+        <copy todir="${client.testclasses}">
+            <!-- copy any non java src files into the build tree, e.g. log4j.properties -->
+            <fileset dir="${client.tests}">
+                <exclude name="**/*.java"/>
+                <exclude name="**/package.html"/>
+            </fileset>
+        </copy>
+    </target>
+
+    <!-- Generate framing source code from protocol specification -->
+    <target name="generate" description="Generates framing source code from protocol specification">
+         <ant dir="../common" target="generate"/>
+    </target>
+
+    <!-- Build jar archive -->
+    <target name="jar" depends="compiletests">
+        <mkdir dir="${dist}"/>
+        <jar basedir="${common.classes}" jarfile="${dist}/openamqj-common.jar"/>
+        <jar basedir="${client.classes}" jarfile="${dist}/openamqj-jms.jar"/>
+        <jar basedir="${client.testclasses}" jarfile="${dist}/openamqj-tests.jar"/>
+    </target>
+
+    <target name="dist" depends="compile">
+        <mkdir dir="${dist}"/>
+        <jar basedir="${common.classes}" jarfile="${dist}/openamqj-common.jar"/>
+        <jar basedir="${client.classes}" jarfile="${dist}/openamqj-jms.jar"/>
+    </target>
+
+
+    <target name="javadoc" depends="compile, compiletests">
+        <mkdir dir="${dist}/docs/api"/>
+        <javadoc sourcepath="${client.src}" destdir="${dist}/docs/api"
+                 packagenames="org.openamq.*" classpathref="openamq.classpath" author="true"
+                 version="true" windowTitle="OpenAMQ Client API" doctitle="OpenAMQ Client API"
+                 footer="See &lt;a href=&quot;http://www.openamq.org&quot;&gt;www.openamq.org&lt;/a&gt; for more information."
+                 use="true" verbose="false"/>
+    </target>
+
+    <target name="ServiceProvidingClient" depends="compiletests">
+        <java fork="yes" classname="org.openamq.requestreply1.ServiceProvidingClient">
+              <classpath refid="openamq.classpath"/>
+              <jvmarg value="-server"/>
+              <sysproperty key="amqj.logging.level" value="INFO"/>
+              <sysproperty key="amqj.server.shared_read_write_pool" value="true"/>
+              <arg value="localhost:5672"/>
+              <arg value="guest"/>
+              <arg value="guest"/>
+              <arg value="/vpath"/>
+              <arg value="serviceQ1"/>
+        </java>
+    </target>
+
+     <target name="ServiceRequestingClient" depends="compiletests">
+        <java fork="yes" classname="org.openamq.requestreply1.ServiceRequestingClient">
+              <classpath refid="openamq.classpath"/>
+              <jvmarg value="-server"/>
+              <sysproperty key="amqj.logging.level" value="INFO"/>
+              <sysproperty key="amqj.server.shared_read_write_pool" value="true"/>
+              <arg value="localhost:5672"/>
+              <arg value="guest"/>
+              <arg value="guest"/>
+              <arg value="/vpath"/>
+              <arg value="serviceQ1"/>
+              <arg value="5000"/>
+              <arg value="512"/>
+        </java>
+    </target>
+
+    <target name="HeadersListener" depends="compiletests">
+        <java fork="yes" classname="org.openamq.headers.Listener">
+              <classpath refid="openamq.classpath"/>
+              <jvmarg value="-server"/>
+              <sysproperty key="amqj.logging.level" value="INFO"/>
+              <sysproperty key="amqj.server.shared_read_write_pool" value="true"/>
+        </java>
+    </target>
+
+    <target name="HeadersPublisher" depends="compiletests">
+        <java fork="yes" classname="org.openamq.headers.Publisher">
+              <classpath refid="openamq.classpath"/>
+              <jvmarg value="-server"/>
+              <sysproperty key="amqj.logging.level" value="INFO"/>
+              <sysproperty key="amqj.server.shared_read_write_pool" value="true"/>
+              <arg value="5000"/>
+              <arg value="1"/>
+        </java>
+    </target>
+
+    <target name="profile" depends="compile" description="Profile Project">
+        <fail unless="netbeans.home">This target can only run inside the NetBeans IDE.</fail>
+        <nbprofiledirect>
+          <classpath refid="openamq.classpath"/>
+        </nbprofiledirect>
+        <java fork="true" classname="org.openamq.requestreply1.VmRequestReply"
+              dir="${profiler.session.working.dir}"
+              jvm="${profiler.info.jvm}">
+          <jvmarg line="${profiler.info.jvmargs}"/>
+          <env key="Path" path="${profiler.info.agentpath}:${env.Path}"/>
+          <classpath refid="openamq.classpath"/>
+          <jvmarg value="${profiler.info.jvmargs.agent}"/>
+          <jvmarg line="${profiler.info.jvmargs}"/>
+          <jvmarg value="-server"/>
+          <jvmarg value="-Damqj.logging.level=INFO"/>
+          <sysproperty key="amqj.shared_read_write_pool" value="true"/>
+          <arg value="localhost:5672"/>
+          <arg value="guest"/>
+          <arg value="guest"/>
+          <arg value="/vpath"/>
+          <arg value="serviceQ1"/>
+          <arg value="5000"/>
+          <arg value="512"/>
+        </java>
+    </target>
+
+    <target name="profile-single" depends="compile" description="Profile File">
+        <fail unless="netbeans.home">This target can only run inside the NetBeans IDE.</fail>
+        <nbprofile classname="${profile.class}">
+            <classpath refid="openamq.classpath"/>
+        </nbprofile>
+    </target>
+</project>
