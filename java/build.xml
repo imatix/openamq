@@ -12,50 +12,72 @@
     >
 
 <property name = "lib"                value = "${basedir}/lib" />
-<property name = "generate.dir"       value = "${basedir}" />
-<property name = "client.dir"         value = "${basedir}" />
-<property name = "generate.src"       value = "${generate.dir}/src" />
-<property name = "generate.resources" value = "${generate.dir}/resources" />
-<property name = "generate.classes"   value = "${generate.dir}/classes" />
-<property name = "client.src"         value = "${client.dir}/src" />
-<property name = "client.tests"       value = "${client.dir}/test" />
-<property name = "client.classes"     value = "${client.dir}/classes" />
-<property name = "client.testclasses" value = "${client.dir}/testclasses" />
-<property name = "generated.java.src" value = "${generate.dir}/generated/java" />
+<property name = "generate.saxon"     value = "${lib}/saxon/saxon8.jar" />
+<property name = "generate.resources" value = "${basedir}/resources" />
+<property name = "generate.spec"      value = "${generate.resources}/amqp.0-9.xml" />
+<property name = "generate.base"      value = "${basedir}/generated/src" />
+<property name = "generate.src"       value = "${generate.base}/org/openamq/framing" />
+<property name = "generate.classes"   value = "${basedir}/generated/classes" />
+<property name = "client.src"         value = "${basedir}/src" />
+<property name = "client.classes"     value = "${basedir}/classes" />
+<property name = "tests.src"          value = "${basedir}/tests/src" />
+<property name = "tests.classes"      value = "${basedir}/tests/classes" />
 <property name = "dist"               value = "${basedir}/dist" />
 
 <!--  
     Setup build tree
 -->
 <target name = "init">
-    <tstamp>
-        <format property = "release" pattern = "-dMMMyy" locale = "en" timezone = "GMT" />
-    </tstamp>
-
     <mkdir dir = "${generate.classes}" />
     <mkdir dir = "${client.classes}" />
-    <mkdir dir = "${client.testclasses}" />
+    <mkdir dir = "${tests.classes}" />
 </target>
 
 <path id = "openamq.classpath">
-    <fileset dir = "${basedir}/lib">
-        <include name = "**/*.jar" />
-    </fileset>
-    <fileset dir = "${generate.dir}/lib">
+    <fileset dir = "${lib}">
         <include name = "**/*.jar" />
     </fileset>
     <pathelement path = "${generate.classes}" />
     <pathelement path = "${client.classes}" />
-    <pathelement path = "${client.testclasses}/" />
+    <pathelement path = "${tests.classes}" />
 </path>
 
 <!-- 
     Clean
 -->
 <target name = "clean" depends = "init">
-    <delete dir = "${generate.classes}" />
+    <delete dir = "${generate.base}" />
     <delete dir = "${client.classes}" />
-    <delete dir = "${client.testclasses}" />
+    <delete dir = "${tests.classes}" />
+</target>
+
+<!--
+    Generate
+-->
+<target name = "check-generate">
+    <uptodate 
+        property   = "generateNotRequired" 
+	targetfile = "${generate.src}/results.out" 
+	srcfile    = "${generate.spec}"
+	/>
+</target>
+
+<target name = "generate" depends = "check-generate" unless = "${generateNotRequired}">
+    <mkdir dir = "${generate.src}" />
+    <java jar = "${generate.saxon}" fork = "true">
+	<arg value = "-o"/>
+	<arg value = "${generate.src}/results.out" />
+	<arg value = "${generate.spec}" />
+	<arg value = "${generate.resources}/framing.xsl" />
+	<arg value = "asl_base=${asl.base}" />
+	<arg value = "registry_name=MainRegistry" />
+    </java>
+    <java jar = "${generate.saxon}" fork = "true">
+	<arg value = "-o" />
+	<arg value = "${generate.src}/registry.out" />
+	<arg value = "${generate.resources}/registry.template" />
+	<arg value = "${generate.resources}/registry.xsl" />
+    </java>
 </target>
 
 <!--
@@ -64,20 +86,19 @@
 <target name = "compile" depends = "init, generate">
     <javac 
         destdir = "${generate.classes}" 
-        target = "1.5" 
-        source = "1.5" 
-        debug = "on"
+        target  = "1.5" 
+        source  = "1.5" 
+        debug   = "on"
         >
         <classpath refid = "openamq.classpath" />
         <src path = "${generate.src}" />
-        <src path = "${generated.java.src}" />
     </javac>
 
     <javac 
         destdir = "${client.classes}" 
-        target = "1.5" 
-        source = "1.5" 
-        debug = "on"
+        target  = "1.5" 
+        source  = "1.5" 
+        debug   = "on"
         >
         <classpath refid = "openamq.classpath" />
         <src path = "${client.src}" />
@@ -109,18 +130,18 @@
 -->
 <target name = "compiletests" depends = "compile">
     <javac 
-        destdir = "${client.testclasses}" 
-        target = "1.5" 
-        source = "1.5" 
+        destdir      = "${tests.classes}" 
+        target       = "1.5" 
+        source       = "1.5" 
         classpathref = "openamq.classpath" 
-        debug = "on"
+        debug        = "on"
         >
-        <src path = "${client.tests}" />
+        <src path = "${tests.src}" />
     </javac>
 
-    <copy todir = "${client.testclasses}">
+    <copy todir = "${tests.classes}">
         <!-- copy any non java src files into the build tree, e.g. log4j.properties -->
-        <fileset dir = "${client.tests}">
+        <fileset dir = "${tests.src}">
             <exclude name = "**/*.java" />
             <exclude name = "**/package.html" />
         </fileset>
@@ -128,29 +149,15 @@
 </target>
 
 <!--
-    Generate
--->
-<target name = "generate">
-     <ant antfile = "generate.xml" target = "generate" />
-</target>
-
-<!--
     Build JAR archive
 -->
 <target name="jar" depends = "compiletests">
     <mkdir dir = "${dist}" />
-    <jar basedir = "${generate.classes}"   jarfile = "${dist}/openamqj-common.jar" />
-    <jar basedir = "${client.classes}"     jarfile = "${dist}/openamqj-jms.jar" />
-    <jar basedir = "${client.testclasses}" jarfile = "${dist}/openamqj-tests.jar" />
-</target>
-
-<!--
-    ?
--->
-<target name="dist" depends = "compile">
-    <mkdir dir = "${dist}"/>
-    <jar basedir = "${generate.classes}" jarfile = "${dist}/openamqj-generate.jar" />
-    <jar basedir = "${client.classes}"   jarfile = "${dist}/openamqj-jms.jar" />
+    <jar destfile = "${dist}/openamq-java.jar">
+        <fileset dir = "${generate.classes}" />
+	<fileset dir = "${client.classes}" />
+    </jar>
+    <jar destfile = "${dist}/openamq-java-tests.jar" basedir = "${tests.classes}" />
 </target>
 
 <!--
