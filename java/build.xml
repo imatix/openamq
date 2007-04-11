@@ -1,0 +1,176 @@
+<?xml version="1.0"?>
+
+<!-- OpenAMQ Java build file -->
+
+<project name="blaze-client" default="jar" basedir=".">
+    <property name="lib" value="${basedir}/lib"/>
+    <property name="generate.dir" value="${basedir}"/>
+    <property name="client.dir" value="${basedir}"/>
+    <property name="generate.src" value="${generate.dir}/src"/>
+    <property name="generate.resources" value="${generate.dir}/resources"/>
+    <property name="generate.classes" value="${generate.dir}/classes"/>
+    <property name="client.src" value="${client.dir}/src"/>
+    <property name="client.tests" value="${client.dir}/test"/>
+    <property name="client.classes" value="${client.dir}/classes"/>
+    <property name="client.testclasses" value="${client.dir}/testclasses"/>
+    <property name="generated.java.src" value="${generate.dir}/generated/java"/>
+    <property name="dist" value="${basedir}/dist"/>
+
+    <!-- Setup details -->
+    <target name="init">
+        <tstamp>
+            <format property="release" pattern="-dMMMyy" locale="en" timezone="GMT"/>
+        </tstamp>
+
+        <mkdir dir="${generate.classes}"/>
+        <mkdir dir="${client.classes}"/>
+        <mkdir dir="${client.testclasses}"/>
+    </target>
+
+    <path id="openamq.classpath">
+        <fileset dir="${basedir}/lib">
+            <include name="**/*.jar"/>
+        </fileset>
+        <fileset dir="${generate.dir}/lib">
+            <include name="**/*.jar"/>
+        </fileset>
+        <pathelement path="${generate.classes}"/>
+        <pathelement path="${client.classes}"/>
+        <pathelement path="${client.testclasses}/"/>
+    </path>
+
+    <!-- Remove all built files -->
+    <target name="clean" depends="init">
+        <delete dir="${generate.classes}"/>
+        <delete dir="${client.classes}"/>
+        <delete dir="${client.testclasses}"/>
+    </target>
+
+    <!-- Compile Java -->
+    <target name="compile" depends="init, generate">
+        <javac destdir="${generate.classes}" target="1.5" source="1.5" debug="on">
+            <classpath refid="openamq.classpath"/>
+            <src path="${generate.src}"/>
+            <src path="${generated.java.src}"/>
+        </javac>
+
+        <javac destdir="${client.classes}" target="1.5" source="1.5" debug="on">
+            <classpath refid="openamq.classpath"/>
+            <src path="${client.src}"/>
+        </javac>
+
+        <copy todir="${generate.classes}">
+            <!-- copy any non java src files into the build tree, e.g. log4j.properties -->
+            <fileset dir="${generate.src}">
+                <exclude name="**/*.java"/>
+                <exclude name="**/package.html"/>
+            </fileset>
+            <fileset dir="${generate.resources}">
+                <exclude name="**/*.java"/>
+                <exclude name="**/package.html"/>
+            </fileset>
+        </copy>
+
+        <copy todir="${client.classes}">
+            <!-- copy any non java src files into the build tree, e.g. log4j.properties -->
+            <fileset dir="${client.src}">
+                <exclude name="**/*.java"/>
+                <exclude name="**/package.html"/>
+            </fileset>
+        </copy>
+    </target>
+
+
+    <target name="compiletests" depends="compile">
+        <javac destdir="${client.testclasses}" target="1.5" source="1.5" classpathref="openamq.classpath" debug="on">
+            <src path="${client.tests}"/>
+        </javac>
+
+        <copy todir="${client.testclasses}">
+            <!-- copy any non java src files into the build tree, e.g. log4j.properties -->
+            <fileset dir="${client.tests}">
+                <exclude name="**/*.java"/>
+                <exclude name="**/package.html"/>
+            </fileset>
+        </copy>
+    </target>
+
+    <!-- Generate framing source code from protocol specification -->
+    <target name="generate" description="Generates framing source code from protocol specification">
+         <ant antfile="generate.xml" target="generate"/>
+    </target>
+
+    <!-- Build jar archive -->
+    <target name="jar" depends="compiletests">
+        <mkdir dir="${dist}"/>
+        <jar basedir="${generate.classes}" jarfile="${dist}/openamqj-generate.jar"/>
+        <jar basedir="${client.classes}" jarfile="${dist}/openamqj-jms.jar"/>
+        <jar basedir="${client.testclasses}" jarfile="${dist}/openamqj-tests.jar"/>
+    </target>
+
+    <target name="dist" depends="compile">
+        <mkdir dir="${dist}"/>
+        <jar basedir="${generate.classes}" jarfile="${dist}/openamqj-generate.jar"/>
+        <jar basedir="${client.classes}" jarfile="${dist}/openamqj-jms.jar"/>
+    </target>
+
+
+    <target name="javadoc" depends="compile, compiletests">
+        <mkdir dir="${dist}/docs/api"/>
+        <javadoc sourcepath="${client.src}" destdir="${dist}/docs/api"
+                 packagenames="org.openamq.*" classpathref="openamq.classpath" author="true"
+                 version="true" windowTitle="OpenAMQ Client API" doctitle="OpenAMQ Client API"
+                 footer="See &lt;a href=&quot;http://www.openamq.org&quot;&gt;www.openamq.org&lt;/a&gt; for more information."
+                 use="true" verbose="false"/>
+    </target>
+
+    <target name="ServiceProvidingClient" depends="compiletests">
+        <java fork="yes" classname="org.openamq.requestreply1.ServiceProvidingClient">
+              <classpath refid="openamq.classpath"/>
+              <jvmarg value="-server"/>
+              <sysproperty key="amqj.logging.level" value="INFO"/>
+              <sysproperty key="amqj.server.shared_read_write_pool" value="true"/>
+              <arg value="localhost:5672"/>
+              <arg value="guest"/>
+              <arg value="guest"/>
+              <arg value="/vpath"/>
+              <arg value="serviceQ1"/>
+        </java>
+    </target>
+
+     <target name="ServiceRequestingClient" depends="compiletests">
+        <java fork="yes" classname="org.openamq.requestreply1.ServiceRequestingClient">
+              <classpath refid="openamq.classpath"/>
+              <jvmarg value="-server"/>
+              <sysproperty key="amqj.logging.level" value="INFO"/>
+              <sysproperty key="amqj.server.shared_read_write_pool" value="true"/>
+              <arg value="localhost:5672"/>
+              <arg value="guest"/>
+              <arg value="guest"/>
+              <arg value="/vpath"/>
+              <arg value="serviceQ1"/>
+              <arg value="5000"/>
+              <arg value="512"/>
+        </java>
+    </target>
+
+    <target name="HeadersListener" depends="compiletests">
+        <java fork="yes" classname="org.openamq.headers.Listener">
+              <classpath refid="openamq.classpath"/>
+              <jvmarg value="-server"/>
+              <sysproperty key="amqj.logging.level" value="INFO"/>
+              <sysproperty key="amqj.server.shared_read_write_pool" value="true"/>
+        </java>
+    </target>
+
+    <target name="HeadersPublisher" depends="compiletests">
+        <java fork="yes" classname="org.openamq.headers.Publisher">
+              <classpath refid="openamq.classpath"/>
+              <jvmarg value="-server"/>
+              <sysproperty key="amqj.logging.level" value="INFO"/>
+              <sysproperty key="amqj.server.shared_read_write_pool" value="true"/>
+              <arg value="5000"/>
+              <arg value="1"/>
+        </java>
+    </target>
+</project>
