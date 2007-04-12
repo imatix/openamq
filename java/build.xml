@@ -44,7 +44,7 @@
     Clean
 -->
 <target name = "clean" depends = "init">
-    <delete dir = "${generate.src}" />
+    <delete dir = "${basedir}/generated" />
     <delete dir = "${client.classes}" />
     <delete dir = "${tests.classes}" />
     <delete dir = "${dist}" />
