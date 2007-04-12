@@ -11,6 +11,7 @@
     basedir = "."
     >
 
+<property name = "version"            value = "1.2c1" />
 <property name = "lib"                value = "${basedir}/lib" />
 <property name = "generate.saxon"     value = "${lib}/saxon/saxon8.jar" />
 <property name = "generate.resources" value = "${basedir}/resources" />
@@ -33,7 +34,10 @@
     <mkdir dir = "${tests.classes}" />
 </target>
 
-<path id = "openamq.classpath">
+<!--
+    Classpath used to build
+-->
+<path id = "build.classpath">
     <fileset dir = "${lib}">
         <include name = "**/*.jar" />
     </fileset>
@@ -103,7 +107,7 @@
         source  = "1.5" 
         debug   = "on"
         >
-        <classpath refid = "openamq.classpath" />
+        <classpath refid = "build.classpath" />
         <src path = "${generate.src}" />
         <src path = "${client.src}" />
     </javac>
@@ -128,7 +132,7 @@
         destdir      = "${tests.classes}" 
         target       = "1.5" 
         source       = "1.5" 
-        classpathref = "openamq.classpath" 
+        classpathref = "build.classpath" 
         debug        = "on"
         >
         <src path = "${tests.src}" />
@@ -141,7 +145,7 @@
 </target>
 
 <!--
-    Build JAR archive
+    Build JAR archives
 -->
 <target 
     name        = "jar" 
@@ -149,8 +153,50 @@
     description = "Build JAR archives in ./dist/"
     >
     <mkdir dir = "${dist}" />
-    <jar destfile = "${dist}/openamq-java.jar"       basedir = "${client.classes}" />
-    <jar destfile = "${dist}/openamq-java-tests.jar" basedir = "${tests.classes}" />
+    <copy todir = "${dist}">
+        <fileset dir = "${lib}">
+            <include name = "**/*.jar" />
+        </fileset>
+    </copy>
+    <path id = "dist.classpath">
+        <fileset dir = "${dist}">
+            <include name = "**/*.jar" />
+        </fileset>
+    </path>
+    <manifestclasspath 
+        property        = "jar.classpath" 
+        jarfile         = "${dist}/openamq-java-launch.jar"
+        maxParentLevels = "0"
+        >
+        <classpath refid = "dist.classpath" />
+    </manifestclasspath>
+    <manifest file = "${dist}/MANIFEST.MF">
+        <attribute name = "Class-Path" value = "${jar.classpath}" />
+        <attribute name = "Built-By"   value = "${user.name}" />
+        <section name = "org.openamq">
+            <attribute name = "Specification-Title"    value = "AMQP" />
+            <attribute name = "Specification-Version"  value = "${version}" />
+            <attribute name = "Specification-Vendor"   value = "AMQP Working Group, http://www.amqp.org/" />
+            <attribute name = "Implementation-Title"   value = "OpenAMQ Java Client" />
+            <attribute name = "Implementation-Version" value = "${version}" /> 
+            <attribute name = "Implementation-Vendor"  value = "iMatix Corporation" />
+            <attribute name = "Implementation-URL"     value = "http://www.openamq.org/" />
+        </section>
+    </manifest>
+    <jar 
+        destfile = "${dist}/openamq-java-launch.jar"
+        manifest = "${dist}/MANIFEST.MF"
+        />
+    <jar 
+        destfile = "${dist}/openamq-java-${version}.jar"       
+        basedir  = "${client.classes}" 
+        manifest = "${dist}/MANIFEST.MF"
+        />
+    <jar 
+        destfile = "${dist}/openamq-java-tests-${version}.jar" 
+        basedir  = "${tests.classes}"
+        manifest = "${dist}/MANIFEST.MF"
+        />
 </target>
 
 <!--
@@ -167,8 +213,6 @@
     <copy todir = "${install.dir}">
         <fileset dir = "${dist}">
             <include name = "*.jar" />
-        </fileset>
-        <fileset dir = "${lib}">
             <include name = "**/*.jar" />
         </fileset>
     </copy>
@@ -183,14 +227,14 @@
         sourcepath   = "${client.src}" 
         destdir      = "${dist}/docs/api"
         packagenames = "org.openamq.*" 
-        classpathref = "openamq.classpath" 
+        classpathref = "build.classpath" 
         author       = "true"
         version      = "true" 
         windowTitle  = "OpenAMQ Java Client API" 
         doctitle     = "OpenAMQ Java Client API"
         footer       = "See &lt;a href=&quot;http://www.openamq.org&quot;&gt;www.openamq.org&lt;/a&gt; for more information."
         use          = "true"
-        verbose = "false"
+        verbose      = "false"
         />
 </target>
 
