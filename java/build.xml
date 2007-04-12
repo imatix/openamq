@@ -76,6 +76,16 @@
     unless      = "generate.notRequired"
     description = "Generate framing classes from protocol specification"
     >
+    <mkdir dir = "${generate.src}/org/openamq/client" />
+    <copy 
+        file  = "${generate.resources}/Version.java" 
+        todir = "${generate.src}/org/openamq/client" 
+        />
+    <replace 
+        token = "@@version@@" 
+        value = "${version}" 
+        file  = "${generate.src}/org/openamq/client/Version.java" 
+        />
     <mkdir dir = "${generate.output}" />
     <java jar = "${generate.saxon}" fork = "true">
 	<arg value = "-o"/>

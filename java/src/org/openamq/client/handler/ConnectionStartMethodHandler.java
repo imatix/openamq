@@ -2,6 +2,7 @@ package org.openamq.client.handler;
 
 import org.apache.log4j.Logger;
 import org.openamq.AMQException;
+import org.openamq.client.Version;
 import org.openamq.client.protocol.AMQMethodEvent;
 import org.openamq.client.protocol.AMQProtocolSession;
 import org.openamq.client.security.AMQCallbackHandler;
@@ -26,6 +27,8 @@ public class ConnectionStartMethodHandler implements StateAwareMethodListener
     private static final Logger _log = Logger.getLogger(ConnectionStartMethodHandler.class);
 
     private static final ConnectionStartMethodHandler _instance = new ConnectionStartMethodHandler();
+
+    private static final Version _clientVersion = new Version();
 
     public static ConnectionStartMethodHandler getInstance()
     {
@@ -99,10 +102,10 @@ public class ConnectionStartMethodHandler implements StateAwareMethodListener
             stateManager.changeState(AMQState.CONNECTION_NOT_TUNED);
             FieldTable clientProperties = new FieldTable();
             clientProperties.put("instance", ps.getClientID());
-            clientProperties.put("product", "OpenAMQ JMS");
-            clientProperties.put("version", "1.0");
+            clientProperties.put("product", _clientVersion.getClientProduct());
+            clientProperties.put("version", _clientVersion.getClientVersion());
             clientProperties.put("platform", getFullSystemInfo());
-            clientProperties.put("copyright", "(C) JP Morgan Chase 2005");
+            clientProperties.put("copyright", _clientVersion.getClientCopyright());
             ps.writeFrame(ConnectionStartOkBody.createAMQFrame(evt.getChannelId(), clientProperties, mechanism,
                                                                saslResponse, selectedLocale));
         }
