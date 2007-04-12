@@ -60,23 +60,16 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
     {
         public String host;
         public int port;
-        public boolean useSSL;
-
-        public BrokerDetail(String host, int port, boolean useSSL)
-        {
-            this.host = host;
-            this.port = port;
-            this.useSSL = useSSL;
-        }
 
         public BrokerDetail(String host, int port)
         {
-            this(host, port, false);
+            this.host = host;
+            this.port = port;
         }
 
         public String toString()
         {
-            return (useSSL ? "SSL:" : "") + host + ":" + port;
+            return (host + ":" + port);
         }
 
         public boolean equals(Object o)
@@ -86,7 +79,7 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
                 return false;
             }
             BrokerDetail bd = (BrokerDetail) o;
-            return host.equals(bd.host) && (port == bd.port) && useSSL == bd.useSSL;
+            return host.equals(bd.host) && (port == bd.port);
         }
     }
 
@@ -151,12 +144,6 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
                          String clientName, String virtualPath) throws AMQException
     {
         this(new BrokerDetail(host, port), username, password, clientName, virtualPath);
-    }
-
-    public AMQConnection(String host, int port, boolean useSSL, String username, String password,
-                         String clientName, String virtualPath) throws AMQException
-    {
-        this(new BrokerDetail(host, port, useSSL), username, password, clientName, virtualPath);
     }
 
     public AMQConnection(String brokerDetails, String username, String password,
@@ -237,14 +224,12 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
             else
             {
                 int port = Integer.parseInt(token.substring(index + 1));
-                boolean useSSL = false;
                 int hostStart = 0;
                 if (token.charAt(0) == '$')
                 {
                     hostStart = 1;
-                    useSSL = true;
                 }
-                BrokerDetail bd = new BrokerDetail(token.substring(hostStart, index), port, useSSL);
+                BrokerDetail bd = new BrokerDetail(token.substring(hostStart, index), port);
                 ll.add(bd);
             }
         }
@@ -260,11 +245,11 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
         _protocolHandler.attainState(AMQState.CONNECTION_OPEN);
     }
 
-    public boolean attemptReconnection(String host, int port, boolean useSSL)
+    public boolean attemptReconnection(String host, int port)
     {
         // first we find the host port combo in the broker details array
         int index = -1;
-        BrokerDetail bd = new BrokerDetail(host, port, useSSL);
+        BrokerDetail bd = new BrokerDetail(host, port);
         for (int i = 0; i < _brokerDetails.length; i++)
         {
             if (_brokerDetails[i].equals(bd))

@@ -50,7 +50,6 @@ public class BlockingSocketTransportConnection implements ITransportConnection
         scfg.setSendBufferSize(Integer.getInteger("amqj.sendBufferSize", 32768));
         scfg.setReceiveBufferSize(Integer.getInteger("amqj.receiveBufferSize", 32768));
         final InetSocketAddress address = new InetSocketAddress(brokerDetail.host, brokerDetail.port);
-        protocolHandler.setUseSSL(brokerDetail.useSSL);
         _logger.info("Attempting connection to " + address);
         ConnectFuture future = ioConnector.connect(address, protocolHandler);
         // wait for connection to complete

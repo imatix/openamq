@@ -6,7 +6,6 @@ import org.apache.log4j.Logger;
 import org.apache.mina.common.IdleStatus;
 import org.apache.mina.common.IoHandlerAdapter;
 import org.apache.mina.common.IoSession;
-import org.apache.mina.filter.SSLFilter;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.openamq.AMQDisconnectedException;
 import org.openamq.AMQException;
@@ -18,7 +17,6 @@ import org.openamq.client.state.listener.ConnectionCloseOkListener;
 import org.openamq.client.state.listener.SpecificMethodFrameListener;
 import org.openamq.codec.AMQCodecFactory;
 import org.openamq.framing.*;
-import org.openamq.ssl.BogusSSLContextFactory;
 
 import java.util.Iterator;
 
@@ -34,12 +32,6 @@ public class AMQProtocolHandler extends IoHandlerAdapter
      * mapping between connection instances and protocol handler instances.
      */
     private AMQConnection _connection;
-
-    /**
-     * Used only when determining whether to add the SSL filter or not. This should be made more
-     * generic in future since we will potentially have many transport layer options
-     */
-    private boolean _useSSL;
 
     /**
      * Our wrapper for a protocol session that provides access to session values
@@ -133,7 +125,7 @@ public class AMQProtocolHandler extends IoHandlerAdapter
                 // all specified hosts
                 if (_host != null)
                 {
-                    failoverSucceeded = _connection.attemptReconnection(_host, _port, _useSSL);
+                    failoverSucceeded = _connection.attemptReconnection(_host, _port);
                 }
                 else
                 {
@@ -201,16 +193,6 @@ public class AMQProtocolHandler extends IoHandlerAdapter
         });
     }
 
-    public boolean isUseSSL()
-    {
-        return _useSSL;
-    }
-
-    public void setUseSSL(boolean useSSL)
-    {
-        _useSSL = useSSL;
-    }
-
     public void sessionCreated(IoSession session) throws Exception
     {
         _logger.debug("Protocol session created for session " + System.identityHashCode(session));
@@ -225,13 +207,6 @@ public class AMQProtocolHandler extends IoHandlerAdapter
         else
         {
             session.getFilterChain().addLast("protocolFilter", pcf);
-        }
-        // we only add the SSL filter where we have an SSL connection
-        if (_useSSL)
-        {
-            SSLFilter sslFilter = new SSLFilter(BogusSSLContextFactory.getInstance(false));
-            sslFilter.setUseClientMode(true);
-            session.getFilterChain().addBefore("protocolFilter", "ssl", sslFilter);
         }
 
         _protocolSession = new AMQProtocolSession(this, session, _connection);
