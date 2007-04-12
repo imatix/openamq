@@ -22,6 +22,7 @@
 <property name = "tests.src"          value = "${basedir}/tests/src" />
 <property name = "tests.classes"      value = "${basedir}/tests/classes" />
 <property name = "dist"               value = "${basedir}/dist" />
+<property environment = "env" />
 
 <!--  
     Setup build tree
@@ -43,7 +44,11 @@
 <!-- 
     Clean
 -->
-<target name = "clean" depends = "init">
+<target 
+    name        = "clean" 
+    depends     = "init"
+    description = "Clean any generated code and binaries from the build tree"
+    >
     <delete dir = "${basedir}/generated" />
     <delete dir = "${client.classes}" />
     <delete dir = "${tests.classes}" />
@@ -61,7 +66,12 @@
 	/>
 </target>
 
-<target name = "generate" depends = "check-generate" unless = "${generateNotRequired}">
+<target 
+    name        = "generate" 
+    depends     = "check-generate" 
+    unless      = "${generateNotRequired}"
+    description = "Generate framing classes from protocol specification"
+    >
     <mkdir dir = "${generate.output}" />
     <java jar = "${generate.saxon}" fork = "true">
 	<arg value = "-o"/>
@@ -82,7 +92,11 @@
 <!--
     Compile
 -->
-<target name = "compile" depends = "init, generate">
+<target 
+    name        = "compile" 
+    depends     = "init, generate"
+    description = "Compile client classes"
+    >
     <javac 
         destdir = "${client.classes}" 
         target  = "1.5" 
@@ -93,7 +107,6 @@
         <src path = "${generate.src}" />
         <src path = "${client.src}" />
     </javac>
-
     <copy todir = "${client.classes}">
         <fileset dir = "${client.src}">
             <include name = "log4j.properties" />
@@ -106,7 +119,11 @@
 <!--
     Compile tests
 -->
-<target name = "compiletests" depends = "compile">
+<target 
+    name        = "compiletests" 
+    depends     = "compile"
+    description = "Compile test classes"
+    >
     <javac 
         destdir      = "${tests.classes}" 
         target       = "1.5" 
@@ -116,7 +133,6 @@
         >
         <src path = "${tests.src}" />
     </javac>
-
     <copy todir = "${tests.classes}">
         <fileset dir = "${tests.src}">
             <include name = "org/openamq/framing/content.txt" />
@@ -127,10 +143,35 @@
 <!--
     Build JAR archive
 -->
-<target name="jar" depends = "compiletests">
+<target 
+    name        = "jar" 
+    depends     = "compiletests"
+    description = "Build JAR archives in ./dist/"
+    >
     <mkdir dir = "${dist}" />
     <jar destfile = "${dist}/openamq-java.jar"       basedir = "${client.classes}" />
     <jar destfile = "${dist}/openamq-java-tests.jar" basedir = "${tests.classes}" />
+</target>
+
+<!--
+    Install into $IBASE/java/lib
+-->
+<target 
+    name        = "install" 
+    depends     = "jar"
+    if          = "env.IBASE"
+    description = "Install distribution into $IBASE/java/lib"
+    >
+    <property name = "install.dir" value = "${env.IBASE}/java/lib" />
+    <mkdir dir = "${install.dir}" />
+    <copy todir = "${install.dir}">
+        <fileset dir = "${dist}">
+            <include name = "*.jar" />
+        </fileset>
+        <fileset dir = "${lib}">
+            <include name = "**/*.jar" />
+        </fileset>
+    </copy>
 </target>
 
 <!--
