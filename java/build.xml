@@ -60,7 +60,7 @@
 -->
 <target name = "check-generate">
     <uptodate 
-        property   = "generateNotRequired" 
+        property   = "generate.notRequired" 
 	targetfile = "${generate.output}/results.out" 
 	srcfile    = "${generate.spec}"
 	/>
@@ -69,7 +69,7 @@
 <target 
     name        = "generate" 
     depends     = "check-generate" 
-    unless      = "${generateNotRequired}"
+    unless      = "generate.notRequired"
     description = "Generate framing classes from protocol specification"
     >
     <mkdir dir = "${generate.output}" />
