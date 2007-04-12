@@ -10,9 +10,6 @@ import org.openamq.client.state.StateAwareMethodListener;
 import org.openamq.framing.ConnectionCloseBody;
 import org.openamq.framing.ConnectionCloseOkBody;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class ConnectionCloseMethodHandler implements StateAwareMethodListener
 {
     private static final Logger _logger = Logger.getLogger(ConnectionCloseMethodHandler.class);

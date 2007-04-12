@@ -14,9 +14,6 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.ArrayList;
 
-/**
- * @author Gordon Sim (gordon.r.sim@jpmorgan.com)
- */
 public class ObjectMessageTest implements MessageListener
 {
     private final AMQConnection connection;

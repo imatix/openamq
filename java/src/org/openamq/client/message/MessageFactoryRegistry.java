@@ -9,9 +9,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class MessageFactoryRegistry
 {
     private final Map _mimeToFactoryMap = new HashMap();

@@ -1,10 +1,3 @@
-/**
- * Date Created: 20-Jun-2005
- *************************************************************************
- * (c) Copyright JP Morgan Chase Ltd 2005. All rights reserved. No part of
- * this program may be photocopied reproduced or translated to another
- * program language without prior written consent of JP Morgan Chase Ltd
- *************************************************************************/
 package org.openamq.client.handler;
 
 import org.apache.log4j.Logger;
@@ -18,9 +11,6 @@ import org.openamq.framing.AMQFrame;
 import org.openamq.framing.ChannelCloseBody;
 import org.openamq.framing.ChannelCloseOkBody;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class ChannelCloseMethodHandler implements StateAwareMethodListener
 {
     private static final Logger _logger = Logger.getLogger(ChannelCloseMethodHandler.class);

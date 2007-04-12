@@ -4,9 +4,6 @@ import org.apache.mina.common.ThreadModel;
 import org.apache.mina.common.IoFilterChain;
 import org.apache.mina.common.ReferenceCountingIoFilterWrapper;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class ReadWriteThreadModel implements ThreadModel
 {
     public void buildFilterChain(IoFilterChain chain) throws Exception

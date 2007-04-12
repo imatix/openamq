@@ -12,9 +12,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CountDownLatch;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class WriterTest implements Runnable
 {
     private static final Logger _logger = Logger.getLogger(WriterTest.class);

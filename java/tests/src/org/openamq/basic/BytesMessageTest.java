@@ -16,9 +16,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-/**
- * @author Gordon Sim (gordon.r.sim@jpmorgan.com)
- */
 public class BytesMessageTest implements MessageListener
 {
     private final AMQConnection _connection;

@@ -4,7 +4,6 @@ package org.openamq.client.protocol;
  * Enumeration of failover states. Used to handle failover from within AMQProtocolHandler where MINA events need to be
  * dealt with and can happen during failover.
  *
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
 final class FailoverState
 {

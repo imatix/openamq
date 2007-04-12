@@ -14,9 +14,6 @@ import javax.jms.MessageProducer;
 import javax.jms.TextMessage;
 import java.util.Random;
 
-/**
- * @author Gordon Sim (gordon.r.sim@jpmorgan.com)
- */
 public class Client
 {
     private final Random random = new Random();

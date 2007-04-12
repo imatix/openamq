@@ -13,9 +13,6 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.CharacterCodingException;
 
-/**
- * @author Gordon Sim (gordon.r.sim@jpmorgan.com)
- */
 public class JMSObjectMessage extends AbstractJMSMessage implements ObjectMessage
 {
     static final String MIME_TYPE = "application/java-object-stream";

@@ -8,9 +8,6 @@ import org.apache.mina.filter.codec.ProtocolDecoderOutput;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class AMQDataBlockDecoder
 {
 	Logger _logger = Logger.getLogger(AMQDataBlockDecoder.class);

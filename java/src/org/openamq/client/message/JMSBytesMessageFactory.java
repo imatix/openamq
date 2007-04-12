@@ -6,9 +6,6 @@ import org.openamq.framing.ContentHeaderBody;
 
 import javax.jms.JMSException;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class JMSBytesMessageFactory extends AbstractJMSMessageFactory
 {
     protected AbstractJMSMessage createMessage(long deliveryTag, ByteBuffer data, ContentHeaderBody contentHeader) throws AMQException

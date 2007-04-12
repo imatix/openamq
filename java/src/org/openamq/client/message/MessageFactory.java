@@ -7,9 +7,6 @@ import javax.jms.JMSException;
 import java.util.List;
 
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public interface MessageFactory
 {
     AbstractJMSMessage createMessage(long deliveryTag, boolean redelivered,

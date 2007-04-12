@@ -8,9 +8,6 @@ import org.openamq.client.state.StateAwareMethodListener;
 import org.openamq.client.protocol.AMQMethodEvent;
 import org.openamq.client.message.UnprocessedMessage;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class BasicDeliverMethodHandler implements StateAwareMethodListener
 {
     private static final Logger _logger = Logger.getLogger(BasicDeliverMethodHandler.class);

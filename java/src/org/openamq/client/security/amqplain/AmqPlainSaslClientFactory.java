@@ -7,9 +7,6 @@ import javax.security.sasl.Sasl;
 import javax.security.auth.callback.CallbackHandler;
 import java.util.Map;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class AmqPlainSaslClientFactory implements SaslClientFactory
 {
     public SaslClient createSaslClient(String[] mechanisms, String authorizationId, String protocol, String serverName, Map props, CallbackHandler cbh) throws SaslException

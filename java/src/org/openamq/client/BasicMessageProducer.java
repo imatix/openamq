@@ -12,9 +12,6 @@ import org.openamq.framing.*;
 import javax.jms.*;
 import java.io.UnsupportedEncodingException;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class BasicMessageProducer extends Closeable implements org.openamq.jms.MessageProducer
 {
     protected final Logger _logger = Logger.getLogger(getClass());

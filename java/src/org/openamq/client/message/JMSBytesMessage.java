@@ -12,9 +12,6 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.CharacterCodingException;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class JMSBytesMessage extends AbstractJMSMessage implements javax.jms.BytesMessage
 {
     private static final String MIME_TYPE = "application/octet-stream";

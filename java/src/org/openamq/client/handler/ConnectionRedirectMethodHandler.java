@@ -7,9 +7,6 @@ import org.openamq.client.state.AMQStateManager;
 import org.openamq.client.state.StateAwareMethodListener;
 import org.openamq.framing.ConnectionRedirectBody;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class ConnectionRedirectMethodHandler implements StateAwareMethodListener
 {
     private static final Logger _logger = Logger.getLogger(ConnectionRedirectMethodHandler.class);

@@ -1,8 +1,5 @@
 package org.openamq.client;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class ConnectionTuneParameters
 {
     private long _frameMax;

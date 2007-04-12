@@ -3,9 +3,6 @@ package org.openamq.client.protocol;
 import java.util.Map;
 import java.util.HashMap;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public final class AMQConstant
 {
     private int _code;

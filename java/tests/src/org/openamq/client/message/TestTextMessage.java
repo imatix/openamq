@@ -4,9 +4,6 @@ import junit.framework.JUnit4TestAdapter;
 import org.junit.Test;
 import org.junit.Assert;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class TestTextMessage
 {
     @Test

@@ -7,9 +7,6 @@ import org.openamq.framing.ContentHeaderBody;
 
 import javax.jms.JMSException;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class JMSTextMessageFactory extends AbstractJMSMessageFactory
 {
 

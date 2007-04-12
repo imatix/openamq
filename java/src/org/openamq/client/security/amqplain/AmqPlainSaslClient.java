@@ -12,7 +12,6 @@ import javax.security.auth.callback.Callback;
 /**
  * Implements the "AMQPlain" authentication protocol that uses FieldTables to send username and pwd.
  *
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
 public class AmqPlainSaslClient implements SaslClient
 {

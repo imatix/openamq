@@ -3,9 +3,6 @@ package org.openamq.client.message;
 import org.openamq.AMQException;
 import org.apache.log4j.Logger;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class UnexpectedBodyReceivedException extends AMQException
 {
 

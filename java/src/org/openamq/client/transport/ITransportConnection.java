@@ -5,9 +5,6 @@ import org.openamq.client.AMQConnection;
 
 import java.io.IOException;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public interface ITransportConnection
 {
     void connect(AMQProtocolHandler protocolHandler, AMQConnection.BrokerDetail brokerDetail)

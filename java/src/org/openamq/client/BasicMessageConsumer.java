@@ -20,9 +20,6 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class BasicMessageConsumer extends Closeable implements MessageConsumer
 {
     private static final Logger _logger = Logger.getLogger(BasicMessageConsumer.class);

@@ -17,7 +17,6 @@ import java.util.Map;
  * <p/>
  * For each AMQProtocolHandler there is a separate state manager.
  *
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
 public class AMQStateManager implements AMQMethodListener
 {

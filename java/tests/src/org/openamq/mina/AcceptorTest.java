@@ -18,7 +18,6 @@ import java.net.InetSocketAddress;
 /**
  * Tests MINA socket performance. This acceptor simply reads data from the network and writes it back again.
  *
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
 public class AcceptorTest
 {

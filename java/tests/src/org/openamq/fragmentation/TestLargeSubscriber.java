@@ -8,9 +8,6 @@ import org.openamq.jms.Session;
 import javax.jms.*;
 import java.net.InetAddress;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class TestLargeSubscriber
 {
     private static final Logger _logger = Logger.getLogger(TestLargeSubscriber.class);

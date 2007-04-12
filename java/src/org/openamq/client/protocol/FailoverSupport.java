@@ -5,9 +5,6 @@ import org.openamq.client.AMQConnection;
 
 import javax.jms.JMSException;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public abstract class FailoverSupport
 {
     private static final Logger _log = Logger.getLogger(FailoverSupport.class);

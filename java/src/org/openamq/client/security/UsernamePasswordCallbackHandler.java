@@ -5,9 +5,6 @@ import org.openamq.client.protocol.AMQProtocolSession;
 import javax.security.auth.callback.*;
 import java.io.IOException;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class UsernamePasswordCallbackHandler implements AMQCallbackHandler
 {
     private AMQProtocolSession _protocolSession;

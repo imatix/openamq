@@ -17,7 +17,6 @@ import java.util.Map;
                     / 'T' long-integer
  * decimal-value    = decimals long-integer
  * decimals         = OCTET
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
 public class FieldTable extends LinkedHashMap
 {

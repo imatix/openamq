@@ -11,9 +11,6 @@ import javax.jms.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class ServiceProvidingClient
 {
     private static final Logger _logger = Logger.getLogger(ServiceProvidingClient.class);

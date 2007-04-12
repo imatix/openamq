@@ -3,9 +3,6 @@ package org.openamq;
 import org.openamq.framing.ChannelCloseBody;
 import org.openamq.framing.AMQFrame;
 
-/**
- * @author Gordon Sim (gordon.r.sim@jpmorgan.com)
- */
 public class AMQChannelException extends AMQException
 {
     private final int _classId;

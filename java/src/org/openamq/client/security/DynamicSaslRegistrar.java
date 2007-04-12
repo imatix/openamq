@@ -10,9 +10,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.security.Security;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class DynamicSaslRegistrar
 {
     private static final String FILE_PROPERTY = "amq.dynamicsaslregistrar.properties";

@@ -12,9 +12,6 @@ import javax.jms.JMSException;
 import java.util.List;
 import java.util.ArrayList;
 
-/**
- * @author Gordon Sim (gordon.r.sim@jpmorgan.com)
- */
 public class SessionStartTest implements MessageListener
 {
     private final AMQConnection _connection;

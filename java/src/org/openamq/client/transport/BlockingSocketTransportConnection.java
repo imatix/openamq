@@ -14,9 +14,6 @@ import org.openamq.bio.SocketConnector;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class BlockingSocketTransportConnection implements ITransportConnection
 {
     private static final Logger _logger = Logger.getLogger(BlockingSocketTransportConnection.class);

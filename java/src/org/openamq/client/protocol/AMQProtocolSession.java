@@ -24,7 +24,6 @@ import javax.security.sasl.SaslClient;
  * The underlying protocol session is still available but clients should not
  * use it to obtain session attributes.
  *
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
 public class AMQProtocolSession
 {

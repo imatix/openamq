@@ -7,7 +7,6 @@ import org.openamq.AMQException;
  * A frame listener that is informed of the protocl state when invoked and has
  * the opportunity to update state.
  *
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
 public interface StateAwareMethodListener
 {

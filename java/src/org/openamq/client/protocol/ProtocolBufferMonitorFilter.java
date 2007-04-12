@@ -9,7 +9,6 @@ import org.apache.log4j.Logger;
  * when a threshold has been exceeded, and has a frequency configuration so that messages are not output
  * too often.
  *
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
 public class ProtocolBufferMonitorFilter extends IoFilterAdapter
 {

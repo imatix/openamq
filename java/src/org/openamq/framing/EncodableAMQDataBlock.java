@@ -8,8 +8,6 @@ package org.openamq.framing;
  * a superclass implements it.
  * TODO: fix MINA so that this is not necessary
  * 
- * @author Mark Atwell (mark.atwell@jpmorgan.com)
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
 public interface EncodableAMQDataBlock
 {

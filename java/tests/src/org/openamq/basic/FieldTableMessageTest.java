@@ -18,9 +18,6 @@ import javax.jms.BytesMessage;
 import java.util.ArrayList;
 import java.io.IOException;
 
-/**
- * @author Gordon Sim (gordon.r.sim@jpmorgan.com)
- */
 public class FieldTableMessageTest implements MessageListener
 {
     private final AMQConnection _connection;

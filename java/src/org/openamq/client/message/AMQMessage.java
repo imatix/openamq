@@ -1,19 +1,8 @@
-/*****************************************************************************
- * Filename    : AMQMessage.java
- * Date Created: ${date}
- *****************************************************************************
- * (c) Copyright JP Morgan Chase Ltd 2005. All rights reserved. No part of
- * this program may be photocopied reproduced or translated to another
- * program language without prior written consent of JP Morgan Chase Ltd
- *****************************************************************************/
 package org.openamq.client.message;
 
 import org.openamq.framing.ContentHeaderProperties;
 import org.openamq.client.AMQSession;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class AMQMessage
 {
     protected ContentHeaderProperties _contentHeaderProperties;

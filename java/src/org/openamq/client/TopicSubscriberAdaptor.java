@@ -10,7 +10,6 @@ import javax.jms.TopicSubscriber;
 /**
  * Wraps a MessageConsumer to fulfill the extended TopicSubscriber contract
  *
- * @author Gordon Sim (gordon.r.sim@jpmorgan.com)
  */
 class TopicSubscriberAdaptor implements TopicSubscriber
 {

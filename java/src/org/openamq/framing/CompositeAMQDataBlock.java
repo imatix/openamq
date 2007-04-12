@@ -2,9 +2,6 @@ package org.openamq.framing;
 
 import org.apache.mina.common.ByteBuffer;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class CompositeAMQDataBlock extends AMQDataBlock implements EncodableAMQDataBlock
 {
     private ByteBuffer _encodedBlock;

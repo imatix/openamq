@@ -5,9 +5,6 @@ import java.security.Provider;
 import java.security.Security;
 import java.util.Map;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class JCAProvider extends Provider
 {
     public JCAProvider(Map<String, Class<? extends SaslClientFactory>> providerMap)

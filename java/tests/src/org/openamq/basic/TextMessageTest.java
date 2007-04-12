@@ -14,9 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Iterator;
 
-/**
- * @author Gordon Sim (gordon.r.sim@jpmorgan.com)
- */
 public class TextMessageTest implements MessageListener
 {
     private final AMQConnection _connection;

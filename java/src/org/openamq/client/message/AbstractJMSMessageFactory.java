@@ -11,9 +11,6 @@ import javax.jms.JMSException;
 import java.util.List;
 import java.util.Iterator;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public abstract class AbstractJMSMessageFactory implements MessageFactory
 {
     private static final Logger _logger = Logger.getLogger(AbstractJMSMessageFactory.class);

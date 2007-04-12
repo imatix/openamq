@@ -3,9 +3,6 @@ package org.openamq.framing;
 import org.apache.mina.common.ByteBuffer;
 import org.apache.log4j.Logger;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class BasicContentHeaderProperties implements ContentHeaderProperties
 {
     private static final Logger _logger = Logger.getLogger(BasicContentHeaderProperties.class);

@@ -10,9 +10,6 @@ import javax.jms.MessageListener;
 import javax.jms.Message;
 import javax.jms.MessageProducer;
 
-/**
- * @author Gordon Sim (gordon.r.sim@jpmorgan.com)
- */
 public class ChannelFlowTest implements MessageListener
 {
     private int sent;

@@ -2,9 +2,6 @@ package org.openamq.framing;
 
 import org.apache.mina.common.ByteBuffer;
 
-/**
- * @author Gordon Sim (gordon.r.sim@jpmorgan.com)
- */
 public class HeartbeatBody extends AMQBody
 {
     public static final byte TYPE = 8;

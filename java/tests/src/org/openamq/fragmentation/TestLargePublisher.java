@@ -19,7 +19,6 @@ import java.net.UnknownHostException;
  * <li>Fires off a message on the original queue and waits for a response on the temporary queue</li>
  * </ul>
  *
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
 public class TestLargePublisher
 {

@@ -5,7 +5,6 @@ import org.apache.mina.common.ByteBuffer;
 /**
  * A data block represents something that has a size in bytes and the ability to write itself to a byte
  * buffer (similar to a byte array).
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
 public abstract class AMQDataBlock implements EncodableAMQDataBlock
 {

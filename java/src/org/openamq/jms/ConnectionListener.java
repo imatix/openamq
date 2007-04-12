@@ -1,8 +1,5 @@
 package org.openamq.jms;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public interface ConnectionListener
 {
     /**

@@ -11,9 +11,6 @@ import javax.jms.Session;
 import javax.jms.MessageProducer;
 import javax.jms.JMSException;
 
-/**
- * @author Gordon Sim (gordon.r.sim@jpmorgan.com)
- */
 public class MultipleConnectionTest
 {
     private static class Receiver

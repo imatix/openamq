@@ -10,9 +10,6 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class BlockingAcceptorTest
 {
     private static final Logger _logger = Logger.getLogger(BlockingAcceptorTest.class);

@@ -1,8 +1,5 @@
 package org.openamq.client.protocol;
 
-/**
- * @author Gordon Sim (gordon.r.sim@jpmorgan.com)
- */
 class HeartbeatDiagnostics
 {
     private static final Diagnostics _impl = init();

@@ -2,9 +2,6 @@ package org.openamq.client.protocol;
 
 import org.apache.log4j.Logger;
 
-/**
- * @author Gordon Sim (gordon.r.sim@jpmorgan.com)
- */
 class HeartbeatConfig
 {
     private static final Logger _logger = Logger.getLogger(HeartbeatConfig.class);

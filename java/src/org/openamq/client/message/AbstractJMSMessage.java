@@ -16,9 +16,6 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public abstract class AbstractJMSMessage extends AMQMessage implements javax.jms.Message
 {
     private static final Map _destinationCache = Collections.synchronizedMap(new ReferenceMap());

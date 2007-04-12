@@ -7,9 +7,6 @@ import org.junit.Assert;
 import javax.jms.MessageNotReadableException;
 import javax.jms.MessageNotWriteableException;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class TestBytesMessage
 {
     /**

@@ -3,7 +3,6 @@ package org.openamq.client.state;
 /**
  * An event that is fired when the protocol state has changed.
  * 
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
 public class AMQStateChangedEvent
 {

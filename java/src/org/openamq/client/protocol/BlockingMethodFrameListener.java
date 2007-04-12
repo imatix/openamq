@@ -3,9 +3,6 @@ package org.openamq.client.protocol;
 import org.openamq.AMQException;
 import org.openamq.framing.AMQMethodBody;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public abstract class BlockingMethodFrameListener implements AMQMethodListener
 {
     private volatile boolean _ready = false;

@@ -5,12 +5,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 
-/**
- * Marks a field as being "configured" externally.
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
 public @interface Configured
 {
     /**

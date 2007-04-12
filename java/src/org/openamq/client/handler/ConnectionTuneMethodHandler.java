@@ -13,9 +13,6 @@ import org.openamq.framing.ConnectionTuneBody;
 import org.openamq.framing.ConnectionTuneOkBody;
 import org.openamq.framing.AMQFrame;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class ConnectionTuneMethodHandler implements StateAwareMethodListener
 {
     private static final Logger _logger = Logger.getLogger(ConnectionTuneMethodHandler.class);

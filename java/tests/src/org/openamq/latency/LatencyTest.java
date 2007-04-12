@@ -12,9 +12,6 @@ import javax.jms.JMSException;
 import javax.jms.TextMessage;
 import javax.jms.BytesMessage;
 
-/**
- * @author Gordon Sim (gordon.r.sim@jpmorgan.com)
- */
 public class LatencyTest implements MessageListener
 {
     private volatile boolean waiting;

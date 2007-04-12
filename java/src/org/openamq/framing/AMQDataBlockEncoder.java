@@ -9,9 +9,6 @@ import org.apache.mina.filter.codec.ProtocolEncoderOutput;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class AMQDataBlockEncoder implements MessageEncoder
 {
 	Logger _logger = Logger.getLogger(AMQDataBlockEncoder.class);

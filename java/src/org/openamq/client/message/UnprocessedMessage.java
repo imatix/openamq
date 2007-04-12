@@ -13,7 +13,6 @@ import java.util.LinkedList;
  * outside of the MINA dispatcher thread in order to minimise the amount of work done in
  * the MINA dispatcher thread.
  *
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
 public class UnprocessedMessage
 {

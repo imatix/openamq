@@ -9,9 +9,6 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharacterCodingException;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class JMSTextMessage extends AbstractJMSMessage implements javax.jms.TextMessage
 {
     private static final String MIME_TYPE = "text/plain";

@@ -4,9 +4,6 @@ import org.openamq.client.protocol.BlockingMethodFrameListener;
 import org.openamq.framing.AMQMethodBody;
 import org.openamq.AMQException;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class SpecificMethodFrameListener extends BlockingMethodFrameListener
 {
     private final Class _expectedClass;

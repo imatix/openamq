@@ -6,7 +6,6 @@ import org.openamq.AMQException;
 /**
  * Waits for a particular state to be reached.
  *
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
 public class StateWaiter implements StateListener
 {

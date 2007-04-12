@@ -2,9 +2,6 @@ package org.openamq.client.protocol;
 
 import org.openamq.AMQException;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public interface AMQMethodListener
 {
     /**

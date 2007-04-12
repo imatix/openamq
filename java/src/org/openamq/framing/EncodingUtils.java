@@ -5,13 +5,6 @@ import org.apache.mina.common.ByteBuffer;
 
 import java.nio.charset.Charset;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
-/**
- * @author Mark
- *
- */
 public class EncodingUtils
 {
 	private static final Logger _logger = Logger.getLogger(EncodingUtils.class);

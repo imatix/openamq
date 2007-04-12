@@ -20,9 +20,6 @@ import org.openamq.framing.*;
 
 import java.util.Iterator;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class AMQProtocolHandler extends IoHandlerAdapter
 {
     private static final Logger _logger = Logger.getLogger(AMQProtocolHandler.class);

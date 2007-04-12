@@ -2,9 +2,6 @@ package org.openamq.client.protocol;
 
 import org.openamq.framing.AMQMethodBody;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class AMQMethodEvent
 {
     private AMQMethodBody _method;

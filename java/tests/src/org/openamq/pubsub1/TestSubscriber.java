@@ -10,9 +10,6 @@ import javax.jms.MessageListener;
 import javax.jms.Topic;
 import java.net.InetAddress;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class TestSubscriber
 {
     private static final Logger _logger = Logger.getLogger(TestSubscriber.class);

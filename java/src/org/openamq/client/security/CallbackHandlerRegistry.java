@@ -5,9 +5,6 @@ import org.apache.log4j.Logger;
 import java.io.*;
 import java.util.*;
 
-/**
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
- */
 public class CallbackHandlerRegistry
 {
     private static final String FILE_PROPERTY = "amq.callbackhandler.properties";

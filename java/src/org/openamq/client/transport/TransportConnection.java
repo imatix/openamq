@@ -8,7 +8,6 @@ package org.openamq.client.transport;
  * Could be extended in future to support different transport types by turning this into concrete class/interface
  * combo.
  *
- * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
 public class TransportConnection
 {
