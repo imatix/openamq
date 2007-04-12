@@ -47,6 +47,7 @@
     <delete dir = "${generate.src}" />
     <delete dir = "${client.classes}" />
     <delete dir = "${tests.classes}" />
+    <delete dir = "${dist}" />
 </target>
 
 <!--
@@ -94,21 +95,11 @@
     </javac>
 
     <copy todir = "${client.classes}">
-        <!-- copy any non java src files into the build tree, e.g. log4j.properties -->
-        <fileset dir = "${generate.src}">
-            <exclude name = "**/*.java" />
-            <exclude name = "**/package.html" />
-        </fileset>
         <fileset dir = "${client.src}">
-            <exclude name = "**/*.java" />
-            <exclude name = "**/package.html" />
+            <include name = "log4j.properties" />
+            <include name = "org/openamq/client/security/DynamicSaslRegistrar.properties" />
+            <include name = "org/openamq/client/security/CallbackHandlerRegistry.properties" />
         </fileset>
-	<!--
-        <fileset dir = "${generate.resources}">
-            <exclude name = "**/*.java" />
-            <exclude name = "**/package.html" />
-        </fileset>
-	-->
     </copy>
 </target>
 
@@ -127,10 +118,8 @@
     </javac>
 
     <copy todir = "${tests.classes}">
-        <!-- copy any non java src files into the build tree, e.g. log4j.properties -->
         <fileset dir = "${tests.src}">
-            <exclude name = "**/*.java" />
-            <exclude name = "**/package.html" />
+            <include name = "org/openamq/framing/content.txt" />
         </fileset>
     </copy>
 </target>
