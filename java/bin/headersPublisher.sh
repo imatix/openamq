@@ -33,6 +33,10 @@ EOM
     exit 1
 fi
 
+if [ $# -lt 3 ]; then
+    echo "Usage: $0 [ -host HOST ] [ -port PORT ] <number of messages> <message size>"
+    exit 1
+fi
 #  Execute the test
 exec $JAVA -cp $OPENAMQ_JAVA_HOME/openamq-jms-launch.jar \
       -Damqj.logging.level="INFO" \

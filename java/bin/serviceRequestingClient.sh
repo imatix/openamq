@@ -33,11 +33,14 @@ EOM
     exit 1
 fi
 
-if [ -z "$1" ]; then
-    echo "usage: $0 host:port"
+if [ $# -lt 3 ]; then
+    echo "usage: $0 <host:port> <number of messages> <message size>"
     exit 1
 fi
+HOST=$1
+NUM=$2
+SIZE=$3
 #  Execute the test
 exec $JAVA -cp $OPENAMQ_JAVA_HOME/openamq-jms-launch.jar \
       -Damqj.logging.level="INFO" \
-      org.openamq.requestreply1.ServiceRequestingClient $1 guest guest /test serviceQ
+      org.openamq.requestreply1.ServiceRequestingClient $HOST guest guest /test serviceQ $NUM $SIZE
