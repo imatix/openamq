@@ -33,11 +33,7 @@ EOM
     exit 1
 fi
 
-if [ -z "$1" ]; then
-    echo "usage: $0 host:port"
-    exit 1
-fi
 #  Execute the test
 exec $JAVA -cp $OPENAMQ_JAVA_HOME/openamq-jms-launch.jar \
       -Damqj.logging.level="INFO" \
-      org.openamq.requestreply1.ServiceProvidingClient $1 guest guest /test serviceQ
+      org.openamq.requestreply1.ServiceProvidingClient $1 guest guest /test myqueue
