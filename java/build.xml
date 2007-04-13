@@ -1,12 +1,10 @@
 <?xml version="1.0"?>
 <!-- 
-    OpenAMQ Java Client build file
-
-    ...
+    OpenAMQ/JMS build file
 -->
 
 <project 
-    name    = "OpenAMQ Java Client"
+    name    = "OpenAMQ/JMS"
     default = "jar" 
     basedir = "."
     >
@@ -169,19 +167,19 @@
             <attribute name = "Specification-Title"    value = "AMQP" />
             <attribute name = "Specification-Version"  value = "${version}" />
             <attribute name = "Specification-Vendor"   value = "AMQP Working Group, http://www.amqp.org/" />
-            <attribute name = "Implementation-Title"   value = "OpenAMQ Java Client" />
+            <attribute name = "Implementation-Title"   value = "OpenAMQ/JMS" />
             <attribute name = "Implementation-Version" value = "${version}" /> 
             <attribute name = "Implementation-Vendor"  value = "iMatix Corporation" />
             <attribute name = "Implementation-URL"     value = "http://www.openamq.org/" />
         </section>
     </manifest>
     <jar 
-        destfile = "${dist}/openamq-java-${version}.jar"       
+        destfile = "${dist}/openamq-jms-${version}.jar"       
         basedir  = "${client.classes}" 
         manifest = "${dist}/MANIFEST.MF"
         />
     <jar 
-        destfile = "${dist}/openamq-java-tests-${version}.jar" 
+        destfile = "${dist}/openamq-jms-tests-${version}.jar" 
         basedir  = "${tests.classes}"
         manifest = "${dist}/MANIFEST.MF"
         />
@@ -197,7 +195,7 @@
     </path>
     <manifestclasspath 
         property        = "jar.classpath" 
-        jarfile         = "${dist}/openamq-java-launch.jar"
+        jarfile         = "${dist}/openamq-jms-launch.jar"
         maxParentLevels = "0"
         >
         <classpath refid = "dist.classpath" />
@@ -209,14 +207,14 @@
             <attribute name = "Specification-Title"    value = "AMQP" />
             <attribute name = "Specification-Version"  value = "${version}" />
             <attribute name = "Specification-Vendor"   value = "AMQP Working Group, http://www.amqp.org/" />
-            <attribute name = "Implementation-Title"   value = "OpenAMQ Java Client" />
+            <attribute name = "Implementation-Title"   value = "OpenAMQ/JMS" />
             <attribute name = "Implementation-Version" value = "${version}" /> 
             <attribute name = "Implementation-Vendor"  value = "iMatix Corporation" />
             <attribute name = "Implementation-URL"     value = "http://www.openamq.org/" />
         </section>
     </manifest>
     <jar 
-        destfile = "${dist}/openamq-java-launch.jar"
+        destfile = "${dist}/openamq-jms-launch.jar"
         manifest = "${dist}/MANIFEST.MF"
         />
 </target>
@@ -252,8 +250,8 @@
         classpathref = "build.classpath" 
         author       = "true"
         version      = "true" 
-        windowTitle  = "OpenAMQ Java Client API" 
-        doctitle     = "OpenAMQ Java Client API"
+        windowTitle  = "OpenAMQ/JMS API" 
+        doctitle     = "OpenAMQ/JMS API"
         footer       = "See &lt;a href=&quot;http://www.openamq.org&quot;&gt;www.openamq.org&lt;/a&gt; for more information."
         use          = "true"
         verbose      = "false"

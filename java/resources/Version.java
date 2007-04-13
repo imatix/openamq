@@ -4,7 +4,7 @@ public class Version
 {
     public String getClientProduct ()
     {
-        return "OpenAMQ Java Client";
+        return "OpenAMQ/JMS";
     }
 
     public String getClientVersion ()
