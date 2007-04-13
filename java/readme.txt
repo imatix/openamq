@@ -83,11 +83,23 @@ when it has received all the messages.
 You run the listener processes first (repeat for as many listeners as
 you like):
 
+On UNIX:
+
 > bin/headersListener.sh -host 127.0.0.1 -port 5672
+
+On Windows:
+
+> bin\headersListener.bat -host 127.0.0.1 -port 5672
 
 Then run the publisher process:
 
+On UNIX:
+
 > bin/headersPublisher.sh -host 10.0.0.1 -port 5672 <message count> <number of listeners>
+
+On Windows:
+
+> bin\headersPublisher.bat -host 10.0.0.1 -port 5672 <message count> <number of listeners>
 
 Note that before starting the publisher you should wait a few seconds to
 ensure all the clients are registered with the broker.
