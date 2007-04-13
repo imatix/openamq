@@ -1,10 +1,40 @@
 #!/bin/bash
 
-# sets up CP env var
-. ./setupclasspath.sh
-CP=$CP:../lib/sonic/sonic_Client.jar
-CP=$CP:../lib/activemq/activeio-core-3.0-beta1.jar
-CP=$CP:../lib/activemq/activemq-core-4.0-RC2.jar
-CP=$CP:../lib/activemq/geronimo-j2ee-management_1.0_spec-1.0.jar
+#  Launcher script for OpenAMQ/JMS test program
 
-$JAVA_HOME/bin/java -server -Xmx512m -Xms512m -XX:NewSize=150m -cp $CP -Damqj.logging.level="INFO" org.openamq.topic.Publisher $*
+#  Find Java and required JAR files
+LAUNCHER_JAR=openamq-jms-launch.jar
+if [ -n "$JAVA_HOME" ]; then
+    JAVA=$JAVA_HOME/bin/java
+else
+    JAVA=java
+fi
+OPENAMQ_JAVA_HOME=
+if [ -n "$IBASE" -a -f "$IBASE/java/lib/$LAUNCHER_JAR" ]; then
+    OPENAMQ_JAVA_HOME=$IBASE/java/lib
+fi
+if [ -f "../dist/$LAUNCHER_JAR" ]; then
+    OPENAMQ_JAVA_HOME=../dist
+fi
+if [ -f "./dist/$LAUNCHER_JAR" ]; then
+    OPENAMQ_JAVA_HOME=./dist
+fi
+if [ ! -f "$OPENAMQ_JAVA_HOME/$LAUNCHER_JAR" ]; then
+    cat <<EOM
+Could not locate $LAUNCHER_JAR in any of:
+
+\$IBASE/java/lib/$LAUNCHER_JAR
+../dist/$LAUNCHER_JAR
+./dist/$LAUNCHER_JAR
+
+Please either set \$IBASE to point to the IBASE where you installed 
+OpenAMQ/JMS, or run this script from the top-level directory of the
+OpenAMQ/JMS distribution.
+EOM
+    exit 1
+fi
+
+#  Execute the test
+exec $JAVA -cp $OPENAMQ_JAVA_HOME/openamq-jms-launch.jar \
+      -Damqj.logging.level="INFO" \
+      org.openamq.topic.Publisher $*

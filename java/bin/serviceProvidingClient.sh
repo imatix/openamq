@@ -1,8 +1,42 @@
 #!/bin/bash
-PROFILER_ARGS=
-PROFILE=$1
-shift
-# sets up CP env var
-. ./setupclasspath.sh
+#  Launcher script for OpenAMQ/JMS test program
 
-$JAVA_HOME/bin/java -server -Xmx1024m -Xms1024m -XX:NewSize=300m -cp $CP $PROFILER_ARGS -Damqj.logging.level="INFO" org.openamq.requestreply1.ServiceProvidingClient $1 guest guest /test serviceQ 
+#  Find Java and required JAR files
+LAUNCHER_JAR=openamq-jms-launch.jar
+if [ -n "$JAVA_HOME" ]; then
+    JAVA=$JAVA_HOME/bin/java
+else
+    JAVA=java
+fi
+OPENAMQ_JAVA_HOME=
+if [ -n "$IBASE" -a -f "$IBASE/java/lib/$LAUNCHER_JAR" ]; then
+    OPENAMQ_JAVA_HOME=$IBASE/java/lib
+fi
+if [ -f "../dist/$LAUNCHER_JAR" ]; then
+    OPENAMQ_JAVA_HOME=../dist
+fi
+if [ -f "./dist/$LAUNCHER_JAR" ]; then
+    OPENAMQ_JAVA_HOME=./dist
+fi
+if [ ! -f "$OPENAMQ_JAVA_HOME/$LAUNCHER_JAR" ]; then
+    cat <<EOM
+Could not locate $LAUNCHER_JAR in any of:
+
+\$IBASE/java/lib/$LAUNCHER_JAR
+../dist/$LAUNCHER_JAR
+./dist/$LAUNCHER_JAR
+
+Please either set \$IBASE to point to the IBASE where you installed 
+OpenAMQ/JMS, or run this script from the top-level directory of the
+OpenAMQ/JMS distribution.
+EOM
+    exit 1
+fi
+
+if [ -z "$1" ]; then
+    echo "usage: $0 host:port"
+fi
+#  Execute the test
+exec $JAVA -cp $OPENAMQ_JAVA_HOME/openamq-jms-launch.jar \
+      -Damqj.logging.level="INFO" \
+      org.openamq.requestreply1.ServiceProvidingClient $1 guest guest /test serviceQ
