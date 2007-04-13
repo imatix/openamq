@@ -1,27 +1,43 @@
-In order to build Blaze you need Ant 1.6.5.
+OpenAMQ/JMS
+Copyright 2007 iMatix Corporation
+For copying conditions, please see the file license.txt included 
+with this distribution.
 
-Build in order:
+Building OpenAMQ/JMS
+--------------------
 
-* common
-* broker
-* client
+In order to build OpenAMQ/JMS you need:
 
-Running the Broker
-------------------
+  * Sun J2SE 5.0 JDK, which can be downloaded from http://java.sun.com/
+  * Apache Ant 1.7.0 or newer, which can be downloaded from
+    http://ant.apache.org/
 
-To run the broker, run the broker/bin/amq_server.sh script. The only argument you need to provide is a path to a config file,
-and the one supplied in the etc directory probably doesn't need modification.
+To build, please ensure that Ant and your JDK are installed correctly,
+and that the JAVA_HOME environment variable, if set, is pointing to the
+root directory of the JDK that you wish to build OpenAMQ/JMS with.
 
-So for example:
+Then, run the following:
 
-./amq_server.sh -c ../etc/config.xml
+> ant
 
-You can get a list of all command line arguments by using the -h argument.
+This will build OpenAMQ/JMS and test classes, and leave the JAR files in
+the dist directory of the distribution.
 
-In particular, -p overrides the port specified in the config file and -b overrides the bind interface (default is wildcard).
+To install the JAR files into an OpenAMQ IBASE, you can run
 
-Running Tests
--------------
+> ant install
+
+which will install them into $IBASE/java/lib, if the IBASE environment
+variable is set.
+
+For other useful targets, try:
+
+> ant -projecthelp
+
+Running Test Programs
+---------------------
+
+********* Guso to review ***********
 
 Shell scripts to run tests are in the client/bin directory.
 
