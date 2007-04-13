@@ -38,7 +38,5 @@ if not exist !_OPENAMQ_JAVA_HOME!\!_LAUNCHER_JAR! (
     exit /b 1
 )
 
-set _HOST=%1
-shift
 :-  Execute the test
-!_JAVA! -cp !_OPENAMQ_JAVA_HOME!/!_LAUNCHER_JAR! -Damqj.logging.level="INFO" org.openamq.requestreply1.ServiceRequestingClient !_HOST! guest guest /test myqueue %*
+!_JAVA! -cp !_OPENAMQ_JAVA_HOME!/!_LAUNCHER_JAR! -Damqj.logging.level="INFO" org.openamq.requestreply1.ServiceRequestingClient %1 guest guest /test myqueue %2 %3
