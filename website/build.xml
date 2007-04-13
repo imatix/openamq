@@ -59,5 +59,10 @@ These Windows console commands build OpenAMQ from the Windows source kit:
 
 More information: [page:build_win32]
 
+Building OpenAMQ/JMS
+********************
+
+Please see: [page:build_jms]
+
 </content>
 </page>

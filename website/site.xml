@@ -45,6 +45,7 @@
     <section>
         <page name = "build_unix" />
         <page name = "build_win32" />
+        <page name = "build_jms" />
         <page name = "performance" />
         <page name = "reliability" />
     </section>

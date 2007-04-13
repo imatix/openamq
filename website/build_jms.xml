@@ -1,0 +1,40 @@
+<page
+    name = "build_jms"
+    title = "Building OpenAMQ/JMS"
+    subtitle = "Building OpenAMQ/JMS"
+    >
+<content type = "gurudoc">
+
+Building OpenAMQ/JMS
+********************
+
+In order to build OpenAMQ/JMS you need:
+
+ - Sun J2SE 5.0 JDK, which can be downloaded from http://java.sun.com/
+ - Apache Ant 1.7.0 or newer, which can be downloaded from
+   http://ant.apache.org/
+
+To build, please ensure that Ant and your JDK are installed correctly,
+and that the JAVA_HOME environment variable, if set, is pointing to the
+root directory of the JDK that you wish to build OpenAMQ/JMS with.
+
+Then, run the following:
+
+    > ant
+
+This will build OpenAMQ/JMS and test classes, and leave the JAR files in
+the dist directory of the distribution.
+
+To install the JAR files into an OpenAMQ IBASE, you can run
+
+    > ant install
+
+which will install them into $IBASE/java/lib, if the IBASE environment
+variable is set.
+
+For other useful targets, try:
+
+    > ant -projecthelp
+
+</content>
+</page>
