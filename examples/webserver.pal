@@ -12,7 +12,7 @@
         <queue_declare />
         <queue_bind />
         <repeat>
-            </wait />
+            <wait/>
             <basic_get />
             <basic_arrived>
                 <echo>Serving file $message_id...</echo>

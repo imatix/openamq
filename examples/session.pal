@@ -8,7 +8,6 @@
         <echo>channel_max=$channel_max</echo>
         <echo>frame_max=$frame_max</echo>
         <echo>heartbeat=$heartbeat</echo>
-        <echo>context_key=$context_key</echo>
         <echo>server_product=$server_product</echo>
         <echo>server_version=$server_version</echo>
         <echo>server_platform=$server_platform</echo>
