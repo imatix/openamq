@@ -275,7 +275,7 @@ main (int argc, char *argv [])
                     goto finished;
                 }
             }
-            amq_content_basic_unlink (&content);
+            amq_content_basic_destroy (&content);
         }
         //  Read messages back from server, discard them
         expected = messages * nbr_active;
@@ -284,7 +284,7 @@ main (int argc, char *argv [])
                 session = a_sessions [the_index];
                 content = amq_client_session_basic_arrived (session);
                 if (content) {
-                    amq_content_basic_unlink (&content);
+                    amq_content_basic_destroy (&content);
                     expected--;
                 }
                 else
@@ -320,7 +320,7 @@ main (int argc, char *argv [])
         if (p_connections [the_index])
             amq_client_connection_destroy (&p_connections [the_index]);
     }
-    amq_content_basic_unlink (&content);
+    amq_content_basic_destroy (&content);
     icl_longstr_destroy (&auth_data);
     icl_mem_free (test_data);
     icl_mem_free (a_connections);
