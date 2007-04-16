@@ -1,5 +1,22 @@
 + FileMQ - File transfer over AMQP
 
+++ General semantics
+
+File stream
+    - many publishers, one cache, many subscribers
+    - subscribers get files one by one
+    - fmq_sub launches external commands to process files
+    - subscribers can replay stream from by time
+        - cache-to-subscriber session
+    - all files are versioned on cache
+
+shared folder
+    - one publisher, one cache, many subscribers
+    - subscribers get snapshot of folder
+    - fmq_sub can launch external commands to process events
+        - new files, deleted files
+    - all files are versioned on cache
+
 
 ++ model 1
 
@@ -30,21 +47,6 @@ cache
     - create queue, bind to #, receive messages
     - store messages in folder named by channel
 
-
-file stream mode
-    - many publishers, one cache, many subscribers
-    - subscribers get files one by one
-    - fmq_sub launches external commands to process files
-    - subscribers can replay stream from by time
-        - cache-to-subscriber session
-    - all files are versioned on cache
-
-shared folder mode
-    - one publisher, one cache, many subscribers
-    - subscribers get snapshot of folder
-    - fmq_sub can launch external commands to process events
-        - new files, deleted files
-    - all files are versioned on cache
 
 ++ fmq_cache
 
