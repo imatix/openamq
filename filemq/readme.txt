@@ -1,6 +1,105 @@
 + FileMQ - File transfer over AMQP
 
-++ General semantics
+++ General architecture
+
+All routing is done outside AMQP.
+
+* N publishers who send files to a cache server
+* 1 cache server
+* N consumers who get files from the cache server
+
+API:
+
+content->type is command
+
+    -- Staging a file ------------------------------------------------
+
+    P:STAGE
+    S:STAGE-OK | EXCEPTION
+
+    STAGE - send fragment of arbitrary size
+        FILENAME=x                      //  File name
+        FILESIZE=n                      //  Total size of file
+        REVISED=n                       //  Date/time revised
+        DIGEST=x                        //  SHA1 file digest
+        OFFSET=n                        //  Offset of fragment
+        + content body
+        + reply-to
+
+    STAGE-OK - fragment received, thanks
+        FILENAME=x                      //  File name
+        FILESIZE=n                      //  Total size of file
+        STAGED=n                        //  Amount staged so far
+        -- when STAGED=FILESIZE, file fully received
+
+    EXCEPTION
+        FILENAME=x                      //  File name
+        TEXT=x                          //  Exception text
+
+    -- Publishing a file ---------------------------------------------
+
+    P:PUBLISH
+    S:PUBLISH-OK | EXCEPTION
+
+    PUBLISH - distribute a previously-staged file
+        FILENAME=x                      //  File name
+        FILESIZE=n                      //  Total size of file
+        REVISED=n                       //  Date/time revised
+        DIGEST=x                        //  SHA1 file digest
+        CHANNEL=channel                 //  Name of channel
+        + reply-to
+
+    PUBLISH-OK - file successfully published
+        FILENAME=x                      //  File name
+        CHANNEL=channel                 //  Name of channel
+        SUBSCRIBES=n                    //  Number of subscribers
+
+    -- Subscribing to a channel --------------------------------------
+
+    C:SUBSCRIBE
+    S:SUBSCRIBE-OK | EXCEPTION
+
+    SUBSCRIBE - subscribe to a channel
+        CHANNEL=channel                 //  Name of channel
+        + reply-to
+
+    SUBSCRIBE-OK - confirm subscription
+        CHANNEL=channel
+
+    -- Delivering a file ---------------------------------------------
+
+    S:STAGE
+    C:STAGE-OK | EXCEPTION
+
+    S:DELIVER
+    C:DELIVER-OK | EXCEPTION
+
+    DELIVER - deliver a previously-staged file
+        FILENAME=x                      //  File name
+        FILESIZE=n                      //  Total size of file
+        REVISED=n                       //  Date/time revised
+        DIGEST=x                        //  SHA1 file digest
+        CHANNEL=channel                 //  Name of channel
+
+    DELIVER-OK - file successfully delivered
+        FILENAME=x                      //  File name
+        CHANNEL=channel                 //  Name of channel
+        SUBSCRIBES=n                    //  Number of subscribers
+
+    -- Requesting a syncpoint ----------------------------------------
+
+    C:SYNC
+    S:SYNC-OK | EXCEPTION
+
+    SYNC - set synchronisation point
+        REVISED=n                       //  Date/time syncpoint
+        CHANNEL=channel                 //  Name of channel
+        + reply-to
+
+    SYNC-OK - confirm sync point
+        REVISED=n                       //  Date/time syncpoint
+        CHANNEL=channel
+
 
 File stream
     - many publishers, one cache, many subscribers
@@ -18,25 +117,6 @@ shared folder
     - all files are versioned on cache
 
 
-++ model 1
-
-one exchange = application
-    -> "service name"
-    handles N channels
-        -> a.b.c
-
-publisher
-    Model 1: send a specified file to a service/channel
-    Model 2: synchronises a specified folder with a channel
-
-    - synchronises a specified folder with a channel
-    - reads all files in folder
-    - sends cache server list of filename/size/md4
-      digest = ipr_file_digest (fullname);
-    -
-
-    - send messages to exchange with channel name as routing key
-
 subscriber
     - create queue, bind to channel patterns, receive messages
     - deliver messages by running some process
@@ -49,10 +129,6 @@ cache
 
 
 ++ fmq_cache
-
-messages, by message-id
-    HELLO   - reply HELLO-OK
-    STAGE   - stage a file fragment, async
 
 
 -> type = message name
