@@ -221,9 +221,10 @@ $\(selftype)
     <doc>
     If set, data is packed into larger buffers before writing. This
     can improve performance significantly on some systems, especially
-    Windows and Linux with 2.4 kernels. If you disable this setting,
+    Windows and Linux with 2.4 kernels. If you enable this setting,
     you should test the performance using a bulk message transfer
-    test.
+    test.  The packio option may cause unexpected behaviour when used
+    with very large messages.
     </doc>
     </property>
 
