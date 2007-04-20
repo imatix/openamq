@@ -1,6 +1,6 @@
 !============================================================================
 !=
-!=  FileMQ cache Broker
+!=  FileMQ file service
 !=
 !=  Copyright (c) 1996-2007 iMatix Corporation
 !=
@@ -23,38 +23,45 @@
 -anim
 
 After-Init:
-    (--) Ok                                 -> Broker-Ready
+    (--) Ok                                 -> Have-Message
           + Open-Connection-To-Broker
-          + Declare-Exchange-For-Service
-          + Register-As-Service-Cache
+          + Register-As-File-Service
+          + Wait-For-Incoming-Message
     (--) Error                              ->
           + Terminate-The-Program
 
-Broker-Ready:
-    (--) Arrived                            -> Have-Message
-          + Parse-Incoming-Message
-
 Have-Message:
-    (--) Hello                              -> Broker-Ready
-          + Reply-Hello-Ok
-    (--) Other                              -> Broker-Ready
+    (--) Stage                              -> Have-Message
+          + Stage-File-Fragment
+          + Wait-For-Incoming-Message
+    (--) Publish                            -> Have-Message
+          + Pubish-File-To-Subscribers
+          + Wait-For-Incoming-Message
+    (--) Subscribe                          -> Have-Message
+          + Register-New-Subscribes
+          + Wait-For-Incoming-Message
+    (--) Sync                               -> Have-Message
+          + Synchronise-Subscriber
+          + Wait-For-Incoming-Message
+    (--) Other                              -> Have-Message
           + Signal-Unknown-Message
 
 !   Connection to broker is still open
 Soft-Failure:
-    (--) Retry                              -> Broker-Ready
+    (--) Retry                              -> Have-Message
           + Pause-For-Recovery
+          + Wait-For-Incoming-Message
     (--) Abandon                            ->
           + Close-Connection-to-Broker
           + Terminate-The-Program
 
 !   Connection to broker has been closed
 Hard-Failure:
-    (--) Retry                              -> Broker-Ready
+    (--) Retry                              -> Have-Message
           + Pause-For-Recovery
           + Open-Connection-To-Broker
-          + Declare-Exchange-For-Service
-          + Register-As-Service-Cache
+          + Register-As-File-Service
+          + Wait-For-Incoming-Message
     (--) Abandon                            ->
           + Terminate-The-Program
 
@@ -63,7 +70,7 @@ Defaults:
           + Signal-Unexpected-Returns
           + Check-If-Retries-Wanted
     (--) No-Broker                          -> Hard-Failure
-          + Close-Connection-to-Broker
+          + Close-Connection-To-Broker
           + Check-If-Retries-Wanted
     (--) Interrupt                          ->
           + Signal-Shutting-Down

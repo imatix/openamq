@@ -10,7 +10,12 @@ All routing is done outside AMQP.
 
 API:
 
-content->type is command
+    * content->type is command
+    * headers provide arguments
+
+    Cache handles STAGE, PUBLISH, SUBSCRIBE, SYNC
+    Publisher handles: STAGE-OK, PUBLISH-OK, EXCEPTION
+    Subscriber handles: STAGE, DELIVER, SYNC-OK, EXCEPTION
 
     -- Staging a file ------------------------------------------------
 
@@ -99,6 +104,15 @@ content->type is command
     SYNC-OK - confirm sync point
         REVISED=n                       //  Date/time syncpoint
         CHANNEL=channel
+
+
+Cache design
+
+    - Cache creates queue fmq.servicename
+        - using a named queue ensures there is only a single cache
+    - Cache queue is bound to default exchange
+        
+
 
 
 File stream

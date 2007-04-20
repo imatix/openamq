@@ -146,51 +146,55 @@ if .%1==.-install goto tempinst
     if not "!_LOCAL_BASE!"=="" (
         set MY_COPTS=!MY_COPTS! -li !_LOCAL_BASE!\include -ll !_LOCAL_BASE!\lib
     )
-    if "!BOOM_TRACE!"=="1" echo c !MY_COPTS! fmq_cache
+    if "!BOOM_TRACE!"=="1" echo c !MY_COPTS! fmq_session_test
     verify>nul
-    call c !MY_COPTS! fmq_cache
+    call c !MY_COPTS! fmq_session_test
     if errorlevel 1 (
-        echo boom E: [fmq]: 'c !MY_COPTS! fmq_cache' failed - stop.
+        echo boom E: [fmq]: 'c !MY_COPTS! fmq_session_test' failed - stop.
         set _exception=1
         goto :eof
     )
-    if "!BOOM_TRACE!"=="1" echo c !MY_COPTS! fmq_pub
+    if "!BOOM_TRACE!"=="1" echo c !MY_COPTS! fmq_session
     verify>nul
-    call c !MY_COPTS! fmq_pub
+    call c !MY_COPTS! fmq_session
     if errorlevel 1 (
-        echo boom E: [fmq]: 'c !MY_COPTS! fmq_pub' failed - stop.
+        echo boom E: [fmq]: 'c !MY_COPTS! fmq_session' failed - stop.
         set _exception=1
         goto :eof
     )
-    if "!BOOM_TRACE!"=="1" echo c !MY_COPTS! fmq_sub
+    if "!BOOM_MODEL_CPP!"=="1" (
+        if "!BOOM_TRACE!"=="1" echo c -p !MY_COPTS! fmq_session
+    )
     verify>nul
-    call c !MY_COPTS! fmq_sub
+    if "!BOOM_MODEL_CPP!"=="1" call c -p !MY_COPTS! fmq_session
     if errorlevel 1 (
-        echo boom E: [fmq]: 'c !MY_COPTS! fmq_sub' failed - stop.
+        echo boom E: [fmq]: 'c -p !MY_COPTS! fmq_session' failed - stop.
         set _exception=1
         goto :eof
     )
-    if "!BOOM_TRACE!"=="1" echo c !MY_COPTS! -L fmq_cache
+    if "!BOOM_TRACE!"=="1" echo c !MY_COPTS! -r libfmq.lib fmq_session
     verify>nul
-    call c !MY_COPTS! -L fmq_cache
+    call c !MY_COPTS! -r libfmq.lib fmq_session
     if errorlevel 1 (
-        echo boom E: [fmq]: 'c !MY_COPTS! -L fmq_cache' failed - stop.
+        echo boom E: [fmq]: 'c !MY_COPTS! -r libfmq.lib fmq_session' failed - stop.
         set _exception=1
         goto :eof
     )
-    if "!BOOM_TRACE!"=="1" echo c !MY_COPTS! -L fmq_pub
+    if "!BOOM_MODEL_CPP!"=="1" (
+        if "!BOOM_TRACE!"=="1" echo c -p !MY_COPTS! -r libfmq.lib fmq_session
+    )
     verify>nul
-    call c !MY_COPTS! -L fmq_pub
+    if "!BOOM_MODEL_CPP!"=="1" call c -p !MY_COPTS! -r libfmq.lib fmq_session
     if errorlevel 1 (
-        echo boom E: [fmq]: 'c !MY_COPTS! -L fmq_pub' failed - stop.
+        echo boom E: [fmq]: 'c -p !MY_COPTS! -r libfmq.lib fmq_session' failed - stop.
         set _exception=1
         goto :eof
     )
-    if "!BOOM_TRACE!"=="1" echo c !MY_COPTS! -L fmq_sub
+    if "!BOOM_TRACE!"=="1" echo c !MY_COPTS! -L fmq_session_test
     verify>nul
-    call c !MY_COPTS! -L fmq_sub
+    call c !MY_COPTS! -L fmq_session_test
     if errorlevel 1 (
-        echo boom E: [fmq]: 'c !MY_COPTS! -L fmq_sub' failed - stop.
+        echo boom E: [fmq]: 'c !MY_COPTS! -L fmq_session_test' failed - stop.
         set _exception=1
         goto :eof
     )
@@ -201,22 +205,16 @@ if .%1==.-install goto tempinst
 :a_build_source_packages
    if exist _package.lst del _package.lst
     if exist version.h echo version.h>>_package.lst
-    if exist fmq_cache.c echo fmq_cache.c>>_package.lst
-    if exist fmq_pub.c echo fmq_pub.c>>_package.lst
-    if exist fmq_sub.c echo fmq_sub.c>>_package.lst
+    if exist fmq_session.icl echo fmq_session.icl>>_package.lst
     if exist prelude.pdl echo prelude.pdl>>_package.lst
     if exist license.gpl echo license.gpl>>_package.lst
     if exist project.pdl echo project.pdl>>_package.lst
     if exist readme.txt echo readme.txt>>_package.lst
-    if exist fmq_cache.l echo fmq_cache.l>>_package.lst
-    if exist fmq_cache.i echo fmq_cache.i>>_package.lst
-    if exist fmq_cache.d echo fmq_cache.d>>_package.lst
-    if exist fmq_pub.l echo fmq_pub.l>>_package.lst
-    if exist fmq_pub.i echo fmq_pub.i>>_package.lst
-    if exist fmq_pub.d echo fmq_pub.d>>_package.lst
-    if exist fmq_sub.l echo fmq_sub.l>>_package.lst
-    if exist fmq_sub.i echo fmq_sub.i>>_package.lst
-    if exist fmq_sub.d echo fmq_sub.d>>_package.lst
+    if exist fmq_session_test.c echo fmq_session_test.c>>_package.lst
+    if exist fmq_session.h echo fmq_session.h>>_package.lst
+    if exist fmq_session.c echo fmq_session.c>>_package.lst
+    if exist fmq_session.hpp echo fmq_session.hpp>>_package.lst
+    if exist fmq_session.cpp echo fmq_session.cpp>>_package.lst
     if exist stamp_generate echo stamp_generate>>_package.lst
     if exist configure echo configure>>_package.lst
     if exist Makefile.unix echo Makefile.unix>>_package.lst
@@ -244,18 +242,8 @@ if .%1==.-install goto tempinst
         set _exception=1
         goto :eof
     )
-    if not exist fmq_cache.c (
-        echo boom E: [fmq]: fmq_cache.c is missing, cannot continue
-        set _exception=1
-        goto :eof
-    )
-    if not exist fmq_pub.c (
-        echo boom E: [fmq]: fmq_pub.c is missing, cannot continue
-        set _exception=1
-        goto :eof
-    )
-    if not exist fmq_sub.c (
-        echo boom E: [fmq]: fmq_sub.c is missing, cannot continue
+    if not exist fmq_session.icl (
+        echo boom E: [fmq]: fmq_session.icl is missing, cannot continue
         set _exception=1
         goto :eof
     )
@@ -269,48 +257,28 @@ if .%1==.-install goto tempinst
         set _exception=1
         goto :eof
     )
-    if not exist fmq_cache.l (
-        echo boom E: [fmq]: fmq_cache.l is missing, cannot continue
+    if not exist fmq_session_test.c (
+        echo boom E: [fmq]: fmq_session_test.c is missing, cannot continue
         set _exception=1
         goto :eof
     )
-    if not exist fmq_cache.i (
-        echo boom E: [fmq]: fmq_cache.i is missing, cannot continue
+    if not exist fmq_session.h (
+        echo boom E: [fmq]: fmq_session.h is missing, cannot continue
         set _exception=1
         goto :eof
     )
-    if not exist fmq_cache.d (
-        echo boom E: [fmq]: fmq_cache.d is missing, cannot continue
+    if not exist fmq_session.c (
+        echo boom E: [fmq]: fmq_session.c is missing, cannot continue
         set _exception=1
         goto :eof
     )
-    if not exist fmq_pub.l (
-        echo boom E: [fmq]: fmq_pub.l is missing, cannot continue
+    if not exist fmq_session.hpp (
+        echo boom E: [fmq]: fmq_session.hpp is missing, cannot continue
         set _exception=1
         goto :eof
     )
-    if not exist fmq_pub.i (
-        echo boom E: [fmq]: fmq_pub.i is missing, cannot continue
-        set _exception=1
-        goto :eof
-    )
-    if not exist fmq_pub.d (
-        echo boom E: [fmq]: fmq_pub.d is missing, cannot continue
-        set _exception=1
-        goto :eof
-    )
-    if not exist fmq_sub.l (
-        echo boom E: [fmq]: fmq_sub.l is missing, cannot continue
-        set _exception=1
-        goto :eof
-    )
-    if not exist fmq_sub.i (
-        echo boom E: [fmq]: fmq_sub.i is missing, cannot continue
-        set _exception=1
-        goto :eof
-    )
-    if not exist fmq_sub.d (
-        echo boom E: [fmq]: fmq_sub.d is missing, cannot continue
+    if not exist fmq_session.cpp (
+        echo boom E: [fmq]: fmq_session.cpp is missing, cannot continue
         set _exception=1
         goto :eof
     )
@@ -354,18 +322,8 @@ if .%1==.-install goto tempinst
 :------------------------   CHECK BINARY FILES EXIST   ------------------------
 
 :a_check_binary_files_exist
-    if not exist fmq_cache.exe (
-        echo boom E: [fmq]: fmq_cache.exe is missing, cannot continue
-        set _exception=1
-        goto :eof
-    )
-    if not exist fmq_pub.exe (
-        echo boom E: [fmq]: fmq_pub.exe is missing, cannot continue
-        set _exception=1
-        goto :eof
-    )
-    if not exist fmq_sub.exe (
-        echo boom E: [fmq]: fmq_sub.exe is missing, cannot continue
+    if not exist fmq_session.icl (
+        echo boom E: [fmq]: fmq_session.icl is missing, cannot continue
         set _exception=1
         goto :eof
     )
@@ -378,6 +336,18 @@ if .%1==.-install goto tempinst
         echo boom E: [fmq]: readme.txt is missing, cannot continue
         set _exception=1
         goto :eof
+    )
+    if not exist fmq_session.h (
+        echo boom E: [fmq]: fmq_session.h is missing, cannot continue
+        set _exception=1
+        goto :eof
+    )
+    if "!BOOM_MODEL_CPP!"=="1" (
+    if not exist fmq_session.hpp (
+        echo boom E: [fmq]: fmq_session.hpp is missing, cannot continue
+        set _exception=1
+        goto :eof
+    )
     )
     goto :eof
 
@@ -397,18 +367,8 @@ if .%1==.-install goto tempinst
         set _exception=1
         goto :eof
     )
-    if not exist fmq_cache.c (
-        echo boom E: [fmq]: fmq_cache.c is missing, cannot continue
-        set _exception=1
-        goto :eof
-    )
-    if not exist fmq_pub.c (
-        echo boom E: [fmq]: fmq_pub.c is missing, cannot continue
-        set _exception=1
-        goto :eof
-    )
-    if not exist fmq_sub.c (
-        echo boom E: [fmq]: fmq_sub.c is missing, cannot continue
+    if not exist fmq_session.icl (
+        echo boom E: [fmq]: fmq_session.icl is missing, cannot continue
         set _exception=1
         goto :eof
     )
@@ -419,21 +379,6 @@ if .%1==.-install goto tempinst
     )
     if not exist readme.txt (
         echo boom E: [fmq]: readme.txt is missing, cannot continue
-        set _exception=1
-        goto :eof
-    )
-    if not exist fmq_cache.l (
-        echo boom E: [fmq]: fmq_cache.l is missing, cannot continue
-        set _exception=1
-        goto :eof
-    )
-    if not exist fmq_pub.l (
-        echo boom E: [fmq]: fmq_pub.l is missing, cannot continue
-        set _exception=1
-        goto :eof
-    )
-    if not exist fmq_sub.l (
-        echo boom E: [fmq]: fmq_sub.l is missing, cannot continue
         set _exception=1
         goto :eof
     )
@@ -477,18 +422,8 @@ if .%1==.-install goto tempinst
         set _exception=1
         goto :eof
     )
-    if not exist fmq_cache.c (
-        echo boom E: [fmq]: fmq_cache.c is missing, cannot continue
-        set _exception=1
-        goto :eof
-    )
-    if not exist fmq_pub.c (
-        echo boom E: [fmq]: fmq_pub.c is missing, cannot continue
-        set _exception=1
-        goto :eof
-    )
-    if not exist fmq_sub.c (
-        echo boom E: [fmq]: fmq_sub.c is missing, cannot continue
+    if not exist fmq_session.icl (
+        echo boom E: [fmq]: fmq_session.icl is missing, cannot continue
         set _exception=1
         goto :eof
     )
@@ -502,50 +437,34 @@ if .%1==.-install goto tempinst
         set _exception=1
         goto :eof
     )
-    if not exist fmq_cache.l (
-        echo boom E: [fmq]: fmq_cache.l is missing, cannot continue
+    if not exist fmq_session_test.c (
+        echo boom E: [fmq]: fmq_session_test.c is missing, cannot continue
         set _exception=1
         goto :eof
     )
-    if not exist fmq_cache.i (
-        echo boom E: [fmq]: fmq_cache.i is missing, cannot continue
+    if not exist fmq_session.h (
+        echo boom E: [fmq]: fmq_session.h is missing, cannot continue
         set _exception=1
         goto :eof
     )
-    if not exist fmq_cache.d (
-        echo boom E: [fmq]: fmq_cache.d is missing, cannot continue
+    if not exist fmq_session.c (
+        echo boom E: [fmq]: fmq_session.c is missing, cannot continue
         set _exception=1
         goto :eof
     )
-    if not exist fmq_pub.l (
-        echo boom E: [fmq]: fmq_pub.l is missing, cannot continue
+    if "!BOOM_MODEL_CPP!"=="1" (
+    if not exist fmq_session.hpp (
+        echo boom E: [fmq]: fmq_session.hpp is missing, cannot continue
         set _exception=1
         goto :eof
     )
-    if not exist fmq_pub.i (
-        echo boom E: [fmq]: fmq_pub.i is missing, cannot continue
+    )
+    if "!BOOM_MODEL_CPP!"=="1" (
+    if not exist fmq_session.cpp (
+        echo boom E: [fmq]: fmq_session.cpp is missing, cannot continue
         set _exception=1
         goto :eof
     )
-    if not exist fmq_pub.d (
-        echo boom E: [fmq]: fmq_pub.d is missing, cannot continue
-        set _exception=1
-        goto :eof
-    )
-    if not exist fmq_sub.l (
-        echo boom E: [fmq]: fmq_sub.l is missing, cannot continue
-        set _exception=1
-        goto :eof
-    )
-    if not exist fmq_sub.i (
-        echo boom E: [fmq]: fmq_sub.i is missing, cannot continue
-        set _exception=1
-        goto :eof
-    )
-    if not exist fmq_sub.d (
-        echo boom E: [fmq]: fmq_sub.d is missing, cannot continue
-        set _exception=1
-        goto :eof
     )
     if not exist stamp_generate (
         echo boom E: [fmq]: stamp_generate is missing, cannot continue
@@ -590,27 +509,11 @@ if .%1==.-install goto tempinst
     echo boom I: [fmq]: installing filemq into !_INSTALL_ROOT!...
     if not exist !_INSTALL_ROOT! mkdir !_INSTALL_ROOT!
     if not exist !_INSTALL_ROOT!\bin\nul mkdir !_INSTALL_ROOT!\bin\
-    if "!BOOM_TRACE!"=="1" echo copy/y fmq_cache.exe !_INSTALL_ROOT!\bin\>nul
+    if "!BOOM_TRACE!"=="1" echo copy/y fmq_session.icl !_INSTALL_ROOT!\bin\>nul
     verify>nul
-    call copy/y fmq_cache.exe !_INSTALL_ROOT!\bin\>nul
+    call copy/y fmq_session.icl !_INSTALL_ROOT!\bin\>nul
     if errorlevel 1 (
-        echo boom E: [fmq]: 'copy/y fmq_cache.exe !_INSTALL_ROOT!\bin\>nul' failed - stop.
-        set _exception=1
-        goto :eof
-    )
-    if "!BOOM_TRACE!"=="1" echo copy/y fmq_pub.exe !_INSTALL_ROOT!\bin\>nul
-    verify>nul
-    call copy/y fmq_pub.exe !_INSTALL_ROOT!\bin\>nul
-    if errorlevel 1 (
-        echo boom E: [fmq]: 'copy/y fmq_pub.exe !_INSTALL_ROOT!\bin\>nul' failed - stop.
-        set _exception=1
-        goto :eof
-    )
-    if "!BOOM_TRACE!"=="1" echo copy/y fmq_sub.exe !_INSTALL_ROOT!\bin\>nul
-    verify>nul
-    call copy/y fmq_sub.exe !_INSTALL_ROOT!\bin\>nul
-    if errorlevel 1 (
-        echo boom E: [fmq]: 'copy/y fmq_sub.exe !_INSTALL_ROOT!\bin\>nul' failed - stop.
+        echo boom E: [fmq]: 'copy/y fmq_session.icl !_INSTALL_ROOT!\bin\>nul' failed - stop.
         set _exception=1
         goto :eof
     )
@@ -633,6 +536,25 @@ if .%1==.-install goto tempinst
         set _exception=1
         goto :eof
     )
+    if not exist !_INSTALL_ROOT!\include\nul mkdir !_INSTALL_ROOT!\include\
+    if "!BOOM_TRACE!"=="1" echo copy/y fmq_session.h !_INSTALL_ROOT!\include\>nul
+    verify>nul
+    call copy/y fmq_session.h !_INSTALL_ROOT!\include\>nul
+    if errorlevel 1 (
+        echo boom E: [fmq]: 'copy/y fmq_session.h !_INSTALL_ROOT!\include\>nul' failed - stop.
+        set _exception=1
+        goto :eof
+    )
+    if "!BOOM_MODEL_CPP!"=="1" (
+        if "!BOOM_TRACE!"=="1" echo copy/y fmq_session.hpp !_INSTALL_ROOT!\include\>nul
+    )
+    verify>nul
+    if "!BOOM_MODEL_CPP!"=="1" call copy/y fmq_session.hpp !_INSTALL_ROOT!\include\>nul
+    if errorlevel 1 (
+        echo boom E: [fmq]: 'copy/y fmq_session.hpp !_INSTALL_ROOT!\include\>nul' failed - stop.
+        set _exception=1
+        goto :eof
+    )
     if exist installer.bat (
     if "!BOOM_TRACE!"=="1" echo installer
     verify>nul
@@ -649,27 +571,19 @@ if .%1==.-install goto tempinst
 
 :a_produce_all_generated_files
     echo boom I: [fmq]: Generating files...
-    if "!BOOM_TRACE!"=="1" echo lr -quiet fmq_cache.l
+    if "!BOOM_TRACE!"=="1" echo gsl -q -quiet:1 -target:stdcpp fmq_session.icl
     verify>nul
-    call lr -quiet fmq_cache.l
+    call gsl -q -quiet:1 -target:stdcpp fmq_session.icl
     if errorlevel 1 (
-        echo boom E: [fmq]: 'lr -quiet fmq_cache.l' failed - stop.
+        echo boom E: [fmq]: 'gsl -q -quiet:1 -target:stdcpp fmq_session.icl' failed - stop.
         set _exception=1
         goto :eof
     )
-    if "!BOOM_TRACE!"=="1" echo lr -quiet fmq_pub.l
+    if "!BOOM_TRACE!"=="1" echo gsl -q -quiet:1 fmq_session.icl
     verify>nul
-    call lr -quiet fmq_pub.l
+    call gsl -q -quiet:1 fmq_session.icl
     if errorlevel 1 (
-        echo boom E: [fmq]: 'lr -quiet fmq_pub.l' failed - stop.
-        set _exception=1
-        goto :eof
-    )
-    if "!BOOM_TRACE!"=="1" echo lr -quiet fmq_sub.l
-    verify>nul
-    call lr -quiet fmq_sub.l
-    if errorlevel 1 (
-        echo boom E: [fmq]: 'lr -quiet fmq_sub.l' failed - stop.
+        echo boom E: [fmq]: 'gsl -q -quiet:1 fmq_session.icl' failed - stop.
         set _exception=1
         goto :eof
     )
@@ -680,27 +594,21 @@ if .%1==.-install goto tempinst
 
 :a_produce_generated_files
     echo boom I: [fmq]: Generating files...
-    if "!BOOM_TRACE!"=="1" echo lr -quiet fmq_cache.l
+    if "!BOOM_MODEL_CPP!"=="1" (
+        if "!BOOM_TRACE!"=="1" echo gsl -q -quiet:1 -target:stdcpp fmq_session.icl
+    )
     verify>nul
-    call lr -quiet fmq_cache.l
+    if "!BOOM_MODEL_CPP!"=="1" call gsl -q -quiet:1 -target:stdcpp fmq_session.icl
     if errorlevel 1 (
-        echo boom E: [fmq]: 'lr -quiet fmq_cache.l' failed - stop.
+        echo boom E: [fmq]: 'gsl -q -quiet:1 -target:stdcpp fmq_session.icl' failed - stop.
         set _exception=1
         goto :eof
     )
-    if "!BOOM_TRACE!"=="1" echo lr -quiet fmq_pub.l
+    if "!BOOM_TRACE!"=="1" echo gsl -q -quiet:1 fmq_session.icl
     verify>nul
-    call lr -quiet fmq_pub.l
+    call gsl -q -quiet:1 fmq_session.icl
     if errorlevel 1 (
-        echo boom E: [fmq]: 'lr -quiet fmq_pub.l' failed - stop.
-        set _exception=1
-        goto :eof
-    )
-    if "!BOOM_TRACE!"=="1" echo lr -quiet fmq_sub.l
-    verify>nul
-    call lr -quiet fmq_sub.l
-    if errorlevel 1 (
-        echo boom E: [fmq]: 'lr -quiet fmq_sub.l' failed - stop.
+        echo boom E: [fmq]: 'gsl -q -quiet:1 fmq_session.icl' failed - stop.
         set _exception=1
         goto :eof
     )
@@ -710,28 +618,25 @@ if .%1==.-install goto tempinst
 :------------------------   REMOVE GENERATED BINARIES   -----------------------
 
 :a_remove_generated_binaries
-    if exist fmq_cache.exe del fmq_cache.exe
-    if exist fmq_pub.exe del fmq_pub.exe
-    if exist fmq_sub.exe del fmq_sub.exe
     if exist libfmq.lib del libfmq.lib
-    if exist fmq_cache.obj del fmq_cache.obj
-    if exist fmq_cache.exe del fmq_cache.exe
-    if exist fmq_pub.obj del fmq_pub.obj
-    if exist fmq_pub.exe del fmq_pub.exe
-    if exist fmq_sub.obj del fmq_sub.obj
-    if exist fmq_sub.exe del fmq_sub.exe
+    if exist fmq_session_test_test.obj del fmq_session_test_test.obj
+    if exist fmq_session_test_test.exe del fmq_session_test_test.exe
+    if exist fmq_session.obj del fmq_session.obj
+    if exist fmq_session.opp del fmq_session.opp
+    if exist fmq_session_test.obj del fmq_session_test.obj
+    if exist fmq_session_test.exe del fmq_session_test.exe
+    if exist fmq_session.obj del fmq_session.obj
     if exist vc60.pdb del vc60.pdb
     goto :eof
 
 :------------------------   REMOVE GENERATED SOURCES   ------------------------
 
 :a_remove_generated_sources
-    if exist fmq_cache.i del fmq_cache.i
-    if exist fmq_cache.d del fmq_cache.d
-    if exist fmq_pub.i del fmq_pub.i
-    if exist fmq_pub.d del fmq_pub.d
-    if exist fmq_sub.i del fmq_sub.i
-    if exist fmq_sub.d del fmq_sub.d
+    if exist fmq_session_test.c del fmq_session_test.c
+    if exist fmq_session.h del fmq_session.h
+    if exist fmq_session.c del fmq_session.c
+    if exist fmq_session.hpp del fmq_session.hpp
+    if exist fmq_session.cpp del fmq_session.cpp
     if exist stamp_generate del stamp_generate
     if exist fmq_*.zip del fmq_*.zip
     goto :eof
@@ -753,6 +658,20 @@ if .%1==.-install goto tempinst
 :--------------------------   RUN REGRESSION TESTS   --------------------------
 
 :a_run_regression_tests
+    echo boom I: [fmq]: Running regression tests...
+    if "!BOOM_TRACE!"=="1" (
+        set RUN_COMMAND=fmq_session_test
+    ) else (
+        set RUN_COMMAND=fmq_session_test -q
+    )
+    if "!BOOM_TRACE!"=="1" echo !RUN_COMMAND!
+    verify>nul
+    call !RUN_COMMAND!
+    if errorlevel 1 (
+        echo boom E: [fmq]: '!RUN_COMMAND!' failed - stop.
+        set _exception=1
+        goto :eof
+    )
     :-  Run local selftest script if present
     if exist selftest.bat (
     if "!BOOM_TRACE!"=="1" echo selftest

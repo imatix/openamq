@@ -20,69 +20,44 @@
 !============================================================================
 
 -schema:lrschema.c99
--anim
 
 After-Init:
-    (--) Ok                                 -> After-Hello
+    (--) Ok                                 -> Have-Operation
           + Open-Connection-To-Broker
-          + Declare-Exchange-For-Service
-          + Declare-Response-Queue
-          + Send-Hello-to-Service
+          + Check-Program-Operation
     (--) Error                              ->
           + Terminate-The-Program
 
-After-Hello:
-    (--) Arrived                            -> Pub-Operation
-          + Assert-Message-Is-Hello-Ok
-          + Get-Operation-Mode
-    (--) Bad-Message                        -> After-Hello
-          + Discard-Bad-Message
-    (--) Returned                           -> Soft-Failure
-          + Signal-No-Service
-          + Check-If-Retries-Wanted
+Have-Operation:
+    (--) Single-File                        -> Have-Fragment
+          + Register-As-File-Publisher
+          + Prepare-To-Stage-File
+          + Get-Next-File-Fragment
 
-
-
-
-Pub-Operation:
-    (--) Single                             -> Expect-Publish-Ok
-          + Publish-File-To-Service
-          + Signal-File-Published
-xxx
-
+Have-Fragment:
+    (--) Ok                                 -> Have-Fragment
+          + Stage-The-Fragment
+          + Get-Next-File-Fragment
+    (--) Finished                           ->
+          + Publish-The-File
           + Close-Connection-to-Broker
           + Terminate-The-Program
-    (--) Folder                             ->
-          + Send-Index-To-Service
-          + Close-Connection-to-Broker
-          + Terminate-The-Program
-
-Expect-Publish-Ok:
-    (--) Arrived                            ->
-          + Assert-Message-is-Publish-Ok
-    (--) Bad-Message                        -> After-Publish
-          + Discard-Bad-Message
-    (--) Returned                           -> Soft-Failure
-          + Signal-No-Service
-          + Check-If-Retries-Wanted
-
+          
 !   Connection to broker is still open
 Soft-Failure:
-    (--) Retry                              -> After-Hello
+    (--) Retry                              -> Have-Operation
           + Pause-For-Recovery
-          + Send-Hello-to-Service
+          + Check-Program-Operation
     (--) Abandon                            ->
           + Close-Connection-to-Broker
           + Terminate-The-Program
 
 !   Connection to broker has been closed
 Hard-Failure:
-    (--) Retry                              -> After-Hello
+    (--) Retry                              -> Have-Operation
           + Pause-For-Recovery
           + Open-Connection-To-Broker
-          + Declare-Exchange-For-Service
-          + Declare-Response-Queue
-          + Send-Hello-to-Service
+          + Check-Program-Operation
     (--) Abandon                            ->
           + Terminate-The-Program
 
@@ -100,3 +75,4 @@ Defaults:
           + Signal-Shutting-Down
           + Close-Connection-to-Broker
           + Terminate-The-Program
+

@@ -25,7 +25,6 @@
 After-Init:
     (--) Ok                                 -> Broker-Ready
           + Open-Connection-To-Broker
-          + Declare-Exchange-For-Service
           + Register-As-Subscriber
     (--) Error                              ->
           + Terminate-The-Program
@@ -53,7 +52,6 @@ Hard-Failure:
     (--) Retry                              -> Broker-Ready
           + Pause-For-Recovery
           + Open-Connection-To-Broker
-          + Declare-Exchange-For-Service
           + Register-As-Subscriber
     (--) Abandon                            ->
           + Terminate-The-Program

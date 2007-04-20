@@ -26,15 +26,21 @@
     >
 
 <include filename = "prelude.pdl" />
-<file name = "version.h"    class = "c version"       >Project version file</file>
+<inherit filename = "icl_classes.pdl" />
+<file name = "version.h"        class = "c version"       >Project version file</file>
 
-<file name = "fmq_cache.c"  class = "c/libero main"   >FileMQ cache server</file>
-<file name = "fmq_pub.c"    class = "c/libero main"   >FileMQ publisher</file>
-<file name = "fmq_sub.c"    class = "c/libero main"   >FileMQ subscriber</file>
+<!--
+<file name = "fmq_cache.c"      class = "c/libero main"   >FileMQ cache server</file>
+<file name = "fmq_pub.c"        class = "c/libero main"   >FileMQ publisher</file>
+<file name = "fmq_sub.c"        class = "c/libero main"   >FileMQ subscriber</file>
+-->
+<file name = "fmq_session.icl"  class = "icl public class">Hashed symbol item</file>
 
-<file name = "fmq_cache"    class = "public command"  >FileMQ cache server</file>
-<file name = "fmq_pub"      class = "public command"  >FileMQ publisher</file>
-<file name = "fmq_sub"      class = "public command"  >FileMQ subscriber</file>
-<file name = "libfmq"       class = "public library"  >FileMQ API library</file>
+<!--
+<file name = "fmq_cache"        class = "public command"  >FileMQ cache server</file>
+<file name = "fmq_pub"          class = "public command"  >FileMQ publisher</file>
+<file name = "fmq_sub"          class = "public command"  >FileMQ subscriber</file>
+-->
+<file name = "libfmq"           class = "public library"  >FileMQ API library</file>
 
 </pdl>

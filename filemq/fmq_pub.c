@@ -1,6 +1,6 @@
 /*===========================================================================
  *
- *  FileMQ single-file publisher
+ *  FileMQ file publisher
  *
  *  Accepts a single file from the application and sends it to the broker;
  *  expects a confirmation from the cache server.
@@ -234,22 +234,35 @@ MODULE open_connection_to_broker (void)
 }
 
 
-/**********************   DECLARE EXCHANGE FOR SERVICE   *********************/
+/*************************   DECLARE RESPONSE QUEUE   ************************/
 
-MODULE declare_exchange_for_service (void)
+MODULE declare_response_queue (void)
 {
-    rc = amq_client_session_exchange_declare (
+    rc = amq_client_session_queue_declare (
         session,                    //  Session reference
         access_ticket,              //  Access ticket
-        exchange_name,              //  Exchange name
-        "topic",                    //  Exchange type
+        NULL,                       //  Queue name
         FALSE,                      //  Passive only
-        FALSE,                      //  Durable exchange
-        TRUE,                       //  Auto-delete when unused
-        FALSE,                      //  Create internal exchange
+        FALSE,                      //  Durable queue
+        TRUE,                       //  Exclusive queue
+        TRUE,                       //  Auto-delete queue when unused
         NULL                        //  Additional arguments
     );
-    s_check_status (rc, "E: can't declare service exchange '%s'", exchange_name);
+    s_check_status (rc, "E: can't declare private response queue");
+    if (!exception_raised) {
+        icl_shortstr_cpy (queue_name, session->queue);
+        rc = amq_client_session_basic_consume (
+            session,                //  Session reference
+            access_ticket,          //  Access ticket
+            queue_name,             //  Private queue name
+            NULL,                   //  Consumer tag
+            FALSE,                  //  Do not deliver own messages
+            TRUE,                   //  No acknowledgement needed
+            TRUE,                   //  Request exclusive access
+            NULL                    //  Additional arguments
+        );
+        s_check_status (rc, "E: can't consume from response queue '%s'", queue_name);
+    }
 }
 
 static void
@@ -267,50 +280,6 @@ s_check_status (int rc, char *format, ...)
         else
             icl_console_print ("E: %s", session->error_text);
         raise_exception (exception_event);
-    }
-}
-
-
-/*************************   DECLARE RESPONSE QUEUE   ************************/
-
-MODULE declare_response_queue (void)
-{
-    rc = amq_client_session_queue_declare (
-        session,                    //  Session reference
-        access_ticket,              //  Access ticket
-        NULL,                       //  Queue name
-        FALSE,                      //  Passive only
-        FALSE,                      //  Durable queue
-        TRUE,                       //  Exclusive queue
-        TRUE,                       //  Auto-delete queue when unused
-        NULL                        //  Additional arguments
-    );
-    s_check_status (rc, "E: can't declare private response queue");
-
-    if (!exception_raised) {
-        icl_shortstr_cpy (queue_name, session->queue);
-        rc = amq_client_session_queue_bind (
-            session,                //  Session reference
-            access_ticket,          //  Access ticket
-            queue_name,             //  Private queue name
-            exchange_name,          //  Exchange name
-            opt_channel,            //  Routing key
-            NULL                    //  Additional arguments
-        );
-        s_check_status (rc, "E: can't bind response queue '%s'", queue_name);
-    }
-    if (!exception_raised) {
-        rc = amq_client_session_basic_consume (
-            session,                //  Session reference
-            access_ticket,          //  Access ticket
-            queue_name,             //  Private queue name
-            NULL,                   //  Consumer tag
-            FALSE,                  //  Do not deliver own messages
-            TRUE,                   //  No acknowledgement needed
-            TRUE,                   //  Request exclusive access
-            NULL                    //  Additional arguments
-        );
-        s_check_status (rc, "E: can't consume from response queue '%s'", queue_name);
     }
 }
 
@@ -506,6 +475,48 @@ MODULE terminate_the_program (void)
 /**************************   PUBLISH SINGLE FILE   **************************/
 
 MODULE publish_single_file (void)
+{
+}
+
+
+//************************   CHECK PROGRAM OPERATION   ************************
+
+MODULE check_program_operation (void)
+{
+}
+
+
+//***********************   REGISTER AS FILE PUBLISHER   **********************
+
+MODULE register_as_file_publisher (void)
+{
+}
+
+
+//*************************   PREPARE TO STAGE FILE   *************************
+
+MODULE prepare_to_stage_file (void)
+{
+}
+
+
+//*************************   GET NEXT FILE FRAGMENT   ************************
+
+MODULE get_next_file_fragment (void)
+{
+}
+
+
+//***************************   STAGE THE FRAGMENT   **************************
+
+MODULE stage_the_fragment (void)
+{
+}
+
+
+//****************************   PUBLISH THE FILE   ***************************
+
+MODULE publish_the_file (void)
 {
 }
 
