@@ -18,16 +18,13 @@ public class TestSubscriber
     {
         private String _name;
 
-        private int _expectedMessageCount;
-
         private int _messageCount;
 
         private long _startTime = 0;
 
-        public TestMessageListener(String name, int expectedMessageCount)
+        public TestMessageListener(String name)
         {
             _name = name;
-            _expectedMessageCount = expectedMessageCount;
         }
 
         public void onMessage(javax.jms.Message message)
@@ -36,19 +33,10 @@ public class TestSubscriber
             {
                 _startTime = System.currentTimeMillis();
             }
-            if (_logger.isInfoEnabled())
-            {
-                _logger.info(_name + " got message '" + message + "'");
-            }
-            if (_messageCount == _expectedMessageCount)
-            {
+            if (_messageCount % 1000 == 0) {
                 long totalTime = System.currentTimeMillis() - _startTime;
-                _logger.error(_name + ": Total time to receive " + _messageCount + " messages was " +
-                              totalTime + "ms. Rate is " + (_messageCount/(totalTime/1000.0)));
-            }
-            if (_messageCount > _expectedMessageCount)
-            {
-                _logger.error("Oops! More messages received than expected (" + _messageCount + ")");
+                _logger.info(_name + ": Total time to receive " + _messageCount + " messages was " +
+                                totalTime + "ms.");
             }
         }
     }
@@ -57,9 +45,9 @@ public class TestSubscriber
     {
         _logger.info("Starting...");
 
-        if (args.length != 7)
+        if (args.length != 6)
         {
-            System.out.println("Usage: host port username password virtual-path expectedMessageCount selector");
+            System.out.println("Usage: host port username password virtual-path selector");
             System.exit(1);
         }
         try
@@ -72,19 +60,18 @@ public class TestSubscriber
             AMQConnection con2 = new AMQConnection(args[0], Integer.parseInt(args[1]), args[2], args[3],
                                                   address.getHostName(), args[4]);
             final org.openamq.jms.Session session2 = (org.openamq.jms.Session) con2.createSession(false, Session.AUTO_ACKNOWLEDGE);
-            String selector = args[6];
+            String selector = args[5];
 
-            final int expectedMessageCount = Integer.parseInt(args[5]);
             _logger.info("Message selector is <" + selector + ">...");
 
-            Topic t = new AMQTopic("cbr", false);
+            Topic t = new AMQTopic("pubsub", false);
             MessageConsumer consumer1 = session1.createConsumer(t,
                                                                 100, false, false, selector);
             MessageConsumer consumer2 = session2.createConsumer(t,
                                                                 100, false, false, selector);
 
-            consumer1.setMessageListener(new TestMessageListener("ML 1", expectedMessageCount));
-            consumer2.setMessageListener(new TestMessageListener("ML 2", expectedMessageCount));
+            consumer1.setMessageListener(new TestMessageListener("Listener 1"));
+            consumer2.setMessageListener(new TestMessageListener("Listener 2"));
             con1.start();
             con2.start();
         }

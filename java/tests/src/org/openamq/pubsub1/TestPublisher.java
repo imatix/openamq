@@ -6,6 +6,8 @@ import org.openamq.AMQException;
 import org.openamq.client.AMQTopic;
 import org.openamq.jms.MessageProducer;
 import org.openamq.jms.Session;
+import org.openamq.framing.FieldTable;
+import org.openamq.client.message.AbstractJMSMessage;
 
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -14,15 +16,6 @@ import javax.jms.TextMessage;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-/**
- * A client that behaves as follows:
- * <ul><li>Connects to a queue, whose name is specified as a cmd-line argument</li>
- * <li>Creates a temporary queue</li>
- * <li>Creates messages containing a property that is the name of the temporary queue</li>
- * <li>Fires off a message on the original queue and waits for a response on the temporary queue</li>
- * </ul>
- *
- */
 public class TestPublisher
 {
     private static final Logger _log = Logger.getLogger(TestPublisher.class);
@@ -56,21 +49,6 @@ public class TestPublisher
             {
                 _log.info("Received message count: " + _actualMessageCount);
             }
-            /*if (!"henson".equals(m.toString()))
-           {
-               _log.error("AbstractJMSMessage response not correct: expected 'henson' but got " + m.toString());
-           }
-           else
-           {
-               if (_log.isDebugEnabled())
-               {
-                   _log.debug("AbstractJMSMessage " + m + " received");
-               }
-               else
-               {
-                   _log.info("AbstractJMSMessage received");
-               }
-           } */
 
             if (_actualMessageCount == _expectedMessageCount)
             {
@@ -82,11 +60,12 @@ public class TestPublisher
         }
     }
 
-    public TestPublisher(String host, int port, String clientID, String commandQueueName,
+    public TestPublisher(String host, int port, String clientID, String fields,
                                    final int messageCount) throws AMQException
     {
         try
         {
+            String commandQueueName = "pubsub";
             createConnection(host, port, clientID);
             
             _session = (Session) _connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
@@ -94,15 +73,21 @@ public class TestPublisher
             MessageProducer producer = (MessageProducer) _session.createProducer(destination);
 
             _connection.start();
-            //TextMessage msg = _session.createTextMessage(tempDestination.getQueueName() + "/Presented to in conjunction with Mahnah Mahnah and the Snowths");
             final long startTime = System.currentTimeMillis();
 
             for (int i = 0; i < messageCount; i++)
             {
-                TextMessage msg = _session.createTextMessage(destination.getTopicName() + "/Presented to in conjunction with Mahnah Mahnah and the Snowths: " + i);
+                TextMessage msg = _session.createTextMessage(destination.getTopicName() + "/" + i);
 
-                //msg.setIntProperty("a",i % 2);
-                //msg.setIntProperty("b",i % 4);
+                FieldTable ft = new FieldTable();
+
+                ft.put("Test1", "abc");
+                ft.put("Test2", "xyz");
+
+                ((AbstractJMSMessage)msg).setUnderlyingMessagePropertiesMap(ft);
+
+                //msg.setStringProperty("Test1", "abc");
+                //msg.setStringProperty("Test2", "xyz");
 
                 producer.send(msg);
             }
@@ -129,7 +114,7 @@ public class TestPublisher
     {
         if (args.length == 0)
         {
-            System.err.println("Usage: TestPublisher <host> <port> <command queue name> <number of messages>");
+            System.err.println("Usage: TestPublisher <host> <port> <fields> <number of messages>");
         }
         try
         {
@@ -147,7 +132,5 @@ public class TestPublisher
             System.err.println("Error in client: " + e);
             e.printStackTrace();
         }
-
-        //System.exit(0);
     }
 }

@@ -19,6 +19,9 @@ import org.openamq.jms.Session;
 import javax.jms.*;
 import javax.jms.IllegalStateException;
 import java.io.Serializable;
+import java.io.StringReader;
+import java.io.StreamTokenizer;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
@@ -719,13 +722,15 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                 AMQDestination amqd = (AMQDestination)destination;
 
                 final AMQProtocolHandler protocolHandler = _connection.getProtocolHandler();
-                // TODO: construct the rawSelector from the selector string if rawSelector == null
                 final FieldTable ft = new FieldTable();
-                //if (rawSelector != null)
-                //    ft.put("headers", rawSelector.getDataAsBytes());
+
                 if (rawSelector != null)
                 {
                     ft.putAll(rawSelector);
+                }
+                else if (selector != null)
+                {
+                    parseSelector(selector, ft);
                 }
                 BasicMessageConsumer consumer = new BasicMessageConsumer(_channelId, _connection, amqd, selector, noLocal,
                                                                          _messageFactoryRegistry, AMQSession.this,
@@ -746,6 +751,79 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                 return consumer;
             }
         }.execute(_connection);
+    }
+
+    void parseSelector(String selector, FieldTable ft) throws JMSException
+    {
+        StreamTokenizer st = new StreamTokenizer(new StringReader(selector));
+
+        st.wordChars('=', '=');
+        st.whitespaceChars(',', ',');
+        // No number parsing for now
+        st.wordChars('0', '9');
+        st.wordChars('-', '-');
+        st.wordChars('.', '.');
+
+        try
+        {
+            parseSelector(st, ft, null, false);
+        }
+        catch (IOException e)
+        {
+            JMSException
+                je = new JMSException("Unexpected error parsing selector: " + selector);
+
+            je.setLinkedException(e);
+            throw je;
+        }
+    }
+
+    void parseSelector(StreamTokenizer st, FieldTable ft, String field, boolean value) throws IOException
+    {
+        while (true)
+        {
+            int ttype = st.nextToken();
+
+            if (ttype != st.TT_EOF)
+            {
+                if (field == null)
+                {
+                    field = st.sval;
+                    continue;
+                }
+                else
+                {
+                    if ("=".equals(st.sval))
+                    {
+                        if (value)
+                            _logger.warn("Extra equal sign after field: " + field);
+
+                        parseSelector(st, ft, field, true);
+                    }
+                    else
+                    {
+                        if (value)
+                        {
+                            ft.put(field, st.sval);
+                            break;
+                        }
+                        else
+                        {
+                            ft.put(field, null);
+                        }
+                    }
+
+                    field = null;
+                }
+            }
+            else
+            {
+                if (value)
+                    _logger.warn("Cannot get value for field: " + field);
+
+                break;
+            }
+        }
     }
 
     public void declareExchange(String name, String type) throws AMQException

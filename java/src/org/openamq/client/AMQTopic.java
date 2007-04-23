@@ -12,7 +12,7 @@ public class AMQTopic extends AMQDestination implements Topic
 
     public AMQTopic(String name, boolean temporary)
     {
-        super(AMQDestination.TOPIC_EXCHANGE_NAME, AMQDestination.TOPIC_EXCHANGE_CLASS, name, temporary, temporary, null);
+        super(AMQDestination.HEADERS_EXCHANGE_NAME, AMQDestination.HEADERS_EXCHANGE_CLASS, name, temporary, temporary, null);
         _isDurable = !temporary;
     }
 
@@ -24,7 +24,7 @@ public class AMQTopic extends AMQDestination implements Topic
      */
     public AMQTopic(AMQTopic topic, String clientId, String subscriptionName)
     {
-        super(AMQDestination.TOPIC_EXCHANGE_NAME, AMQDestination.TOPIC_EXCHANGE_CLASS, topic.getDestinationName(), false, false, clientId + ":" + subscriptionName);
+        super(AMQDestination.HEADERS_EXCHANGE_NAME, AMQDestination.HEADERS_EXCHANGE_CLASS, topic.getDestinationName(), false, false, clientId + ":" + subscriptionName);
     }
 
     public String getTopicName() throws JMSException
