@@ -788,7 +788,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
             {
                 if (field == null)
                 {
-                    field = st.sval;
+                    field = AbstractJMSMessage.STRING_PROPERTY_PREFIX + st.sval;
                     continue;
                 }
                 else

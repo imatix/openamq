@@ -70,8 +70,8 @@ public class TestSubscriber
             MessageConsumer consumer2 = session2.createConsumer(t,
                                                                 100, false, false, selector);
 
-            consumer1.setMessageListener(new TestMessageListener("Listener 1"));
-            consumer2.setMessageListener(new TestMessageListener("Listener 2"));
+            consumer1.setMessageListener(new TestMessageListener("Listener #1"));
+            consumer2.setMessageListener(new TestMessageListener("Listener #2"));
             con1.start();
             con2.start();
         }

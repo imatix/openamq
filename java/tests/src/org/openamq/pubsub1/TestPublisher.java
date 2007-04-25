@@ -2,19 +2,23 @@ package org.openamq.pubsub1;
 
 import org.apache.log4j.Logger;
 import org.openamq.client.AMQConnection;
-import org.openamq.AMQException;
 import org.openamq.client.AMQTopic;
 import org.openamq.jms.MessageProducer;
 import org.openamq.jms.Session;
 import org.openamq.framing.FieldTable;
 import org.openamq.client.message.AbstractJMSMessage;
+import org.openamq.AMQUndeliveredException;
 
+import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.io.StreamTokenizer;
+import java.io.StringReader;
+import java.io.IOException;
 
 public class TestPublisher
 {
@@ -24,47 +28,25 @@ public class TestPublisher
 
     private Session _session;
 
-    private class CallbackHandler implements MessageListener
-    {
-        private int _expectedMessageCount;
-
-        private int _actualMessageCount;
-
-        private long _startTime;
-
-        public CallbackHandler(int expectedMessageCount, long startTime)
-        {
-            _expectedMessageCount = expectedMessageCount;
-            _startTime = startTime;
-        }
-
-        public void onMessage(Message m)
-        {
-            if (_log.isDebugEnabled())
-            {
-                _log.debug("Message received: " + m);
-            }
-            _actualMessageCount++;
-            if (_actualMessageCount%1000 == 0)
-            {
-                _log.info("Received message count: " + _actualMessageCount);
-            }
-
-            if (_actualMessageCount == _expectedMessageCount)
-            {
-                long timeTaken = System.currentTimeMillis() - _startTime;
-                System.out.println("Total time taken to receive " + _expectedMessageCount+ " messages was " +
-                                   timeTaken + "ms, equivalent to " +
-                                   (_expectedMessageCount/(timeTaken/1000.0)) + " messages per second");
-            }
-        }
-    }
-
     public TestPublisher(String host, int port, String clientID, String fields,
-                                   final int messageCount) throws AMQException
+                                   int messageCount) throws Exception
     {
         try
         {
+            int r = messageCount % 1000;
+
+            if (r != 0)
+            {
+                int use = messageCount - r;
+
+                if (use < 1000)
+                    use = 1000;
+
+                _log.warn("Requested message count: " + messageCount + ", using: " + use);
+
+                messageCount = use;
+            }
+
             String commandQueueName = "pubsub";
             createConnection(host, port, clientID);
             
@@ -75,22 +57,13 @@ public class TestPublisher
             _connection.start();
             final long startTime = System.currentTimeMillis();
 
+            TextMessage msg = _session.createTextMessage(destination.getTopicName());
+
+            parseFields(fields, msg);
+
             for (int i = 0; i < messageCount; i++)
-            {
-                TextMessage msg = _session.createTextMessage(destination.getTopicName() + "/" + i);
-
-                FieldTable ft = new FieldTable();
-
-                ft.put("Test1", "abc");
-                ft.put("Test2", "xyz");
-
-                ((AbstractJMSMessage)msg).setUnderlyingMessagePropertiesMap(ft);
-
-                //msg.setStringProperty("Test1", "abc");
-                //msg.setStringProperty("Test2", "xyz");
-
                 producer.send(msg);
-            }
+
             _log.info("Finished sending " + messageCount + " messages");
         }
         catch (JMSException e)
@@ -99,10 +72,107 @@ public class TestPublisher
         }
     }
 
-    private void createConnection(String host, int port, String clientID) throws AMQException
+    private void parseFields(String selector, TextMessage msg) throws JMSException
+    {
+        StreamTokenizer st = new StreamTokenizer(new StringReader(selector));
+
+        st.wordChars('=', '=');
+        st.whitespaceChars(',', ',');
+        // No number parsing for now
+        st.wordChars('0', '9');
+        st.wordChars('-', '-');
+        st.wordChars('.', '.');
+
+        try
+        {
+            parseFields(st, msg, null, false);
+        }
+        catch (Exception e)
+        {
+            JMSException
+                je = new JMSException("Unexpected error parsing selector: " + selector);
+
+            je.setLinkedException(e);
+            throw je;
+        }
+    }
+
+    private void parseFields(StreamTokenizer st, TextMessage msg, String field, boolean value) throws Exception
+    {
+        while (true)
+        {
+            int ttype = st.nextToken();
+
+            if (ttype != st.TT_EOF)
+            {
+                if (field == null)
+                {
+                    field = st.sval;
+                    continue;
+                }
+                else
+                {
+                    if ("=".equals(st.sval))
+                    {
+                        if (value)
+                            _log.warn("Extra equal sign after field: " + field);
+
+                        parseFields(st, msg, field, true);
+                    }
+                    else
+                    {
+                        if (value)
+                        {
+                            msg.setStringProperty(field, st.sval);
+                            break;
+                        }
+                        else
+                        {
+                            msg.setStringProperty(field, null);
+                        }
+                    }
+
+                    field = null;
+                }
+            }
+            else
+            {
+                if (value)
+                    _log.warn("Cannot get value for field: " + field);
+
+                break;
+            }
+        }
+    }
+
+    private void createConnection(String host, int port, String clientID) throws Exception
     {
         _connection = new AMQConnection(host, port, "guest", "guest",
                                         clientID, "/test");
+        _connection.setExceptionListener(
+            new ExceptionListener() {
+                int count;
+
+                public void onException(JMSException exception)
+                {
+                    if (exception.getLinkedException() instanceof AMQUndeliveredException)
+                    {
+                        _log.warn("No matching subscriber found: " + exception);
+                    }
+                    else
+                    {
+                        _log.warn("Exception in client: " + exception);
+                    }
+
+                    count++;
+                    if (count > 10)
+                    {
+                        _log.error("Too many unhandled exceptions, test terminating.");
+                        System.exit(1);
+                    }
+                }
+            }
+        );
     }
 
     /**
@@ -127,7 +197,7 @@ public class TestPublisher
         {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
-        catch (AMQException e)
+        catch (Exception e)
         {
             System.err.println("Error in client: " + e);
             e.printStackTrace();

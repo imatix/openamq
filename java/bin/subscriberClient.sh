@@ -36,6 +36,6 @@ fi
 HOST=$1
 shift
 #  Execute the test
-exec $JAVA -cp $OPENAMQ_JAVA_HOME/openamq-jms-launch.jar \
+exec $JAVA -Xmx1024m -Xms1024m -XX:NewSize=300m -cp $OPENAMQ_JAVA_HOME/openamq-jms-launch.jar \
       -Damqj.logging.level="INFO" \
-      org.openamq.pubsub1.TestSubscriber $HOST 5672 guest guest /test "Test1 = abc, Test2 = xyz"
+      org.openamq.pubsub1.TestSubscriber $HOST 5672 guest guest /test "Test1 = abc"
