@@ -25,7 +25,7 @@
     <set name = "subscribe_burst" value = "1" cmdline = "E" />
     <set name = "subscribe_pubsub" value = "1" cmdline = "F" />
     <repeat>
-        <set_random name = "delay" min = "1" max = "$delay_cmdline" />
+        <random name = "delay" min = "1" max = "$delay_cmdline" />
         <wait timeout = "$delay" />
 
         <session>
@@ -36,7 +36,7 @@
 
             <!-- Subscription burst -->
             <if name = "subscriptions_cmdline" test = "ne" value = "0">
-                <set_random name = "subscriptions" max = "$subscriptions_cmdline" />
+                <random name = "subscriptions" max = "$subscriptions_cmdline" />
                 <repeat times = "$subscriptions" counter = "counter_1">
                     <queue_declare exclusive = "1" />
                     <queue_bind queue = "$queue" exchange = "grm.r" routing_key = "$queue" />
@@ -65,7 +65,7 @@
             <basic_consume queue = "$queue" />
 
             <!-- Read the messages -->
-            <set_random name = "lifetime" max = "$lifetime_cmdline" />
+            <random name = "lifetime" max = "$lifetime_cmdline" />
             <!-- Counters for default set of publishers -->
             <set name = "rqs_active" value = "0" />
             <set name = "rqb_active" value = "0" />
