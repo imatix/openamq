@@ -1,0 +1,12 @@
+<?xml?>
+
+<pal script = "amq_pal_gen">
+    <set name = "session_count" value = "5"/>
+    <while name = "session_count" test = "gt" value = "0">
+    <session>
+        <basic_content size = "500" />
+        <basic_publish exchange = "amq.topic" routing_key = "test" />
+    </session>
+    <dec name = "session_count"/>
+    </while>
+</pal>
