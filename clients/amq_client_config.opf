@@ -71,6 +71,17 @@ $\(selftype)
     this value.
     </doc>
     </property>
+    
+    <property name = "poll frequency" type = "int" default = "256" dynamic = "1">
+    Kernel polling frequency
+    <doc>
+    To experiment with the effect of different socket polling strategies we
+    allow the user to set the frequency of non-essential socket polling.
+    Zero means no non-essential polling, one means maximal non-essential
+    polling, and in general N means do non-essential polling one time in N.
+    The maximum valid value for this setting is 1024.
+    </doc>
+    </property>
 
     <property name = "arrived low water" type = "int" default = "0">
     Low water mark for message flow control

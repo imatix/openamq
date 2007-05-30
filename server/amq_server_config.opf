@@ -251,7 +251,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "poll frequency" type = "int" default = "0" dynamic = "1">
+    <property name = "poll frequency" type = "int" default = "256" dynamic = "1">
     Kernel polling frequency
     <doc>
     To experiment with the effect of different socket polling strategies we
