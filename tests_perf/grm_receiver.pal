@@ -7,9 +7,6 @@
     grm_sender_*.pal scripts and checks that messages are flowing correctly by
     counting messages received.  All subscriptions are cancelled upon exit.
 
-    This application should run in a loop, but that's not currently possible due to
-    PAL limitations, thus the user should run this using a suitable harness script.
-
     Command line parameters:
         -A maximal interval between shutdown of application and start
              of another one (in milliseconds)
@@ -17,13 +14,15 @@
         -C maximal number of subscriptions by application
         -D subscribe to "stable" senders? (default 1)
         -E subscribe to "burst" senders? (default 1)
-        -F subscrube to "pubsub" senders? (default 1)
+        -F subscribe to "pubsub" senders? (default 1)
+        -G subscribe to "large" senders? (default 0)
     <set name = "delay_cmdline" value = "10000" cmdline = "A" />
     <set name = "lifetime_cmdline" value = "10000" cmdline = "B" />
     <set name = "subscriptions_cmdline" value = "3400" cmdline = "C" />
     <set name = "subscribe_stable" value = "1" cmdline = "D" />
     <set name = "subscribe_burst" value = "1" cmdline = "E" />
     <set name = "subscribe_pubsub" value = "1" cmdline = "F" />
+    <set name = "subscribe_large" value = "0" cmdline = "G" />
     <repeat>
         <random name = "delay" min = "1" max = "$delay_cmdline" />
         <wait timeout = "$delay" />
@@ -61,6 +60,10 @@
                         <field name = "M02" value = "" />
                     </arguments>
                 </queue_bind>
+            </if>
+            <if name = "subscribe_large" value = "1">
+                <queue_bind queue = "$queue" exchange = "grm.r" routing_key = "large" />
+                <queue_bind queue = "$queue" exchange = "grm.s" routing_key = "large" />
             </if>
             <basic_consume queue = "$queue" />
 
