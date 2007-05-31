@@ -35,7 +35,7 @@
 //  Name:     measure
 //  Usage:    measure <server> <no-of-messages> <size-of-message>
 //  Example:  measure localhost:5672 10000 512
-//  Measures throughput and latency of OpenAMQ
+//  Measures throughput and latency of AMQP broker
 
 #include "base.h"
 #include "amq_client_connection.h"
@@ -72,7 +72,7 @@ int latency_cmp (const void *x, const void *y)
     return 0;
 }
 
-void *sender_thread_func (apr_thread_t *thread, void *ctx)
+void * APR_THREAD_FUNC sender_thread_func (apr_thread_t *thread, void *ctx)
 {
     measure_context_t
         *context = (measure_context_t*) ctx;
@@ -131,12 +131,14 @@ int main (int argc, char *argv [])
         messages_received = 0,
         counter;
     apr_interval_time_t
+        total_time,
         latency,
         min_latency = -1,
         max_latency = -1,
         sum_latency = 0,
         avg_latency,
         med_latency,
+        dev_latency = 0,
         *latencies;
     long
         total_throughput,
@@ -152,7 +154,10 @@ int main (int argc, char *argv [])
         *out;
 
     //  Get command line parameters
-    assert (argc == 4);
+    if (argc != 4) {
+        printf ("Usage: measure <server> <no-of-messages> <size-of-message>\n");
+        exit (1);
+    }
     context.host = argv [1];
     context.message_count = atoi (argv [2]);
     context.message_size = atoi (argv [3]);
@@ -252,35 +257,45 @@ int main (int argc, char *argv [])
     rc = apr_thread_join (&thread_rc, sender_thread);
     assert (rc == APR_SUCCESS);
 
-    //  Open CSV file
-    out = fopen ("out.csv", "w");
-    assert (out);
+    //  Compute statistics and create CSV file
 
-    //  Comute min, max, avg and med latency
+    total_time = context.in_times [context.message_count - 1] -
+        context.out_times [0];
+
     latencies = icl_mem_alloc
         (context.message_count * sizeof (apr_interval_time_t));
     assert (latencies);
 
     for (counter = 0; counter != context.message_count; counter++) {
-        latency = context.in_times [counter] - context.out_times [counter];
+          latency = context.in_times [counter] - context.out_times [counter];
         latencies [counter] = latency;
         if (latency < min_latency || min_latency == -1)
             min_latency = latency;
         if (latency > max_latency || max_latency == -1)
             max_latency = latency;
         sum_latency += latency;
-
-        fprintf (out, "%ld\n", (long) latency);
     }
     avg_latency = sum_latency / context.message_count;
     qsort (latencies, context.message_count, sizeof (apr_interval_time_t),
         latency_cmp);
     med_latency = latencies [context.message_count / 2];
 
+    out = fopen ("out.csv", "w");
+    assert (out);
+
+    for (counter = 0; counter != context.message_count; counter++) {
+          latency = context.in_times [counter] - context.out_times [counter];
+
+        dev_latency += ((latency - med_latency) < 0 ?
+            -(latency - med_latency) : (latency - med_latency));
+        fprintf (out, "%ld,%ld\n", (long) latency, (long) med_latency);
+    }
+    dev_latency /= context.message_count;
+
+    fclose (out);
+
     icl_mem_free (latencies);
 
-    //  Close CSV file
-    fclose (out);
     
     //  Compute throughputs
     total_throughput =
@@ -297,10 +312,12 @@ int main (int argc, char *argv [])
         (context.in_times [context.message_count - 1] - context.in_times [0])) : 0;
     
     //  Print out the statistics
+    printf ("Total time: %ld microseconds\n", (long) total_time);
     printf ("Minimal latency: %ld microseconds\n", (long) min_latency);
     printf ("Maximal latency: %ld microseconds\n", (long) max_latency);
     printf ("Average latency: %ld microseconds\n", (long) avg_latency);
     printf ("Median latency: %ld microseconds\n", (long) med_latency);
+    printf ("Average peak: %ld microseconds\n", (long) dev_latency);
     printf ("Total througput: %ld messages/second\n", total_throughput);
     printf ("Sender througput: %ld messages/second\n", sender_throughput);
     printf ("Receiver througput: %ld messages/second\n", receiver_throughput);
