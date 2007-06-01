@@ -43,21 +43,14 @@
 
 typedef struct
 {
-    char
-        *host;
-    amq_client_connection_t
-        *connection_out,
-        *connection_in;
     amq_client_session_t
-        *session_out,
-        *session_in;
+        *session;          //  Session to send messages on
     int
-        message_count,
-        message_size;
+        message_count,     //  How many messages to send
+        message_size;      //  Size of individual message
     apr_time_t
-        *out_times,
-        *in_times;
-}  measure_context_t;
+        **times;           //  Pointer to the field to store send times in
+}  sender_context_t;
 
 int latency_cmp (const void *x, const void *y)
 {
@@ -72,10 +65,23 @@ int latency_cmp (const void *x, const void *y)
     return 0;
 }
 
+int throughput_cmp (const void *x, const void *y)
+{
+    long
+        xl = *(long*) x,
+        yl = *(long*) y;
+
+    if (xl < yl)
+        return -1;
+    if (xl > yl)
+        return 1;
+    return 0;
+}
+
 void * APR_THREAD_FUNC sender_thread_func (apr_thread_t *thread, void *ctx)
 {
-    measure_context_t
-        *context = (measure_context_t*) ctx;
+    sender_context_t
+        *context = (sender_context_t*) ctx;
     int
         counter;
     char
@@ -96,11 +102,11 @@ void * APR_THREAD_FUNC sender_thread_func (apr_thread_t *thread, void *ctx)
             context->message_size, NULL);
 
         //  Store message send time
-        context->out_times [counter] = apr_time_now ();
+        (*context->times) [counter] = apr_time_now ();
 
         //  Send the message
         amq_client_session_basic_publish (
-            context->session_out,           //  session
+            context->session,               //  session
             content,                        //  content to send
             0,                              //  ticket
             "amq.direct",                   //  exchange to send message to
@@ -118,49 +124,257 @@ void * APR_THREAD_FUNC sender_thread_func (apr_thread_t *thread, void *ctx)
     return NULL;
 }
 
+//  Time slice for measiring the throughput is 1/100 of second
+#define TIME_SLICE 10000L
+#define TIME_SLICES_PER_SECOND (1000000L / TIME_SLICE)
+
+void compute_statistics (
+    int message_count,
+    int message_size,
+    apr_time_t *out_times,
+    apr_time_t *in_times)
+{
+    //  Controlling variable for various loops
+    int
+        counter;
+
+    //  Fields for normalised results
+    apr_interval_time_t
+        *outtn,
+        *intn;
+
+    //  Field for unsorted & sorted latencies
+    apr_interval_time_t
+        *latencies,
+        *sorted_latencies;
+
+    //  Throughput fields
+    int
+        time_slices;
+    long
+        *sth,         //  Sender throughputs
+        *rth,         //  Receiver throughputs
+        *sorted_sth,  //  Sorted sender throughputs
+        *sorted_rth;  //  Sorted receiver throughputs
+
+    //  Aggregates
+    apr_interval_time_t
+        latency_avg,
+        latency_med,
+        latency_dev;
+    long
+        sth_avg,
+        sth_med,
+        sth_dev,
+        rth_avg,
+        rth_med,
+        rth_dev;
+
+    //  Output file
+    FILE
+        *out;
+
+    //  Initialise auxiliary fields
+    outtn = icl_mem_alloc (message_count * sizeof (apr_interval_time_t));
+    assert (outtn);
+    intn = icl_mem_alloc (message_count * sizeof (apr_interval_time_t));
+    assert (intn);
+    latencies = icl_mem_alloc (message_count * sizeof (apr_interval_time_t));
+    assert (latencies);
+    sorted_latencies = icl_mem_alloc (message_count *
+        sizeof (apr_interval_time_t));
+    assert (sorted_latencies);
+
+    //  Normalise measured results
+    //  Time of sending the first message is considered to be 0
+    for (counter = 0; counter != message_count; counter++) {
+        outtn [counter] = out_times [counter] - out_times [0];
+        intn [counter] = in_times [counter] - out_times [0];
+    }
+
+    //  Fill in unsorted & sorted latency fields
+    for (counter = 0; counter != message_count; counter++) {
+        latencies [counter] = intn [counter] - outtn [counter];
+        sorted_latencies [counter] = intn [counter] - outtn [counter];
+    }
+    qsort (sorted_latencies, message_count, sizeof (apr_interval_time_t),
+        latency_cmp);
+
+    //  Compute averge latency, median latency and standard deviation
+    latency_med = sorted_latencies [message_count / 2];
+    latency_avg = 0;
+    latency_dev = 0;
+    for (counter = 0; counter != message_count; counter++) {
+        latency_avg += latencies [counter];
+        latency_dev += ((latencies [counter] - latency_med > 0) ?
+            (latencies [counter] - latency_med) :
+            -(latencies [counter] - latency_med));
+    }
+    latency_avg /= message_count;
+    latency_dev /= (message_count - 1);
+
+    //  Allocate & fill in throughput fields
+    time_slices = 
+        ((intn [message_count - 1] - outtn [0]) / TIME_SLICE) + 1;
+    sth = icl_mem_alloc (time_slices * sizeof (long));
+    assert (sth);
+    memset (sth, 0, time_slices * sizeof (long));
+    rth = icl_mem_alloc (time_slices * sizeof (long));
+    assert (rth);
+    memset (rth, 0, time_slices * sizeof (long));
+    sorted_sth = icl_mem_alloc (time_slices * sizeof (long));
+    assert (sorted_sth);
+    memset (sorted_sth, 0, time_slices * sizeof (long));
+    sorted_rth = icl_mem_alloc (time_slices * sizeof (long));
+    assert (sorted_rth);
+    memset (sorted_rth, 0, time_slices * sizeof (long));
+    for (counter = 0; counter != message_count; counter++) {
+        sth [outtn [counter] / TIME_SLICE] += TIME_SLICES_PER_SECOND;
+        rth [intn [counter] / TIME_SLICE] += TIME_SLICES_PER_SECOND;
+        sorted_sth [outtn [counter] / TIME_SLICE] += TIME_SLICES_PER_SECOND;
+        sorted_rth [intn [counter] / TIME_SLICE] += TIME_SLICES_PER_SECOND;
+    }
+    qsort (sorted_sth, time_slices, sizeof (long), throughput_cmp);
+    qsort (sorted_rth, time_slices, sizeof (long), throughput_cmp);
+
+    //  Compute average throughput, median throughput and
+    //  standard deviation for the sender
+    sth_med = sth [time_slices / 2];
+    sth_avg = 0;
+    sth_dev = 0;
+    for (counter = 0; counter != time_slices; counter++) {
+        sth_avg += sth [counter];
+        sth_dev += ((sth [counter] - sth_med > 0) ?
+            (sth [counter] - sth_med) :
+            -(sth [counter] - sth_med));
+    }
+    sth_avg /= time_slices;
+    sth_dev /= (time_slices - 1);
+
+    //  Compute average throughput, median throughput and
+    //  standard deviation for the receiver
+    rth_med = rth [time_slices / 2];
+    rth_avg = 0;
+    rth_dev = 0;
+    for (counter = 0; counter != time_slices; counter++) {
+        rth_avg += rth [counter];
+        rth_dev += ((rth [counter] - rth_med > 0) ?
+            (rth [counter] - rth_med) :
+            -(rth [counter] - rth_med));
+    }
+    rth_avg /= time_slices;
+    rth_dev /= (time_slices - 1);
+
+    //  Print out the aggregates
+    printf ("**************************************************************\n");
+    printf ("PERFORMANCE STATISTICS (%d messages %d bytes long)\n",
+        message_count, message_size);
+    printf ("\n");
+    printf ("Total time: %ld microseconds\n",
+        (long) intn [message_count - 1]);
+    printf ("Time slice: %ld microseconds\n", (long) TIME_SLICE);
+    printf ("\n");
+    printf ("Minimal latency: %ld microseconds\n",
+        (long) sorted_latencies [0]);
+    printf ("Maximal latency: %ld microseconds\n",
+        (long) sorted_latencies [message_count - 1]);
+    printf ("Median latency: %ld microseconds\n", (long) latency_med);
+    printf ("Average latency: %ld microseconds\n", (long) latency_avg);
+    printf ("Standard robust deviation of latency: %ld microseconds\n",
+        (long) latency_dev);
+    printf ("\n");
+    printf ("Median sender throughput: %ld messages/second\n", (long) sth_med);
+    printf ("Average sender throughput: %ld messages/second\n", (long) sth_avg);
+    printf ("Standard robust deviation of sender throughput: "
+        "%ld messages/second\n", (long) sth_dev);
+    printf ("\n");
+    printf ("Median receiver throughput: "
+        "%ld messages/second\n", (long) rth_med);
+    printf ("Average receiver throughput: "
+        "%ld messages/second\n", (long) rth_avg);
+    printf ("Standard robust deviation of receiver throughput: "
+        "%ld messages/second\n", (long) rth_dev);
+    printf ("**************************************************************\n");
+
+    //  Save the latencies into file
+    out = fopen ("latency.dat", "w");
+    assert (out);
+    for (counter = 0; counter != message_count; counter++)
+        fprintf (out, "%ld\n", (long) latencies [counter]);
+    fclose (out);
+
+    //  Save the throughputs into file
+    out = fopen ("throughput.dat", "w");
+    assert (out);
+    for (counter = 0; counter != time_slices; counter++)
+        fprintf (out, "%f %ld\n", ((double) counter) / TIME_SLICES_PER_SECOND,
+            (long) sth [counter]);
+    fprintf (out, "\n\n");
+    for (counter = 0; counter != time_slices; counter++)
+        fprintf (out, "%f %ld\n", ((double) counter) / TIME_SLICES_PER_SECOND,
+            (long) rth [counter]);
+    fclose (out);    
+
+    //  Destroy auxiliary fields
+    icl_mem_free (outtn);
+    icl_mem_free (intn);
+    icl_mem_free (latencies);
+    icl_mem_free (sorted_latencies);
+    icl_mem_free (sth);
+    icl_mem_free (rth);
+    icl_mem_free (sorted_sth);
+    icl_mem_free (sorted_rth);
+}
+
 int main (int argc, char *argv [])
 {
+    //  Command line arguments
+    char
+        *host;
+    int
+        message_count,
+        message_size;
+
+    //  Managing sender thread
     apr_status_t
         rc,
         thread_rc;
     apr_pool_t
         *pool;
-    icl_longstr_t
-        *auth_data;
-    int
-        messages_received = 0,
-        counter;
-    apr_interval_time_t
-        total_time,
-        latency,
-        min_latency = -1,
-        max_latency = -1,
-        sum_latency = 0,
-        avg_latency,
-        med_latency,
-        dev_latency = 0,
-        *latencies;
-    long
-        total_throughput,
-        sender_throughput,
-        receiver_throughput;
     apr_thread_t
         *sender_thread;
+    sender_context_t
+        sender_context;
+
+    //  OpenAMQ related variables
+    amq_client_connection_t
+        *connection_out,
+        *connection_in;
+    amq_client_session_t
+        *session_out,
+        *session_in;
+    icl_longstr_t
+        *auth_data;
     amq_content_basic_t
         *content;
-    measure_context_t
-        context;
-    FILE
-        *out;
+
+    //  Controlling receiver loop
+    int
+        messages_received;
+
+    //  Fields to store results to
+    apr_time_t
+        *out_times,
+        *in_times;
 
     //  Get command line parameters
     if (argc != 4) {
         printf ("Usage: measure <server> <no-of-messages> <size-of-message>\n");
         exit (1);
     }
-    context.host = argv [1];
-    context.message_count = atoi (argv [2]);
-    context.message_size = atoi (argv [3]);
+    host = argv [1];
+    message_count = atoi (argv [2]);
+    message_size = atoi (argv [3]);
 
     //  Initialise system
     icl_system_initialise (argc, argv);
@@ -169,29 +383,33 @@ int main (int argc, char *argv [])
     rc = apr_pool_create (&pool, NULL);
     assert (rc == APR_SUCCESS);
 
+    //  Set clock into hi resolution mode
+    //  (we want to monitor with microsecond precision)
+    apr_time_clock_hires (pool);
+
     //  Allocate out & in time fields
-    context.out_times = icl_mem_alloc (context.message_count * sizeof (apr_time_t));
-    assert (context.out_times);
-    context.in_times = icl_mem_alloc (context.message_count * sizeof (apr_time_t));
-    assert (context.in_times);
+    out_times = icl_mem_alloc (message_count * sizeof (apr_time_t));
+    assert (out_times);
+    in_times = icl_mem_alloc (message_count * sizeof (apr_time_t));
+    assert (in_times);
 
     //  Open connection & channel
     auth_data = amq_client_connection_auth_plain ("guest", "guest");
-    context.connection_out = amq_client_connection_new (
-            context.host, "/", auth_data, "measure_out", 0, 30000);
-    assert (context.connection_out);
-    context.session_out = amq_client_session_new (context.connection_out);
-    assert (context.session_out);
-    context.connection_in = amq_client_connection_new (
-            context.host, "/", auth_data, "measure_in", 0, 30000);
-    assert (context.connection_in);
-    context.session_in = amq_client_session_new (context.connection_in);
-    assert (context.session_in);
+    connection_out = amq_client_connection_new (
+            host, "/", auth_data, "measure_out", 0, 30000);
+    assert (connection_out);
+    session_out = amq_client_session_new (connection_out);
+    assert (session_out);
+    connection_in = amq_client_connection_new (
+            host, "/", auth_data, "measure_in", 0, 30000);
+    assert (connection_in);
+    session_in = amq_client_session_new (connection_in);
+    assert (session_in);
     icl_longstr_destroy (&auth_data);
 
     //  Create wiring
     amq_client_session_queue_declare (
-        context.session_in,             //  session
+        session_in,                     //  session
         0,                              //  ticket
         NULL,                           //  queue name
         FALSE,                          //  passive
@@ -200,14 +418,14 @@ int main (int argc, char *argv [])
         TRUE,                           //  auto-delete
         NULL);                          //  arguments
     amq_client_session_queue_bind (
-        context.session_in,             //  session
+        session_in,                     //  session
         0,                              //  ticket
         NULL,                           //  queue
         "amq.direct",                   //  exchange
         "rk",                           //  routing-key
         NULL);                          //  arguments
     amq_client_session_basic_consume (
-        context.session_in,             //  session
+        session_in,                     //  session
         0,                              //  ticket
         NULL,                           //  queue
         NULL,                           //  consumer-tag
@@ -217,39 +435,44 @@ int main (int argc, char *argv [])
         NULL);                          //  arguments
 
     //  Start the sending thread
+    sender_context.session = session_out;
+    sender_context.message_count = message_count;
+    sender_context.message_size = message_size;
+    sender_context.times = &out_times;
     rc = apr_thread_create (&sender_thread, NULL, sender_thread_func,
-        (void*) &context, pool);
+        (void*) &sender_context, pool);
     assert (rc == APR_SUCCESS);
 
     //  Get received messages
+    messages_received = 0;
     while (1) {
 
         while (1) {
 
             //  Get next message
-            content = amq_client_session_basic_arrived (context.session_in);
+            content = amq_client_session_basic_arrived (session_in);
             if (!content)
                 break;
 
             //  Store the receival time
-            context.in_times [messages_received] = apr_time_now ();
+            in_times [messages_received] = apr_time_now ();
 
             //  Update message count
             messages_received++;
-            if (messages_received == context.message_count)
+            if (messages_received == message_count)
                 break;
 
             //  Destroy the message
             amq_content_basic_unlink (&content);
         }
-        if (messages_received == context.message_count)
+        if (messages_received == message_count)
             break;
 
         //  Wait while next message arrives
-        amq_client_session_wait (context.session_in, 0);
+        amq_client_session_wait (session_in, 0);
 
         //  Exit the loop if Ctrl+C is encountered
-        if (!context.connection_in->alive)
+        if (!connection_in->alive)
             exit (1);
     }
 
@@ -257,80 +480,18 @@ int main (int argc, char *argv [])
     rc = apr_thread_join (&thread_rc, sender_thread);
     assert (rc == APR_SUCCESS);
 
-    //  Compute statistics and create CSV file
-
-    total_time = context.in_times [context.message_count - 1] -
-        context.out_times [0];
-
-    latencies = icl_mem_alloc
-        (context.message_count * sizeof (apr_interval_time_t));
-    assert (latencies);
-
-    for (counter = 0; counter != context.message_count; counter++) {
-          latency = context.in_times [counter] - context.out_times [counter];
-        latencies [counter] = latency;
-        if (latency < min_latency || min_latency == -1)
-            min_latency = latency;
-        if (latency > max_latency || max_latency == -1)
-            max_latency = latency;
-        sum_latency += latency;
-    }
-    avg_latency = sum_latency / context.message_count;
-    qsort (latencies, context.message_count, sizeof (apr_interval_time_t),
-        latency_cmp);
-    med_latency = latencies [context.message_count / 2];
-
-    out = fopen ("out.csv", "w");
-    assert (out);
-
-    for (counter = 0; counter != context.message_count; counter++) {
-          latency = context.in_times [counter] - context.out_times [counter];
-
-        dev_latency += ((latency - med_latency) < 0 ?
-            -(latency - med_latency) : (latency - med_latency));
-        fprintf (out, "%ld,%ld\n", (long) latency, (long) med_latency);
-    }
-    dev_latency /= context.message_count;
-
-    fclose (out);
-
-    icl_mem_free (latencies);
-
-    
-    //  Compute throughputs
-    total_throughput =
-        (context.in_times [context.message_count - 1] - context.out_times [0]) ?
-        ((context.message_count * 1000000L) /
-        (context.in_times [context.message_count - 1] - context.out_times [0])) : 0;
-    sender_throughput = 
-        (context.out_times [context.message_count - 1] - context.out_times [0]) ?
-        ((context.message_count * 1000000L) /
-        (context.out_times [context.message_count - 1] - context.out_times [0])) : 0;
-    receiver_throughput =
-        (context.in_times [context.message_count - 1] - context.in_times [0]) ?
-        ((context.message_count * 1000000L) /
-        (context.in_times [context.message_count - 1] - context.in_times [0])) : 0;
-    
-    //  Print out the statistics
-    printf ("Total time: %ld microseconds\n", (long) total_time);
-    printf ("Minimal latency: %ld microseconds\n", (long) min_latency);
-    printf ("Maximal latency: %ld microseconds\n", (long) max_latency);
-    printf ("Average latency: %ld microseconds\n", (long) avg_latency);
-    printf ("Median latency: %ld microseconds\n", (long) med_latency);
-    printf ("Average peak: %ld microseconds\n", (long) dev_latency);
-    printf ("Total througput: %ld messages/second\n", total_throughput);
-    printf ("Sender througput: %ld messages/second\n", sender_throughput);
-    printf ("Receiver througput: %ld messages/second\n", receiver_throughput);
+    //  Compute statistics
+    compute_statistics (message_count, message_size, out_times, in_times);
 
     //  Close the connections & channels
-    amq_client_session_destroy (&context.session_in);
-    amq_client_connection_destroy (&context.connection_in);
-    amq_client_session_destroy (&context.session_out);
-    amq_client_connection_destroy (&context.connection_out);
+    amq_client_session_destroy (&session_in);
+    amq_client_connection_destroy (&connection_in);
+    amq_client_session_destroy (&session_out);
+    amq_client_connection_destroy (&connection_out);
 
     //  Deallocate allocated objects
-    icl_mem_free (context.out_times);
-    icl_mem_free (context.in_times);
+    icl_mem_free (out_times);
+    icl_mem_free (in_times);
 
     //  Destroy memory pool
     apr_pool_destroy (pool);
