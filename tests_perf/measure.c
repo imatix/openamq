@@ -215,7 +215,7 @@ void compute_statistics (
 
     //  Allocate & fill in throughput fields
     time_slices = 
-        ((intn [message_count - 1] - outtn [0]) / TIME_SLICE) + 1;
+        (int) ((intn [message_count - 1] - outtn [0]) / TIME_SLICE) + 1;
     sth = icl_mem_alloc (time_slices * sizeof (long));
     assert (sth);
     memset (sth, 0, time_slices * sizeof (long));
@@ -341,6 +341,8 @@ int main (int argc, char *argv [])
         thread_rc;
     apr_pool_t
         *pool;
+    apr_threadattr_t
+        *thread_attr;
     apr_thread_t
         *sender_thread;
     sender_context_t
@@ -439,7 +441,11 @@ int main (int argc, char *argv [])
     sender_context.message_count = message_count;
     sender_context.message_size = message_size;
     sender_context.times = &out_times;
-    rc = apr_thread_create (&sender_thread, NULL, sender_thread_func,
+    rc = apr_threadattr_create (&thread_attr, pool);
+    assert (rc == APR_SUCCESS);
+    rc = apr_threadattr_detach_set (thread_attr, 0);
+    assert (rc == APR_SUCCESS);
+    rc = apr_thread_create (&sender_thread, thread_attr, sender_thread_func,
         (void*) &sender_context, pool);
     assert (rc == APR_SUCCESS);
 
