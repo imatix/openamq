@@ -33,8 +33,8 @@
 //  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //  Name:     measure
-//  Usage:    measure <server> <no-of-messages> <size-of-message>
-//  Example:  measure localhost:5672 10000 512
+//  Usage:    measure <server> <instance-name> <no-of-messages> <size-of-message>
+//  Example:  measure localhost:5672 test1 10000 512
 //  Measures throughput and latency of AMQP broker
 
 #include "base.h"
@@ -43,6 +43,8 @@
 
 typedef struct
 {
+    char
+        *instance_name;    //  Name of measure instance
     amq_client_session_t
         *session;          //  Session to send messages on
     int
@@ -110,7 +112,7 @@ void * APR_THREAD_FUNC sender_thread_func (apr_thread_t *thread, void *ctx)
             content,                        //  content to send
             0,                              //  ticket
             "amq.direct",                   //  exchange to send message to
-            "rk",                           //  routing-key
+            context->instance_name,         //  routing-key
             FALSE,                          //  mandatory
             FALSE);                         //  immediate
 
@@ -129,6 +131,7 @@ void * APR_THREAD_FUNC sender_thread_func (apr_thread_t *thread, void *ctx)
 #define TIME_SLICES_PER_SECOND (1000000L / TIME_SLICE)
 
 void compute_statistics (
+    char *instance_name,
     int message_count,
     int message_size,
     apr_time_t *out_times,
@@ -171,6 +174,8 @@ void compute_statistics (
         rth_dev;
 
     //  Output file
+    char
+        filename [256];
     FILE
         *out;
 
@@ -267,8 +272,8 @@ void compute_statistics (
 
     //  Print out the aggregates
     printf ("**************************************************************\n");
-    printf ("PERFORMANCE STATISTICS (%d messages %d bytes long)\n",
-        message_count, message_size);
+    printf ("PERFORMANCE STATISTICS (%s - %d messages %d bytes long)\n",
+        instance_name, message_count, message_size);
     printf ("\n");
     printf ("Total time: %ld microseconds\n",
         (long) intn [message_count - 1]);
@@ -296,15 +301,26 @@ void compute_statistics (
         "%ld messages/second\n", (long) rth_dev);
     printf ("**************************************************************\n");
 
+    //  Save normalised in & out times into files
+    sprintf (filename, "%s.inoutn.dat", instance_name);
+    out = fopen (filename, "w");
+    assert (out);
+    for (counter = 0; counter != message_count; counter++)
+        fprintf (out, "%ld %ld\n",
+            (long) outtn [counter], (long) intn [counter]);
+    fclose (out);
+
     //  Save the latencies into file
-    out = fopen ("latency.dat", "w");
+    sprintf (filename, "%s.latency.dat", instance_name);
+    out = fopen (filename, "w");
     assert (out);
     for (counter = 0; counter != message_count; counter++)
         fprintf (out, "%ld\n", (long) latencies [counter]);
     fclose (out);
 
     //  Save the throughputs into file
-    out = fopen ("throughput.dat", "w");
+    sprintf (filename, "%s.throughput.dat", instance_name);
+    out = fopen (filename, "w");
     assert (out);
     for (counter = 0; counter != time_slices; counter++)
         fprintf (out, "%f %ld\n", ((double) counter) / TIME_SLICES_PER_SECOND,
@@ -313,7 +329,28 @@ void compute_statistics (
     for (counter = 0; counter != time_slices; counter++)
         fprintf (out, "%f %ld\n", ((double) counter) / TIME_SLICES_PER_SECOND,
             (long) rth [counter]);
-    fclose (out);    
+    fclose (out);
+
+    //  Save gnuplot file to print out the graphs
+    sprintf (filename, "%s.gnuplot", instance_name);
+    out = fopen (filename, "w");
+    assert (out);
+    fprintf (out, "set ylabel 'latency (microseconds)'\n");
+    fprintf (out, "set xlabel 'message number'\n");
+    fprintf (out, "set grid\n");
+    fprintf (out, "set grid noxtics\n");
+    fprintf (out, "set terminal png medium size 640,480\n");
+    fprintf (out, "set output '%s.latency.png'\n", instance_name);
+    fprintf (out, "plot '%s.latency.dat' t 'latency' with lines\n",
+        instance_name);
+    fprintf (out, "set ylabel 'throughput (messages/second)'\n");
+    fprintf (out, "set xlabel 'time (seconds)'\n");
+    fprintf (out, "set output '%s.throughput.png'\n", instance_name);
+    fprintf (out, "plot '%s.throughput.dat' index 0 t 'sender' with lines, ",
+        instance_name);
+    fprintf (out, "'%s.throughput.dat' index 1 t 'receiver' with lines",
+        instance_name);
+    fclose (out);
 
     //  Destroy auxiliary fields
     icl_mem_free (outtn);
@@ -330,7 +367,8 @@ int main (int argc, char *argv [])
 {
     //  Command line arguments
     char
-        *host;
+        *host,
+        *instance_name;
     int
         message_count,
         message_size;
@@ -370,13 +408,14 @@ int main (int argc, char *argv [])
         *in_times;
 
     //  Get command line parameters
-    if (argc != 4) {
+    if (argc != 5) {
         printf ("Usage: measure <server> <no-of-messages> <size-of-message>\n");
         exit (1);
     }
     host = argv [1];
-    message_count = atoi (argv [2]);
-    message_size = atoi (argv [3]);
+    instance_name = argv [2];
+    message_count = atoi (argv [3]);
+    message_size = atoi (argv [4]);
 
     //  Initialise system
     icl_system_initialise (argc, argv);
@@ -413,7 +452,7 @@ int main (int argc, char *argv [])
     amq_client_session_queue_declare (
         session_in,                     //  session
         0,                              //  ticket
-        NULL,                           //  queue name
+        instance_name,                  //  queue name
         FALSE,                          //  passive
         FALSE,                          //  durable
         TRUE,                           //  exclusive
@@ -422,14 +461,14 @@ int main (int argc, char *argv [])
     amq_client_session_queue_bind (
         session_in,                     //  session
         0,                              //  ticket
-        NULL,                           //  queue
+        instance_name,                  //  queue
         "amq.direct",                   //  exchange
-        "rk",                           //  routing-key
+        instance_name,                  //  routing-key
         NULL);                          //  arguments
     amq_client_session_basic_consume (
         session_in,                     //  session
         0,                              //  ticket
-        NULL,                           //  queue
+        instance_name,                  //  queue
         NULL,                           //  consumer-tag
         TRUE,                           //  no-local
         TRUE,                           //  no-ack
@@ -437,6 +476,7 @@ int main (int argc, char *argv [])
         NULL);                          //  arguments
 
     //  Start the sending thread
+    sender_context.instance_name = instance_name;
     sender_context.session = session_out;
     sender_context.message_count = message_count;
     sender_context.message_size = message_size;
@@ -487,7 +527,8 @@ int main (int argc, char *argv [])
     assert (rc == APR_SUCCESS);
 
     //  Compute statistics
-    compute_statistics (message_count, message_size, out_times, in_times);
+    compute_statistics (instance_name, message_count, message_size,
+        out_times, in_times);
 
     //  Close the connections & channels
     amq_client_session_destroy (&session_in);
