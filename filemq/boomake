@@ -150,6 +150,10 @@ a_build_binary_files() {
     if [ ! -z "$_LOCAL_BASE" ]; then
         MY_COPTS="$MY_COPTS -li $_LOCAL_BASE/include -ll $_LOCAL_BASE/lib"
     fi
+    [ "$BOOM_TRACE" ] && echo "c $MY_COPTS fmq_svc"
+    c $MY_COPTS fmq_svc || croak "\"c $MY_COPTS fmq_svc\" failed"
+    [ "$BOOM_TRACE" ] && echo "c $MY_COPTS fmq_pub"
+    c $MY_COPTS fmq_pub || croak "\"c $MY_COPTS fmq_pub\" failed"
     [ "$BOOM_TRACE" ] && echo "c $MY_COPTS fmq_session_test"
     c $MY_COPTS fmq_session_test || croak "\"c $MY_COPTS fmq_session_test\" failed"
     [ "$BOOM_TRACE" ] && echo "c $MY_COPTS fmq_session"
@@ -158,14 +162,34 @@ a_build_binary_files() {
     [ "$BOOM_TRACE" ] && echo "c -p $MY_COPTS fmq_session"
     c -p $MY_COPTS fmq_session || croak "\"c -p $MY_COPTS fmq_session\" failed"
     fi
+    [ "$BOOM_TRACE" ] && echo "c $MY_COPTS fmq_cache_test"
+    c $MY_COPTS fmq_cache_test || croak "\"c $MY_COPTS fmq_cache_test\" failed"
+    [ "$BOOM_TRACE" ] && echo "c $MY_COPTS fmq_cache"
+    c $MY_COPTS fmq_cache || croak "\"c $MY_COPTS fmq_cache\" failed"
+    if [ "$BOOM_MODEL_CPP" ]; then
+    [ "$BOOM_TRACE" ] && echo "c -p $MY_COPTS fmq_cache"
+    c -p $MY_COPTS fmq_cache || croak "\"c -p $MY_COPTS fmq_cache\" failed"
+    fi
     [ "$BOOM_TRACE" ] && echo "c $MY_COPTS -r libfmq fmq_session"
     c $MY_COPTS -r libfmq fmq_session || croak "\"c $MY_COPTS -r libfmq fmq_session\" failed"
     if [ "$BOOM_MODEL_CPP" ]; then
     [ "$BOOM_TRACE" ] && echo "c -p $MY_COPTS -r libfmq fmq_session"
     c -p $MY_COPTS -r libfmq fmq_session || croak "\"c -p $MY_COPTS -r libfmq fmq_session\" failed"
     fi
+    [ "$BOOM_TRACE" ] && echo "c $MY_COPTS -r libfmq fmq_cache"
+    c $MY_COPTS -r libfmq fmq_cache || croak "\"c $MY_COPTS -r libfmq fmq_cache\" failed"
+    if [ "$BOOM_MODEL_CPP" ]; then
+    [ "$BOOM_TRACE" ] && echo "c -p $MY_COPTS -r libfmq fmq_cache"
+    c -p $MY_COPTS -r libfmq fmq_cache || croak "\"c -p $MY_COPTS -r libfmq fmq_cache\" failed"
+    fi
+    [ "$BOOM_TRACE" ] && echo "c $MY_COPTS -L fmq_svc"
+    c $MY_COPTS -L fmq_svc || croak "\"c $MY_COPTS -L fmq_svc\" failed"
+    [ "$BOOM_TRACE" ] && echo "c $MY_COPTS -L fmq_pub"
+    c $MY_COPTS -L fmq_pub || croak "\"c $MY_COPTS -L fmq_pub\" failed"
     [ "$BOOM_TRACE" ] && echo "c $MY_COPTS -L fmq_session_test"
     c $MY_COPTS -L fmq_session_test || croak "\"c $MY_COPTS -L fmq_session_test\" failed"
+    [ "$BOOM_TRACE" ] && echo "c $MY_COPTS -L fmq_cache_test"
+    c $MY_COPTS -L fmq_cache_test || croak "\"c $MY_COPTS -L fmq_cache_test\" failed"
 }
 
 # -------------------------   BUILD SOURCE PACKAGES   -------------------------
@@ -176,8 +200,17 @@ a_build_source_packages() {
     if [ -f "version.h" ]; then
         echo version.h>>_package.lst
     fi
+    if [ -f "fmq_svc.c" ]; then
+        echo fmq_svc.c>>_package.lst
+    fi
+    if [ -f "fmq_pub.c" ]; then
+        echo fmq_pub.c>>_package.lst
+    fi
     if [ -f "fmq_session.icl" ]; then
         echo fmq_session.icl>>_package.lst
+    fi
+    if [ -f "fmq_cache.icl" ]; then
+        echo fmq_cache.icl>>_package.lst
     fi
     if [ -f "prelude.pdl" ]; then
         echo prelude.pdl>>_package.lst
@@ -190,6 +223,24 @@ a_build_source_packages() {
     fi
     if [ -f "readme.txt" ]; then
         echo readme.txt>>_package.lst
+    fi
+    if [ -f "fmq_svc.l" ]; then
+        echo fmq_svc.l>>_package.lst
+    fi
+    if [ -f "fmq_svc.i" ]; then
+        echo fmq_svc.i>>_package.lst
+    fi
+    if [ -f "fmq_svc.d" ]; then
+        echo fmq_svc.d>>_package.lst
+    fi
+    if [ -f "fmq_pub.l" ]; then
+        echo fmq_pub.l>>_package.lst
+    fi
+    if [ -f "fmq_pub.i" ]; then
+        echo fmq_pub.i>>_package.lst
+    fi
+    if [ -f "fmq_pub.d" ]; then
+        echo fmq_pub.d>>_package.lst
     fi
     if [ -f "fmq_session_test.c" ]; then
         echo fmq_session_test.c>>_package.lst
@@ -205,6 +256,21 @@ a_build_source_packages() {
     fi
     if [ -f "fmq_session.cpp" ]; then
         echo fmq_session.cpp>>_package.lst
+    fi
+    if [ -f "fmq_cache_test.c" ]; then
+        echo fmq_cache_test.c>>_package.lst
+    fi
+    if [ -f "fmq_cache.h" ]; then
+        echo fmq_cache.h>>_package.lst
+    fi
+    if [ -f "fmq_cache.c" ]; then
+        echo fmq_cache.c>>_package.lst
+    fi
+    if [ -f "fmq_cache.hpp" ]; then
+        echo fmq_cache.hpp>>_package.lst
+    fi
+    if [ -f "fmq_cache.cpp" ]; then
+        echo fmq_cache.cpp>>_package.lst
     fi
     if [ -f "stamp_generate" ]; then
         echo stamp_generate>>_package.lst
@@ -250,14 +316,41 @@ a_check_all_source_files_exist() {
     if [ ! -f "version.h" ]; then
         croak "version.h is missing"
     fi
+    if [ ! -f "fmq_svc.c" ]; then
+        croak "fmq_svc.c is missing"
+    fi
+    if [ ! -f "fmq_pub.c" ]; then
+        croak "fmq_pub.c is missing"
+    fi
     if [ ! -f "fmq_session.icl" ]; then
         croak "fmq_session.icl is missing"
+    fi
+    if [ ! -f "fmq_cache.icl" ]; then
+        croak "fmq_cache.icl is missing"
     fi
     if [ ! -f "project.pdl" ]; then
         croak "project.pdl is missing"
     fi
     if [ ! -f "readme.txt" ]; then
         croak "readme.txt is missing"
+    fi
+    if [ ! -f "fmq_svc.l" ]; then
+        croak "fmq_svc.l is missing"
+    fi
+    if [ ! -f "fmq_svc.i" ]; then
+        croak "fmq_svc.i is missing"
+    fi
+    if [ ! -f "fmq_svc.d" ]; then
+        croak "fmq_svc.d is missing"
+    fi
+    if [ ! -f "fmq_pub.l" ]; then
+        croak "fmq_pub.l is missing"
+    fi
+    if [ ! -f "fmq_pub.i" ]; then
+        croak "fmq_pub.i is missing"
+    fi
+    if [ ! -f "fmq_pub.d" ]; then
+        croak "fmq_pub.d is missing"
     fi
     if [ ! -f "fmq_session_test.c" ]; then
         croak "fmq_session_test.c is missing"
@@ -273,6 +366,21 @@ a_check_all_source_files_exist() {
     fi
     if [ ! -f "fmq_session.cpp" ]; then
         croak "fmq_session.cpp is missing"
+    fi
+    if [ ! -f "fmq_cache_test.c" ]; then
+        croak "fmq_cache_test.c is missing"
+    fi
+    if [ ! -f "fmq_cache.h" ]; then
+        croak "fmq_cache.h is missing"
+    fi
+    if [ ! -f "fmq_cache.c" ]; then
+        croak "fmq_cache.c is missing"
+    fi
+    if [ ! -f "fmq_cache.hpp" ]; then
+        croak "fmq_cache.hpp is missing"
+    fi
+    if [ ! -f "fmq_cache.cpp" ]; then
+        croak "fmq_cache.cpp is missing"
     fi
     if [ ! -f "stamp_generate" ]; then
         croak "stamp_generate is missing"
@@ -301,8 +409,11 @@ a_check_all_source_files_exist() {
 
 a_check_binary_files_exist() {
 :
-    if [ ! -f "fmq_session.icl" ]; then
-        croak "fmq_session.icl is missing"
+    if [ ! -f "fmq_svc" ]; then
+        croak "fmq_svc is missing"
+    fi
+    if [ ! -f "fmq_pub" ]; then
+        croak "fmq_pub is missing"
     fi
     if [ ! -f "libfmq.a" ]; then
         croak "libfmq.a is missing"
@@ -316,6 +427,14 @@ a_check_binary_files_exist() {
     if [ "$BOOM_MODEL_CPP" ]; then
     if [ ! -f "fmq_session.hpp" ]; then
         croak "fmq_session.hpp is missing"
+    fi
+    fi
+    if [ ! -f "fmq_cache.h" ]; then
+        croak "fmq_cache.h is missing"
+    fi
+    if [ "$BOOM_MODEL_CPP" ]; then
+    if [ ! -f "fmq_cache.hpp" ]; then
+        croak "fmq_cache.hpp is missing"
     fi
     fi
 }
@@ -340,14 +459,29 @@ a_check_project_files_exist() {
     if [ ! -f "version.h" ]; then
         croak "version.h is missing"
     fi
+    if [ ! -f "fmq_svc.c" ]; then
+        croak "fmq_svc.c is missing"
+    fi
+    if [ ! -f "fmq_pub.c" ]; then
+        croak "fmq_pub.c is missing"
+    fi
     if [ ! -f "fmq_session.icl" ]; then
         croak "fmq_session.icl is missing"
+    fi
+    if [ ! -f "fmq_cache.icl" ]; then
+        croak "fmq_cache.icl is missing"
     fi
     if [ ! -f "project.pdl" ]; then
         croak "project.pdl is missing"
     fi
     if [ ! -f "readme.txt" ]; then
         croak "readme.txt is missing"
+    fi
+    if [ ! -f "fmq_svc.l" ]; then
+        croak "fmq_svc.l is missing"
+    fi
+    if [ ! -f "fmq_pub.l" ]; then
+        croak "fmq_pub.l is missing"
     fi
     if [ ! -f "configure" ]; then
         croak "configure is missing"
@@ -376,14 +510,41 @@ a_check_source_files_exist() {
     if [ ! -f "version.h" ]; then
         croak "version.h is missing"
     fi
+    if [ ! -f "fmq_svc.c" ]; then
+        croak "fmq_svc.c is missing"
+    fi
+    if [ ! -f "fmq_pub.c" ]; then
+        croak "fmq_pub.c is missing"
+    fi
     if [ ! -f "fmq_session.icl" ]; then
         croak "fmq_session.icl is missing"
+    fi
+    if [ ! -f "fmq_cache.icl" ]; then
+        croak "fmq_cache.icl is missing"
     fi
     if [ ! -f "project.pdl" ]; then
         croak "project.pdl is missing"
     fi
     if [ ! -f "readme.txt" ]; then
         croak "readme.txt is missing"
+    fi
+    if [ ! -f "fmq_svc.l" ]; then
+        croak "fmq_svc.l is missing"
+    fi
+    if [ ! -f "fmq_svc.i" ]; then
+        croak "fmq_svc.i is missing"
+    fi
+    if [ ! -f "fmq_svc.d" ]; then
+        croak "fmq_svc.d is missing"
+    fi
+    if [ ! -f "fmq_pub.l" ]; then
+        croak "fmq_pub.l is missing"
+    fi
+    if [ ! -f "fmq_pub.i" ]; then
+        croak "fmq_pub.i is missing"
+    fi
+    if [ ! -f "fmq_pub.d" ]; then
+        croak "fmq_pub.d is missing"
     fi
     if [ ! -f "fmq_session_test.c" ]; then
         croak "fmq_session_test.c is missing"
@@ -402,6 +563,25 @@ a_check_source_files_exist() {
     if [ "$BOOM_MODEL_CPP" ]; then
     if [ ! -f "fmq_session.cpp" ]; then
         croak "fmq_session.cpp is missing"
+    fi
+    fi
+    if [ ! -f "fmq_cache_test.c" ]; then
+        croak "fmq_cache_test.c is missing"
+    fi
+    if [ ! -f "fmq_cache.h" ]; then
+        croak "fmq_cache.h is missing"
+    fi
+    if [ ! -f "fmq_cache.c" ]; then
+        croak "fmq_cache.c is missing"
+    fi
+    if [ "$BOOM_MODEL_CPP" ]; then
+    if [ ! -f "fmq_cache.hpp" ]; then
+        croak "fmq_cache.hpp is missing"
+    fi
+    fi
+    if [ "$BOOM_MODEL_CPP" ]; then
+    if [ ! -f "fmq_cache.cpp" ]; then
+        croak "fmq_cache.cpp is missing"
     fi
     fi
     if [ ! -f "stamp_generate" ]; then
@@ -440,10 +620,14 @@ a_install_deliverables() {
         fi
     fi
     mkdir -p $_INSTALL_ROOT/bin/
-    [ "$BOOM_TRACE" ] && echo "cp fmq_session.icl $_INSTALL_ROOT/bin/"
-    cp fmq_session.icl $_INSTALL_ROOT/bin/ || croak "\"cp fmq_session.icl $_INSTALL_ROOT/bin/\" failed"
-    [ "$BOOM_TRACE" ] && echo "chmod 0644 $_INSTALL_ROOT/bin/fmq_session.icl"
-    chmod 0644 $_INSTALL_ROOT/bin/fmq_session.icl || croak "\"chmod 0644 $_INSTALL_ROOT/bin/fmq_session.icl\" failed"
+    [ "$BOOM_TRACE" ] && echo "cp fmq_svc $_INSTALL_ROOT/bin/"
+    cp fmq_svc $_INSTALL_ROOT/bin/ || croak "\"cp fmq_svc $_INSTALL_ROOT/bin/\" failed"
+    [ "$BOOM_TRACE" ] && echo "chmod 0755 $_INSTALL_ROOT/bin/fmq_svc"
+    chmod 0755 $_INSTALL_ROOT/bin/fmq_svc || croak "\"chmod 0755 $_INSTALL_ROOT/bin/fmq_svc\" failed"
+    [ "$BOOM_TRACE" ] && echo "cp fmq_pub $_INSTALL_ROOT/bin/"
+    cp fmq_pub $_INSTALL_ROOT/bin/ || croak "\"cp fmq_pub $_INSTALL_ROOT/bin/\" failed"
+    [ "$BOOM_TRACE" ] && echo "chmod 0755 $_INSTALL_ROOT/bin/fmq_pub"
+    chmod 0755 $_INSTALL_ROOT/bin/fmq_pub || croak "\"chmod 0755 $_INSTALL_ROOT/bin/fmq_pub\" failed"
     mkdir -p $_INSTALL_ROOT/lib/
     [ "$BOOM_TRACE" ] && echo "cp libfmq.a $_INSTALL_ROOT/lib/"
     cp libfmq.a $_INSTALL_ROOT/lib/ || croak "\"cp libfmq.a $_INSTALL_ROOT/lib/\" failed"
@@ -468,6 +652,18 @@ a_install_deliverables() {
     [ "$BOOM_TRACE" ] && echo "chmod 0644 $_INSTALL_ROOT/include/fmq_session.hpp"
     chmod 0644 $_INSTALL_ROOT/include/fmq_session.hpp || croak "\"chmod 0644 $_INSTALL_ROOT/include/fmq_session.hpp\" failed"
     fi
+    [ "$BOOM_TRACE" ] && echo "cp fmq_cache.h $_INSTALL_ROOT/include/"
+    cp fmq_cache.h $_INSTALL_ROOT/include/ || croak "\"cp fmq_cache.h $_INSTALL_ROOT/include/\" failed"
+    [ "$BOOM_TRACE" ] && echo "chmod 0644 $_INSTALL_ROOT/include/fmq_cache.h"
+    chmod 0644 $_INSTALL_ROOT/include/fmq_cache.h || croak "\"chmod 0644 $_INSTALL_ROOT/include/fmq_cache.h\" failed"
+    if [ "$BOOM_MODEL_CPP" ]; then
+    [ "$BOOM_TRACE" ] && echo "cp fmq_cache.hpp $_INSTALL_ROOT/include/"
+    cp fmq_cache.hpp $_INSTALL_ROOT/include/ || croak "\"cp fmq_cache.hpp $_INSTALL_ROOT/include/\" failed"
+    fi
+    if [ "$BOOM_MODEL_CPP" ]; then
+    [ "$BOOM_TRACE" ] && echo "chmod 0644 $_INSTALL_ROOT/include/fmq_cache.hpp"
+    chmod 0644 $_INSTALL_ROOT/include/fmq_cache.hpp || croak "\"chmod 0644 $_INSTALL_ROOT/include/fmq_cache.hpp\" failed"
+    fi
     if [ -f ./installer ]; then
     [ "$BOOM_TRACE" ] && echo "sh ./installer"
     sh ./installer || croak "\"sh ./installer\" failed"
@@ -483,6 +679,14 @@ a_produce_all_generated_files() {
     gsl -q -quiet:1 -target:stdcpp fmq_session.icl || croak "\"gsl -q -quiet:1 -target:stdcpp fmq_session.icl\" failed"
     [ "$BOOM_TRACE" ] && echo "gsl -q -quiet:1 fmq_session.icl"
     gsl -q -quiet:1 fmq_session.icl || croak "\"gsl -q -quiet:1 fmq_session.icl\" failed"
+    [ "$BOOM_TRACE" ] && echo "gsl -q -quiet:1 -target:stdcpp fmq_cache.icl"
+    gsl -q -quiet:1 -target:stdcpp fmq_cache.icl || croak "\"gsl -q -quiet:1 -target:stdcpp fmq_cache.icl\" failed"
+    [ "$BOOM_TRACE" ] && echo "gsl -q -quiet:1 fmq_cache.icl"
+    gsl -q -quiet:1 fmq_cache.icl || croak "\"gsl -q -quiet:1 fmq_cache.icl\" failed"
+    [ "$BOOM_TRACE" ] && echo "lr -quiet fmq_svc.l"
+    lr -quiet fmq_svc.l || croak "\"lr -quiet fmq_svc.l\" failed"
+    [ "$BOOM_TRACE" ] && echo "lr -quiet fmq_pub.l"
+    lr -quiet fmq_pub.l || croak "\"lr -quiet fmq_pub.l\" failed"
     echo "Source files successfully generated">stamp_generate
 }
 
@@ -497,6 +701,16 @@ a_produce_generated_files() {
     fi
     [ "$BOOM_TRACE" ] && echo "gsl -q -quiet:1 fmq_session.icl"
     gsl -q -quiet:1 fmq_session.icl || croak "\"gsl -q -quiet:1 fmq_session.icl\" failed"
+    if [ "$BOOM_MODEL_CPP" ]; then
+    [ "$BOOM_TRACE" ] && echo "gsl -q -quiet:1 -target:stdcpp fmq_cache.icl"
+    gsl -q -quiet:1 -target:stdcpp fmq_cache.icl || croak "\"gsl -q -quiet:1 -target:stdcpp fmq_cache.icl\" failed"
+    fi
+    [ "$BOOM_TRACE" ] && echo "gsl -q -quiet:1 fmq_cache.icl"
+    gsl -q -quiet:1 fmq_cache.icl || croak "\"gsl -q -quiet:1 fmq_cache.icl\" failed"
+    [ "$BOOM_TRACE" ] && echo "lr -quiet fmq_svc.l"
+    lr -quiet fmq_svc.l || croak "\"lr -quiet fmq_svc.l\" failed"
+    [ "$BOOM_TRACE" ] && echo "lr -quiet fmq_pub.l"
+    lr -quiet fmq_pub.l || croak "\"lr -quiet fmq_pub.l\" failed"
     echo "Source files successfully generated">stamp_generate
 }
 
@@ -504,25 +718,47 @@ a_produce_generated_files() {
 
 a_remove_generated_binaries() {
 :
+    rm -f fmq_svc
+    rm -f fmq_pub
     rm -f libfmq.a
+    rm -f fmq_svc.o
+    rm -f fmq_svc
+    rm -f fmq_pub.o
+    rm -f fmq_pub
     rm -f fmq_session_test_test.o
     rm -f fmq_session_test_test
     rm -f fmq_session.o
     rm -f fmq_session.opp
+    rm -f fmq_cache_test_test.o
+    rm -f fmq_cache_test_test
+    rm -f fmq_cache.o
+    rm -f fmq_cache.opp
     rm -f fmq_session_test.o
     rm -f fmq_session_test
     rm -f fmq_session.o
+    rm -f fmq_cache_test.o
+    rm -f fmq_cache_test
+    rm -f fmq_cache.o
 }
 
 # -----------------------   REMOVE GENERATED SOURCES   ------------------------
 
 a_remove_generated_sources() {
 :
+    rm -f fmq_svc.i
+    rm -f fmq_svc.d
+    rm -f fmq_pub.i
+    rm -f fmq_pub.d
     rm -f fmq_session_test.c
     rm -f fmq_session.h
     rm -f fmq_session.c
     rm -f fmq_session.hpp
     rm -f fmq_session.cpp
+    rm -f fmq_cache_test.c
+    rm -f fmq_cache.h
+    rm -f fmq_cache.c
+    rm -f fmq_cache.hpp
+    rm -f fmq_cache.cpp
     rm -f stamp_generate
     rm -f fmq_*.zip
     rm -f fmq_*.tar.gz
@@ -553,6 +789,13 @@ a_run_regression_tests() {
         RUN_COMMAND="./fmq_session_test"
     else
         RUN_COMMAND="./fmq_session_test -q"
+    fi
+    [ "$BOOM_TRACE" ] && echo "$RUN_COMMAND"
+    $RUN_COMMAND || croak "\"$RUN_COMMAND\" failed"
+    if [ "$BOOM_TRACE" ]; then
+        RUN_COMMAND="./fmq_cache_test"
+    else
+        RUN_COMMAND="./fmq_cache_test -q"
     fi
     [ "$BOOM_TRACE" ] && echo "$RUN_COMMAND"
     $RUN_COMMAND || croak "\"$RUN_COMMAND\" failed"

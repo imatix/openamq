@@ -123,7 +123,7 @@
         self->broker->clustered = TRUE;
     }
     else
-        smt_log_print (amq_broker->alert_log, "I: server starting in stand-alone mode");
+        smt_log_print (amq_broker->alert_log, "I: server starting in non-clustered mode");
 </method>
 
 <method name = "start_monitoring" template = "async function" async = "1">

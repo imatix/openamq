@@ -20,6 +20,7 @@
 !============================================================================
 
 -schema:lrschema.c99
+-anim
 
 After-Init:
     (--) Ok                                 -> Have-Operation
@@ -33,6 +34,9 @@ Have-Operation:
           + Register-As-File-Publisher
           + Prepare-To-Stage-File
           + Get-Next-File-Fragment
+    (--) Empty                              ->
+          + Close-Connection-to-Broker
+          + Terminate-The-Program
 
 Have-Fragment:
     (--) Ok                                 -> Have-Fragment

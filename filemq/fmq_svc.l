@@ -35,16 +35,17 @@ Have-Message:
           + Stage-File-Fragment
           + Wait-For-Incoming-Message
     (--) Publish                            -> Have-Message
-          + Pubish-File-To-Subscribers
+          + Publish-File-To-Subscribers
           + Wait-For-Incoming-Message
     (--) Subscribe                          -> Have-Message
-          + Register-New-Subscribes
+          + Register-New-Subscriber
           + Wait-For-Incoming-Message
     (--) Sync                               -> Have-Message
           + Synchronise-Subscriber
           + Wait-For-Incoming-Message
     (--) Other                              -> Have-Message
           + Signal-Unknown-Message
+          + Wait-For-Incoming-Message
 
 !   Connection to broker is still open
 Soft-Failure:

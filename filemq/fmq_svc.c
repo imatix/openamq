@@ -31,7 +31,7 @@
 "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n" \
     "\n"
 #define USAGE                                                               \
-    "Syntax: fmq_service [options...]\n"                                    \
+    "Syntax: fmq_svc [options...]\n"                                        \
     "Options:\n"                                                            \
     "  -n servicename   Service name (filemq)\n"                            \
     "  -s server[:port] Name or address, port of server (localhost)\n"      \
@@ -44,11 +44,7 @@
     "are case sensitive. See documentation for detailed information.\n"     \
     "\n"
 
-#include "fmq_service.d"                //  Include dialog data
-
-//- Function prototypes -----------------------------------------------------
-
-static void s_check_status (int rc, char *format, ...);
+#include "fmq_svc.d"                    //  Include dialog data
 
 
 //- Global variables used in this source file only --------------------------
@@ -148,7 +144,7 @@ int main (int argc, char *argv [])
         icl_console_print ("E: invalid arguments - use '-h' option for help");
         exit (EXIT_FAILURE);
     }
-#   include "fmq_service.i"             //  Start dialog engine
+#   include "fmq_svc.i"                 //  Start dialog engine
 }
 
 
@@ -169,7 +165,7 @@ MODULE open_connection_to_broker (void)
     session = fmq_session_new ();
     fmq_session_set_trace (session, atoi (opt_trace));
     fmq_session_set_login (session, "guest", "guest");
-    rc = fmq_session_open (session, opt_hostname, "fmq_service");
+    rc = fmq_session_open (session, opt_hostname, "fmq_svc");
     if (rc) {
         icl_console_print ("E: could not connect to %s", opt_hostname);
         raise_exception (no_broker_event);
@@ -189,61 +185,127 @@ MODULE register_as_file_service (void)
 }
 
 
-//************************   PARSE INCOMING MESSAGE   ***********************
+//***********************   WAIT FOR INCOMING MESSAGE   ***********************
 
-MODULE parse_incoming_message (void)
+MODULE wait_for_incoming_message (void)
 {
-    assert (session->content);
-    //  These are the messages we accept
-    if (streq (session->content->type, "STAGE"))
-        the_next_event = stage_event;
+    assert (session);
+    rc = fmq_session_wait (session);
+    if (rc == FMQ_SESSION_INTERRUPT)
+        raise_exception (interrupt_event);
     else
-    if (streq (session->content->type, "PUBLISH"))
-        the_next_event = publish_event;
+    if (rc == FMQ_SESSION_NO_BROKER)
+        raise_exception (no_broker_event);
     else
-    if (streq (session->content->type, "SUBSCRIBE"))
-        the_next_event = subscribe_event;
+    if (rc == FMQ_SESSION_EXCEPTION)
+        raise_exception (exception_event);
     else
-    if (streq (session->content->type, "SYNC"))
-        the_next_event = sync_event;
+    if (rc == FMQ_SESSION_RETURNED)
+        raise_exception (returned_event);
     else
-        the_next_event = other_event;
+    if (rc == FMQ_SESSION_ARRIVED) {
+        //  These are the messages we accept
+        if (streq (session->content->type, "STAGE"))
+            the_next_event = stage_event;
+        else
+        if (streq (session->content->type, "PUBLISH"))
+            the_next_event = publish_event;
+        else
+        if (streq (session->content->type, "SUBSCRIBE"))
+            the_next_event = subscribe_event;
+        else
+        if (streq (session->content->type, "SYNC"))
+            the_next_event = sync_event;
+        else
+            the_next_event = other_event;
+    }
 }
 
 
-/*****************************   REPLY STAGE OK   ****************************/
+//**************************   STAGE FILE FRAGMENT   **************************
 
-MODULE reply_stage_ok (void)
+MODULE stage_file_fragment (void)
 {
+    char
+        *filename;
+    time_t
+        filetime;
+    size_t
+        filesize,
+        offset;
+
+    filename =       asl_field_list_string (self->header_fields, "FILENAME");
+    filesize = atol (asl_field_list_string (self->header_fields, "FILESIZE"));
+    offset   = atol (asl_field_list_string (self->header_fields, "OFFSET"));
+
+    file index
+        id (1..n), name (string), hash (sha1), size (bytes), staged (bytes), version (1..n)
+
+    FILE
+        *file_stream;
+    int
+        ch;
+    </local>
+    //    
+    assert (filename);
+    file_stream = fopen (filename, "r");
+    if (file_stream) {
+        while ((ch = fgetc (file_stream)) != EOF)
+            if (ch == '\\n')
+                rc++;
+        fclose (file_stream);
+    }
+
+
+    - text file with all file entries
+
+    - unique entry key is name+hash
+    - add new entry to index if needed
+        append the fragment if any
+    - assertions
+        new staged is not greater than filesize
+    - return amount of data staged
+
+    amq_content_basic_set_headers_field (content, "FILENAME", filename);
+    amq_content_basic_set_headers_field (content, "FILE-ID",  file_id);
+    amq_content_basic_set_headers_field (content, "STAGED",   "%"PRId64, staged);
+    
+
+    Staging...
+    - all files are staged uniquely, in a single directory
+    - files can be published onto arbitrary channels
+    - do we have the file staged somewhere?
+    
+
     fmq_session_reply_stage_ok (session, "somefile", "fileid", 1234);
 }
 
 
-/****************************   REPLY PUBISH OK   ****************************/
+//**********************   PUBLISH FILE TO SUBSCRIBERS   **********************
 
-MODULE reply_pubish_ok (void)
+MODULE publish_file_to_subscribers (void)
 {
     fmq_session_reply_publish_ok (session, "fileid", 100);
 }
 
 
-/***************************   REPLY SUBSCRIBE OK   **************************/
+//************************   REGISTER NEW SUBSCRIBER   ************************
 
-MODULE reply_subscribe_ok (void)
+MODULE register_new_subscriber (void)
 {
-    fmq_session_reply_subscribe_ok (session, 100);
+    fmq_session_reply_subscribe_ok (session);
 }
 
 
-/*****************************   REPLY SYNC OK   *****************************/
+//*************************   SYNCHRONISE SUBSCRIBER   ************************
 
-MODULE reply_sync_ok (void)
+MODULE synchronise_subscriber (void)
 {
     fmq_session_reply_sync_ok (session, "fileid");
 }
 
 
-/*************************   SIGNAL UNKNOWN MESSAGE   ************************/
+//*************************   SIGNAL UNKNOWN MESSAGE   ************************
 
 MODULE signal_unknown_message (void)
 {
@@ -252,7 +314,7 @@ MODULE signal_unknown_message (void)
 }
 
 
-/************************   CHECK IF RETRIES WANTED   ************************/
+//***********************   CHECK IF RETRIES WANTED   ************************
 
 MODULE check_if_retries_wanted (void)
 {
@@ -263,7 +325,7 @@ MODULE check_if_retries_wanted (void)
 }
 
 
-/***********************   SIGNAL UNEXPECTED RETURNS   ***********************/
+//**********************   SIGNAL UNEXPECTED RETURNS   ***********************
 
 MODULE signal_unexpected_returns (void)
 {
@@ -271,7 +333,7 @@ MODULE signal_unexpected_returns (void)
 }
 
 
-//*************************   SIGNAL SHUTTING DOWN   ************************
+//*************************   SIGNAL SHUTTING DOWN   *************************
 
 MODULE signal_shutting_down (void)
 {
@@ -279,7 +341,7 @@ MODULE signal_shutting_down (void)
 }
 
 
-//**********************   CLOSE CONNECTION TO BROKER   *********************
+//**********************   CLOSE CONNECTION TO BROKER   **********************
 
 MODULE close_connection_to_broker (void)
 {
@@ -288,7 +350,7 @@ MODULE close_connection_to_broker (void)
 }
 
 
-/***************************   PAUSE FOR RECOVERY   **************************/
+//**************************   PAUSE FOR RECOVERY   **************************
 
 MODULE pause_for_recovery (void)
 {
@@ -301,28 +363,6 @@ MODULE pause_for_recovery (void)
 
 MODULE get_external_event (void)
 {
-    assert (session);
-    rc = fmq_session_wait (session);
-    if (rc == FMQ_SESSION_ARRIVED)
-        the_next_event = arrived_event;
-    else
-    if (rc == FMQ_SESSION_RETURNED)
-        the_next_event = returned_event;
-    else
-    if (rc == FMQ_SESSION_INTERRUPT) {
-        icl_console_print ("I: interrupted");
-        the_next_event = interrupt_event;
-    }
-    else
-    if (rc == FMQ_SESSION_NO_BROKER) {
-        icl_console_print ("I: AMQP broker dropped connection");
-        the_next_event = no_broker_event;
-    }
-    else
-    if (rc == FMQ_SESSION_EXCEPTION) {
-        icl_console_print ("I: AMQP broker closed connection");
-        the_next_event = exception_event;
-    }
 }
 
 
@@ -332,40 +372,5 @@ MODULE terminate_the_program (void)
 {
     icl_system_terminate ();
     the_next_event = terminate_event;
-}
-
-
-//***********************   WAIT FOR INCOMING MESSAGE   ***********************
-
-MODULE wait_for_incoming_message (void)
-{
-}
-
-
-//**************************   STAGE FILE FRAGMENT   **************************
-
-MODULE stage_file_fragment (void)
-{
-}
-
-
-//***********************   PUBISH FILE TO SUBSCRIBERS   **********************
-
-MODULE pubish_file_to_subscribers (void)
-{
-}
-
-
-//************************   REGISTER NEW SUBSCRIBES   ************************
-
-MODULE register_new_subscribes (void)
-{
-}
-
-
-//*************************   SYNCHRONISE SUBSCRIBER   ************************
-
-MODULE synchronise_subscriber (void)
-{
 }
 

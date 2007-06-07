@@ -40,12 +40,15 @@ object class called fmq_session.
 </public>
 
 <context>
+    //  Session properties
     amq_client_connection_t
         *connection;                    //  WireAPI connection
     amq_client_session_t
         *session;                       //  WireAPI session
     amq_content_basic_t
         *content;                       //  Current content
+	asl_field_list_t
+        *header_fields;                 //  Current content headers
     icl_longstr_t
         *auth_data;                     //  Login authorisation data
     dbyte
@@ -59,6 +62,14 @@ object class called fmq_session.
         reply_to;                       //  Reply-to from current content
     int
         trace;                          //  WireAPI trace level 0-3
+    Bool
+        silent;                         //  If set, don't print messages
+
+    //  Return arguments
+    int64_t
+        staged;                         //  Syncpoint for stage
+    size_t
+        subscribers;                    //  Subscribers for publish
 </context>
 
 <import class = "amq_client_connection" />
@@ -76,6 +87,7 @@ object class called fmq_session.
     self_close (self);
     icl_longstr_destroy (&self->auth_data);
     amq_content_basic_destroy (&self->content);
+    asl_field_list_destroy (&self->header_fields);
 </method>
 
 <method name = "set login" template = "function">
@@ -128,8 +140,11 @@ object class called fmq_session.
     }
     ipr_token_list_destroy (&host_list);
 
-    if (self->connection)
+    if (self->connection) {
         self->session = amq_client_session_new (self->connection);
+        assert (self->session);
+        self->session->silent = TRUE;
+    }
     else
         rc = 1;                         //  Can't connect
 </method>
@@ -184,6 +199,7 @@ object class called fmq_session.
     <argument name = "filename" type = "char *"        >File name</argument>
     <argument name = "filesize" type = "int64_t"       >File size</argument>
     <argument name = "filetime" type = "time_t"        >File revision time/date</argument>
+    <argument name = "digest"   type = "char *"        >File SHA1 digest</argument>
     <argument name = "offset"   type = "int64_t"       >Offset of fragment</argument>
     <local>
     amq_content_basic_t
@@ -194,10 +210,14 @@ object class called fmq_session.
     amq_content_basic_set_headers_field (content, "FILENAME", filename);
     amq_content_basic_set_headers_field (content, "FILESIZE", "%"PRId64, filesize);
     amq_content_basic_set_headers_field (content, "FILETIME", "%ld", filetime);
+    amq_content_basic_set_headers_field (content, "DIGEST",   digest);
     amq_content_basic_set_headers_field (content, "OFFSET",   "%"PRId64, offset);
     if (bucket)
         amq_content_basic_record_body (content, bucket);
-    rc = s_send_message (self, &content, "STAGE", send_to);
+    rc = s_send_message (self, &content, "STAGE", send_to, "STAGE-OK");
+    if (!rc)
+        //  TODO 64-bit atol
+        self->staged = atol (asl_field_list_string (self->header_fields, "STAGED"));
 </method>
 
 <method name = "reply stage ok" template = "function">
@@ -218,7 +238,7 @@ object class called fmq_session.
     amq_content_basic_set_headers_field (content, "FILENAME", filename);
     amq_content_basic_set_headers_field (content, "FILE-ID",  file_id);
     amq_content_basic_set_headers_field (content, "STAGED",   "%"PRId64, staged);
-    rc = s_send_message (self, &content, "STAGE-OK", self->reply_to);
+    rc = s_send_message (self, &content, "STAGE-OK", self->reply_to, NULL);
 </method>
 
 <method name = "reply exception" template = "function">
@@ -233,7 +253,7 @@ object class called fmq_session.
     //
     content = amq_content_basic_new ();
     amq_content_basic_set_headers_field (content, "TEXT", text);
-    rc = s_send_message (self, &content, "EXCEPTION", self->reply_to);
+    rc = s_send_message (self, &content, "EXCEPTION", self->reply_to, NULL);
 </method>
 
 <method name = "request publish" template = "function">
@@ -252,7 +272,7 @@ object class called fmq_session.
     content = amq_content_basic_new ();
     amq_content_basic_set_headers_field (content, "FILE-ID",  file_id);
     amq_content_basic_set_headers_field (content, "CHANNEL", channel);
-    rc = s_send_message (self, &content, "PUBLISH", send_to);
+    rc = s_send_message (self, &content, "PUBLISH", send_to, "PUBLISH-OK");
 </method>        
 
 <method name = "reply publish ok" template = "function">
@@ -266,7 +286,7 @@ object class called fmq_session.
     content = amq_content_basic_new ();
     amq_content_basic_set_headers_field (content, "FILE-ID", file_id);
     amq_content_basic_set_headers_field (content, "SUBSCRIBERS", "%ld", subscribers);
-    rc = s_send_message (self, &content, "PUBLISH-OK", self->reply_to);
+    rc = s_send_message (self, &content, "PUBLISH-OK", self->reply_to, NULL);
 </method>
 
 <method name = "request subscribe" template = "function">
@@ -283,19 +303,17 @@ object class called fmq_session.
     //
     content = amq_content_basic_new ();
     amq_content_basic_set_headers_field (content, "CHANNEL", channel);
-    rc = s_send_message (self, &content, "SUBSCRIBE", send_to);
+    rc = s_send_message (self, &content, "SUBSCRIBE", send_to, "SUBSCRIBE-OK");
 </method>
 
 <method name = "reply subscribe ok" template = "function">
-    <argument name = "channels" type = "size_t">Number of channels subscribed to</argument>
     <local>
     amq_content_basic_t
         *content;
     </local>
     //
     content = amq_content_basic_new ();
-    amq_content_basic_set_headers_field (content, "CHANNELS", "%ld", channels);
-    rc = s_send_message (self, &content, "SUBSCRIBE-OK", self->reply_to);
+    rc = s_send_message (self, &content, "SUBSCRIBE-OK", self->reply_to, NULL);
 </method>
 
 <method name = "request deliver" template = "function">
@@ -314,7 +332,7 @@ object class called fmq_session.
     content = amq_content_basic_new ();
     amq_content_basic_set_headers_field (content, "FILE-ID", file_id);
     amq_content_basic_set_headers_field (content, "CHANNEL", channel);
-    rc = s_send_message (self, &content, "DELIVER", send_to);
+    rc = s_send_message (self, &content, "DELIVER", send_to, "DELIVER-OK");
 </method>
 
 <method name = "reply deliver ok" template = "function">
@@ -326,7 +344,7 @@ object class called fmq_session.
     //
     content = amq_content_basic_new ();
     amq_content_basic_set_headers_field (content, "FILE-ID", file_id);
-    rc = s_send_message (self, &content, "DELIVER-OK", self->reply_to);
+    rc = s_send_message (self, &content, "DELIVER-OK", self->reply_to, NULL);
 </method>
 
 <method name = "request sync" template = "function">
@@ -345,7 +363,7 @@ object class called fmq_session.
     content = amq_content_basic_new ();
     amq_content_basic_set_headers_field (content, "FILE-ID", file_id);
     amq_content_basic_set_headers_field (content, "CHANNEL", channel);
-    rc = s_send_message (self, &content, "SYNC", send_to);
+    rc = s_send_message (self, &content, "SYNC", send_to, "SYNC-OK");
 </method>
 
 <method name = "reply sync ok" template = "function">
@@ -357,7 +375,7 @@ object class called fmq_session.
     //
     content = amq_content_basic_new ();
     amq_content_basic_set_headers_field (content, "FILE-ID", file_id);
-    rc = s_send_message (self, &content, "SYNC-OK", self->reply_to);
+    rc = s_send_message (self, &content, "SYNC-OK", self->reply_to, NULL);
 </method>
 
 <method name = "wait" template = "function">
@@ -373,7 +391,9 @@ object class called fmq_session.
         amq_client_session_wait (self->session, 1000);
         if (amq_client_session_get_basic_arrived_count (self->session)) {
             amq_content_basic_destroy (&self->content);
+            asl_field_list_destroy (&self->header_fields);
             self->content = amq_client_session_basic_arrived (self->session);
+            self->header_fields = asl_field_list_new (self->content->headers);
             icl_shortstr_cpy (self->reply_to, self->content->reply_to);
             rc = FMQ_SESSION_ARRIVED;
             break;
@@ -381,7 +401,9 @@ object class called fmq_session.
         else
         if (amq_client_session_get_basic_returned_count (self->session)) {
             amq_content_basic_destroy (&self->content);
+            asl_field_list_destroy (&self->header_fields);
             self->content = amq_client_session_basic_returned (self->session);
+            self->header_fields = asl_field_list_new (self->content->headers);
             rc = FMQ_SESSION_RETURNED;
             break;
         }
@@ -389,18 +411,24 @@ object class called fmq_session.
         if (self->connection->interrupt) {
             //  Our process was killed (Ctrl-C)
             rc = FMQ_SESSION_INTERRUPT;
+            if (!self->silent)
+                icl_console_print ("I: interrupted");
             break;
         }
         else
         if (!self->connection->alive && self->connection->reply_code == 100) {
             //  Remote server closed on us
             rc = FMQ_SESSION_NO_BROKER;
+            if (!self->silent)
+                icl_console_print ("I: AMQP broker dropped connection");
             break;
         }
         else
         if (!self->connection->alive) {
             //  Remote server kicked us, don't retry
             rc = FMQ_SESSION_EXCEPTION;
+            if (!self->silent)
+                icl_console_print ("I: AMQP broker closed connection");
             break;
         }
     }
@@ -416,7 +444,8 @@ static int s_send_message (
     $(selftype) *self,                  //  Our FMQ session
     amq_content_basic_t **content_p,    //  Content pointer ref
     char *name,                         //  Message name
-    char *send_to);                     //  Destination queue
+    char *send_to,                      //  Destination queue
+    char *response);                    //  Expected response
 </private>
 
 <private name = "footer">
@@ -424,14 +453,16 @@ static int s_send_message (
     $(selftype) *self,                  //  Our FMQ session
     amq_content_basic_t **content_p,    //  Content pointer ref
     char *name,                         //  Message name
-    char *send_to)                      //  Destination queue
+    char *send_to,                      //  Destination queue
+    char *response)                     //  Expected response
 {
     int
-        rc;
-        
+        rc;                             //  General response code
+
     amq_content_basic_set_type (*content_p, name);
     amq_content_basic_set_reply_to (*content_p, self->queue_name);
-    
+
+icl_console_print ("send %s", name);
     rc = amq_client_session_basic_publish (
         self->session,                  //  Session reference
         *content_p,                     //  Message to sent
@@ -441,6 +472,25 @@ static int s_send_message (
         TRUE,                           //  Mandatory routing
         TRUE);                          //  Immediate delivery
     amq_content_basic_destroy (content_p);
+
+    //  Wait for reply if needed
+    if (response && rc == 0) {
+        rc = self_wait (self);
+        if (rc == FMQ_SESSION_ARRIVED) {
+icl_console_print ("reply %s", self->content->type);
+            if (streq (self->content->type, response))
+                rc = 0;                 //  Seems ok
+            else {
+                rc = FMQ_SESSION_EXCEPTION;
+                if (!self->silent)
+                    icl_console_print (
+                        "I: unexpected response '%s', request failed",
+                        self->content->type);
+            }
+        }
+    }
+    else
+        rc = FMQ_SESSION_EXCEPTION;
     return (rc);
 }
 </private>
@@ -462,53 +512,8 @@ static int s_send_message (
         exit (1);
     }
     fmq_session_listen (session, "me");
-
-    fmq_session_request_stage (session, "me", NULL, "somefile", 100, 0, 200);
-    rc = fmq_session_wait (session);
-    assert (rc == FMQ_SESSION_ARRIVED);
-    
-    fmq_session_reply_stage_ok (session, "somefile", "fileid", 1234);
-    rc = fmq_session_wait (session);
-    assert (rc == FMQ_SESSION_ARRIVED);
-
-    fmq_session_reply_exception (session, "error text");
-    rc = fmq_session_wait (session);
-    assert (rc == FMQ_SESSION_ARRIVED);
-
-    fmq_session_request_publish (session, "me", "fileid", "channel");
-    rc = fmq_session_wait (session);
-    assert (rc == FMQ_SESSION_ARRIVED);
-
-    fmq_session_reply_publish_ok (session, "fileid", 100);
-    rc = fmq_session_wait (session);
-    assert (rc == FMQ_SESSION_ARRIVED);
-
-    fmq_session_request_subscribe (session, "me", "channel");
-    rc = fmq_session_wait (session);
-    assert (rc == FMQ_SESSION_ARRIVED);
-
-    fmq_session_reply_subscribe_ok (session, 100);
-    rc = fmq_session_wait (session);
-    assert (rc == FMQ_SESSION_ARRIVED);
-
-    fmq_session_request_deliver (session, "me", "fileid", "channel");
-    rc = fmq_session_wait (session);
-    assert (rc == FMQ_SESSION_ARRIVED);
-
-    fmq_session_reply_deliver_ok (session, "fileid");
-    rc = fmq_session_wait (session);
-    assert (rc == FMQ_SESSION_ARRIVED);
-
-    fmq_session_request_sync (session, "me", "fileid", "channel");
-    rc = fmq_session_wait (session);
-    assert (rc == FMQ_SESSION_ARRIVED);
-
-    fmq_session_reply_sync_ok (session, "fileid");
-    rc = fmq_session_wait (session);
-    assert (rc == FMQ_SESSION_ARRIVED);
-    
-    fmq_session_close     (session);
-    fmq_session_destroy  (&session);
+    fmq_session_close (session);
+    fmq_session_destroy (&session);
 </method>
 
 </class>
