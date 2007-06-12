@@ -34,8 +34,6 @@
 <file name = "topic_subscribe.pal"   class = "pal script" />
 <file name = "jamq_83_publish.pal"   class = "pal script" />
 <file name = "jamq_83_subscribe.pal" class = "pal script" />
-<file name = "measure.c"             class = "main program" />
-<file name = "measure.gnuplot"       class = "private resource" />
 
 <class name = "pal script" inherit = "gsl data">
 PAL script
