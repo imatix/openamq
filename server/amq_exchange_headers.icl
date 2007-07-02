@@ -113,14 +113,16 @@ limited by size of amq_index_hash table.
             amq_server_connection_error (
                 channel? channel->connection: NULL,
                 ASL_COMMAND_INVALID,
-                "Queue binding failed, too many bindings");
+                "Queue binding failed, too many bindings",
+                AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_BIND);
     }
     else {
         rc = 1;
         amq_server_connection_error (
             channel? channel->connection: NULL,
             ASL_COMMAND_INVALID,
-            "Invalid binding arguments");
+            "Invalid binding arguments",
+            AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_BIND);
     }
 </method>
 

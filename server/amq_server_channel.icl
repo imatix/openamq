@@ -165,23 +165,9 @@ maximum number of consumers per channel is set at compile time.
     }
     else
     if (sync)
-        amq_server_channel_error (self, ASL_NOT_FOUND, "Not a valid consumer tag");
+        amq_server_channel_error (self, ASL_NOT_FOUND, "Not a valid consumer tag",
+            AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_CANCEL);
     </action>
-</method>
-
-<method name = "error">
-    <doc>
-    If the channel is alive, closes the channel with the specified
-    reply code/text, otherwise prints it to the console.
-    </doc>
-    <argument name = "self" type = "amq_server_channel_t *">Reference to channel</argument>
-    <argument name = "reply code" type = "dbyte" >Error code</argument>
-    <argument name = "reply text" type = "char *">Error text</argument>
-    if (self)
-        amq_server_channel_close (self, reply_code, reply_text);
-    else
-        smt_log_print (amq_broker->alert_log,
-            "E: channel exception: (%d) %s", reply_code, reply_text);
 </method>
 
 <method name = "selftest">

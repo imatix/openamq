@@ -137,7 +137,8 @@ runs lock-free as a child of the asynchronous queue class.
                         "E: red alert on queue=%s, killing queue", self->queue->name);
                 if (self->queue->exclusive)
                     amq_server_connection_error (self->queue->connection,
-                        ASL_RESOURCE_ERROR, "Queue overflow, connection killed");
+                        ASL_RESOURCE_ERROR, "Queue overflow, connection killed",
+                        AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_PUBLISH);
                 else
                     amq_queue_self_destruct (self->queue);
                 break;

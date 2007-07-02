@@ -228,14 +228,9 @@ class.  This is a lock-free asynchronous class.
     arg_list = asl_field_list_new (arguments);
     if (!arg_list) {
         //  Catch case where field list is malformed
-        smt_log_print (amq_broker->alert_log,
-            "E: client sent malformed 'arguments' in queue.declare (%s, %s, %s, %s)",
-            self->connection->client_address,
-            self->connection->client_product,
-            self->connection->client_version,
-            self->connection->client_instance);
         amq_server_connection_error (NULL, ASL_SYNTAX_ERROR,
-            "Malformed 'arguments' field");
+            "Malformed 'arguments' field in queue.declare",
+            AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_DECLARE);
         self_destroy (&self);
     }
     else {
@@ -256,7 +251,8 @@ class.  This is a lock-free asynchronous class.
 		self->connection->client_version,
 		self->connection->client_instance);
             amq_server_connection_error (connection, ASL_SYNTAX_ERROR,
-                "Unknown queue profile requested");
+                "Unknown queue profile requested",
+                AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_DECLARE);
             if (profile_field)
                 asl_field_destroy (&profile_field);
             asl_field_list_destroy (&arg_list);
@@ -328,7 +324,8 @@ class.  This is a lock-free asynchronous class.
                 method->payload.basic_publish.immediate);
     }
     else
-        amq_server_channel_error (channel, ASL_ACCESS_REFUSED, "Queue is disabled");
+        amq_server_channel_error (channel, ASL_ACCESS_REFUSED, "Queue is disabled",
+            method->class_id, method->method_id);
     </action>
 </method>
 
@@ -398,7 +395,8 @@ class.  This is a lock-free asynchronous class.
 
     if (error) {
         if (channel) {
-            amq_server_channel_error (channel, ASL_ACCESS_REFUSED, error);
+            amq_server_channel_error (channel, ASL_ACCESS_REFUSED, 
+                error, AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_CONSUME);
             amq_server_channel_cancel (channel, consumer->tag, FALSE, TRUE);
         }
     }
