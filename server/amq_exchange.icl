@@ -347,7 +347,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         *hash;                          //  Entry into hash table
     amq_queue_bindings_list_t
         *bindings_list;                 //  List of bindings for the queue
-    amq_queue_bindings_list_iterator_t
+    amq_queue_bindings_list_iter_t *
         iterator;
 
     if (amq_server_config_debug_route (amq_server_config))
@@ -395,15 +395,15 @@ for each type of exchange. This is a lock-free asynchronous class.
             bindings_list = amq_queue_bindings_list_new (
                 self->queue_bindings, queue->name);
         //  Search per-queue bindings_list for a matching binding
-        for (iterator = amq_queue_bindings_list_begin (bindings_list); 
+        for (iterator = amq_queue_bindings_list_first (bindings_list); 
              iterator != NULL;
-             iterator = amq_queue_bindings_list_next (iterator)) {
-            if (*iterator == binding)
+             iterator = amq_queue_bindings_list_next (&iterator)) {
+            if (iterator->item == binding)
                 break;
         }
         //  And only add binding to per-queue bindings_list once
         if (!iterator)
-            amq_queue_bindings_list_push_back (bindings_list, binding);
+            amq_queue_bindings_list_queue (bindings_list, binding);
         amq_queue_bindings_list_unlink (&bindings_list);
     }
     amq_binding_bind_queue (binding, queue);
@@ -581,7 +581,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     <action>
     amq_queue_bindings_list_t
         *queue_bindings;                //  List of bindings for queue
-    amq_queue_bindings_list_iterator_t
+    amq_queue_bindings_list_iter_t *
         iterator;
 
     if (amq_server_config_debug_route (amq_server_config))
@@ -595,20 +595,20 @@ for each type of exchange. This is a lock-free asynchronous class.
         amq_queue_bindings_list_table_search (self->queue_bindings, queue->name);
     if (queue_bindings) {
         //  Search queue_bindings list for the matching binding
-        for (iterator = amq_queue_bindings_list_begin (queue_bindings);
+        for (iterator = amq_queue_bindings_list_first (queue_bindings);
               iterator != NULL;
-              iterator = amq_queue_bindings_list_next (iterator)) {
-            if (streq ((*iterator)->routing_key, routing_key) &&
-                icl_longstr_eq ((*iterator)->arguments, arguments)) {
-                if (amq_binding_unbind_queue (*iterator, queue))
+              iterator = amq_queue_bindings_list_next (&iterator)) {
+            if (streq (iterator->item->routing_key, routing_key) &&
+                icl_longstr_eq (iterator->item->arguments, arguments)) {
+                if (amq_binding_unbind_queue (iterator->item, queue))
                     //  If binding is now empty, destroy it
-                    self->unbind (self->object, *iterator);
-                amq_queue_bindings_list_erase (queue_bindings, iterator);
+                    self->unbind (self->object, iterator->item);
+                amq_queue_bindings_list_iter_destroy (&iterator);
                 break;
             }
         }
         //  If per-queue binding list is now empty, destroy it
-        if (amq_queue_bindings_list_size (queue_bindings) == 0)
+        if (amq_queue_bindings_list_count (queue_bindings) == 0)
             amq_queue_bindings_list_destroy (&queue_bindings);
         else
             amq_queue_bindings_list_unlink (&queue_bindings); 

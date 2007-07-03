@@ -23,11 +23,23 @@
     script    = "icl_gen"
     >
 
+<inherit class = "icl_iter_list_head" >
+    <option name = "prefix"     value = "list"/>
+    <option name = "childname"  value = "amq_queue" />
+    <option name = "childtype"  value = "amq_queue_t" />
+    <option name = "count"      value = "1" />
+</inherit>
+<option name = "alloc"     value = "cache" />
+
 <import class = "amq_queue" />
 
-<inherit class = "icl_list_link_class">
-    <option name = "object_name" value = "amq_queue" />
-</inherit>
+<method name = "find" template = "function">
+    <argument name = "value" type = "$(childtype) *" />
+    <declare name = "rc" type = "$(selfname)_iter_t *" />
+    for (rc = self_first (self); rc; rc = self_next (&rc))
+        if (rc->item == value)
+            break;
+</method>
 
 <method name = "selftest">
 </method>

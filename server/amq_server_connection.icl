@@ -65,17 +65,17 @@ This class implements the connection class for the AMQ server.
 
 <method name = "destroy">
     <local>
-    amq_queue_list_iterator_t
+    amq_queue_list_iter_t *
        iterator;
     </local>
     //
     //  Firstly, send notification of connection termination to all
     //  exclusive queues created by the connection, so that they can be
     //  destroyed even if there is no consumer on the queue.
-    for (iterator = amq_queue_list_begin (self->own_queue_list);
+    for (iterator = amq_queue_list_first (self->own_queue_list);
           iterator != NULL;
-          iterator = amq_queue_list_next (iterator))
-        amq_queue_unbind_connection (*iterator);
+          iterator = amq_queue_list_next (&iterator))
+        amq_queue_unbind_connection (iterator->item);
 
     amq_vhost_unlink       (&self->vhost);
     amq_queue_list_destroy (&self->own_queue_list);
@@ -89,7 +89,7 @@ This class implements the connection class for the AMQ server.
     <argument name = "queue" type = "amq_queue_t *">Queue reference</argument>
     <inherit name = "wrlock" />
     assert (queue->exclusive);
-    amq_queue_list_push_back (self->own_queue_list, queue);
+    amq_queue_list_queue (self->own_queue_list, queue);
 </method>
 
 <method name = "unbind queue" template = "function">
@@ -99,15 +99,14 @@ This class implements the connection class for the AMQ server.
     <argument name = "queue" type = "amq_queue_t *">The queue to unbind</argument>
     <inherit name = "wrlock" />
     <local>
-    amq_queue_list_iterator_t
+    amq_queue_list_iter_t *
         iterator;
     </local>
     //
     //  Remove the queue from the list of exclusive connections
-    iterator = amq_queue_list_find (
-        amq_queue_list_begin (self->own_queue_list), NULL, queue);
+    iterator = amq_queue_list_find (self->own_queue_list, queue);
     if (iterator)
-        amq_queue_list_erase (self->own_queue_list, iterator);
+        amq_queue_list_iter_destroy (&iterator);
 </method>
 
 <method name = "ready" template = "function">

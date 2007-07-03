@@ -116,9 +116,8 @@ class.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">Queue to bind</argument>
     //
-    if (!amq_queue_list_find (
-        amq_queue_list_begin (self->queue_list), NULL, queue))
-        amq_queue_list_push_back (self->queue_list, queue);
+    if (!amq_queue_list_find (self->queue_list, queue))
+        amq_queue_list_queue (self->queue_list, queue);
 </method>
 
 <method name = "unbind queue" template = "function">
@@ -129,18 +128,17 @@ class.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">Queue to unbind</argument>
     <local>
-    amq_queue_list_iterator_t
+    amq_queue_list_iter_t *
         iterator;
     </local>
     //
     if (!self->zombie) {
-        iterator = amq_queue_list_find (
-            amq_queue_list_begin (self->queue_list), NULL, queue);
+        iterator = amq_queue_list_find (self->queue_list, queue);
         if (iterator)
-            amq_queue_list_erase (self->queue_list, iterator);
+            amq_queue_list_iter_destroy (&iterator);
 
         //  Signal to caller if binding is now empty
-        if (amq_queue_list_size (self->queue_list) == 0)
+        if (amq_queue_list_count (self->queue_list) == 0)
             rc = -1;
     }
 </method>
@@ -154,17 +152,17 @@ class.
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
     <local>
-    amq_queue_list_iterator_t
+    amq_queue_list_iter_t *
         iterator;
     </local>
     //
     //  Publish to all queues, sending method to async queue class
-    iterator = amq_queue_list_begin (self->queue_list);
+    iterator = amq_queue_list_first (self->queue_list);
     while (iterator) {
         if (amq_server_config_debug_route (amq_server_config))
-            smt_log_print (amq_broker->debug_log, "X: deliver  queue=%s", (*iterator)->key);
-        amq_queue_publish (*iterator, channel, method);
-        iterator = amq_queue_list_next (iterator);
+            smt_log_print (amq_broker->debug_log, "X: deliver  queue=%s", iterator->item->key);
+        amq_queue_publish (iterator->item, channel, method);
+        iterator = amq_queue_list_next (&iterator);
         rc++;                           //  Count recepients
     }
 </method>
