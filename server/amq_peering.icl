@@ -471,6 +471,24 @@ typedef int (amq_peering_return_fn) (
     </action>
 </method>
 
+<method name = "peer connection open ok" template = "async function" async = "1">
+    <doc>
+    Handles a Connection.Open-Ok method coming from the peered server.
+    </doc>
+    <argument name = "method" type = "amq_peer_method_t *" />
+    <possess>
+    method = amq_peer_method_link (method);
+    </possess>
+    <release>
+    amq_peer_method_unlink (&method);
+    </release>
+    //
+    <action>
+    self->channel_nbr = 1;              //  Single channel per connection
+    amq_peer_agent_channel_open (self->peer_agent_thread, self->channel_nbr);
+    </action>
+</method>
+
 <method name = "peer channel open ok" template = "async function" async = "1">
     <doc>
     Handles a Channel.Open-Ok method coming from the peered server.
@@ -549,7 +567,7 @@ typedef int (amq_peering_return_fn) (
     else
     //  Connect the peering if we're not already connected but the app
     //  has for the peering to become active.
-    if (!self->peer_agent_thread && self->enabled) {
+    if (!self->peer_agent_thread && self->enabled)
         self->peer_agent_thread = amq_peer_agent_connection_thread_new (
             self,                       //  Callback for incoming methods
             self->host,
@@ -557,10 +575,6 @@ typedef int (amq_peering_return_fn) (
             self->auth_data,
             "Peering connection",       //  Instance name
             self->trace);
-
-        self->channel_nbr = 1;          //  Single channel per connection
-        amq_peer_agent_channel_open (self->peer_agent_thread, self->channel_nbr);
-    }
     //  Peering monitor runs once per second
     smt_timer_request_delay (self->thread, 1000 * 1000, monitor_event);
     </action>
