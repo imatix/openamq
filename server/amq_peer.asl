@@ -37,7 +37,7 @@
   <action name = "start">
     amq_peering_peer_connection_start (caller, self);
   </action>
-  <action name = "open ok">
+  <action name = "open-ok">
     amq_peering_peer_connection_open_ok (caller, self);
   </action>
 </class>
