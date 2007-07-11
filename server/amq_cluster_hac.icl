@@ -38,34 +38,41 @@
 //  Time required to consider other HA peer dead (in milliseconds)
 #define AMQ_HAC_FAILOVER_TIME 10000
 
-//  HA peer states
-#define AMQ_HAC_STATE_UNKNOWN  0
-#define AMQ_HAC_STATE_PENDING  1
-#define AMQ_HAC_STATE_ACTIVE   2
-#define AMQ_HAC_STATE_PASSIVE  3
-#define AMQ_HAC_STATE_DEAD     4
+typedef enum
+{
+    amq_hac_state_pending = 1,  //  Waiting for peer to connect
+    amq_hac_state_active  = 2,  //  Active - accepting connections
+    amq_hac_state_passive = 3   //  Passive - not accepting connections
+} amq_hac_state;
+
+typedef enum
+{
+    amq_hac_event_peer_pending   = 1,  //  HAC peer became pending
+    amq_hac_event_peer_active    = 2,  //  HAC peer became active
+    amq_hac_event_peer_passive   = 3,  //  HAC peer became passive
+    amq_hac_event_new_connection = 4   //  Attempt to create a new connection
+}  amq_hac_event;
+
 </public>
 
 <context>
     amq_broker_t
-       *broker;                         //  Parent broker
+       *broker;                 //  Parent broker
     amq_peering_t
-        *peering;                       //  The peering to the other HA peer
+        *peering;               //  The peering to the other HA peer
     Bool
-        enabled,                        //  If FALSE, broker is run in standalone mode
-        primary;                        //  TRUE = primary, FALSE = backup
-    int
-        state;                          //  See AMQ_HAC_STATE constants
+        enabled,                //  If FALSE, broker is run in standalone mode
+        primary;                //  TRUE = primary, FALSE = backup
+                                //  NB that this flag is relevant only when the
+                                //  whole cluster is being started
+    amq_hac_state
+        state;                  //  State of HAC FSM
     apr_time_t
-        last_peer_time;                 //  When peer state arrived last time
-    int
-        peer_state;                     //  See AMQ_HAC_STATE constants
+        last_peer_time;         //  Time when peer state arrived lately
+                                //  If this time is older than
+                                //  AMQ_HAC_FAILOVER_TIME peer's considered dead
     amq_exchange_t
-        *state_exchange;                //  amq.state exchange
-    Bool
-        waiting_for_connection;         //  If true, backup realised that primary
-                                        //  failed and is waiting for first
-                                        //  connection to become active.
+        *state_exchange;        //  amq.state exchange
 </context>
 
 <method name = "new">
@@ -81,7 +88,6 @@
         if (*ha_peer) {
             self->enabled = TRUE;
             self->primary = TRUE;
-            smt_log_print (amq_broker->alert_log, "I: server is HA primary, peering with %s", ha_peer);
         }
         else
             icl_console_print ("E: please specify --backup_peer setting");
@@ -92,12 +98,16 @@
         if (*ha_peer) {
             self->enabled = TRUE;
             self->primary = FALSE;
-            smt_log_print (amq_broker->alert_log, "I: server is HA backup, peering with %s", ha_peer);
         }
         else
             icl_console_print ("E: please specify --primary_peer setting");
     }
     if (self->enabled) {
+        smt_log_print (amq_broker->alert_log, "I: server starting in clustered mode");
+
+        self->state = amq_hac_state_pending;
+        self->last_peer_time = 0;
+
         //  Start peering
         self->peering = amq_peering_new (
             ha_peer,
@@ -107,11 +117,6 @@
         amq_peering_set_login (self->peering, "peering");
         amq_peering_set_content_handler (self->peering, s_content_handler, self);
         amq_peering_start (self->peering);
-
-        //  Set own and peer state machines
-        self->state = AMQ_HAC_STATE_PENDING;
-        self->peer_state = AMQ_HAC_STATE_UNKNOWN;
-        self->last_peer_time = apr_time_now ();
 
         //  Subscribe for HA peer's state notifications
         amq_peering_bind (self->peering, self->primary? "b": "p", NULL);
@@ -141,166 +146,121 @@
     amq_broker_unlink (&self->broker);
 </method>
 
-<method name = "send_state" template = "function">
+<method name = "send state" template = "function">
     <local>
     icl_shortstr_t
-        status_data;
+        state;
     amq_client_method_t
         *client_method;
     </local>
     //
-    icl_shortstr_fmt (status_data, "%d|%d|%ld", self->state, self->primary, amq_server_connection_count ());
+    icl_shortstr_fmt (state, "%d", self->state);
     client_method = amq_client_method_new_basic_publish (
         0, "amq.status", self->primary ? "p" : "b", FALSE, FALSE);
     client_method->content = amq_content_basic_new ();
-    amq_content_basic_set_body (client_method->content, status_data, strlen (status_data), NULL);
-    amq_exchange_publish (self->state_exchange, NULL, (amq_server_method_t *) client_method);
+    
+    amq_content_basic_set_body (client_method->content, icl_mem_strdup (state),
+        strlen (state) + 1, icl_mem_free);
+    amq_exchange_publish (self->state_exchange, NULL,
+        (amq_server_method_t *) client_method);
+
     amq_client_method_unlink (&client_method);
 </method>
 
-<method name = "peer_state_changed" template = "function">
-    <argument name = "old_state" type = "int" />
-    <argument name = "new_state" type = "int" />
-    <local>
-    int
-        old_self_state = self->state;
-    </local>
-
-    self->waiting_for_connection = FALSE;
-
-    assert (self->state != AMQ_HAC_STATE_UNKNOWN);
-    assert (self->state != AMQ_HAC_STATE_DEAD);
-
-    if (self->primary) {
-        //  Primary server's state machine
-        if (self->state == AMQ_HAC_STATE_PENDING) {
-            if (new_state == AMQ_HAC_STATE_PENDING)
-                self->state = AMQ_HAC_STATE_ACTIVE;
-            else
-            if (new_state == AMQ_HAC_STATE_ACTIVE)
-                self->state = AMQ_HAC_STATE_PASSIVE;
-            else
-            if (new_state == AMQ_HAC_STATE_PASSIVE)
-                self->state = AMQ_HAC_STATE_ACTIVE;
-            else
-            if (new_state == AMQ_HAC_STATE_DEAD)
-                ;   //  nothing
+<method name = "execute" return = "rc" template = "function">
+    <argument name = "event" type = "int" />
+    <declare name = "rc" type = "int" default = "0" />
+    switch (self->state) {
+    case amq_hac_state_pending:
+        switch (event) {
+        case amq_hac_event_peer_pending:
+            if (self->primary) {
+                self->state = amq_hac_state_active;
+                smt_log_print (amq_broker->alert_log,
+                    "I: HAC peer accessible; becoming master");
+            }
+            break;
+        case amq_hac_event_peer_active:
+            self->state = amq_hac_state_passive;
+            smt_log_print (amq_broker->alert_log,
+                "I: HAC peer accessible; becoming slave");
+            break;
+        case amq_hac_event_peer_passive:
+            //  Do nothing; wait while peer switches to active
+            break;
+        case amq_hac_event_new_connection:
+            //  Connections are refused in pending state
+            rc = 0;
+            break;
+        default:
+            assert (0);
         }
-        else
-        if (self->state == AMQ_HAC_STATE_ACTIVE) {
-            if (new_state == AMQ_HAC_STATE_PENDING)
-                ;   //  nothing
-            else
-            if (new_state == AMQ_HAC_STATE_ACTIVE) {
-                icl_console_print ("E: HA backup became active unexpectedly - aborting");
-                assert (0);
+        break;
+    case amq_hac_state_active:
+        switch (event) {
+        case amq_hac_event_peer_pending:
+            //  Do nothing; slave is starting
+            break;
+        case amq_hac_event_peer_active:
+            //  No way to have two masters - that would mean split-brain
+            assert (0);
+            break;
+        case amq_hac_event_peer_passive:
+            //  Do nothing; everything is OK
+            break;
+        case amq_hac_event_new_connection:
+            //  Active state, we do accept new connections
+            rc = 1;
+            break;
+        default:
+            assert (0);
+        }
+        break;
+    case amq_hac_state_passive:
+        switch (event) {
+        case amq_hac_event_peer_pending:
+            //  The peer is restarting; become active (peer will become passive)
+            self->state = amq_hac_state_active;
+            smt_log_print (amq_broker->alert_log,
+                "I: HAC peer restarting; becoming master");
+            break;
+        case amq_hac_event_peer_active:
+            //  Do nothing; everything is OK
+            break;
+        case amq_hac_event_peer_passive:
+            //  No way to have two passives - cluster would be non-responsive
+            assert (0);
+            break;
+        case amq_hac_event_new_connection:
+            if (apr_time_now () - self->last_peer_time >
+                  AMQ_HAC_FAILOVER_TIME * 1000) {
+                //  If peer is dead, switch to the active state
+                self->state = amq_hac_state_active;
+                smt_log_print (amq_broker->alert_log,
+                    "I: HAC peer dead; becoming master");
+                rc = 1;
             }
             else
-            if (new_state == AMQ_HAC_STATE_PASSIVE)
-                ;   //  nothing
-            else
-            if (new_state == AMQ_HAC_STATE_DEAD)
-                ;   //  nothing
+                //  If peer is alive, reject connections
+                rc = 0;
+            break;
+        default:
+            assert (0);
         }
-        else
-        if (self->state == AMQ_HAC_STATE_PASSIVE) {
-            if (new_state == AMQ_HAC_STATE_PENDING)
-                self->state = AMQ_HAC_STATE_ACTIVE;
-            else
-            if (new_state == AMQ_HAC_STATE_ACTIVE)
-                ;   //  nothing
-            else
-            if (new_state == AMQ_HAC_STATE_PASSIVE) {
-                icl_console_print ("E: HA backup went passive unexpectedly - aborting");
-                assert (0);
-            }
-            else
-            if (new_state == AMQ_HAC_STATE_DEAD)
-                ;   //  nothing
-        }
+        break;
+    default:
+        assert (0);
     }
-    else {
-        //  Backup server's state machine
-        if (self->state == AMQ_HAC_STATE_PENDING) {
-            if (new_state == AMQ_HAC_STATE_PENDING)
-                ;   //  nothing
-            if (new_state == AMQ_HAC_STATE_ACTIVE)
-                self->state = AMQ_HAC_STATE_PASSIVE;
-            else
-            if (new_state == AMQ_HAC_STATE_PASSIVE)
-                ;   //  nothing
-            else
-            if (new_state == AMQ_HAC_STATE_DEAD)
-                ;   //  nothing
-        }
-        else
-        if (self->state == AMQ_HAC_STATE_ACTIVE) {
-            if (new_state == AMQ_HAC_STATE_PENDING)
-                ;   //  nothing
-            else
-            if (new_state == AMQ_HAC_STATE_ACTIVE) {
-                icl_console_print ("E: HA primary became active unexpectedly - aborting");
-                assert (0);
-            }
-            else
-            if (new_state == AMQ_HAC_STATE_PASSIVE)
-                ;   //  nothing
-            else
-            if (new_state == AMQ_HAC_STATE_DEAD)
-                ;   //  nothing
-        }
-        else
-        if (self->state == AMQ_HAC_STATE_PASSIVE) {
-            if (new_state == AMQ_HAC_STATE_PENDING)
-                ;   //  nothing
-            else
-            if (new_state == AMQ_HAC_STATE_ACTIVE)
-                ;   //  nothing
-            else
-            if (new_state == AMQ_HAC_STATE_PASSIVE) {
-                icl_console_print ("E: HA backup became passive unexpectedly - aborting");
-                assert (0);
-            }
-            else
-            if (new_state == AMQ_HAC_STATE_DEAD)
-                self->waiting_for_connection = TRUE;
-        }
-    }
-    if (self->state != old_self_state) {
-        if (self->state == AMQ_HAC_STATE_ACTIVE)
-            smt_log_print (amq_broker->alert_log, "I: *** server is now high-availability master ***");
-        else
-        if (self->state == AMQ_HAC_STATE_PASSIVE)
-            smt_log_print (amq_broker->alert_log, "I: --- server is now high-availability slave ---");
-    }
-    self->peer_state = new_state;
-</method>
-
-<method name = "new_connection" template = "async function" async = "1">
-    <action>
-    if (self->waiting_for_connection) {
-        self->state = AMQ_HAC_STATE_ACTIVE;
-        self->waiting_for_connection = FALSE;
-        smt_log_print (amq_broker->alert_log, "I: server is now high-availability master");
-    }
-    </action>
 </method>
 
 <event name = "monitor">
     <action>
-    //  Test whether peer died
-    //  If it did, stop monitoring
-    if (self->peer_state != AMQ_HAC_STATE_DEAD
-    &&  self->peer_state != AMQ_HAC_STATE_UNKNOWN
-    &&  apr_time_now () - self->last_peer_time > AMQ_HAC_FAILOVER_TIME * 1000) {
-        smt_log_print (amq_broker->alert_log,
-            "W: high-availability peer disconnected unexpectedly");
-        amq_cluster_hac_peer_state_changed (self, self->peer_state, AMQ_HAC_STATE_DEAD);
-    }
-    //  Send state notification to HA peer
-    if (self->peer_state != AMQ_HAC_STATE_DEAD)
+    //  Send state notification to HA peer (if peer is not dead)
+    if (self->last_peer_time == 0 || apr_time_now () -
+          self->last_peer_time <= AMQ_HAC_FAILOVER_TIME * 1000)
         amq_cluster_hac_send_state (self);
 
+    //  Schedule new monitoring event
     smt_timer_request_delay (
         self->thread, AMQ_HAC_MONITOR_FREQUENCY * 1000, monitor_event);
     </action>
@@ -324,8 +284,10 @@ s_content_handler (
         reader;
     ipr_bucket_t
         *body;
-    int
+    amq_hac_state
         state;
+    amq_hac_event
+        event;
 
     assert (peer_method->class_id == AMQ_PEER_BASIC);
     assert (peer_method->method_id == AMQ_PEER_BASIC_DELIVER);
@@ -337,13 +299,29 @@ s_content_handler (
     amq_content_basic_set_reader (peer_method->content, &reader, 4096);
     body = amq_content_basic_replay_body (peer_method->content, &reader);
     assert (body);
-    state = atoi ((char*) body->data);
+    state = atoi ((char *) body->data);
+    assert (state != 0);
     ipr_bucket_destroy (&body);
 
-    if (self->peer_state != state)
-        amq_cluster_hac_peer_state_changed (self, self->peer_state, state);
+    //  Convert peer's state to FSM event
+    switch (state) {
+    case amq_hac_state_pending:
+        event = amq_hac_event_peer_pending;
+        break;
+    case amq_hac_state_active:
+        event = amq_hac_event_peer_active;
+        break;
+    case amq_hac_state_passive:
+        event = amq_hac_event_peer_passive;
+        break;
+    default:
+        assert (0);
+    }
 
-    return (0);
+    //  Run the FSM
+    self_execute (self, event);
+
+    return 0;
 }
 </private>
 

@@ -58,9 +58,6 @@ This class implements the connection class for the AMQ server.
 <method name = "new">
     self->own_queue_list = amq_queue_list_new ();
     self->consumer_table = amq_consumer_table_new ();
-
-    //  Notify HAC that new connection is being created
-    amq_cluster_hac_new_connection (amq_broker->hac);
 </method>
 
 <method name = "destroy">
@@ -146,13 +143,15 @@ This class implements the connection class for the AMQ server.
     else
     if (amq_broker->clustered) {
         if (streq (method->virtual_host, amq_server_config_cluster_vhost (amq_server_config))) {
-            if (amq_broker->hac->state == AMQ_HAC_STATE_ACTIVE
-            ||  self->group > AMQ_CONNECTION_GROUP_NORMAL)
-                ;                       //  Proceed
-            else
-                self_raise_exception (self, ASL_ACCESS_REFUSED,
-                    "Application connections not allowed at present",
-                    AMQ_SERVER_CONNECTION, AMQ_SERVER_CONNECTION_OPEN);
+
+            //  Application connections have to send event to HAC state machine
+            //  HAC state machine determines whether connection should be
+            //  accepted or rejected
+            if(self->group <= AMQ_CONNECTION_GROUP_NORMAL)
+                if (!amq_cluster_hac_execute (amq_broker->hac, amq_hac_event_new_connection))
+                    self_raise_exception (self, ASL_ACCESS_REFUSED,
+                        "Application connections not allowed at present",
+                        AMQ_SERVER_CONNECTION, AMQ_SERVER_CONNECTION_OPEN);
         }
         else {
             smt_log_print (amq_broker->alert_log,
