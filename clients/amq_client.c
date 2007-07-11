@@ -292,9 +292,9 @@ main (int argc, char *argv [])
 
                 if (!session->alive)
                     goto finished;
-                if (smt_signal_raised) {
-                    icl_console_print ("I: SMT signal raised - ending test");
-                    icl_console_print ("I: %d messages not received");
+                if (connection->interrupt) {
+                    icl_console_print ("I: Interrupted - ending test");
+                    icl_console_print ("I: %d messages not received", expected);
                     goto finished;
                 }
             }
