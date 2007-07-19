@@ -1,3 +1,152 @@
+1.2c2 - 2007/07/19
+---------------------------------------------------------------------
+
+Internal prelease for testing before 1.2c3 public release.
+
+Summary of changes:
+
+JAMQ-87 is a refactoring of the ASL agent state machines, and either directly
+or indirectly fixes or obsoletes the fix for AMQ-542, AMQ-549, JAMQ-32,
+JAMQ-54, JAMQ-57, JAMQ-71, JAMQ-73, JAMQ-79, JAMQ-82 and JAMQ-83. 
+
+As part of this refactoring we have explicitly removed support for more than
+one protocol channel on a connection, since there is no direct requirement for
+this and the code was problematic and untested.
+
+WireAPI and broker error handling and reporting is now greatly improved and
+more robust.  The generic "unexpected disconnection" message has been removed,
+and the broker and client will report the specific cause of disconnection
+(protocol error, network error, etc.).
+
+JAMQ-94 fixes some non-critical bugs in the way SMT handles error conditions on
+sockets, which were discovered during the work on JAMQ-87.
+
+IMPORTANT NOTES:
+
+A major improvement has been made to the way large message contents (>1 frame)
+are processed in the broker and WireAPI layers, which will result in better
+connection stability under high broker or client load. 
+
+In order to take advantage of this, please ensure that you are running the
+broker with the "packio" setting turned *off*. The "packio" functionality is
+likely to be removed in the next release, since it interferes badly with
+multi-frame messages.
+
+The "read timeout" and "write timeout" broker and client configuration settings
+have been removed since they are no longer required.
+
+The WireAPI configuration file has been renamed from amq_wireapi.cfg to
+wireapi.cfg.
+
+The default "poll frequency" setting has been changed from 0 to 256, and the
+WireAPI configuration now also includes "poll frequency".  However, for correct
+behaviour, we encourage users to keep the default setting (256) and to *ensure*
+this setting is not manually set to 0.  We are testing a new polling algorithm
+which will completely replace "poll frequency" in the next release.
+
+Known issues:
+
+The broker shutdown process has been modified to initiate a clean shutdown of
+connections when the broker receives a SIGINT or SIGTERM. This has not yet been
+intergrated into the console shutdown code, and this change may have adverse
+impact on HA failover in situations where a failover is to be triggered by
+shutting down a running broker. We will evaluate the value of this change and
+provide a definite solution in the next release.
+
+Due to a programming error, the "tcp sndbuf" and "tcp rcvbuf" broker
+configuration settings have no effect.  This will be fixed in the next release.
+
+The documentation on www.openamq.org has not been updated to reflect the
+changes in this release.  
+
+Full list of fixes:
+    AMQ-542    Handle invalid protocol version in protocol header correctly
+
+    AMQ-547    Wrong operator precedence assumed in amq_queue_message_count can
+               lead to crash
+
+    AMQ-548    Set packio default to 0
+
+    AMQ-549    AMQ client API not able to support more than single connection
+
+    BASE-57    OSX porting - smt 'thread_create' function name clash
+
+  BASE2-266    "new style" iterator lists are inconsistent with the rest of iCL
+               and should be removed
+
+  BASE2-268    Ctrl+C leads to looping forever
+
+  BASE2-269    Clean up PAL and add read function
+
+  BASE2-270    smt_signal has allocation (link) issues
+
+  BASE2-271    Remove support for nested contents
+
+  BASE2-273    Multiple calls to _destroy on sync objects don't handle links
+               correctly
+
+  BASE2-274    PAL scripts need to be able to set config options
+
+  BASE2-276    Client uses 100% CPU on SIGINT while attempting to connect
+
+  BASE2-278    Automate sharing of thread context
+
+     FOR-16    c.bat and pal.bat do not accept file names with extensions
+
+     FOR-17    apr_socket_opt_get: Implement APR_SO_ERROR
+
+    JAMQ-32    E: Illegal sequence: Write request follows Close request
+
+    JAMQ-54    ASL: Design flaw in heartbeat algorithm
+
+    JAMQ-57    ASL client layer: Fix heartbeat design flaws
+
+    JAMQ-71    Assertion failure at amq_server:
+               smt_socket_request_by_socket.c:935: smt_socket_request_by_socket_first_:
+               Assertion `self' failed.
+
+    JAMQ-73    Assertion with debug build - amq_server: icl_mem_fat.c:695:
+               icl_mem_fat_possess_: Assertion `self->tag == 0xFABB' failed.
+
+    JAMQ-79    Design error in client/server agent state machine can block SMT
+               engine when sending large contents
+
+    JAMQ-80    PAL: Add support for testing failover
+
+    JAMQ-82    C API needs to report shutdown event properly
+
+    JAMQ-83    amq_client_agent aborts if there are still pending contents in
+               input thread and session has already been closed
+
+    JAMQ-84    Need PAL to support generated contents larger than 2MB (the
+               current limit)
+
+    JAMQ-85    PAL: <repeat> no longer works outside of <session>
+
+    JAMQ-86    SMT: smt_os_thread in ACTIVE status not polling for socket input
+
+    JAMQ-87    SMT not calling thread catcher in all cases/ASL client trying to
+               do socket operations on closed socket
+
+    JAMQ-88    ASL: Remove read_timeout and write_timeout from client agent
+
+    JAMQ-90    Verify OpenAMQ 1.2 HA clustering code meets agreed requirements
+               for delivery
+
+    JAMQ-91    SMT: <default> functionality for a <state> not implemented
+               correctly
+
+    JAMQ-92    SMT: Add priority attribute to method definition
+
+    JAMQ-93    SMT: Allow a thread to register more than one signal with
+               smt_signal_register
+
+    JAMQ-94    SMT not handling poll returning APR_POLLIN with a combination of
+               APR_POLLERR or APR_POLLHUP on a socket
+
+    JAMQ-95    amq_server aborts with (smt_socket_request.c 536) Could not find
+               specified socket in poll list.
+
 1.2c1 - 2007/03/26
 ---------------------------------------------------------------------
 
