@@ -16,17 +16,18 @@
     <session>
         <exchange_declare exchange = "grm.r" type = "direct" />
         <repeat>
-            <!-- Publish 9 common messages -->
-            <repeat times = "9">
-                <random name = "msg_size" max = "$msg_size_cmdline" />
-                <basic_content size = "$msg_size" message_id = "$msg_id"/>
+            <!-- Publish 1 large message, followed by 8 small messages 
+                 (needed for synchronization to work) -->
+            <basic_content size = "$msg_size_cmdline" message_id = "$msg_id"/>
+            <basic_publish exchange = "grm.r" routing_key = "large" />
+            <repeat times = "8">
+                <basic_content size = "500" message_id = "$msg_id"/>
                 <basic_publish exchange = "grm.r" routing_key = "large" />
-                <wait timeout = "$delay_cmdline" />
             </repeat>
             <!-- Publish synchronisation message -->
-            <random name = "msg_size" max = "$msg_size_cmdline" />
-            <basic_content size = "$msg_size" message_id = "$sync_id"/>
+            <basic_content size = "500" message_id = "$sync_id"/>
             <basic_publish exchange = "grm.r" routing_key = "large" />
+            <!-- Wait -->
             <wait timeout = "$delay_cmdline" />
         </repeat>
     </session>
