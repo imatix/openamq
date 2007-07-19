@@ -4,19 +4,19 @@
          script  = "makesrc.gsl">
 
   <product name = "foreign"
-           url  = "https://svn.imatix.net/imatix/foreign/trunk/"
-           rev  = "10630" />
+           url  = "https://svn.imatix.com/imatix/foreign/trunk/"
+           rev  = "10631" />
   <product name = "base"
-           url  = "https://svn.imatix.net/imatix/base/trunk/"
-           rev  = "10630" />
+           url  = "https://svn.imatix.com/imatix/base/trunk/"
+           rev  = "10631" />
   <product name = "gsl4"
-           url  = "https://svn.imatix.net/imatix/gsl4/trunk/"
-           rev  = "10630" />
+           url  = "https://svn.imatix.com/imatix/gsl4/trunk/"
+           rev  = "10631" />
   <product name = "base2"
-           url  = "https://svn.imatix.net/imatix/base2/trunk/"
-           rev  = "10630" />
+           url  = "https://svn.imatix.com/imatix/base2/trunk/"
+           rev  = "10631" />
   <product name = "openamq"
-           url  = "https://svn.imatix.net/imatix/openamq/trunk/"
-           rev  = "10630" />
+           url  = "https://svn.imatix.com/imatix/openamq/trunk/"
+           rev  = "10631" />
 </package>
 
