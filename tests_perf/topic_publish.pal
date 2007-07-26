@@ -67,16 +67,17 @@
                     <echo>Subscriber $id finished</echo>
                     <timer action = "show" />
                     <inc name = "id" />
-                    <if name = "once">
-                        <if name = "id" value = "$subscribers" >
-                            <exit />
-                        </if>
-                    </if>
                 </basic_arrived>
                 <empty>
                     <abort>E: no response from subscriber</abort>
                 </empty>
+                <if name = "id" value = "$subscribers" >
+                    <break />
+                </if>
             </repeat>
+            <if name = "once">
+                <exit />
+            </if>
             <if name = "settle">
                 <echo>Waiting for $settle msecs...</echo>
                 <wait timeout = "$settle" />
