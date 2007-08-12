@@ -42,13 +42,6 @@ working_threads = "4":
     On multithreaded builds, defines the number of OS threads dedicated to
     processing, that is, tasks other than socket polling. Default value is
     4.
-poll_frequency = "0":
-    To experiment with the effect of different socket polling strategies
-    we allow the user to set the frequency of non-essential socket
-    polling. Zero means no non-essential polling, one means maximal
-    non-essential polling, and in general N means do non-essential polling
-    one time in N. The maximum valid value for this setting is 1024.
-    Default value is 0. This option can be changed at runtime.
 
 Network Tuning
 **************

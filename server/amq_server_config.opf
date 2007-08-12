@@ -263,7 +263,7 @@ $\(selftype)
     </property>
 
     <property name = "tcp nodelay" type = "Bool" default = "1" dynamic = "1">
-    TCP/IP NDELAY option
+    TCP/IP NODELAY option
     <doc>
     If this value is 1, socket data is written immediately, which is
     usually good for latency.  If this value is 0, data is buffered

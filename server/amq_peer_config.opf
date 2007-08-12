@@ -47,22 +47,30 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "read timeout" type = "int" default = "10">
-    Timeout on network reads, seconds
+    <property name = "tcp nodelay" type = "Bool" default = "1" dynamic = "1">
+    TCP/IP NODELAY option
     <doc>
-    Defines the timeout for network reads.  If a peer does not respond
-    within this time, it is considered dead.  If you get unexpected
-    timeout errors in the logs, you may want to increase this value.
+    If this value is 1, socket data is written immediately, which is
+    usually good for latency.  If this value is 0, data is buffered
+    until there is a full packet, which is usually good for throughput.
     </doc>
     </property>
 
-    <property name = "write timeout" type = "int" default = "10">
-    Timeout on network writes, seconds
+    <property name = "tcp rcvbuf" type = "int" default = "0" dynamic = "1">
+    TCP/IP receive buffer, in bytes
     <doc>
-    Defines the timeout for network writes.  If a peer does not accept
-    data within this time, it is considered dead.  If you get
-    unexpected timeout errors in the logs, you may want to increase
-    this value.
+    If this value is greater than zero, the connection to the server will
+    use the specified value.  Note: setting this value is delicate, do not
+    use this option unless you know what you are doing.
+    </doc>
+    </property>
+
+    <property name = "tcp sndbuf" type = "int" default = "0" dynamic = "1">
+    TCP/IP send buffer, in bytes
+    <doc>
+    If this value is greater than zero, the connection to the server will
+    use the specified value.  Note: setting this value is delicate, do not
+    use this option unless you know what you are doing.
     </doc>
     </property>
 </path>
