@@ -216,18 +216,6 @@ $\(selftype)
 </path>
 
 <path name = "tuning">
-    <property name = "packio" type = "Bool" default = "0" dynamic = "1">
-    Pack network writes?
-    <doc>
-    If set, data is packed into larger buffers before writing. This
-    can improve performance significantly on some systems, especially
-    Windows and Linux with 2.4 kernels. If you enable this setting,
-    you should test the performance using a bulk message transfer
-    test.  The packio option may cause unexpected behaviour when used
-    with very large messages.
-    </doc>
-    </property>
-
     <property name = "heartbeat" type = "int" default = "2" dynamic = "1">
     Heartbeat timer, seconds
     <doc>
