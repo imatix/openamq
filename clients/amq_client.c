@@ -65,11 +65,11 @@ main (int argc, char *argv [])
     amq_client_connection_t
         **a_connections,                //  Active connection table
         **p_connections,                //  Passive connection table
-        *connection;                    //  Current connection
+        *connection = NULL;             //  Current connection
     amq_client_session_t
         **a_sessions,                   //  Active session table
         **p_sessions,                   //  Passive session table
-        *session;                       //  Current session
+        *session = NULL;                //  Current session
     amq_content_basic_t
         *content = NULL;                //  Message content
     dbyte
