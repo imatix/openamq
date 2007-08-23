@@ -239,7 +239,6 @@ s_start (int argc, char *argv [])
     //  Set system options from configuration
     smt_set_polling_threads (amq_server_config_polling_threads (amq_server_config));
     smt_set_working_threads (amq_server_config_working_threads (amq_server_config));
-    smt_set_poll_frequency  (amq_server_config_poll_frequency  (amq_server_config));
     smt_set_action_limit    (amq_server_config_kernel_limit    (amq_server_config));
 
     //  Move into the background if so desired
