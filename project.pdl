@@ -18,7 +18,7 @@
 
 <pdl
     name      = "OpenAMQ"
-    version   = "1.2c2"
+    version   = "1.2c3"
     copyright = "Copyright (c) 2007 iMatix Corporation"
     workflow  = "product.pwl"
     >
