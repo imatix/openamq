@@ -1,3 +1,64 @@
+1.2c3 - 2007/08/24
+---------------------------------------------------------------------
+
+Summary of changes:
+
+The "packio" configuration option has been removed. This was a workaround to
+support systems without working scatter/gather socket I/O which is not
+necessary on any of our supported platforms (Linux, Solaris, Windows), and was
+causing other issues with the transport of large messages. 
+
+The "poll_frequency" configuration option has been replaced by an adaptive
+algorithm that provides optimal performance without the need for tuning by the
+user.
+
+Known issues:
+  BASE2-282    ASL: Correct timeout handling during connection setup/teardown
+
+               Does not affect normal operation, only corner cases with 
+               deliberately misbehaving clients.
+
+    AMQ-550    Refactor server shutdown handling to close all connections
+               cleanly
+
+               May cause the server to loop on shutdown in combination with
+               a misbehaving client (see BASE2-282), or cause issues with a
+               clean shutdown of peering connections. In either case, sending
+               the server a second SIGINT will cause it to shut down normally.
+
+    AMQ-553    Fanout exchange doesn't dispatch messages after binding
+               recreation
+
+    AMQ-554    Direct exchange doesn't work with empty routing key
+
+    JAMQ-78    Make heartbeat configurable for peering connections
+
+    JAMQ-97    The max_memory_mb broker setting is not functional when used
+               with the default direct allocator
+
+               Please do not rely on the max_memory_mb setting to limit the
+               total amount of memory used by the server, this is not currently
+               working correctly.
+
+None of the above should impact a normal production environment. We hope to
+release fixes for these with the "ultra-stable" OpenAMQ 1.2d0 release,
+tentatively scheduled for the 7th of September.
+
+Full list of fixes:
+  BASE2-279    Correctly set socket options (TCP_NDELAY, SO_SNDBUF, SO_RCVBUF)
+               in SMT/ASL
+
+  BASE2-280    ASL: remove packio
+
+    JAMQ-96    Kill command for certain connections doesnt work.
+               (Duplicate, already fixed in OpenAMQ 1.2c2 by JAMQ-87)
+
+  BASE2-277    Review SMT socket polling strategy (poll_frequency)
+
+  BASE2-281    SMT doesn't always trigger master thread when threads go idle
+
+    BASE-59    Add MT build support for AIX with xlc to 'c' script
+
 1.2c2 - 2007/07/19
 ---------------------------------------------------------------------
 
