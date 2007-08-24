@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation
     date      = 2007/04/04
     copyright = Copyright (c) 2004-2007 iMatix Corporation
-    version   = 1.0b1
+    version   = 1.2c3
 end gdl
 
 Cover
@@ -252,6 +252,9 @@ Creates a new connection to the server.
    auth_plain method. The new method destroys the auth_data block on
    behalf of the caller.
 
+ - The instance argument sets the client instance name, which can be used
+   to identify a specific client in the management console or server log.
+
  - The trace argument sets the trace level for WireAPI.
 
  - The timeout argument governs all synchronous exchanges with the server -
@@ -386,6 +389,7 @@ and you should read the AMQP specifications for details:
  - amq_client_session_exchange_delete - mapped to Exchange.Delete.
  - amq_client_session_queue_declare - mapped to Queue.Declare.
  - amq_client_session_queue_bind - mapped to Queue.Bind.
+ - amq_client_session_queue_unbind - mapped to Queue.Unbind.
  - amq_client_session_queue_purge - mapped to Queue.Purge.
  - amq_client_session_queue_delete - mapped to Queue.Delete.
  - amq_client_session_basic_consume - mapped to Basic.Consume.

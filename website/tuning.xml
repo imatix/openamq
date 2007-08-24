@@ -34,7 +34,8 @@ max_memory_mb = "512":
     Specifies the maximum memory allowed for the server, in MB. When the
     server reaches this limit, it will slow down publishers. If zero, no
     limit is enforced. Default value is 512. This option can be changed at
-    runtime.
+    runtime. *Note:* This option is not functional in the current release
+    ($(main_version)), and will be reviewed and fixed in the next release.
 polling_threads = "4":
     On multithreaded builds, defines the number of OS threads dedicated to
     socket polling. Default value is 4.
@@ -48,25 +49,9 @@ Network Tuning
 
 These are the options that affect network configuration and performance:
 
-packio = "0":
-    If set, data is packed into larger buffers before writing. This can
-    improve performance significantly on some systems, especially Windows
-    and Linux with 2.4 kernels. If you disable this setting, you should
-    test the performance using a bulk message transfer test. Default value
-    is 0. This option can be changed at runtime.
 heartbeat = "2":
     Defines the timeout for connection heartbeating. Default value is 2.
     This option can be changed at runtime.
-read_timeout = "30":
-    Defines the timeout for network reads. If a peer does not respond
-    within this time, it is considered dead. If you get unexpected timeout
-    errors in the logs, you may want to increase this value. Default value
-    is 30. This option can be changed at runtime.
-write_timeout = "30":
-    Defines the timeout for network writes. If a peer does not accept data
-    within this time, it is considered dead. If you get unexpected timeout
-    errors in the logs, you may want to increase this value. Default value
-    is 30. This option can be changed at runtime.
 tcp_nodelay = "1":
     If this value is 1, socket data is written immediately, which is
     usually good for latency. If this value is 0, data is buffered until
@@ -83,13 +68,18 @@ tcp_sndbuf = "0":
     this option unless you know what you are doing. Default value is 0.
     This option can be changed at runtime.
 
+*Note:* We recommend that rather than tuning the tcp_rcvbuf and tcp_sndbuf
+options at the application level, you should rely on the default values of "0"
+and tune your operating system's TCP stack appropriately. For a good guide to
+TCP Tuning, see [http://www-didc.lbl.gov/TCP-tuning/:here].
+
 Tuning the WireAPI Client Layers
 ********************************
 
 The WireAPI layers are not configurable via the command line, so you
 will want to create an XML configuration file to tune this layer.
 
-The file must be called *amq_wireapi.cfg* and must be located on the
+The file must be called *wireapi.cfg* and must be located on the
 PATH, or in the current directory where the applications are run.
 
 Use the same format for this file as for the server configuration file,

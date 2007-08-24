@@ -32,14 +32,7 @@ More: [page:build]
 OpenAMQ/JMS
 ***********
 
-This package contains the full source code for OpenAMQ/JMS, a JMS client
-designed to be used with OpenAMQ.
-
-1. [/download/OpenAMQ-JMS-$(main_version).tar.gz:OpenAMQ-JMS-$(main_version).tar.gz] - tar.gz (UNIX line endings).
-2. [/download/OpenAMQ-JMS-$(main_version).zip:OpenAMQ-JMS-$(main_version).zip] - ZIP (Windows line endings).
-3. [/build_jms.html:How to build and test].
-
-More: [page:build_jms]
+Coming soon.
 
 Information
 ***********

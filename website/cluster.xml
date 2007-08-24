@@ -110,7 +110,7 @@ published centrally.
 
 The configuration looks like this:
 
-    &lt;cluster-mta
+    &lt;cluster_mta
         name = "exchange-name"
         vhost = "virtual-host-name"
         host = "remotehost:port"
@@ -142,7 +142,7 @@ local clients and remote ones.
 
 The configuration looks like this:
 
-    &lt;cluster-mta
+    &lt;cluster_mta
         name = "exchange-name"
         vhost = "virtual-host-name"
         host = "remotehost:port"
@@ -163,7 +163,7 @@ be either local, or remote.
 
 The configuration looks like this:
 
-    &lt;cluster-mta
+    &lt;cluster_mta
         name = "exchange-name"
         vhost = "virtual-host-name"
         host = "remotehost:port"

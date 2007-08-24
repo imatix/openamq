@@ -43,57 +43,57 @@ Run this command:
 
 These are the command-line options:
 
-  -s hostname      Broker hostname and :port (localhost)
+    !-s! hostname      Broker hostname and :port (localhost)
 
 If the amq_server is running on a different system and/or non-standard port,
 use the -s option to specify the correct !servername:port!.
 
-  -V virtualhost   Specify cluster virtual host
+    !-V! virtualhost   Specify cluster virtual host
 
 You need this when working with servers that are in a cluster configuration.
 The cluster virtual host you specify must match that specified in the cluster
 configuration.
 
-  -u user          User name for console access (guest)
+    !-u! user          User name for console access (guest)
 
 Specify the user name for the connection.
 
-  -p password      Password for console access (guest)
+    !-p! password      Password for console access (guest)
 
 Specify the password for the connection.
 
-  -e "commands"    Run shell commands, delimited by ;
+    !-e! "commands"    Run shell commands, delimited by ;
 
 Specify a list of commands to run, which can be any commands that you may
 type when in the amq_shell prompt (see below).
 
-  -x filename      Save all status data as XML
+    !-x! filename      Save all status data as XML
 
 Saves all printed data as an XML file, useful if you want to re-process the
 data mechanically afterwards.
 
-  -t level         Set trace level (default = 0)
+    !-t! level         Set trace level (default = 0)
 
 Used to debug the communications between the Console and the OpenAMQ server.
 
-  -b               Show broker status and then exit
+    !-b!               Show broker status and then exit
 
 Show a summary of the broker status, without entering the prompt.
 
-  -r               Report all active local brokers
+    !-r!               Report all active local brokers
 
-Scan the current system for all OpenAMQ brokers running on ports 4096 to
-8192.  Will not attempt to look for brokers above or below that range.
+Scan the current system for all OpenAMQ brokers running on ports 4096-8192.
+Will not attempt to look for brokers above or below that range.
 
-  -q               Show all broker queues and exit
+    !-q!               Show all broker queues and exit
 
 Show a summary list of all the broker's queues, without entering the prompt.
 
-  -c               Show all broker connections and exit
+    !-c!               Show all broker connections and exit
 
 Show a summary list of all the broker's connections, without entering the prompt.
 
-  -d               Show date and time in shell output
+    !-d!               Show date and time in shell output
 
 Add the date and time to all printed messages.
 
