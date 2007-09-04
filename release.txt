@@ -1,3 +1,20 @@
+1.2c4 - 2007/09/04
+---------------------------------------------------------------------
+
+Summary of changes:
+
+Build and documentation fixes only, no changes to functionality.
+
+Full list of fixes:
+
+  BASE2-283    BASE2-277 changes break single threaded build
+
+    BASE-60    Boom: Enclose <set> values in quotes
+
+     FOR-18    PCRE: Inherit CCDEFINES from environment
+
+    AMQ-555    WireAPI: Documentation updates
+
 1.2c3 - 2007/08/24
 ---------------------------------------------------------------------
 
