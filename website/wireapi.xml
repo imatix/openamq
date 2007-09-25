@@ -16,6 +16,26 @@ AMQP protocol.
 
  - The WireAPI Specifications - [/doc_wireapi.txt_flat.html:flat HTML] | [/doc_wireapi.html:full HTML] | [/doc_wireapi.pdf:PDF (17 pages)]
 
+Architecture of C/C++ WireAPI
+*****************************
+
+The C/C++ WireAPI implementation provided by iMatix for OpenAMQ is a
+multithreaded application in two halves.  One half runs as a background
+thread , processing protocol methods and doing network i/o, so that messages
+can be sent and received indepedently of application work.  The second half
+runs in the application thread, and provides API-level functionality,
+including implementation of the WireAPI objects (connections, session, etc.)
+
+This design has several consequences that you should take into account when designing and building your application and/or messaging frameworks:
+
+ * If you build OpenAMQ as a single-threaded application, background
+   processing of messages will be unreliable.  Concretely, the background 
+   thread will only process when the application calls the
+   amq_client_session_wait () method.
+ * WireAPI is safe to use in multithreaded applications, but you must not 
+   share WireAPI classes (connection, session, etc.) between application
+   threads.
+
 The Connection Class
 ********************
 
