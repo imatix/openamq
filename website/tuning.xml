@@ -1,4 +1,4 @@
-<page
+﻿<page
     name = "tuning"
     title = "Tuning"
     subtitle = "Getting the Best out of OpenAMQ"
@@ -72,6 +72,68 @@ tcp_sndbuf = "0":
 options at the application level, you should rely on the default values of "0"
 and tune your operating system's TCP stack appropriately. For a good guide to
 TCP Tuning, see [http://www-didc.lbl.gov/TCP-tuning/:here].
+
+Tuning Queue Performance
+************************
+
+You can tune the number of messages that queues will accept.  This is useful to
+ensure that your server does not run out of virtual memory when you have fast
+publishers and slow clients, and a very high rate of data.
+
+OpenAMQ provides a mechanism called "queue profiles" to let you control the
+limits on a per-queue basis.  By default (in amq_server_base.cfg), we define
+two queue profiles as follows:
+
+    &lt;queue_profile name = "private"&gt;
+        &lt;limit name = "warn" value = "10000" /&gt;
+        &lt;limit name = "trim" value = "50000" /&gt;
+    &lt;/queue_profile&gt;
+    &lt;queue_profile name = "shared"&gt;
+        &lt;limit name = "warn" value = "10000" /&gt;
+        &lt;limit name = "kill" value = "50000" /&gt;
+    &lt;/queue_profile&gt;
+
+These profiles define the behaviour of private and shared queues respectively.
+In each profile we can define up to 10 limits, which specify a number of
+messages, and an action to perform when that limit is reached:
+
+ * warn - issue a warning to the console and accept the message onto the queue.
+   The warning is only issued once when the limit is crossed.
+ * trim - delete an old message from the queue to make space for the new
+   message.
+ * drop - drop the new message, do not delete existing queued messages.
+ * kill - issue a warning and kill the connection and queue.  This handles the
+   case when publishers are extremely unbalanced.
+
+To override these limits, edit amq_server.cfg (not the base config file) e.g.:
+
+    amq_server.cfg:
+    <?xml version="1.0"?>
+    <config>
+        <queue_profile name = "shared">
+            <limit name = "warn" value = "500" />
+            <limit name = "drop" value = "1000" />
+        </queue_profile>
+        <queue_profile name = "private">
+            <limit name = "warn" value = "500" />
+            <limit name = "trim" value = "1000" />
+        </queue_profile>
+    </config>
+
+OpenAMQ also lets you define per-queue profiles.  When your application 
+creates a queue, using the Queue.Declare method (the amq_queue_declare() 
+method in the WireAPI interface), it can specify a profile name, as follows:
+
+ * The application must be capable of constructing and passing an arguments
+   table.
+ * It creates an argument field called "profile" with the value of the 
+   profile it wants to use for that queue.
+ * OpenAMQ then takes the profile definition from the configuration data.
+
+This only happens when the queue is created; if the Queue.Declare is 
+specified for an existing queue, it's profile is not modified.  If no 
+profile is specified in the Queue.Declare method, OpenAMQ uses 'private'
+for exclusive queues and 'shared for non-exclusive queues.
 
 Tuning the WireAPI Client Layers
 ********************************
