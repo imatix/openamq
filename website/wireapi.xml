@@ -1,4 +1,4 @@
-<page
+﻿<page
     name = "wireapi"
     title = "WireAPI"
     subtitle = "Programming AMQP"
@@ -118,10 +118,10 @@ The Session Class
 
 A session corresponds to an AMQP channel, and is a virtual connection to
 an AMQ server.  You must at least create one session in order to talk
-with an AMQ server.  Multithreaded applications can create many sessions
-per channel - the advantage is that creating and ending sessions is very
-fast, much faster than creating a new connection, especially across slow
-networks and/or firewalls.
+with an AMQ server.  While AMQP offers multiplexing in theory, OpenAMQ no
+longer implements this, mainly because there are no proven performance
+advantages.  So you should create a single session per connection, no more.
+NOTE: future versions of WireAPI may merge the session and connection classes.
 
 amq_client_session_new ()
 =========================
