@@ -108,17 +108,17 @@ messages, and an action to perform when that limit is reached:
 To override these limits, edit amq_server.cfg (not the base config file) e.g.:
 
     amq_server.cfg:
-    <?xml version="1.0"?>
-    <config>
-        <queue_profile name = "shared">
-            <limit name = "warn" value = "500" />
-            <limit name = "drop" value = "1000" />
-        </queue_profile>
-        <queue_profile name = "private">
-            <limit name = "warn" value = "500" />
-            <limit name = "trim" value = "1000" />
-        </queue_profile>
-    </config>
+    &lt;?xml version="1.0"?&gt;
+    &lt;config&gt;
+        &lt;queue_profile name = "shared"&gt;
+            &lt;limit name = "warn" value = "500" /&gt;
+            &lt;limit name = "drop" value = "1000" /&gt;
+        &lt;/queue_profile&gt;
+        &lt;queue_profile name = "private"&gt;
+            &lt;limit name = "warn" value = "500" /&gt;
+            &lt;limit name = "trim" value = "1000" /&gt;
+        &lt;/queue_profile&gt;
+    &lt;/config&gt;
 
 OpenAMQ also lets you define per-queue profiles.  When your application 
 creates a queue, using the Queue.Declare method (the amq_queue_declare() 
