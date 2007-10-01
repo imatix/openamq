@@ -1,4 +1,4 @@
-﻿<page
+<page
     name = "tuning"
     title = "Tuning"
     subtitle = "Getting the Best out of OpenAMQ"
@@ -120,18 +120,18 @@ To override these limits, edit amq_server.cfg (not the base config file) e.g.:
         &lt;/queue_profile&gt;
     &lt;/config&gt;
 
-OpenAMQ also lets you define per-queue profiles.  When your application 
-creates a queue, using the Queue.Declare method (the amq_queue_declare() 
+OpenAMQ also lets you define per-queue profiles.  When your application
+creates a queue, using the Queue.Declare method (the amq_queue_declare()
 method in the WireAPI interface), it can specify a profile name, as follows:
 
  * The application must be capable of constructing and passing an arguments
    table.
- * It creates an argument field called "profile" with the value of the 
+ * It creates an argument field called "profile" with the value of the
    profile it wants to use for that queue.
  * OpenAMQ then takes the profile definition from the configuration data.
 
-This only happens when the queue is created; if the Queue.Declare is 
-specified for an existing queue, it's profile is not modified.  If no 
+This only happens when the queue is created; if the Queue.Declare is
+specified for an existing queue, it's profile is not modified.  If no
 profile is specified in the Queue.Declare method, OpenAMQ uses 'private'
 for exclusive queues and 'shared for non-exclusive queues.
 

@@ -1,4 +1,4 @@
-﻿<page
+<page
     name = "wireapi"
     title = "WireAPI"
     subtitle = "Programming AMQP"
