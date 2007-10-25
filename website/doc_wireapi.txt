@@ -135,7 +135,7 @@ program does no error handling so you should *not* copy this code:
         amq_content_basic_set_message_id (content, "ID001");
         amq_client_session_basic_publish (
             session, content, 0, "to-address", NULL, FALSE, FALSE);
-        amq_content_basic_destroy (&content);
+        amq_content_basic_unlink         (&content);
 
         //  Shutdown connection and session
         amq_client_session_destroy    (&session);
@@ -197,7 +197,7 @@ And the correct way to call a method like publish is:
     ...
     rc = amq_client_session_basic_publish (
         session, content, 0, "queue", "mydest", FALSE, FALSE);
-    amq_content_basic_destroy (&content);
+    amq_content_basic_unlink (&content);
     if (rc) {
         icl_console_print ("E: could not publish message");
         return (1);
@@ -336,12 +336,12 @@ amq_client_session_wait ()
 ==========================
 
 Waits for content to arrive from the server.  You must call this method
-in order to get content.  Returns zero if content arrived, or -1 if the
-timeout expired:
+in order to get content.  Returns zero if content arrived or the timeout
+expired, -1 if the session died or there was another error:
 
     if (amq_client_session_wait (session, timeout))
         if (session->alive)
-            //  timeout expired
+            //  this should never happen
         else
             //  session died
     else
@@ -446,10 +446,13 @@ an iCL class that lets you create and manipulate contents. For example:
     content = amq_content_basic_new ();
     amq_content_basic_set_body       (content, "0123456789", 10, NULL);
     amq_content_basic_set_message_id (content, "ID001");
-    amq_content_basic_destroy (&content);
+    // publish the content
+    amq_content_basic_unlink (&content);
 
 To create a new content, use the 'new' method.  To destroy a content,
-use the 'destroy' method.
+use the 'unlink' method.  The 'destroy' method will work in low-volume
+scenarios but is actually wrong.  Contents are reference-counted objects
+and when we publish them, we do not know which reference is released last.
 
 Content Properties
 ==================
