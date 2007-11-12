@@ -99,9 +99,12 @@ messages, and an action to perform when that limit is reached:
 
  * warn - issue a warning to the console and accept the message onto the queue.
    The warning is only issued once when the limit is crossed.
+
  * trim - delete an old message from the queue to make space for the new
    message.
+
  * drop - drop the new message, do not delete existing queued messages.
+
  * kill - issue a warning and kill the connection and queue.  This handles the
    case when publishers are extremely unbalanced.
 
@@ -126,8 +129,10 @@ method in the WireAPI interface), it can specify a profile name, as follows:
 
  * The application must be capable of constructing and passing an arguments
    table.
+
  * It creates an argument field called "profile" with the value of the
    profile it wants to use for that queue.
+
  * OpenAMQ then takes the profile definition from the configuration data.
 
 This only happens when the queue is created; if the Queue.Declare is
