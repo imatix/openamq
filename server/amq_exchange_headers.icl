@@ -54,7 +54,7 @@ limited by size of amq_index_hash table.
     to match on.  Each field with a non-empty value is matched for
     that field/value pair.  Each field with an empty value is matched
     for presence only (matching any value in the message).  Fields
-    prefixed by X- are not matched on.  The field called "X-match"
+    prefixed by x- are not matched on.  The field called "x-match"
     can have the value "all" or "any", meaning logical AND or OR of
     all matches.  It defaults to "all".
     </doc>
@@ -76,8 +76,10 @@ limited by size of amq_index_hash table.
         binding->match_all = TRUE;      //  By default, want full match
         field = asl_field_list_first (fields);
         while (field) {
-            if (field->name [0] == 'X' && field->name [1] == '-') {
-                if (streq (field->name, "X-match")) {
+            if ((field->name [0] == 'X' 
+              || field->name [0] == 'x') && field->name [1] == '-') {
+                if (streq (field->name, "x-match") 
+                 || streq (field->name, "X-match")) {
                     if (streq (asl_field_string (field), "any")) {
                         if (amq_server_config_debug_route (amq_server_config))
                             smt_log_print (amq_broker->debug_log,
