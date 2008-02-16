@@ -106,7 +106,7 @@ Having established a session we can send methods to the server:
             &lt;queue_bind queue = "myqueue" exchange = "myexchange" /&gt;
             &lt;basic_content size = "64000" message_id = "id-0001" /&gt;
             &lt;basic_publish exchange = "myexchange" routing_key = "myqueue" /&gt;
-            &lt;basic_browse queue = "myqueue" /&gt;
+            &lt;basic_get queue = "myqueue" /&gt;
             &lt;basic_arrived&gt;
                 &lt;echo&gt;Message '$message_id' came back to us&lt;/echo&gt;
             &lt;/basic_arrived&gt;
@@ -131,7 +131,7 @@ So we can rewrite the above script to make it shorter:
             &lt;queue_bind /&gt;
             &lt;basic_content size = "64000" message_id = "id-0001" /&gt;
             &lt;basic_publish routing_key = "myqueue" /&gt;
-            &lt;basic_browse /&gt;
+            &lt;basic_get /&gt;
             &lt;basic_arrived&gt;
                 &lt;echo&gt;Message '$message_id' came back to us&lt;/echo&gt;
             &lt;/basic_arrived&gt;
@@ -181,7 +181,7 @@ commands into groups to save time:
             &lt;invoke macro = "send message"&gt;
                 &lt;set name = "size" value = "64000" /&gt;
             &lt;/invoke&gt;
-            &lt;basic_browse queue = "myqueue" /&gt;
+            &lt;basic_get queue = "myqueue" /&gt;
             &lt;basic_arrived&gt;
                 &lt;echo&gt;Message '$message_id' came back to us&lt;/echo&gt;
             &lt;/basic_arrived&gt;
@@ -704,7 +704,7 @@ variables:
               &lt;basic_publish routing_key = "$queue" /&gt;
             &lt;/repeat&gt;
             &lt;repeat&gt;
-                &lt;basic_browse /&gt;
+                &lt;basic_get /&gt;
                 &lt;basic_returned&gt;
                     &lt;echo&gt;Returned: $message_id&lt;/echo&gt;
                 &lt;/basic_returned&gt;
