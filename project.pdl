@@ -27,6 +27,7 @@
 <file name = "project.pdl"  class = "private resource" >Project Definition</file>
 <file name = "readme.txt"   class = "private resource" >Top-level Read Me</file>
 <file name = "release.txt"  class = "private resource" >Release notes</file>
+<file name = "contrib.txt"  class = "private resource" >List of contributors</file>
 
 <distrib name = "OpenAMQ source" type = "source">
     <project directory = "common"  />

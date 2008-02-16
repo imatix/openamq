@@ -1,0 +1,8 @@
+Contributors to OpenAMQ
+
+We are grateful to these indivuduals, who contributed patches and code to the
+OpenAMQ project:
+
+* Esteve Fernandez <esteve.fernandez gmail com>
+
+
