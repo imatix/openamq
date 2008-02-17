@@ -169,8 +169,8 @@ static int
 </private>
 
 <private name = "footer">
-//  Callback handler called by our amq_peering instance when a basic.deliver is
-//  received from the peering connection.
+//  Callback handler called by our amq_peering instance when a basic.deliver 
+//  is received from the peering connection.
 static int
 s_content_handler (
     void *vself,
@@ -182,12 +182,17 @@ s_content_handler (
     amq_client_method_t
         *client_method;
 
-    if (self->mode == AMQ_MTA_MODE_SUBSCRIBER ||
-          self->mode == AMQ_MTA_MODE_BOTH) {
-
+    if (self->mode == AMQ_MTA_MODE_SUBSCRIBER 
+    ||  self->mode == AMQ_MTA_MODE_BOTH) {
         assert (peer_method->class_id == AMQ_PEER_BASIC);
         assert (peer_method->method_id == AMQ_PEER_BASIC_DELIVER);
 
+        if (amq_server_config_debug_peering (amq_server_config))
+            smt_log_print (amq_broker->debug_log,
+                "P: publish  peer exchange=%s routing_key=%s", 
+                peer_method->payload.basic_deliver.exchange,
+                peer_method->payload.basic_deliver.routing_key);
+                
         //  TODO: Implement rejected messages returning in pull model
         //  Notice two last arguments in the call bellow
         client_method = amq_client_method_new_basic_publish (
@@ -200,6 +205,12 @@ s_content_handler (
         client_method->content = peer_method->content;
         peer_method->content = NULL;
 
+        amq_content_basic_set_routing_key (
+            client_method->content,
+            peer_method->payload.basic_deliver.exchange,
+            peer_method->payload.basic_deliver.routing_key,
+            0);
+ 
         amq_exchange_publish (self->exchange, NULL, (amq_server_method_t *) client_method);
         amq_client_method_unlink (&client_method);
     }

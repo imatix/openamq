@@ -411,6 +411,11 @@ typedef int (amq_peering_return_fn) (
     amq_peer_method_t
         *method;
 
+    if (amq_server_config_debug_peering (amq_server_config))
+        smt_log_print (amq_broker->debug_log,
+            "P: forward  peer exchange=%s routing_key=%s", 
+            self->exchange, routing_key);
+
     //  Create a Basic.Publish method
     method = amq_peer_method_new_basic_publish (
         ticket, self->exchange, routing_key, mandatory, immediate);
@@ -567,11 +572,7 @@ typedef int (amq_peering_return_fn) (
     else
     //  Connect the peering if we're not already connected but the app
     //  has for the peering to become active.
-    if (!self->peer_agent_thread && self->enabled) {
-        if (amq_server_config_debug_peering (amq_server_config))
-            smt_log_print (amq_broker->debug_log,
-                "P: connect  peer to host=%s", self->host);
-
+    if (!self->peer_agent_thread && self->enabled)
         self->peer_agent_thread = amq_peer_agent_connection_thread_new (
             self,                       //  Callback for incoming methods
             self->host,
@@ -579,7 +580,7 @@ typedef int (amq_peering_return_fn) (
             self->auth_data,
             "Peering connection",       //  Instance name
             self->trace);
-    }
+
     //  Peering monitor runs once per second
     smt_timer_request_delay (self->thread, 1000 * 1000, monitor_event);
     </action>
