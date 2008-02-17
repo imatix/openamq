@@ -148,8 +148,6 @@ amq_index_hash table.
 
         while (binding && binding->is_wildcard) {
             regexp = ipr_regexp_new (binding->regexp);
-        icl_console_print ("Match: regexp='%s' routing_key='%s' result=%d", binding->regexp, routing_key, ipr_regexp_match (regexp, routing_key, NULL));
-
             if (ipr_regexp_match (regexp, routing_key, NULL)) {
                 if (amq_server_config_debug_route (amq_server_config))
                     smt_log_print (amq_broker->debug_log,
