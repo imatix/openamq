@@ -45,6 +45,16 @@ $\(selftype)
     </doc>
     </property>
 
+    <property name = "listen" type = "char *" default = "*">
+    Address (local network interface) to listen on
+    <doc>
+    Specifies the network interface on which the server should listen for 
+    connections.  By default this is *, meaning all interfaces.  You would 
+    choose to set an address when you use OpenAMQ on a server with multiple 
+    network interfaces, e.g. routing between two networks.
+    </doc>
+    </property>
+
     <property name = "queue timeout" type = "int" default = "0" dynamic = "1">
     Timeout for auto-deleted queues
     <doc>
