@@ -66,12 +66,22 @@
     
     self->exchange = amq_exchange_link (exchange);
     self->mode = mode;
-    self->peering = amq_peering_new (host, virtual_host, amq_server_config_trace (amq_server_config),
-                                     self->exchange->name, amq_exchange_type_name (self->exchange->type),
-                                     self->exchange->durable, self->exchange->auto_delete);
+    self->peering = amq_peering_new (
+        host, 
+        virtual_host,
+        amq_server_config_trace (amq_server_config),
+        self->exchange->name,
+        amq_exchange_type_name (self->exchange->type),
+        self->exchange->durable, 
+        self->exchange->auto_delete);
     amq_peering_set_login           (self->peering, login);
     amq_peering_set_content_handler (self->peering, s_content_handler, self);
     amq_peering_set_return_handler  (self->peering, s_return_handler, self);
+    if (amq_server_config_debug_peering (amq_server_config))
+        smt_log_print (amq_broker->debug_log,
+            "P: create   peer exchange=%s host=%s mode=%d", 
+            self->exchange->name, host, self->mode);
+
     amq_peering_start (self->peering);
 </method>
 
@@ -97,6 +107,11 @@
     </release>
     //
     <action>
+    if (amq_server_config_debug_peering (amq_server_config))
+        smt_log_print (amq_broker->debug_log,
+            "P: bind     peer to exchange=%s host=%s routing_key=%s", 
+            self->exchange->name, self->peering->host, routing_key);
+
     amq_peering_bind (self->peering, routing_key, arguments);
     </action>
 </method>

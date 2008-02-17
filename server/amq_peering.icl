@@ -567,7 +567,11 @@ typedef int (amq_peering_return_fn) (
     else
     //  Connect the peering if we're not already connected but the app
     //  has for the peering to become active.
-    if (!self->peer_agent_thread && self->enabled)
+    if (!self->peer_agent_thread && self->enabled) {
+        if (amq_server_config_debug_peering (amq_server_config))
+            smt_log_print (amq_broker->debug_log,
+                "P: connect  peer to host=%s", self->host);
+
         self->peer_agent_thread = amq_peer_agent_connection_thread_new (
             self,                       //  Callback for incoming methods
             self->host,
@@ -575,6 +579,7 @@ typedef int (amq_peering_return_fn) (
             self->auth_data,
             "Peering connection",       //  Instance name
             self->trace);
+    }
     //  Peering monitor runs once per second
     smt_timer_request_delay (self->thread, 1000 * 1000, monitor_event);
     </action>
@@ -613,7 +618,6 @@ s_initialise_peering (amq_peering_t *self)
         *method;                        //  Method to send to peer server
     //
     if (!self->connected) {
-
         self->connected = TRUE;
         self->offlined = FALSE;
         smt_log_print (amq_broker->alert_log,
@@ -667,6 +671,8 @@ s_terminate_peering (amq_peering_t *self)
         if (self->status_fn)
             (self->status_fn) (self->status_caller, self, FALSE);
     }
+        smt_log_print (amq_broker->alert_log,
+            "I: peering to %s was shut down", self->host);
 }
 
 //  Used by peering_bind and peering_unbind to determine if binding is unique.
