@@ -34,7 +34,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 The third-party binary packages distributed with OpenAMQ/JMS in the lib
 directory of this distribution are subject to their own licenses:
 
-... TODO: list these here ...
+    * Apache Commons Collections - http://commons.apache.org/collections/
+    * Java Messaging Service - http://java.sun.com/products/jms/
+    * JUnit - http://www.junit.org/
+    * Apache log4j - http://logging.apache.org/log4j/
+    * Apache MINA - http://mina.apache.org/
+    * SAXON - http://saxon.sourceforge.net/
+    * SFL4J - http://www.slf4j.org/
+    * backport-util-concurrent - http://backport-jsr166.sourceforge.net/
 
 The amqp.0-9.xml file distributed with OpenAMQ/JMS is subject to the
 following license:
