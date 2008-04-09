@@ -104,7 +104,8 @@ for each type of exchange. This is a lock-free asynchronous class.
         *binding_hash;                  //  Bindings hashed by routing_key
     ipr_index_t
         *binding_index;                 //  Gives us binding indices
-
+    amq_queue_t
+        **queue_set;                    //  Queue publish set
     amq_cluster_mta_t
         *mta;                           //  MTA for this exchange, if any
     int
@@ -142,6 +143,10 @@ for each type of exchange. This is a lock-free asynchronous class.
 #define AMQ_EXCHANGE_DIRECT         3
 #define AMQ_EXCHANGE_TOPIC          4
 #define AMQ_EXCHANGE_HEADERS        5
+
+//  Max number of queues we can publish one message to.
+//  Used for static table of void * per exchange instance.
+#define AMQ_QUEUE_SET_MAX           16000
 </public>
 
 <method name = "new">
@@ -176,6 +181,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     self->binding_index = ipr_index_new ();
     self->queue_bindings
                         = amq_queue_bindings_list_table_new ();
+    self->queue_set     = icl_mem_alloc (AMQ_QUEUE_SET_MAX * sizeof (amq_queue_t *));
     icl_shortstr_cpy (self->name, name);
 
     if (self->type == AMQ_EXCHANGE_SYSTEM) {
@@ -243,6 +249,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     amq_binding_list_destroy (&self->binding_list);
     ipr_index_destroy (&self->binding_index);
     amq_queue_bindings_list_table_destroy (&self->queue_bindings);
+    icl_mem_free (self->queue_set);
     amq_cluster_mta_destroy (&self->mta);
 
     if (self->type == AMQ_EXCHANGE_SYSTEM)

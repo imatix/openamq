@@ -73,10 +73,6 @@ runs lock-free as a child of the asynchronous queue class.
         rejected;
     </local>
     //
-    /*  Limitations of current design:
-        - no acknowledgements
-        - no windowing
-     */
     if (amq_server_config_debug_queue (amq_server_config))
         smt_log_print (amq_broker->debug_log,
             "Q: publish  queue=%s message=%s", self->queue->name, content->message_id);
@@ -152,7 +148,7 @@ runs lock-free as a child of the asynchronous queue class.
     }
     if (content) {
         //  If immediate, and no consumers, return the message
-	rejected = FALSE;
+        rejected = FALSE;
         if (immediate) {
             //  Get count of active consumers
             active_consumer_count = 0;
@@ -164,7 +160,7 @@ runs lock-free as a child of the asynchronous queue class.
             }
             if (active_consumer_count == 0) {
                 rejected = TRUE;
-	    
+
                 if (amq_server_config_debug_queue (amq_server_config))
                     smt_log_print (amq_broker->debug_log,
                         "Q: return   queue=%s message=%s",

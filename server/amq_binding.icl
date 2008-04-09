@@ -143,6 +143,34 @@ class.
     }
 </method>
 
+<method name = "collect" template = "function">
+    <doc>
+    Collect all queues for the binding into the caller's publish set.
+    To avoid the same message being published multiple times to the same
+    queue via different bindings, the exchane collects all queues for a 
+    message, sorts, and eliminates duplicates.  Returns new queue set
+    size.  If queue set size reaches 75% of limit, prints warning.
+    </doc>
+    <argument name = "queue set" type = "amq_queue_t **">Queue set</argument>
+    <argument name = "set size"  type = "size_t">Queue set size</argument>
+    <local>
+    amq_queue_list_iter_t *
+        iterator;
+    </local>
+    //
+    iterator = amq_queue_list_first (self->queue_list);
+    while (iterator) {
+        if (set_size < AMQ_QUEUE_SET_MAX)
+            queue_set [set_size++] = (amq_queue_t *) iterator->item;
+        iterator = amq_queue_list_next (&iterator);
+    }
+    rc = set_size;
+    if (set_size > AMQ_QUEUE_SET_MAX * 75 / 100)
+        smt_log_print (amq_broker->alert_log,
+            "W: reaching AMQ_QUEUE_SET_MAX (at %d), please notify openamq-dev@imatix.com", 
+            AMQ_QUEUE_SET_MAX);
+</method>
+
 <method name = "publish" template = "function">
     <doc>
     Publish message to all queues and peers defined for the binding.

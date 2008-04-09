@@ -169,6 +169,8 @@ amq_index_hash table.
             "X: route    %s: routing_key=%s", self->exchange->name, routing_key);
 
     assert (index);
+    
+    //  Collect all queues to publish to
     binding_nbr = ipr_bits_first (index->bindset);
     while (binding_nbr >= 0) {
         binding = self->exchange->binding_index->data [binding_nbr];
@@ -176,10 +178,12 @@ amq_index_hash table.
         if (amq_server_config_debug_route (amq_server_config))
             smt_log_print (amq_broker->debug_log,
                 "X: hit      %s: wildcard=%s", self->exchange->name, binding->routing_key);
-        delivered += amq_binding_publish (binding, channel, method);
+        set_size = amq_binding_collect (binding, self->exchange->queue_set, set_size);
         binding_nbr = ipr_bits_next (index->bindset, binding_nbr);
     }
     amq_index_unlink (&index);
+    //  The queue_set is processed in the footer of this function in 
+    //  amq_exchange_base.icl, the same way for all exchanges
 </method>
 
 <private name = "header">

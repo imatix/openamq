@@ -146,7 +146,7 @@ limited by size of amq_index_hash table.
     //
     if (method->class_id == AMQ_SERVER_BASIC)
         headers = asl_field_list_new (basic_content->headers);
-
+        
     if (headers) {
         hitset = amq_hitset_new ();
         field = asl_field_list_first (headers);
@@ -171,7 +171,7 @@ limited by size of amq_index_hash table.
             if (binding) {
                 if ((binding->match_all && hitset->hit_count [binding_nbr] == binding->field_count)
                 || (!binding->match_all && hitset->hit_count [binding_nbr] > 0)) {
-                    delivered += amq_binding_publish (binding, channel, method);
+                    set_size = amq_binding_collect (binding, self->exchange->queue_set, set_size);
                     if (amq_server_config_debug_route (amq_server_config))
                         smt_log_print (amq_broker->debug_log,
                             "X: have_hit %s: match=%s hits=%d binding=%d",
@@ -184,6 +184,8 @@ limited by size of amq_index_hash table.
         amq_hitset_destroy (&hitset);
         asl_field_list_destroy (&headers);
     }
+    //  The queue_set is processed in the footer of this function in 
+    //  amq_exchange_base.icl, the same way for all exchanges
 </method>
 
 <private name = "header">

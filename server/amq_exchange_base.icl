@@ -86,6 +86,11 @@ This is an abstract base class for all exchange implementations.
         delivered = 0;                  //  Number of message deliveries
     amq_server_connection_t
         *connection;
+    size_t
+        set_size,                       //  Size of queue publish set
+        set_index;                      //  Index into queue publish set
+    amq_queue_t
+        *last_queue = NULL;             //  Last queue we published to
     </local>
     //
     <header>
@@ -108,12 +113,48 @@ This is an abstract base class for all exchange implementations.
     //  Grab reference to connection 
     connection = channel?
         amq_server_connection_link (channel->connection): NULL;
+        
+    //  Collect all queues to publish to into queue_set, initially empty
+    set_size = 0;
     </header>
     <footer>
+    //  Sort the queue set and then publish to all unique queues
+    if (set_size > 1)
+        qsort (self->exchange->queue_set, set_size, sizeof (void *), s_compare_queue);
+    for (set_index = 0; set_index < set_size; set_index++) {
+        if (self->exchange->queue_set [set_index] != last_queue) {
+            last_queue = self->exchange->queue_set [set_index];
+
+            if (amq_server_config_debug_route (amq_server_config))
+                smt_log_print (amq_broker->debug_log, "X: deliver  queue=%s", 
+                    last_queue->key);
+            amq_queue_publish (last_queue, channel, method);
+            delivered++;
+        }
+    }
     amq_server_connection_unlink (&connection);
     rc = delivered;                     //  Return number of deliveries
     </footer>
 </method>
+
+<private name = "header">
+static int
+    s_compare_queue (const void *queue1, const void *queue2);
+</private>
+
+<private>
+static int
+s_compare_queue (const void *queue1, const void *queue2)
+{
+    if (*(void **) queue1 < *(void **) queue2)
+        return (-1);
+    else
+    if (*(void **) queue1 > *(void **) queue2)
+        return (1);
+    else
+        return (0);
+}
+</private>
 
 <method name = "unbind" return = "rc">
     <doc>

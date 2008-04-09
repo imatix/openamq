@@ -52,7 +52,7 @@ on the routing_key.
     hash = ipr_hash_table_search (self->exchange->binding_hash, routing_key);
     if (hash) {
         binding = hash->data;
-        delivered += amq_binding_publish (binding, channel, method);
+        set_size = amq_binding_collect (binding, self->exchange->queue_set, set_size);
         ipr_hash_unlink (&hash);
     }
 </method>

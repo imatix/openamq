@@ -44,9 +44,11 @@ routed to all bound queues and exchanges.
     //  First binding is the only binding
     binding = amq_binding_list_first (self->exchange->binding_list);
     if (binding) {
-        delivered += amq_binding_publish (binding, channel, method);
+        set_size = amq_binding_collect (binding, self->exchange->queue_set, set_size);
         amq_binding_unlink (&binding);
     }
+    //  The queue_set is processed in the footer of this function in 
+    //  amq_exchange_base.icl, the same way for all exchanges
 </method>
 
 </class>
