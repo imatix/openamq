@@ -457,11 +457,14 @@ class.  This is a lock-free asynchronous class.
     self->locked = FALSE;
     if (self->auto_delete && amq_queue_basic_consumer_count (self->queue_basic) == 0) {
         int
-            timeout = amq_server_config_queue_timeout (amq_server_config)
-                    * 1000 * 1000;
-        if (timeout == 0)
-            timeout = 1;                //  Send the event very rapidly
-        smt_timer_request_delay (self->thread, timeout, auto_delete_event);
+            timeout = amq_server_config_queue_timeout (amq_server_config);
+        if (timeout)
+            smt_timer_request_delay (self->thread, timeout * 1000 * 1000, auto_delete_event);
+        else {
+            if (amq_server_config_debug_queue (amq_server_config))
+                smt_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
+            amq_queue_self_destruct (self);
+        }
     }
     </action>
 </method>
