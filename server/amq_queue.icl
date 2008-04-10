@@ -246,10 +246,10 @@ class.  This is a lock-free asynchronous class.
             smt_log_print (amq_broker->alert_log,
                 "E: client requested unknown queue profile '%s' (%s, %s, %s, %s)", 
                 profile,
-		self->connection->client_address,
-		self->connection->client_product,
-		self->connection->client_version,
-		self->connection->client_instance);
+                self->connection->client_address,
+                self->connection->client_product,
+                self->connection->client_version,
+                self->connection->client_instance);
             amq_server_connection_error (connection, ASL_SYNTAX_ERROR,
                 "Unknown queue profile requested",
                 AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_DECLARE);
@@ -627,7 +627,6 @@ s_set_queue_limits ($(selftype) *self, char *profile)
         ipr_config_destroy (&config);
         return 1;
     }
-    
     if (config->located)
         ipr_config_locate (config, "limit", NULL);
 
@@ -660,6 +659,11 @@ s_set_queue_limits ($(selftype) *self, char *profile)
                 //  testing limits until the queue size has exceeded this.
                 if (self->limit_min > limit_value)
                     self->limit_min = limit_value;
+                    
+                if (amq_server_config_debug_queue (amq_server_config))
+                    smt_log_print (amq_broker->debug_log,
+                        "Q: setlimit queue=%s limit=%d action=%s",
+                        self->name, limit_value, action_text);
             }
             else {
                 smt_log_print (amq_broker->alert_log,
