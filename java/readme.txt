@@ -1,5 +1,6 @@
-OpenAMQ/JMS
-Copyright 2007 iMatix Corporation
+OpenAMQ/JMS version 1.0b0
+
+Copyright 2008 iMatix Corporation
 For copying conditions, please see the file license.txt included 
 with this distribution.
 
