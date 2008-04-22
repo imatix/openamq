@@ -233,6 +233,23 @@ $\(selftype)
     </doc>
     </property>
 
+    <property name = "setup timeout" type = "int" default = "5">
+    Connection setup timeout, seconds
+    <doc>
+    Defines the maximum amount of time connection negotiation may
+    take, before the connection is forcibly closed by the server.
+    </doc>
+    </property>
+
+    <property name = "close timeout" type = "int" default ="5">
+    Connection close timeout, seconds
+    <doc>
+    Defines the maximum amount of time the server will wait for a
+    client to send a connection.close-ok when closing the 
+    connection due to an exception.
+    </doc>
+    </property>
+
     <property name = "polling threads" type = "int" default = "4">
     Number of polling OS threads
     <doc>
