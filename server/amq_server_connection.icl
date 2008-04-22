@@ -141,29 +141,27 @@ This class implements the connection class for the AMQ server.
             "Connections not allowed at present",
             AMQ_SERVER_CONNECTION, AMQ_SERVER_CONNECTION_OPEN);
     else
-    if (amq_broker->clustered) {
-        if (streq (method->virtual_host, amq_server_config_cluster_vhost (amq_server_config))) {
-
-            //  Application connections have to send event to HAC state machine
-            //  HAC state machine determines whether connection should be
-            //  accepted or rejected
-            if(self->group <= AMQ_CONNECTION_GROUP_NORMAL)
-                if (!amq_cluster_hac_execute (amq_broker->hac, amq_hac_event_new_connection))
-                    self_raise_exception (self, ASL_ACCESS_REFUSED,
-                        "Application connections not allowed at present",
-                        AMQ_SERVER_CONNECTION, AMQ_SERVER_CONNECTION_OPEN);
-        }
-        else {
-            smt_log_print (amq_broker->alert_log,
-                "E: client at %s tried to connect to invalid vhost '%s'",
-                self->client_address, method->virtual_host);
-            self_raise_exception (self, ASL_INVALID_PATH, 
-                "Cluster vhost is not correct",
-                AMQ_SERVER_CONNECTION, AMQ_SERVER_CONNECTION_OPEN);
+    if (strneq (method->virtual_host, amq_server_config_vhost (amq_server_config))) {
+        smt_log_print (amq_broker->alert_log,
+            "E: client at %s tried to connect to invalid vhost '%s'",
+            self->client_address, method->virtual_host);
+        self_raise_exception (self, ASL_INVALID_PATH, "vhost is incorrect",
+            AMQ_SERVER_CONNECTION, AMQ_SERVER_CONNECTION_OPEN);
+    }
+    else
+    if (amq_broker->failover->enabled) {
+        //  Application connections send an event to the failover FSM.
+        //  Failover state machine determines whether connection should 
+        //  be accepted or rejected
+        if (self->group == AMQ_CONNECTION_GROUP_NORMAL) {
+            if (!amq_failover_execute (amq_broker->failover, amq_ha_event_new_connection))
+                self_raise_exception (self, ASL_ACCESS_REFUSED,
+                    "Connections not allowed at present",
+                    AMQ_SERVER_CONNECTION, AMQ_SERVER_CONNECTION_OPEN);
         }
     }
     else
-        ;                               //  Proceed  
+        rc = TRUE;                      //  Proceed
 </method>
 
 <private name = "header">

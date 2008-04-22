@@ -56,8 +56,7 @@ static char
     "General options:\n"                                                     \
     "  -w directory     Working directory for server (current)\n"            \
     "  -s filename      Load custom settings from file (amq_server.cfg)\n"   \
-    "  -c name          Run server as high-availability peer (none)\n"       \
-    "  -X comment       Comment\n"                                           \
+    "  -X comment       Comment, has no effect\n"                            \
     "  -q               Quiet mode: no messages (no)\n"                      \
     "  -b               Run as background server process (no)\n"             \
     "  -f               Run as foreground console process (yes)\n"           \

@@ -55,7 +55,8 @@ class.
     icl_longstr_t
         *arguments;                     //  Additional binding arguments
     Bool
-        is_wildcard;                    //  Matches multiple routing keys?
+        is_wildcard,                    //  Matches multiple routing keys?
+        exclusive;                      //  Has at least one exclusive queue
     int
         index;                          //  Index in exchange->binding_index
 
@@ -74,9 +75,16 @@ class.
     <argument name = "exchange"    type = "amq_exchange_t *">Parent exchange</argument>
     <argument name = "routing key" type = "char *">Bind to routing key</argument>
     <argument name = "arguments"   type = "icl_longstr_t *" >Additional arguments</argument>
+    <argument name = "exclusive"   type = "Bool">Queue is exclusive?</argument>
+    <local>
+    amq_federation_t
+        *federation;
+    </local>
+    //
     self->exchange   = exchange;
     self->queue_list = amq_queue_list_new ();
     self->index_list = ipr_looseref_list_new ();
+    self->exclusive  = exclusive;
     icl_shortstr_cpy (self->routing_key, routing_key);
 
     //  Store empty arguments as null to simplify comparisons
@@ -90,18 +98,26 @@ class.
             "E: too many bindings in %s exchange", exchange->name);
         self_destroy (&self);
     }
-    //  Notify MTA about new binding
-    if (self->exchange->mta)
-        amq_cluster_mta_binding_created (self->exchange->mta, 
-            self->routing_key, self->arguments);
+    //  Notify federation, if any, about new binding
+    federation = amq_federation_link (self->exchange->federation);
+    if (federation) {
+        amq_federation_binding_created (federation, self);
+        amq_federation_unlink (&federation);
+    }
 </method>
 
 <method name = "destroy">
-    //  Notify MTA about binding being destroyed
-    if (self->exchange->mta)
-        amq_cluster_mta_binding_destroyed (self->exchange->mta,
-            self->routing_key, self->arguments);
-
+    <local>
+    amq_federation_t
+        *federation;
+    </local>
+    //
+    //  Notify federation, if any, about binding being destroyed
+    federation = amq_federation_link (self->exchange->federation);
+    if (federation) {
+        amq_federation_binding_destroyed (federation, self);
+        amq_federation_unlink (&federation);
+    }
     if (self->exchange->binding_index)
         ipr_index_delete (self->exchange->binding_index, self->index);
 

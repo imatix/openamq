@@ -51,12 +51,6 @@ for each type of exchange. This is a lock-free asynchronous class.
         <field name = "type">
           <get>icl_shortstr_cpy (field_value, amq_exchange_type_name (self->type));</get>
         </field>
-        <field name = "durable" label = "Durable exchange?" type = "bool">
-          <get>icl_shortstr_fmt (field_value, "%d", self->durable);</get>
-        </field>
-        <field name = "auto_delete" label = "Auto-deleted?" type = "bool">
-          <get>icl_shortstr_fmt (field_value, "%d", self->auto_delete);</get>
-        </field>
         <field name = "bindings" label = "Number of bindings" type = "int">
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", amq_binding_list_count (self->binding_list));</get>
@@ -91,8 +85,6 @@ for each type of exchange. This is a lock-free asynchronous class.
     icl_shortstr_t
         name;                           //  Exchange name
     Bool
-        durable,                        //  Is exchange durable?
-        auto_delete,                    //  Auto-delete unused exchange?
         internal;                       //  Internal exchange?
     void
         *object;                        //  Exchange implementation
@@ -106,10 +98,10 @@ for each type of exchange. This is a lock-free asynchronous class.
         *binding_index;                 //  Gives us binding indices
     amq_queue_t
         **queue_set;                    //  Queue publish set
-    amq_cluster_mta_t
-        *mta;                           //  MTA for this exchange, if any
+    amq_federation_t
+        *federation;                    //  Federation for this exchange, if any
     int
-        mta_mode;                       //  MTA mode, if we're using an MTA
+        federation_type;                //  Federation type, or 0 means none
 
     //  Exchange access functions
     int
@@ -137,7 +129,6 @@ for each type of exchange. This is a lock-free asynchronous class.
 
 <public name = "header">
 //  Exchange types we implement
-
 #define AMQ_EXCHANGE_SYSTEM         1
 #define AMQ_EXCHANGE_FANOUT         2
 #define AMQ_EXCHANGE_DIRECT         3
@@ -153,9 +144,8 @@ for each type of exchange. This is a lock-free asynchronous class.
     <argument name = "vhost" type = "amq_vhost_t *">Parent vhost</argument>
     <argument name = "type" type = "int">Exchange type</argument>
     <argument name = "name" type = "char *">Exchange name</argument>
-    <argument name = "durable" type = "Bool">Is exchange durable?</argument>
-    <argument name = "auto delete" type = "Bool">Auto-delete unused exchange?</argument>
     <argument name = "internal" type = "Bool">Internal exchange?</argument>
+    <argument name = "auto federate" type = "Bool">Auto-federate exchange?</argument>
     <dismiss argument = "key" value = "name">Key is exchange name</dismiss>
     <local>
     amq_broker_t
@@ -163,25 +153,26 @@ for each type of exchange. This is a lock-free asynchronous class.
     ipr_config_t
         *config;
     char
-        *mta_host,                      //  Host used for MTA
-        *mta_vhost,                     //  Virtual host for MTA
-        *mta_login;                     //  Login name for MTA
+        *federation_attach,             //  Host to attach to
+        *federation_vhost,              //  Virtual host
+        *federation_login;              //  Login name
     int
-        mta_mode;                       //  MTA mode
+        federation_type;                //  Federation type
+    char
+        *type_name;                     //  Federation type text
+    Bool
+        federation_valid;               //  Is federation configured?
     </local>
     //
-    self->broker        = broker;
-    self->vhost         = vhost;
-    self->type          = type;
-    self->durable       = durable;
-    self->auto_delete   = auto_delete;
-    self->internal      = internal;
-    self->binding_list  = amq_binding_list_new ();
-    self->binding_hash  = ipr_hash_table_new ();
-    self->binding_index = ipr_index_new ();
-    self->queue_bindings
-                        = amq_queue_bindings_list_table_new ();
-    self->queue_set     = icl_mem_alloc (AMQ_QUEUE_SET_MAX * sizeof (amq_queue_t *));
+    self->broker         = broker;
+    self->vhost          = vhost;
+    self->type           = type;
+    self->internal       = internal;
+    self->binding_list   = amq_binding_list_new ();
+    self->binding_hash   = ipr_hash_table_new ();
+    self->binding_index  = ipr_index_new ();
+    self->queue_bindings = amq_queue_bindings_list_table_new ();
+    self->queue_set      = icl_mem_alloc (AMQ_QUEUE_SET_MAX * sizeof (amq_queue_t *));
     icl_shortstr_cpy (self->name, name);
 
     if (self->type == AMQ_EXCHANGE_SYSTEM) {
@@ -224,21 +215,95 @@ for each type of exchange. This is a lock-free asynchronous class.
 
     amq_exchange_by_vhost_queue (self->vhost->exchange_list, self);
 
-    //  If exchange is configured for message transfer, create MTA agent
+    //  EXCHANGE FEDERATION ===================================================
+    //  
+    //  Option 1: auto-federation using --attach, federates ESB exchanges
+    //  (amq.service, amq.data, amq.dataex).  Fine tune using --attach-vhost
+    //  and --attach-login.  Expand to more exchanges using --attach-all.
+    //
+    //  Option 2: manual federation using federate profiles. Command
+    //  line values act as defaults for these profiles.
+    //
+    //  federate
+    //      exchange = "pattern"    Name or wildcard using *
+    //      attach = "hostname"     Default is --attach if specified
+    //    [ vhost = "path" ]        Default is --attach-path ("/")
+    //    [ login = "userid" ]      Default is --attach-lgin ("peering")
+    //    [ type = "service | data | subscriber | publisher | locator" ]
+    //                              Default is 'service' for direct exchanges 
+    //                              and 'fanout' for all others.
+    //
+    //  Internal, default, and system exchanges cannot be federated.
+    //  =======================================================================
+
+    //  Take default settings from federation section (or command line)
+    federation_valid  = FALSE;
+    federation_attach = amq_server_config_attach       (amq_server_config);
+    federation_vhost  = amq_server_config_attach_vhost (amq_server_config);
+    federation_login  = amq_server_config_attach_login (amq_server_config);
+    federation_type   = (self->type == AMQ_EXCHANGE_HEADERS)?
+                        AMQ_FEDERATION_SERVICE: AMQ_FEDERATION_FANOUT;
+    
+    //  First take settings from configuration file if possible
     config = ipr_config_dup (amq_server_config->config);
-    ipr_config_locate (config, "/config/cluster_mta", name);
+    ipr_config_locate (config, "/config/federate", "");
+    while (config->located) {
+        char
+            *pattern = ipr_config_get (config, "exchange", NULL);
+            if (pattern) {
+                if (ipr_str_matches (name, pattern))
+                    break;          //  We have a match
+            }
+            else
+                icl_console_print ("E: missing 'exchange' name in &lt;federate&gt;");
+        ipr_config_next (config);
+    }
     if (config->located) {
-        mta_host  = ipr_config_get (config, "host", NULL);
-        mta_vhost = ipr_config_get (config, "vhost", "/");
-        mta_login = ipr_config_get (config, "login", "peering");
-        mta_mode  = atoi (ipr_config_get (config, "mode", "0"));
-        if (AMQ_MTA_MODE_VALID (mta_mode)) {
-            self->mta = amq_cluster_mta_new (mta_host, mta_vhost, mta_login, self, mta_mode);
-            self->mta_mode = mta_mode;
+        //  We take the attach host, vhost, and login from the specific
+        //  federate entry.  If not set there, we default to whatever
+        //  was used on the command line, which can override the values
+        //  set in the federation section.  This lets users work with
+        //  only the command line, or only the configured entries, or a
+        //  mix of the two.
+        //
+        federation_attach = ipr_config_get (config, "attach", federation_attach);
+        federation_vhost  = ipr_config_get (config, "vhost",  federation_vhost);
+        federation_login  = ipr_config_get (config, "login",  federation_login);
+        
+        //  Override default type if explicit federation type set
+        type_name = ipr_config_get (config, "type", NULL);
+        if (type_name) {
+            federation_type = amq_federation_type_lookup (type_name);
+            if (federation_type > 0)
+                federation_valid = TRUE;
+            else
+            if (federation_type &lt; 0)
+                icl_console_print ("E: invalid type '%s' in &lt;federate&gt;", type_name);
         }
         else
-        if (mta_mode > 0)
-            icl_console_print ("W: invalid mode for MTA '%s' - ignoring", name);
+        if (*federation_attach)
+            federation_valid = TRUE;    //  Using default federation type
+    }
+    else
+    if (*federation_attach) {
+        //  Federate if exchange created with auto-federation
+        //  or if the name matches the --attach-all pattern
+        if (auto_federate 
+        ||  ipr_str_matches (name, amq_server_config_attach_all (amq_server_config)))
+            federation_valid = TRUE;
+    }
+    //  We don't federate system, internal, or the default exchange
+    if (self->type == AMQ_EXCHANGE_SYSTEM || internal || streq (name, "$default$"))
+        federation_valid = FALSE;
+    
+    if (federation_valid) {
+        self->federation = amq_federation_new (
+            self,
+            federation_type,
+            federation_attach, 
+            federation_vhost, 
+            federation_login); 
+        self->federation_type = federation_type;
     }
     ipr_config_destroy (&config);
 </method>
@@ -250,7 +315,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     ipr_index_destroy (&self->binding_index);
     amq_queue_bindings_list_table_destroy (&self->queue_bindings);
     icl_mem_free (self->queue_set);
-    amq_cluster_mta_destroy (&self->mta);
+    amq_federation_destroy (&self->federation);
 
     if (self->type == AMQ_EXCHANGE_SYSTEM)
         amq_exchange_system_destroy ((amq_exchange_system_t **) &self->object);
@@ -272,7 +337,7 @@ for each type of exchange. This is a lock-free asynchronous class.
 <method name = "type lookup" return = "rc">
     <doc>
     Translates an exchange type name into an internal type number.  If
-    the type name is not valid, returns zero, else returns one of the
+    the type name is not valid, returns -1, else returns one of the
     type numbers supported by this implementation.
     </doc>
     <argument name = "type name" type = "char *">Type name to lookup</argument>
@@ -293,7 +358,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     if (streq (type_name, "headers"))
         rc = AMQ_EXCHANGE_HEADERS;
     else
-        rc = 0;
+        rc = -1;
 </method>
 
 <method name = "type name" return = "name">
@@ -381,8 +446,8 @@ for each type of exchange. This is a lock-free asynchronous class.
     }
     if (!binding) {
         //  If no binding matched, create a new one and compile it
-        binding = amq_binding_new (self, routing_key, arguments);
-        assert (binding);
+        binding = amq_binding_new (self, routing_key, arguments, queue->exclusive);
+        assert (binding);               //  If that failed, don't continue
         if (!hash)                      //  Hash routing key if needed
             hash = ipr_hash_new (self->binding_hash, routing_key, binding);
 
@@ -395,6 +460,17 @@ for each type of exchange. This is a lock-free asynchronous class.
                 amq_binding_list_queue (self->binding_list, binding);
         }
     }
+    //  In a service federation we forward exclusive bindings only and we 
+    //  prohibit a mix of exclusive/non-exclusive queues on the same binding.
+    else
+    if (self->federation_type == AMQ_FEDERATION_SERVICE) {
+        if (channel && (binding->exclusive != queue->exclusive))
+            amq_server_channel_error (channel, ASL_NOT_ALLOWED, 
+                "Invalid bind mix for service federation", 
+                AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_BIND);
+    }
+
+    //  Add queue to binding structures if not already present
     if (queue) {
         bindings_list = amq_queue_bindings_list_table_search (
             self->queue_bindings, queue->name);
@@ -439,8 +515,6 @@ for each type of exchange. This is a lock-free asynchronous class.
     <action>
     int
         delivered = 0;                      //  Number of message deliveries
-    int64_t
-        content_size;
     amq_server_connection_t
         *connection;
     Bool
@@ -450,33 +524,37 @@ for each type of exchange. This is a lock-free asynchronous class.
 
     //  Set sender_id before passing content to any other object to 
     //  prevent races
-    if (self->mta && channel) {
+    if (self->federation && channel) {
         icl_shortstr_fmt (sender_id, "%s|%d", channel->connection->key, channel->number);
         amq_content_basic_set_sender_id (method->content, sender_id);
     }
-    //  Channel is not present if message was delivered via MTA
-    //  In this case don't resend the message to prevent looping
-    //  TODO: Fix AMQ_MTA_MODE_BOTH properly
-    if (self->mta && self->mta_mode == AMQ_MTA_MODE_BOTH && channel)
-        delivered = 1;
+    //  If channel is set, we got message from local application; if we have
+    //  fanout federation, send to parent broker but don't publish locally.
+    //  This stops message being delivered twice to local apps (once now and
+    //  once when received back from parent).
+    //
+    if (self->federation_type == AMQ_FEDERATION_FANOUT && channel)
+        delivered = 1;                  //  Just fake it
     else
         //  Publish message locally
         delivered = self->publish (self->object, channel, method);
 
-    content_size = ((amq_content_basic_t *) method->content)->body_size;
-
-    //  Publish message to MTA if enabled
-    if (self->mta && (self->mta_mode == AMQ_MTA_MODE_FORWARD_ALL ||
-          (self->mta_mode == AMQ_MTA_MODE_BOTH && channel) ||
-          (self->mta_mode == AMQ_MTA_MODE_FORWARD_ELSE && !delivered))) {
-        amq_cluster_mta_message_published (
-            self->mta,
+    //  Publish message to federation if necessary. We don't have the problem
+    //  of message loops with fanout federations because we only push back to 
+    //  the parent messages that came from a client app (channel != 0).
+    //
+    
+    if (self->federation_type == AMQ_FEDERATION_PUBLISHER ||
+       (self->federation_type == AMQ_FEDERATION_FANOUT && channel) ||
+       (self->federation_type == AMQ_FEDERATION_LOCATOR && !delivered) ||
+       (self->federation_type == AMQ_FEDERATION_SERVICE && !delivered)) {
+        amq_federation_message_published (
+            self->federation,
             method->content,
             method->payload.basic_publish.mandatory,
             method->payload.basic_publish.immediate);
         delivered++;
     }
-
     if (!delivered && method->payload.basic_publish.mandatory) {
         if (method->class_id == AMQ_SERVER_BASIC) {
             if (!((amq_content_basic_t *) method->content)->returned) {
@@ -512,12 +590,11 @@ for each type of exchange. This is a lock-free asynchronous class.
                     self->name,
                     ((amq_content_basic_t *) method->content)->message_id);
     }
-
     //  Track exchange statistics
     self->contents_in  += 1;
     self->contents_out += delivered;
-    self->traffic_in   += content_size;
-    self->traffic_out  += (delivered * content_size);
+    self->traffic_in   += ((amq_content_basic_t *) method->content)->body_size;
+    self->traffic_out  += (delivered * ((amq_content_basic_t *) method->content)->body_size);
     </action>
 </method>
 

@@ -47,7 +47,7 @@
     amq_exchange_t
         *exchange;
     int
-        exchange_type = 0;
+        exchange_type;
     </local>
     <local>
     amq_vhost_t
@@ -66,7 +66,7 @@
     </footer>
     //
     exchange_type = amq_exchange_type_lookup (method->type);
-    if (exchange_type) {
+    if (exchange_type != -1) {
         //  Find exchange and create if necessary
         exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
         if (!exchange) {
@@ -84,9 +84,8 @@
                         vhost,
                         exchange_type,
                         method->exchange,
-                        method->durable,
-                        method->auto_delete,
-                        method->internal);
+                        method->internal,
+                        FALSE);         //  Do not federate automatically
 
                     //  This can fail if two threads create the same exchange at the
                     //  same time... so let's go find the actual exchange object

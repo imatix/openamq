@@ -40,6 +40,9 @@
   <action name = "open-ok">
     amq_peering_peer_connection_open_ok (caller, self);
   </action>
+  <action name = "close">
+    amq_peering_peer_connection_close (caller, self);
+  </action>
 </class>
 
 <class name = "channel">

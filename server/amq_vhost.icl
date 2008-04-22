@@ -55,9 +55,6 @@ Defines a virtual host. This is a lock-free asynchronous class.
 <method name = "new">
     <argument name = "broker" type = "amq_broker_t *">Parent broker</argument>
     <argument name = "name"   type = "char *">Virtual host name</argument>
-
-    //TODO: load config from directory
-    //TODO: amq_server object, holding vhost hash table
     icl_shortstr_cpy (self->name, name);
     smt_log_print (amq_broker->daily_log, "I: starting virtual host '%s'", self->name);
 
@@ -71,20 +68,29 @@ Defines a virtual host. This is a lock-free asynchronous class.
     self->shared_queues  = ipr_symbol_table_new ();
 
     //  Automatic wiring schemes
-    s_exchange_declare (self, "$default$",   AMQ_EXCHANGE_DIRECT,  TRUE);
-    s_exchange_declare (self, "amq.fanout",  AMQ_EXCHANGE_FANOUT,  FALSE);
-    s_exchange_declare (self, "amq.direct",  AMQ_EXCHANGE_DIRECT,  FALSE);
-    s_exchange_declare (self, "amq.topic",   AMQ_EXCHANGE_TOPIC,   FALSE);
-    s_exchange_declare (self, "amq.headers", AMQ_EXCHANGE_HEADERS, FALSE);
-    s_exchange_declare (self, "amq.system",  AMQ_EXCHANGE_SYSTEM,  FALSE);
-    s_exchange_declare (self, "amq.notify",  AMQ_EXCHANGE_TOPIC,   FALSE);
-    s_exchange_declare (self, "amq.status",  AMQ_EXCHANGE_DIRECT,  FALSE);
+    s_exchange_declare (self, "$default$",   AMQ_EXCHANGE_DIRECT,  TRUE,  FALSE);
+    s_exchange_declare (self, "amq.fanout",  AMQ_EXCHANGE_FANOUT,  FALSE, FALSE);
+    s_exchange_declare (self, "amq.direct",  AMQ_EXCHANGE_DIRECT,  FALSE, FALSE);
+    s_exchange_declare (self, "amq.topic",   AMQ_EXCHANGE_TOPIC,   FALSE, FALSE);
+    s_exchange_declare (self, "amq.headers", AMQ_EXCHANGE_HEADERS, FALSE, FALSE);
+    s_exchange_declare (self, "amq.system",  AMQ_EXCHANGE_SYSTEM,  FALSE, FALSE);
+    s_exchange_declare (self, "amq.status",  AMQ_EXCHANGE_DIRECT,  FALSE, FALSE);
+
+    //  These exchanges are deprecated
+    s_exchange_declare (self, "amq.notify",  AMQ_EXCHANGE_TOPIC,   FALSE, FALSE);
+    
+    //  These exchanges are automatically federated if --attach is specified
+    s_exchange_declare (self, "amq.service", AMQ_EXCHANGE_DIRECT,  FALSE, TRUE);
+    s_exchange_declare (self, "amq.data",    AMQ_EXCHANGE_TOPIC,   FALSE, TRUE);
+    s_exchange_declare (self, "amq.dataex",  AMQ_EXCHANGE_HEADERS, FALSE, TRUE);
 </method>
 
 <method name = "destroy">
     <action>
     amq_exchange_t
         *exchange;
+
+    amq_exchange_unlink            (&self->default_exchange);
     amq_vhost_config_destroy       (&self->config);
     amq_exchange_table_destroy     (&self->exchange_table);
     exchange = amq_exchange_by_vhost_pop (self->exchange_list);
@@ -131,29 +137,36 @@ Defines a virtual host. This is a lock-free asynchronous class.
 <private name = "header">
 //  Prototypes for local functions
 static void
-    s_exchange_declare (amq_vhost_t *self, char *name, int type, Bool default_exchange);
+    s_exchange_declare (
+        amq_vhost_t *self, char *name, int type, 
+        Bool default_exchange, Bool auto_federate);
 </private>
 
 <private name = "footer">
 static void
-s_exchange_declare (amq_vhost_t *self, char *name, int type, Bool default_exchange)
+s_exchange_declare (
+    amq_vhost_t *self, 
+    char *name, 
+    int   type, 
+    Bool  default_exchange, 
+    Bool  auto_federate)
 {
     amq_exchange_t
-        *exchange;                      //  Predeclared exchanges
-
+        *exchange;                      //  Predeclared exchange
     exchange = amq_exchange_new (
         self->exchange_table,
         self,                           //  Parent vhost
         type,                           //  Exchange type
         name,                           //  Exchange name
-        TRUE,                           //  Durable, allows durable queues
-        FALSE,                          //  Do not auto-delete
-        default_exchange);              //  Internal?
+        default_exchange,               //  Internal?
+        auto_federate);                 //  Federate automatically?
     assert (exchange);
+    
+    //  If this is the default exchange grab hold of it in our vhost
     if (default_exchange)
         self->default_exchange = exchange;
-
-    amq_exchange_unlink (&exchange);
+    else
+        amq_exchange_unlink (&exchange);
 }
 </private>
 

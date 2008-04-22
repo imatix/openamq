@@ -171,7 +171,6 @@
 
 <context>
     Bool
-        clustered,                      //  Is broker part of HAC ?
         locked,                         //  Is broker locked?
         restart;                        //  Restart broker after exit?
     int
@@ -182,8 +181,8 @@
         *vhost;                         //  Single vhost (for now)
     amq_connection_by_broker_t
         *mgt_connection_list;           //  Connection mgt objects list
-    amq_cluster_hac_t
-        *hac;                           //  High availabilty cluster
+    amq_failover_t
+        *failover;                      //  Failover controller
 </context>
 
 <method name = "new">
@@ -202,13 +201,13 @@
     if (self->auto_block_timer)
         self->auto_block_timer = randomof (self->auto_block_timer) + 1;
 
-    //  Initialise high-availability controller (HAC)
-    self->hac = amq_cluster_hac_new (self);
+    //  Initialise failover agent
+    self->failover = amq_failover_new (self);
 </method>
 
 <method name = "destroy">
     <action>
-    amq_cluster_hac_destroy (&self->hac);
+    amq_failover_destroy (&self->failover);
     amq_console_config_destroy (&amq_console_config);
     amq_vhost_destroy (&self->vhost);
     amq_connection_by_broker_destroy (&self->mgt_connection_list);

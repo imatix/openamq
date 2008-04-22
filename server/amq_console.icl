@@ -184,7 +184,7 @@ $(selftype)
         smt_log_print (amq_broker->debug_log, "C: console xml=%s", bucket->data);
 
     //  Parse as XML message
-    xml_root = ipr_xml_parse_string (bucket->data);
+    xml_root = ipr_xml_parse_string ((char *) bucket->data);
     xml_cml = ipr_xml_first_child (xml_root);
     if (xml_cml && streq (ipr_xml_name (xml_cml), "cml")) {
         xml_item = ipr_xml_first_child (xml_cml);

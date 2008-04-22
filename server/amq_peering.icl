@@ -57,8 +57,8 @@ exchange per amq_peering instance.
 
 This is a summary of the amq_peering API:
 
-    peering = amq_peering_new (remote-host-name, virtual-host, trace-level, 
-                               exchange-name)
+    peering = amq_peering_new (
+        remote-host-name, virtual-host, trace-level, exchange-name)
         Create a new peering to the specified host, virtual host and 
         remote exchange.
 
@@ -119,9 +119,6 @@ typedef int (amq_peering_return_fn) (
         virtual_host,                   //  Virtual host name
         exchange,                       //  Remote exchange name
         exchange_type;                  //  Remote exchange type
-    Bool
-        exchange_durable,               //  Remote exchange durable?
-        exchange_auto_delete;           //  Remote exchange auto-deletable?
     icl_longstr_t
         *auth_data;                     //  Authentication data
     int
@@ -157,15 +154,11 @@ typedef int (amq_peering_return_fn) (
     <argument name = "trace" type = "int">Trace level, 0 - 3</argument>
     <argument name = "exchange" type = "char *">Remote exchange name</argument>
     <argument name = "exchange_type" type = "char*">Remote exchange type</argument>
-    <argument name = "exchange_durable" type = "Bool">Remote exchange durability</argument>
-    <argument name = "exchange_auto_delete" type = "Bool">Remote exchange auto-deletable?</argument>
     //
-    icl_shortstr_cpy (self->host, host);
-    icl_shortstr_cpy (self->virtual_host, virtual_host);
-    icl_shortstr_cpy (self->exchange, exchange);
+    icl_shortstr_cpy (self->host,          host);
+    icl_shortstr_cpy (self->virtual_host,  virtual_host);
+    icl_shortstr_cpy (self->exchange,      exchange);
     icl_shortstr_cpy (self->exchange_type, exchange_type);
-    self->exchange_durable = exchange_durable;
-    self->exchange_auto_delete = exchange_auto_delete;
     self->trace = trace;
 
     //  Create binding state lists
@@ -470,9 +463,7 @@ typedef int (amq_peering_return_fn) (
     </release>
     //
     <action>
-    //  Extract and check the peer name, to make sure we're not connecting
-    //  to ourselves by mistake.
-    //  TODO: set amq_broker->name so that peers can identify each other.
+    //  TODO: check if we're connecting to ourselves, as fatal error
     </action>
 </method>
 
@@ -491,6 +482,30 @@ typedef int (amq_peering_return_fn) (
     <action>
     self->channel_nbr = 1;              //  Single channel per connection
     amq_peer_agent_channel_open (self->peer_agent_thread, self->channel_nbr);
+    </action>
+</method>
+
+<method name = "peer connection close" template = "async function" async = "1">
+    <doc>
+    Handles a Connection.Close method coming from the peered server.
+    </doc>
+    <argument name = "method" type = "amq_peer_method_t *" />
+    <possess>
+    method = amq_peer_method_link (method);
+    </possess>
+    <release>
+    amq_peer_method_unlink (&method);
+    </release>
+    //
+    <action>
+    //  If the connection failed due to a hard error, complain loudly and
+    //  shut down the broker.  We really don't want people using servers 
+    //  with badly defined peerings.
+    if (ASL_HARD_ERROR (method->payload.connection_close.reply_code)) {
+        smt_log_print (amq_broker->alert_log,
+            "E: hard error on peering - please correct and restart server");
+        smt_shut_down ();
+    }
     </action>
 </method>
 
@@ -623,7 +638,7 @@ s_initialise_peering (amq_peering_t *self)
         self->connected = TRUE;
         self->offlined = FALSE;
         smt_log_print (amq_broker->alert_log,
-            "I: peering to %s is now active", self->host);
+            "I: exchange %s now peered to %s", self->exchange, self->host);
 
         //  Create private queue on peer and consume off queue
         amq_peer_agent_queue_declare (
@@ -637,8 +652,8 @@ s_initialise_peering (amq_peering_t *self)
         //  Declare remote exchange on peer
         amq_peer_agent_exchange_declare (
             self->peer_agent_thread, self->channel_nbr,
-            ticket, self->exchange, self->exchange_type, FALSE, self->exchange_durable,
-            self->exchange_auto_delete, FALSE, nowait, NULL);
+            ticket, self->exchange, self->exchange_type, FALSE, FALSE,
+            FALSE, FALSE, nowait, NULL);
 
         //  Replicate all bindings to remote peer
         looseref = ipr_looseref_list_first (self->bindings);
@@ -672,9 +687,10 @@ s_terminate_peering (amq_peering_t *self)
 
         if (self->status_fn)
             (self->status_fn) (self->status_caller, self, FALSE);
-    }
+
         smt_log_print (amq_broker->alert_log,
-            "I: peering to %s was shut down", self->host);
+            "I: exchange %s unpeered from %s", self->exchange, self->host);
+    }
 }
 
 //  Used by peering_bind and peering_unbind to determine if binding is unique.
@@ -771,8 +787,7 @@ s_test_content_handler (
 
         //  **************   Peering example starts here   *******************
         //  Create a new peering to local AMQP server
-        peering = amq_peering_new ("localhost", "/", 1, "amq.direct", 
-            "direct", FALSE, FALSE);
+        peering = amq_peering_new ("localhost", "/", 1, "amq.direct", "direct");
 
         //  Set login credentials
         amq_peering_set_login (peering, "peering");

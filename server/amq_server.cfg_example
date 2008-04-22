@@ -10,4 +10,11 @@
     <queue_profile name = "private">
         <limit name = "warn" value = "50000" />
     </queue_profile>
+    <!-- This would federate amq.news onto randomserver:port so that anything
+         published to amq.news would be forwarded to randomserver:port.
+         -->
+    <federate
+        exchange = "amq.news" attach = "randomserver:port" type = "publisher"
+    />
+
 </config>

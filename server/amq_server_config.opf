@@ -63,6 +63,18 @@ $\(selftype)
     consumer. If zero, queues are deleted immediately.
     </doc>
     </property>
+
+    <property name = "vhost" type = "icl_shortstr_t" default = "/">
+    Server vhost identifier
+    <doc>
+    Specifies the virtual host name, an arbitrary string. OpenAMQ does not
+    implement virtual hosts but uses this string to identify servers to
+    prevent client applications from mistakenly connecting to the wrong
+    server.  We recommend you set this on production servers and on all
+    failover pairs.  Note that the two servers in a failover pair must use
+    an identical vhost identifier.
+    </doc>
+    </property>
 </path>
 
 <path name = "resources">
@@ -200,8 +212,8 @@ $\(selftype)
     Debug peering messages?
     <doc>
     Specifies whether peering activity is logged or not.  Set this
-    option when you are configuring or debugging peerings.  For
-    production use, we recommend you do not set this option.
+    option if you need to debug server federation (message forwarding).
+    For production use, we recommend you do not set this option.
     </doc>
     </property>
 
@@ -303,51 +315,88 @@ $\(selftype)
     </property>
 </path>
 
-<path name = "cluster">
-    <property name = "cluster vhost" type = "icl_shortstr_t" default = "/">
-    Cluster virtual host
+<path name = "failover">
+    <property name = "backup" type = "icl_shortstr_t" default = "">
+    Failover backup host:port
     <doc>
-    Specifies the cluster vhost name, which must be identical for both
-    HA peers.  Any string, up to 255 chars long, may be used. By convention
-    virtual host names are formatted as POSIX paths, starting with '/'.  Note
-    that all applications must use the same virtual host name when connecting
-    to the cluster.
+    Used when running the primary server, specifies the failover backup 
+    server for the high-availability pair. Use the internet name of the 
+    backup server as 'host' or 'host:port' if it is not running on port 
+    5672.  Do not specify this option together with the 'primary' option.
+    </doc>
+    </property>
+    
+    <property name = "primary" type = "icl_shortstr_t" default = "">
+    Failover primary host:port
+    <doc>
+    Used when running the backup server, specifies the failover primary
+    server for the high-availability pair. Use the internet name of the 
+    primary server as 'host' or 'host:port' if it is not running on port 
+    5672.  Do not specify this option together with the 'backup' option.
     </doc>
     </property>
 
-    <property name = "is primary" type = "Bool" default = "0">
-    Server is HA primary
+    <property name = "failover timeout" type = "int" default = "2">
+    Failover timeout, in seconds
     <doc>
-    Specifies whether or not this server instance is the HA primary peer.
-    If this option is set, the cluster backup-peer option must be set as
-    well.
+    Specifies the delay in seconds after which the backup peer will become 
+    the primary peer.  This switch over will happen only if and when an 
+    application connects to the backup peer after the failover timeout has 
+    expired.  Reducing this value will allow failover to happen faster but
+    will increase the risk of unnecessary failover due to transient network 
+    issues.
     </doc>
     </property>
 
-    <property name = "is backup" type = "Bool" default = "0">
-    Server is HA backup
+    <property name = "failover monitor" type = "int" default = "1">
+    Failover monitor, in seconds
     <doc>
-    Specifies whether or not this server instance is the HA backup peer.
-    If this option is set, the cluster primary-peer option must be set as
-    well.
+    Specifies the interval at which the server will check that its peer is
+    still alive.  Reducing this value will allow failover to happen faster
+    but will create extra traffic between the servers.
+    </doc>
+    </property>
+</path>
+
+<path name = "federation">
+    <property name = "attach" type = "char *" default = "">
+    Enable auto-federation to specified host
+    <doc>
+    If specified, the server will auto-federate to the specified parent 
+    OpenAMQ server.  This federates three exchanges: amq.service (a direct
+    exchange) using a service federation; amq.data (a topic exchange) using
+    a fanout federation; and amq.dataex (a headers exchange) using a fanout
+    exchange.  This gives you an instant enterprise service bus (ESB) based
+    on a spoke-and-hub model.  You can fine-tune auto-federation using the
+    --attach-login and --attach-vhost options.
     </doc>
     </property>
 
-    <property name = "primary peer" type = "icl_shortstr_t" default = "">
-    HA primary peer address
+    <property name = "attach vhost" type = "icl_shortstr_t" default = "/">
+    Auto-federation virtual host name
     <doc>
-    Specifies the primary high-availability peer address.  This should consist
-    of a servername:portnumber combination that allows the backup peer to
-    correctly address the primary peer.
+    Specifies the auto-federation vhost name, an arbitrary string that 
+    will be used when connecting to the parent server. This must match 
+    the vhost setting of the parent server.
     </doc>
     </property>
 
-    <property name = "backup peer" type = "icl_shortstr_t" default = "">
-    HA backup peer address
+    <property name = "attach login" type = "icl_shortstr_t" default = "peering">
+    Auto-federation login user name
     <doc>
-    Specifies the backup high-availability peer address.  This should consist
-    of a servername:portnumber combination that allows the primary peer to
-    correctly address the backup peer.
+    Specifies the user name to be used when logging in.  You do not need to 
+    specify a password, it is taken from the security section.
+    </doc>
+    </property>
+
+    <property name = "attach all" type = "icl_shortstr_t" default = "">
+    Auto-federate exchanges by pattern
+    <doc>
+    If set, the server will auto-federate all exchanges that match the
+    specified pattern which can include * and ? to mean zero or more, or
+    a single arbitrary character.  You can use naming conventions to
+    federate specific groups of exchanges.  Put quotes around wildcards
+    to avoid shell expansion.
     </doc>
     </property>
 </path>
@@ -386,6 +435,6 @@ $\(selftype)
 <!-- These sections are allowed but ignored -->
 <path name = "queue_profile" />
 <path name = "security" />
-<path name = "cluster_mta" />
+<path name = "federate" />
 
 </opf>
