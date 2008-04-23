@@ -1,0 +1,858 @@
+gdl
+    title     = Advanced
+    subtitle  = Advanced use of OpenAMQ
+    product   = OpenAMQ
+    author    = iMatix Corporation
+    date      = 2008/04/12
+    copyright = Copyright (c) 1996-2007 iMatix Corporation
+    version   = 1.0
+end gdl
+
+Configuration
+*************
+
+Using command-line options
+==========================
+
+You can set these options from the command-line; they affect only the specific
+instance of the running server:
+
+    --port 5672                Server port for clients
+    --listen *                 Address (local network interface) to listen on
+    --queue_timeout 0          Timeout for auto-deleted queues
+    --max_memory_mb 512        Maximum allowed memory, MBytes
+    --per_client 0             Default messages per client
+    --monitor 0                Monitor interval, seconds
+    --dump_state 60            Dump state interval, seconds
+    --record_stats 0           Record performance statistics
+    --log_path logs            Active log file directory
+    --keep_logs 1              Keep log files
+    --archive_path archive     Archive log file directory
+    --archive_cmd value        Archive log file command
+    --alert_log alert.log      Error log file name
+    --daily_log daily.log      Daily log file name
+    --debug_log debug.log      Debug log file name
+    --debug_route 0            Debug message routing?
+    --debug_queue 0            Debug queue activity?
+    --debug_peering 0          Debug peering messages?
+    --debug_console 0          Debug console I/O?
+    --trace 0                  Protocol trace level
+    --heartbeat 2              Heartbeat timer, seconds
+    --polling_threads 4        Number of polling OS threads
+    --working_threads 4        Number of working OS threads
+    --tcp_nodelay 1            TCP/IP NODELAY option
+    --tcp_rcvbuf 0             TCP/IP receive buffer, in bytes
+    --tcp_sndbuf 0             TCP/IP send buffer, in bytes
+    --frame_max 32768          Maximum size of AMQP content frames
+    --cluster_vhost /          Cluster virtual host
+    --is_primary 0             Server is HA primary
+    --is_backup 0              Server is HA backup
+    --primary_peer             HA primary peer address
+    --backup_peer              HA backup peer address
+    --failover 1               Failover timeout, in seconds
+    --auto_crash 0             Auto-crash test timer, seconds
+    --auto_block 0             Auto-freeze test timer, seconds
+    --kernel_limit 0           SMT kernel limit
+
+Creating a configuration file
+=============================
+
+You can also set the above options in an XML text file called amq_server.cfg, to
+affect all future instances of the running server. To create a new XML
+configuration file, copy the following block to an editor session, and then:
+
+ 1. Delete all options you want to leave as default.
+ 2. Delete this comment and update your name and the date.
+ 3. Save file as new amq_server.cfg or merge with existing copy.
+ 4. Restart the server.
+
+    <?xml version="1.0"?>
+    <!--
+        Revised: yyyy/mm/dd by yourname
+     -->
+    <config>
+        <server
+            port = "5672"
+            listen = "*"
+            queue_timeout = "0"
+        />
+        <resources
+            max_memory_mb = "512"
+            per_client = "0"
+            monitor = "0"
+            dump_state = "60"
+            record_stats = "0"
+        />
+        <logging
+            log_path = "logs"
+            keep_logs = "1"
+            archive_path = "archive"
+            archive_cmd = "value"
+            alert_log = "alert.log"
+            daily_log = "daily.log"
+            debug_log = "debug.log"
+            debug_route = "0"
+            debug_queue = "0"
+            debug_peering = "0"
+            debug_console = "0"
+            trace = "0"
+        />
+        <tuning
+            heartbeat = "2"
+            polling_threads = "4"
+            working_threads = "4"
+            tcp_nodelay = "1"
+            tcp_rcvbuf = "0"
+            tcp_sndbuf = "0"
+            frame_max = "32768"
+        />
+        <cluster
+            cluster_vhost = "/"
+            is_primary = "0"
+            is_backup = "0"
+            primary_peer = ""
+            backup_peer = ""
+            failover = "2"
+        />
+        <internal
+            auto_crash = "0"
+            auto_block = "0"
+            kernel_limit = "0"
+        />
+    </config>
+
+Setting server options
+======================
+
+port = "5672":
+    Specifies the port on which the server should open its connections.
+    Default value is 5672.                                             
+listen = "*":
+    Specifies the network interface on which the server should listen for
+    connections. By default this is *, meaning all interfaces. You would 
+    choose to set an address when you use OpenAMQ on a server with       
+    multiple network interfaces, e.g. routing between two networks.      
+    Default value is *.                                                  
+queue_timeout = "0":
+    Specifies the delay, in seconds, after which auto-deleted queues are
+    effectively deleted, following disconnection of their last consumer.
+    If zero, queues are deleted immediately. Default value is 0. This   
+    option can be changed at runtime.                                   
+
+Setting resources options
+=========================
+
+max_memory_mb = "512":
+    Specifies the maximum memory allowed for the server, in MB. When the  
+    server reaches this limit, it will slow down publishers. If zero, no  
+    limit is enforced. Default value is 512. This option can be changed at
+    runtime.                                                              
+per_client = "0":
+    Specifies the limit per client, in messages. Clients that exceed this 
+    limit will be disconnected, and their messages discarded. Applies only
+    to messages held on private queues belonging to one client. Default   
+    value is 0. This option can be changed at runtime.                    
+monitor = "0":
+    Specifies the interval in seconds at which the server will report its 
+    message rates. If zero, no monitoring is shown. The recommended value 
+    is 1, if monitoring is desired. Default value is 0. This option can be
+    changed at runtime.                                                   
+dump_state = "60":
+    Specifies the interval at which the server will report its state. This
+    shows the number of messages, queues, consumers, etc. used by the     
+    server. If zero, no state is logged. Default value is 60. This option 
+    can be changed at runtime.                                            
+record_stats = "0":
+    Specifies whether or not the server records performance statistics in 
+    a format suitable for importing into a spreadsheet. If set, the server
+    creates a file called 'amq_server_stats_(portnumber).del' which       
+    contains performance statistics in a comma-delimited format. For this 
+    setting to take effect, the monitor option must also be set. Default  
+    value is 0. This option can be changed at runtime.                    
+
+Setting logging options
+=======================
+
+log_path = "logs":
+    Specifies the directory path into which active log files are placed.
+    Default value is logs.                                              
+keep_logs = "1":
+    Specifies whether or not the server should keep logs. If zero, the 
+    server will not keep logs. If 1, it will keep an alert log, a daily
+    log, and a debug log as specified. Default value is 1.             
+archive_path = "archive":
+    Specifies the directory path into which archived log files are placed.
+    This can be the same as the active path; archived log files are       
+    renamed to avoid conflict with active log files. Default value is     
+    archive.                                                              
+archive_cmd = "value":
+    If specified, this command is run on all archived log files. You can 
+    use this option to compress archived log files, or clean up old and  
+    unwanted files. When the command is run, the name of the archived log
+    file is provided to it as a single argument. Default value is not    
+    defined.                                                             
+alert_log = "alert.log":
+    The name of the alert log file, which records all errors and warnings 
+    issued by the server. Note that the server port number is always added
+    to the name of the log file. Default value is alert.log.              
+daily_log = "daily.log":
+    The name of the daily log file, which records all normal activity as
+    well as errors. Note that the server port number is always added to 
+    the name of the log file. Default value is daily.log.               
+debug_log = "debug.log":
+    The name of the debug log file, which records all normal activity,   
+    errors, and debug trace information. Note that the server port number
+    is always added to the name of the log file. Default value is        
+    debug.log.                                                           
+debug_route = "0":
+    Specifies whether exchange routing is logged or not. Set this option
+    when you are debugging a message routing design. For production use,
+    we recommend you do not set this option. Default value is 0. This   
+    option can be changed at runtime.                                   
+debug_queue = "0":
+    Specifies whether queue dispatching is logged or not. Set this option 
+    when you are debugging message processing in the server. For          
+    production use, we recommend you do not set this option. Default value
+    is 0. This option can be changed at runtime.                          
+debug_peering = "0":
+    Specifies whether peering activity is logged or not.  Set this
+    option if you need to debug server federation (message forwarding).
+    For production use, we recommend you do not set this option.
+debug_console = "0":
+    Specifies whether console activity is logged or not. Set this option  
+    when you are configuring or debugging the console. For production use,
+    we recommend you do not set this option. Default value is 0. This     
+    option can be changed at runtime.                                     
+trace = "0":
+    Specifies the protocol debug level, which can be 0 (no tracing), 1    
+    (show information and protocol methods), 2 (show protocol animation), 
+    3 (show wire-level data). You should not use any tracing on production
+    servers except in low-volume scenarios. Default value is 0. This      
+    option can be changed at runtime.                                     
+
+Setting tuning options
+======================
+
+heartbeat = "2":
+    Defines the timeout for connection heartbeating. Default value is 2.
+    This option can be changed at runtime.                              
+polling_threads = "4":
+    On multithreaded builds, defines the number of OS threads dedicated to
+    socket polling. Default value is 4.                                   
+working_threads = "4":
+    On multithreaded builds, defines the number of OS threads dedicated to
+    processing, that is, tasks other than socket polling. Default value is
+    4.                                                                    
+tcp_nodelay = "1":
+    If this value is 1, socket data is written immediately, which is     
+    usually good for latency. If this value is 0, data is buffered until 
+    there is a full packet, which is usually good for throughput. Default
+    value is 1. This option can be changed at runtime.                   
+tcp_rcvbuf = "0":
+    If this value is greater than zero, all client connections will use  
+    the specified value. Note: setting this value is delicate, do not use
+    this option unless you know what you are doing. Default value is 0.  
+    This option can be changed at runtime.                               
+tcp_sndbuf = "0":
+    If this value is greater than zero, all client connections will use  
+    the specified value. Note: setting this value is delicate, do not use
+    this option unless you know what you are doing. Default value is 0.  
+    This option can be changed at runtime.                               
+frame_max = "32768":
+    Defines the maximum frame size the server will accept. Larger frame
+    sizes are useful for applications that create very large message   
+    headers but will cause congestion on multi-channel connections.    
+    Default value is 32768. Minimum value is 2048. Maximum value is    
+    4194304.                                                           
+
+Setting cluster options
+=======================
+
+cluster_vhost = "/":
+    Specifies the cluster vhost name, which must be identical for both HA
+    peers. Any string, up to 255 chars long, may be used. By convention  
+    virtual host names are formatted as POSIX paths, starting with '/'.  
+    Note that all applications must use the same virtual host name when  
+    connecting to the cluster. Default value is /.                       
+is_primary = "0":
+    Specifies whether or not this server instance is the HA primary peer.
+    If this option is set, the cluster backup-peer option must be set as 
+    well. Default value is 0.                                            
+is_backup = "0":
+    Specifies whether or not this server instance is the HA backup peer. 
+    If this option is set, the cluster primary-peer option must be set as
+    well. Default value is 0.                                            
+primary_peer = "":
+    Specifies the primary high-availability peer address. This should    
+    consist of a servername:portnumber combination that allows the backup
+    peer to correctly address the primary peer. Default value is .       
+backup_peer = "":
+    Specifies the backup high-availability peer address. This should      
+    consist of a servername:portnumber combination that allows the primary
+    peer to correctly address the backup peer. Default value is .         
+failover = "2":
+    Specifies the delay in seconds after which the backup peer will become
+    the primary peer. This switch over will happen only if and when an    
+    application connects to the backup peer after the failover timeout has
+    expires. The minimum value for this property is 1 second. Default     
+    value is 1. This option can be changed at runtime.                    
+
+Setting internal options
+========================
+
+auto_crash = "0":
+    If set, the server will crash at irregular intervals, being some     
+    random point within the number of seconds specified. This is used    
+    specifically to test applications for failover and robustness. Set to
+    zero for all real usage. Default value is 0. This option can be      
+    changed at runtime.                                                  
+auto_block = "0":
+    If set, the server will block at irregular intervals, being some     
+    random point within the number of seconds specified. This is used    
+    specifically to test applications for failover and robustness. Set to
+    zero for all real usage. Default value is 0. This option can be      
+    changed at runtime.                                                  
+kernel_limit = "0":
+    Sets an action limit for the SMT kernel: after this many steps it will
+    exit. Use this to break the server for failure testing. Set to zero   
+    for all real usage. Default value is 0. This option can be changed at 
+    runtime.                                                              
+
+Tuning the client
+*****************
+
+To tune the WireAPI client library, create an XML file called amq_wireapi.cfg
+from the following XML example.  Copy the text, and then:
+
+ 1. Delete all options you want to leave as default.
+ 2. Delete this comment and update your name and the date.
+ 3. Save file as new amq_wireapi.cfg or merge with existing copy.
+
+    <?xml version="1.0"?>
+    <!--
+        Revised: yyyy/mm/dd by yourname
+     -->
+    <config>
+        <tuning
+            tcp_nodelay = "1"
+            tcp_rcvbuf = "0"
+            tcp_sndbuf = "0"
+            arrived_low_water = "0"
+            arrived_high_water = "0"
+        />
+    </config>
+
+tcp_nodelay = "1":
+    If this value is 1, socket data is written immediately, which is     
+    usually good for latency. If this value is 0, data is buffered until 
+    there is a full packet, which is usually good for throughput. Default
+    value is 1. This option can be changed at runtime.                   
+tcp_rcvbuf = "0":
+    If this value is greater than zero, the connection to the server will
+    use the specified value. Note: setting this value is delicate, do not
+    use this option unless you know what you are doing. Default value is 
+    0. This option can be changed at runtime.                            
+tcp_sndbuf = "0":
+    If this value is greater than zero, the connection to the server will
+    use the specified value. Note: setting this value is delicate, do not
+    use this option unless you know what you are doing. Default value is 
+    0. This option can be changed at runtime.                            
+arrived_low_water = "0":
+    Number of messages in arrived queue when message flow from server is
+    started again after it had been switched off on high water mark.    
+    Default value is 0.                                                 
+arrived_high_water = "0":
+    Number of messages in arrived queue when message flow from server is
+    stopped. If this property is 0, message flow is never switched off. 
+    Default value is 0.                                                 
+
+Logging subsystem
+*****************
+
+General description
+===================
+
+The OpenAMQ server keeps three levels of logs in the *logs* subdirectory:
+
+1. Alert logs, which contain all errors and alerts.
+2. Daily logs, which contain normal activity data, as well as all the
+   contents of the alert logs.
+3. Debug logs, which contain debugging and tracing output as requested by
+   runtime or configuration options, as well as all the contents of the
+   daily logs.
+
+Each server process opens three log files, which are named thus:
+
+    alert_[portnumber].log
+    daily_[portnumber].log
+    debug_[portnumber].log
+
+The log files are cycled when the server restarts, or at midnight. The cycle
+process does the following:
+
+1. It closes the current log files (if the server is still running).
+2. It moves the log files to the *archive* subdirectory.
+3. It optionally executes a user-configurable archiving command.
+4. It reopens new log files for the application.
+
+To disable logging
+==================
+
+Use the --keep_logs 0 command-line option to disable logging, or this fragment
+in amq_server.cfg:
+
+    <logging
+        keep_logs = "0"
+    />
+
+Logged data
+===========
+
+The OpenAMQ log files are text, intended for human readability rather than
+formalised scanning.
+
+A user or script never needs to scan multiple log files from one server since
+they are hierarchical: thus the debug logs contain //all// logged data.
+
+This is an example the logs produced by a short server run.
+
+The alert log:
+
+    2006-05-14 18:30:04: I: amq_server binding to 192.168.55.64:5672
+    2006-05-14 18:30:04: I: amq_server binding to 192.168.55.107:5672
+    2006-05-14 18:30:04: I: amq_server binding to 127.0.0.1:5672
+    2006-05-14 18:30:05: I: server ready for incoming AMQ connections
+    2006-05-14 18:30:10: I: cnn=1 msg=2 mem=2K/10439K exc=7 que=1 csm=1 bnd=2
+
+The daily log:
+
+    2006-05-14 18:30:04: I: starting virtual host '/'
+    2006-05-14 18:30:04: I: amq_server binding to 192.168.55.64:5672
+    2006-05-14 18:30:04: I: amq_server binding to 192.168.55.107:5672
+    2006-05-14 18:30:04: I: amq_server binding to 127.0.0.1:5672
+    2006-05-14 18:30:05: I: server ready for incoming AMQ connections
+    2006-05-14 18:30:07: I: start login from=127.0.0.1:40441 -
+                            product=OpenAMQ Kernel Client version=1.0c0
+    2006-05-14 18:30:07: I: valid login from=127.0.0.1:40441 user=console -
+                            group=console
+    2006-05-14 18:30:10: I: cnn=1 msg=2 mem=2K/10439K exc=7 que=1 csm=1 bnd=2
+    2006-05-14 18:30:12: I: start login from=127.0.0.1:40442 -
+                            product=OpenAMQ Kernel Client version=1.0c0
+
+The debug log:
+
+    2006-05-14 18:30:04: ###########  Process Environment Variables  ###########
+    2006-05-14 18:30:04: KDE_MULTIHEAD=false
+    2006-05-14 18:30:04: SSH_AGENT_PID=1821
+    2006-05-14 18:30:04: TERM=vt220
+    2006-05-14 18:30:04: ...
+    2006-05-14 18:30:04: ##############  Configuration Settings  ###############
+    2006-05-14 18:30:04: port=5672
+    2006-05-14 18:30:04: background=0
+    2006-05-14 18:30:04: queue_timeout=0
+    2006-05-14 18:30:04: max_memory_mb=512
+    2006-05-14 18:30:04: per_client=0
+    2006-05-14 18:30:04: ...
+    2006-05-14 18:30:07: I: start login from=127.0.0.1:40441 -
+                         product=OpenAMQ Kernel Client version=1.0c0
+    2006-05-14 18:30:07: I: valid login from=127.0.0.1:40441 user=console -
+                         group=console
+    2006-05-14 18:30:07: X: bind     $default$: queue=#0
+    2006-05-14 18:30:07: X: compile  $default$: routing_key=#0
+    2006-05-14 18:30:07: X: bind     amq.direct: queue=#0
+    2006-05-14 18:30:07: X: compile  amq.direct: routing_key=#0
+    2006-05-14 18:30:07: X: publish  amq.system: routing_key=amq.console
+    2006-05-14 18:30:07: X: publish  amq.direct: routing_key=#0
+    2006-05-14 18:30:07: X: route    amq.direct: routing_key=#0
+    2006-05-14 18:30:07: X: deliver  queue=#0
+    2006-05-14 18:30:07: X: publish  amq.system: routing_key=amq.console
+    2006-05-14 18:30:07: X: publish  amq.direct: routing_key=#0
+    2006-05-14 18:30:07: X: route    amq.direct: routing_key=#0
+    2006-05-14 18:30:07: X: deliver  queue=#0
+    2006-05-14 18:30:07: X: publish  amq.system: routing_key=amq.console
+    2006-05-14 18:30:07: X: publish  amq.direct: routing_key=#0
+    2006-05-14 18:30:07: X: route    amq.direct: routing_key=#0
+    2006-05-14 18:30:07: X: deliver  queue=#0
+    2006-05-14 18:30:08: I: incoming rate=10 mean=10 peak=10
+    2006-05-14 18:30:08: I: outgoing rate=5 mean=5 peak=5 iomean=15
+    2006-05-14 18:30:12: I: start login from=127.0.0.1:40442 -
+                         product=OpenAMQ Kernel Client version=1.0c0
+
+Custom log file names
+=====================
+
+You can override the names of the log files using these command-line options:
+
+    --alert_log alert.log          Error log file name
+    --daily_log daily.log          Daily log file name
+    --debug_log debug.log          Debug log file name
+
+You can also specify these in the amq_server.cfg configuration file.
+
+Custom log file cycling
+=======================
+
+The built-in cycling mechanism just copies old log files to the archive
+subdirectory and renames them using the current date and time.
+
+You can customise the cycling mechanism by specifying your own cycling command,
+which is a shell command that amq_server will execute after moving the log files
+to their archive directory. The log file name is passed to this command as its
+first and only argument:
+
+    --archive_cmd value            Archive log file command
+
+You can also specify this in the amq_server.cfg configuration file.
+
+Server tracing options
+======================
+
+You can set various server debug and trace levels using these command-line
+options:
+
+    --debug_route 0                Debug message routing?
+    --debug_queue 0                Debug queue activity?
+    --debug_cluster 0              Debug cluster messages?
+    --debug_console 0              Debug console I/O?
+    --trace 0                      Protocol trace level
+
+You can also specify these in the amq_server.cfg configuration file.
+
+Log file format
+===============
+
+Logged data always shows the date and time, then a single letter to indicate the
+type or severity of the message. E is an error, W is a warning, I indicates an
+information message, and other letters are used to trace different types of
+activity.
+   
+Monitoring the server
+*********************
+
+There are several ways to monitor a running OpenAMQ server process:
+
+ 1. Using the operating systems' process monitoring tools.
+ 2. Using the server's own monitoring output (--dump_state).
+ 3. Using the OpenAMQ Console ('amq_shell'), described below.
+
+When using the operating system monitoring tools, you will want to look mainly
+at the server's CPU and memory consumption.
+
+The simplest way is to run the server using the --dump_state option. The
+following example asks for output every five seconds:
+
+    amq_server --dump_state 5
+
+You can redirect the output to a dump file, and monitor the dump file using, on
+a Unix, Linux or Mac OS/X system:
+
+    tail -f name-of-dump-file
+
+Command-line console
+********************
+
+The amq_shell provides a command-line administration tool for OpenAMQ. You can
+use this tool by hand, or automatically in shell scripts. Normal OpenAMQ users
+can view information; super users can also change the server's state, e.g.
+killing blocked connections or over-full queues.
+
+Console command line
+====================
+
+Run this command:
+
+    amq_shell -u username -p password
+
+These are the command-line options:
+
+    -s hostname      Broker hostname and :port (localhost)
+
+If the amq_server is running on a different system and/or non-standard port,
+use the -s option to specify the correct !servername:port!.
+
+    -V virtualhost   Specify cluster virtual host
+
+You need this when working with servers that are in a cluster configuration.
+The cluster virtual host you specify must match that specified in the cluster
+configuration.
+
+    -u user          User name for console access (guest)
+
+Specify the user name for the connection.
+
+    -p password      Password for console access (guest)
+
+Specify the password for the connection.
+
+    -e "commands"    Run shell commands, delimited by ;
+
+Specify a list of commands to run, which can be any commands that you may
+type when in the amq_shell prompt (see below).
+
+    -x filename      Save all status data as XML
+
+Saves all printed data as an XML file, useful if you want to re-process the
+data mechanically afterwards.
+
+    -t level         Set trace level (default = 0)
+
+Used to debug the communications between the Console and the OpenAMQ server.
+
+    -b               Show broker status and then exit
+
+Show a summary of the broker status, without entering the prompt.
+
+    -r               Report all active local brokers
+
+Scan the current system for all OpenAMQ brokers running on ports 4096-8192.
+Will not attempt to look for brokers above or below that range.
+
+    -q               Show all broker queues and exit
+
+Show a summary list of all the broker's queues, without entering the prompt.
+
+    -c               Show all broker connections and exit
+
+Show a summary list of all the broker's connections, without entering the prompt.
+
+    -d               Show date and time in shell output
+
+Add the date and time to all printed messages.
+
+The Console prompt
+==================
+
+When the Console connects successfully to the default or specified OpenAMQ
+server it will display a prompt so that you can enter commands:
+
+    amq_shell/1.2b0 - Management Console for OpenAMQ Brokers
+    Copyright (c) 2007 iMatix Corporation
+
+    Connected to OpenAMQ Server/1.2b0 on 62.176.172.196:5672
+
+     broker = "OpenAMQ 1.2b0" 
+     Date, time broker started ............. 2007-03-15T12:55+01:00
+     Broker is locked? ..................... no
+     Memory used for all data .............. 10604K
+     Memory used for messages .............. 1K
+     Number of queued messages ............. 2
+     Number of queue consumers ............. 1
+     Number of queue bindings .............. 2
+     Number of message exchanges ........... 8 [ls exchange]
+     Number of shared queues ............... 0 [ls queue]
+     Number of connections ................. 1 [ls connection]
+     [shutdown] [lock] [shake]
+    /62.176.172.196:5672>
+
+Note that:
+
+ * The available actions are listed in square brackets.  For example when
+   you are looking at a broker these are the available actions:
+
+    [shutdown] [lock] [shake]
+
+ * Type 'help' at any prompt to get explanations.  These commands are
+   available at all times:
+
+    Command            Has this effect
+    -------            -------------------
+    ls | dir           Show broker and all children
+    nnn                Look at item [nnn] (nnn is a number)
+    ?text              Look at item matching text
+    /                  Return to broker item
+    .                  Refresh current item
+    ..                 Move back to previous item
+    set name value     Set object property
+    help               Show this text
+    exit | quit        Leave the OpenAMQ shell
+
+High-availability clusters
+**************************
+
+OpenAMQ supports the use of high-availability (HA) pairs in which applications
+can switch to a backup server if a primary server crashes.
+
+Application support
+===================
+
+For HA clustering to work, applications must connect to first the primary
+server, and if that fails, the backup server. Applications must use the correct
+order (primary, then secondary).
+
+Note that full HA support may be added at a later stage to WireAPI clients.
+
+Cookbook
+========
+
+We take two brokers, running on the same or different systems. One broker is the
+primary, one is the backup. When the cluster starts, the primary is master and
+the backup is slave. If the primary dies, the backup takes over the role of
+master. If the primary comes back, it remains slave. To reset the cluster,
+restart the backup.
+
+HA Configuration
+================
+
+You can share the same configuration for both brokers by specifying the key
+options on the command-line.  In amq_server.cfg, add this section:
+
+    <cluster
+        vhost = "/"
+        primary_peer = "localhost:5555"
+        backup_peer = "localhost:6666"
+    />
+
+Then start the two brokers as follows (you can use any legal values for the
+port numbers):
+
+    amq_server --port 5555 --is_primary 1
+    amq_server --port 6666 --is_backup 1
+
+Alternatively you can use two separate configuration files, with the primary
+server using this:
+
+    <cluster
+        vhost = "/"
+        is_primary = "1"
+        backup_peer = "localhost:6666"
+    />
+
+And the backup server using this:
+
+    <cluster
+        vhost = "/"
+        is_backup = "1"
+        primary_peer = "localhost:5555"
+    />
+
+Virtual host setting
+====================
+
+The virtual host (vhost) setting is used to ensure that connecting applications
+are using the correct cluster. This value must match the value used by
+applications.  Use a setting that matches the environment, e.g. "debug" or 
+"test".
+
+Federation
+**********
+
+Federation lets you chain OpenAMQ servers together.  This solves certain
+problems of scaling, e.g. letting you define regional hubs that speak to a
+global central server.  Federation is especially useful in high-volume pub-sub
+scenarios.
+
+Cookbook
+========
+
+We connect an exchange on one broker (or HA pair of brokers) to the matching
+exchange on a remote broker (or HA pair of brokers).
+
+The local exchange either sends messages to the remote exchange, or subscribes
+to messages from it.
+
+There are four message transfer modes:
+
+1. Subscriber forwarding - the local exchange requests messages from the remote
+   exchange.
+2. Full forwarding - the local exchange forwards all messages to the remote
+   exchange.
+3. Default forwarding - the local exchange forwards only unmatched messages to
+   the remote exchange.
+4. Bidirectional forwarding - the local exchange forwards to the remote 
+   exchange, and vice versa.
+
+Subscription forwarding
+=======================
+
+The classic scenario is when local applications want to receive topic data
+published centrally.
+
+The configuration looks like this:
+
+    <federation
+        name = "exchange-name"
+        vhost = "virtual-host-name"
+        host = "remotehost:port"
+        login = "peering"
+        mode = "1"
+    />
+
+All bindings made to the specified exchange are copied to the specified remote
+host exchange.
+
+Most often used with topic or headers exchanges.
+
+Worked example:
+
+ - A set of clients in a regional office need to get market data from a
+   central server.
+
+ - The configuration is done entirely at the regional office by defining an
+   MTA that connects the market data exchanges on both servers.
+
+ - When data is published centrally, any messages that match requests from
+   the regional applications are forwarded to the regional server.
+
+Full message forwarding
+=======================
+
+The classic scenario is when local applications want to publish data both to
+local clients and remote ones.
+
+The configuration looks like this:
+
+    <federation
+        name = "exchange-name"
+        vhost = "virtual-host-name"
+        host = "remotehost:port"
+        login = "peering"
+        mode = "2"
+    />
+
+All messages published to the local exchange are automatically published to the
+remote exchange as well.
+
+Most often used with topic or headers exchanges.
+
+Default message forwarding
+==========================
+
+The classic scenario is when local applications want to use services that could
+be either local, or remote.
+
+The configuration looks like this:
+
+    <federation
+        name = "exchange-name"
+        vhost = "virtual-host-name"
+        host = "remotehost:port"
+        login = "peering"
+        mode = "3"
+    />
+
+All messages published to the local exchange are automatically published to the
+remote exchange only if they are not delivered locally.
+
+Most often used with direct exchanges so that services can be placed either
+locally or remotely, invisibly to the applications.
+
+Bidirectional forwarding
+========================
+
+Bidirectional mode (4) passes messages on particular exchange from in both
+directions. You cannot achieve this behaviour by combining modes 1 and 2 as
+every message would be circulated endlessly between the two brokers. However,
+note that this mode is not particularly efficient. For best performance create
+two exchanges instead of a single one and pass messages only in appropriate
+directions.
+
+The configuration looks like this:
+
+    <federation
+        name = "exchange-name"
+        vhost = "virtual-host-name"
+        host = "remotehost:port"
+        login = "peering"
+        mode = "3"
+    />
+
