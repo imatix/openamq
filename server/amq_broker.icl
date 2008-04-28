@@ -126,7 +126,7 @@
           <exec>
             smt_log_print (amq_broker->alert_log,
                 "W: operator requested shutdown - closing all connections");
-            smt_shut_down ();
+            amq_broker_shutdown (self);
           </exec>
         </method>
 
