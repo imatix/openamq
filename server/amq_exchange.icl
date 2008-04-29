@@ -519,15 +519,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         *connection;
     Bool
         returned = FALSE;
-    icl_shortstr_t
-        sender_id;
 
-    //  Set sender_id before passing content to any other object to 
-    //  prevent races
-    if (self->federation && channel) {
-        icl_shortstr_fmt (sender_id, "%s|%d", channel->connection->key, channel->number);
-        amq_content_basic_set_sender_id (method->content, sender_id);
-    }
     //  If channel is set, we got message from local application; if we have
     //  fanout federation, send to parent broker but don't publish locally.
     //  This stops message being delivered twice to local apps (once now and

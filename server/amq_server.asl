@@ -465,6 +465,8 @@
     <local>
     amq_exchange_t
         *exchange;
+    icl_shortstr_t
+        sender_id;
     </local>
     <local>
     amq_vhost_t
@@ -498,6 +500,12 @@
                 method->exchange,
                 method->routing_key,
                 connection->id);
+            if (exchange->federation) {
+                icl_shortstr_fmt (sender_id, "%s|%d", connection->key, 
+                    channel->number);
+                amq_content_$(class.name)_set_sender_id (
+                    content, sender_id);
+            }
 
             amq_exchange_publish (exchange, channel, self);
         }
