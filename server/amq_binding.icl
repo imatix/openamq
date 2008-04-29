@@ -101,7 +101,8 @@ class.
     //  Notify federation, if any, about new binding
     federation = amq_federation_link (self->exchange->federation);
     if (federation) {
-        amq_federation_binding_created (federation, self);
+        amq_federation_binding_created (federation, 
+            self->routing_key, self->arguments, self->exclusive);
         amq_federation_unlink (&federation);
     }
 </method>
@@ -115,7 +116,8 @@ class.
     //  Notify federation, if any, about binding being destroyed
     federation = amq_federation_link (self->exchange->federation);
     if (federation) {
-        amq_federation_binding_destroyed (federation, self);
+        amq_federation_binding_destroyed (federation,
+            self->routing_key, self->arguments);
         amq_federation_unlink (&federation);
     }
     if (self->exchange->binding_index)

@@ -138,23 +138,27 @@ The compound federations are:
     Called from amq_binding constructor to notify federation of binding 
     creation.
     </doc>
-    <argument name = "binding" type = "amq_binding_t *" />
+    <argument name = "routing key" type = "char *" />
+    <argument name = "arguments"   type = "icl_longstr_t *" />
+    <argument name = "exclusive"   type = "Bool" />
     <possess>
-    binding = amq_binding_link (binding);
+    routing_key = icl_mem_strdup (routing_key);
+    arguments = icl_longstr_dup (arguments);
     </possess>
     <release>
-    amq_binding_unlink (&binding);
+    icl_mem_free (routing_key);
+    icl_longstr_destroy (&arguments);
     </release>
     //
     <action>
     if ((self->type == AMQ_FEDERATION_SUBSCRIBER || self->type == AMQ_FEDERATION_FANOUT)
-    ||  (self->type == AMQ_FEDERATION_SERVICE && binding->exclusive)) {
+    ||  (self->type == AMQ_FEDERATION_SERVICE && exclusive)) {
         if (amq_server_config_debug_peering (amq_server_config))
             smt_log_print (amq_broker->debug_log,
                 "P: bind     exchange=%s host=%s routing_key=%s", 
-                self->exchange->name, self->peering->host, binding->routing_key);
+                self->exchange->name, self->peering->host, routing_key);
     
-        amq_peering_bind (self->peering, binding->routing_key, binding->arguments);
+        amq_peering_bind (self->peering, routing_key, arguments);
     }
     </action>
 </method>
@@ -164,12 +168,15 @@ The compound federations are:
     Called from amq_binding destructor to notify federation of binding 
     destruction.
     </doc>
-    <argument name = "binding" type = "amq_binding_t *" />
+    <argument name = "routing key" type = "char *" />
+    <argument name = "arguments"   type = "icl_longstr_t *" />
     <possess>
-    binding = amq_binding_link (binding);
+    routing_key = icl_mem_strdup (routing_key);
+    arguments = icl_longstr_dup (arguments);
     </possess>
     <release>
-    amq_binding_unlink (&binding);
+    icl_mem_free (routing_key);
+    icl_longstr_destroy (&arguments);
     </release>
     //
     <action>
@@ -179,9 +186,9 @@ The compound federations are:
         if (amq_server_config_debug_peering (amq_server_config))
             smt_log_print (amq_broker->debug_log,
                 "P: unbind   exchange=%s host=%s routing_key=%s", 
-                self->exchange->name, self->peering->host, binding->routing_key);
+                self->exchange->name, self->peering->host, routing_key);
     
-        amq_peering_unbind (self->peering, binding->routing_key, binding->arguments);
+        amq_peering_unbind (self->peering, routing_key, arguments);
     }
     </action>
 </method>
