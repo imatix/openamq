@@ -105,7 +105,8 @@ This class provides the session serialisation API.
 <method name = "new">
     <argument name = "connection" type = "amq_client_connection_t *" />
     assert (connection);
-    assert (connection->alive);
+//  FIXME
+//    assert (connection->alive);
 
     self->connection   = connection;
     self->channel_nbr  = ++connection->channel_nbr;
