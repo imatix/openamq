@@ -1,0 +1,27 @@
+#   Builds WireAPI for OpenAMQ/2.0
+#   
+#   
+COPTS="-I /usr/local/include/zmq"
+LINKOPTS="/usr/local/lib/libzmq.a"
+CPP="g++ $COPTS"
+CC="gcc $COPTS"
+
+echo Building server...
+$CPP -o server -pthread server.cpp $LINKOPTS
+
+echo Building ZAMQ library...
+$CPP -pthread -c zamqapi.cpp -o zamqapi.opp
+c -p -r libamq_wireapi zamqapi
+
+echo Building ZAMQ WireAPI
+gsl -q -quiet:1 amq_client_connection.icl 
+c amq_client_connection 
+c -r libamq_wireapi amq_client_connection
+
+gsl -q -quiet:1 amq_client_session.icl
+c amq_client_session
+c -r libamq_wireapi amq_client_session
+
+echo Building test programs
+c -p -l local_lat.cpp local_thr.cpp remote_lat.cpp remote_thr.cpp
+
