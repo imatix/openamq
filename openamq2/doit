@@ -6,6 +6,15 @@ LINKOPTS="/usr/local/lib/libzmq.a"
 CPP="g++ $COPTS"
 CC="gcc $COPTS"
 
+#   We expect the 0MQ code in 0mq-03
+if [ ! -f 0mq-03/README ]; then
+    echo "Please run 'svn co http://svn.fastmq.org/svn/zeromq/branches/refactoring-for-0.3 0mq-03'"
+    echo "and then run ./autogen.sh and ./configure and make in the 0mq-03 directory"
+    echo "and then run 'sudo make install' in the 0mq-03/zmq directory.  Thanks."
+    exit
+fi
+cp 0mq-03/zmq/.libs/libzmq.a .
+
 echo Building server...
 $CPP -o server -pthread server.cpp $LINKOPTS
 
@@ -22,6 +31,10 @@ gsl -q -quiet:1 amq_client_session.icl
 c amq_client_session
 c -r libamq_wireapi amq_client_session
 
+gsl -q -quiet:1 amq_content_basic.icl
+c amq_content_basic
+c -r libamq_wireapi amq_content_basic
+
 echo Building test programs
 c -p -l local_lat.cpp local_thr.cpp remote_lat.cpp remote_thr.cpp
-
+c -l testit testit2 testit3

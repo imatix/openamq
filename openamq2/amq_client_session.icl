@@ -93,9 +93,9 @@ This class provides the session serialisation API.
     int64_t
         content_size;                   //  message content size
 
+    //  Handling for basic messages
     ipr_bucket_t
         *bucket;
-    //  Handling for basic messages
     amq_content_basic_list_t
         *arrived_basic_list;            //  basic messages
     amq_content_basic_list_t
@@ -144,7 +144,7 @@ This class provides the session serialisation API.
         amq_content_basic_t
             *content = amq_content_basic_new ();
             
-        amq_content_basic_record_body (content, bucket);
+        amq_content_basic_record_body (content, self->bucket);
         amq_content_basic_list_queue (self->arrived_basic_list, content);
         amq_content_basic_unlink (&content);
         self->bucket->cur_size = zamq_receive (self->bucket->data, self->bucket->max_size, 0);
