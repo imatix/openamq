@@ -336,8 +336,8 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "failover timeout" type = "int" default = "2">
-    Failover timeout, in seconds
+    <property name = "failover timeout" type = "int" default = "1">
+    Failover timeout, in msecs
     <doc>
     Specifies the delay in seconds after which the backup peer will become 
     the primary peer.  This switch over will happen only if and when an 
@@ -349,7 +349,7 @@ $\(selftype)
     </property>
 
     <property name = "failover monitor" type = "int" default = "1">
-    Failover monitor, in seconds
+    Failover monitor, in msecs
     <doc>
     Specifies the interval at which the server will check that its peer is
     still alive.  Reducing this value will allow failover to happen faster

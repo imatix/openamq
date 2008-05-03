@@ -121,13 +121,13 @@ typedef enum
         assert (self->status_exchange);
 
         //  Set failover intervals
-        self->monitor = amq_server_config_failover_monitor (amq_server_config) * 1000;
+        self->monitor = amq_server_config_failover_monitor (amq_server_config);
         if (self->monitor == 0)
-            self->monitor = 1000;       //  Default to 1 second
+            self->monitor = 1000000;    //  Default to 1 second
 
-        self->timeout = amq_server_config_failover_timeout (amq_server_config) * 1000;
+        self->timeout = amq_server_config_failover_timeout (amq_server_config);
         if (self->timeout == 0)
-            self->timeout = 2000;       //  Default to 2 seconds
+            self->timeout = 1000000;    //  Default to 1 second
     }
     else
         smt_log_print (amq_broker->alert_log, "I: no failover defined, READY as stand-alone");
