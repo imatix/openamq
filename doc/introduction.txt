@@ -204,21 +204,25 @@ The OpenAMQ product
 Technology roadmap
 ==================
 
-OpenAMQ was designed to be extremely robust and fast.  Our performance goal was
-100,000 messages per second going through a single (big) broker, sustained for 
-a full working day.
+OpenAMQ was designed to be extremely robust and fast. Our performance goal was
+100,000 messages per second going through a single (big) broker, sustained for a
+full working day.
 
-OpenAMQ does not implement everything in AMQP.  There are three reasons for 
-this. First, large parts of AMQP were designed to support JMS-style messaging, 
-and we think they are complex and unnecessary for most people.  Second, we 
-prefer to  only implement what our users really need, and make that work really 
-well.  Last, we aim for performance and that means dropping some features.
+OpenAMQ does not implement everything in AMQP. There are three reasons for this.
+First, large parts of AMQP were designed to support JMS-style messaging, and we
+think they are complex and unnecessary for most people. Second, we prefer to
+only implement what our users really need, and make that work really well. Last,
+we aim for performance and that means dropping some features.
 
-The performance of OpenAMQ/1.2 is: 20-30k messages per second per CPU core; 
-latencies of around 300 microseconds.
+The performance of OpenAMQ/1.2 is: about 20k messages per second per CPU core;
+latencies of around 300 microseconds. Maximum performance per client is about
+10k messages per second so full broker performance shows when a dozen or more
+clients are working in parallel.
 
-The performance of OpenAMQ/2.0, the new generation we are now building, is:
-500k messages per second per CPU core; latencies of around 30 microseconds.
+The performance of OpenAMQ/2.0, the new generation we are now building, is: 500k
+messages per second per CPU core; latencies of around 30 microseconds. The
+broker can be fully loaded by a single client, depending on the speed of the
+client application.
 
 OpenAMQ/1.2 functionality
 =========================
@@ -345,22 +349,25 @@ Interoperability
 ================
 
 OpenAMQ/1.2 implements the AMQP/0-9 specification without the Red Hat "work in
-progress" optional features.  This is the most stable and widely used version.  
-We do not recommend the use of AMQP/0-10, which we consider to be extravagantly 
-complex and lacking in cross-vendor support.
+progress" optional features. This is probably the most stable and widely used
+version. We do not recommend the use of AMQP/0-10, which we consider to be
+unnecessarily complex, immature, and lacking in cross-vendor support.  We are
+involved in the development of an updated 0-9 specification that removes the
+"work in progress" along with other unused aspects of the specification.
 
-We are committed to providing OpenAMQ users with the maximum interoperability 
-with other AMQP implementations.
+We are committed to providing OpenAMQ users with the maximum interoperability
+with other AMQP implementations based on stable, mature, and simple AMQP
+specifications.
 
 LAN vs WAN
 ==========
 
-OpenAMQ is intended to provide a high-performance messaging backbone for 
-applications that operate on a LAN.  It does not have the necessary security 
-model for public network infrastructures.  To use OpenAMQ across a public
-network, we recommend using VPNs or SSH tunnels.  OpenAMQ federations can
-be built across WANs using SSH tunnels and this is our recommended approach
-to WAN deployment:
+OpenAMQ is intended to provide a high-performance messaging backbone for
+applications that operate on a LAN. It does not have the necessary security
+model for public network infrastructures. To use OpenAMQ across a public
+network, we recommend using VPNs or SSH tunnels. OpenAMQ federations can be
+built across WANs using SSH tunnels and this is our recommended approach to WAN
+deployment:
 
          Network 1      :               :   Network 2
                         :               :
@@ -378,50 +385,50 @@ Reliability
 ===========
 
 A controversial but key difference between OpenAMQ and other AMQP products is
-our approach to reliability.  Products such as IBM's WebsphereMQ demonstrate
-the conventional approach to reliability: they depend on large brokers with
-persistent queues held on disk.  Every message must be part of a transaction
-so that any failure can be recovered from.  Reliability is centralized. There
-are significant performance penalities.  Message delivery is very pedantic, 
-and the protocol becomes complex.  When we mix this model with a clustering
-for high availability (i.e. being able to switch to a backup server if the 
-prime server crashes) we get into even more complex territory.
+our approach to reliability. Products such as IBM's WebsphereMQ demonstrate the
+conventional approach to reliability: they depend on large brokers with
+persistent queues held on disk. Every message must be part of a transaction so
+that any failure can be recovered from. Reliability is centralized. There are
+significant performance penalities. Message delivery is very pedantic, and the
+protocol becomes complex. When we mix this model with a clustering for high
+availability (i.e. being able to switch to a backup server if the prime server
+crashes) we get into even more complex territory.
 
 Complexity itself creates more unreliability and more risk of crashes and data
-loss.  Centralized reliability is incompatible with federations of brokers,
-and goes against modern network design, which is based on pushing intelligence
-to the edge of the network, and using many cheap boxes rather than centralizing
+loss. Centralized reliability is incompatible with federations of brokers, and
+goes against modern network design, which is based on pushing intelligence to
+the edge of the network, and using many cheap boxes rather than centralizing
 intelligence on a few expensive ones.
 
-At iMatix we consider the AMQP network to be built from cheap, disposable 
-message switches.  These can be organized into high-availabilty pairs ("HA
-pairs").  These pairs can be federated together.  Queues are transient and 
-based in memory.  Everything is cheap, simple, transient, and minimalistic.
+At iMatix we consider the AMQP network to be built from cheap, disposable
+message switches. These can be organized into high-availabilty pairs ("HA
+pairs"). These pairs can be federated together. Queues are transient and based
+in memory. Everything is cheap, simple, transient, and minimalistic.
 
-Such networks, being simpler than classic messaging brokers, fail less often
-and this solves a large part of the reliabity issue.  To get full reliability
-we put end-to-end reliability in the application APIs.
+Such networks, being simpler than classic messaging brokers, fail less often and
+this solves a large part of the reliabity issue. To get full reliability we put
+end-to-end reliability in the application APIs.
 
 Note that WireAPI does not implement this - up to now, this has been done by
-AMQP applications rather than OpenAMQ.  The design is very simple.  We build
-reliable messaging as request-response message pairs.  The sender of a request
-holds the request in memory, or on disk, until it gets a response.  If it does
-not get a response within a short time, it resends the request.  The other end
+AMQP applications rather than OpenAMQ. The design is very simple. We build
+reliable messaging as request-response message pairs. The sender of a request
+holds the request in memory, or on disk, until it gets a response. If it does
+not get a response within a short time, it resends the request. The other end
 ignores duplicate requests.
 
 This reliability model is invisible to the protocol (which can then be simpler
-and thus better), and needs no support from the server (which can then be 
-simpler and more reliable).  And it works with any AMQP network, no matter
-how large or how many servers are involved.
+and thus better), and needs no support from the server (which can then be
+simpler and more reliable). And it works with any AMQP network, no matter how
+large or how many servers are involved.
 
 For more information see http://wiki.openamq.org/package:switch-or-broker.
 
 The AMQP.com community
 **********************
 
-iMatix is the founder of the AMQP.com community, which it sponsors together
-with other AMQP vendors.  AMQP.com is the place to go for all AMQP downloads,
-news, and discussions.  See http://www.amqp.com.
+iMatix is the founder of the AMQP.com community, which it sponsors together with
+other AMQP vendors. AMQP.com is the place to go for all AMQP downloads, news,
+and discussions. See http://www.amqp.com.
 
 Throughput testing
 ******************
@@ -429,8 +436,8 @@ Throughput testing
 Figures
 =======
 
-OpenAMQ has been recorded as transferring 140-150K messages per second,
-sustained over ten seconds, in the following scenario:
+OpenAMQ has been recorded as transferring 130K messages per second, sustained
+over ten seconds, in the following scenario:
 
  - one publisher, 64 subscribers
  - full fanout from publisher to all subscribers
@@ -442,6 +449,11 @@ sustained over ten seconds, in the following scenario:
 
 Please note that this figure is for aggregate performance of the broker, i.e. 
 a total of all incoming and outgoing messages passing through the broker.
+
+Please also note that this scenario is not necessarily typical and realistic
+applications will probably see a lower throughput.  Users who need performance
+that OpenAMQ/1.2 cannot deliver should contact us about OpenAMQ/2.0, which is
+available today in pre-release packages.
 
 Software configuration
 ======================
@@ -456,15 +468,15 @@ The tests were conducted using this software configuration:
 Hardware configuration
 ======================
 
-The server and publisher were run on an 8-way Opteron.  The subscribers were 
-run on a 4-way Opteron.  The two servers were connected via gigabit Ethernet 
+The server and publisher were run on an 8-way Opteron. The subscribers were run
+on a 4-way Opteron. The two servers were connected via gigabit Ethernet
 networking.
 
 Publisher application
 ======================
 
-The publisher is a PAL script (PAL is the WireAPI scripting language provided
-as part of the OpenAMQ package):
+The publisher is a PAL script (PAL is the WireAPI scripting language provided as
+part of the OpenAMQ package):
 
     topic_publish.pal:
     --------------------
@@ -616,7 +628,6 @@ This is the run_many.sh script used to start the clients:
 Latency testing
 ***************
 
-FastMQ Inc. has tested OpenAMQ latency.  The average latency is 250-300 
+FastMQ Inc. has tested OpenAMQ latency. The average latency is 250-300
 microseconds. See http://www.zeromq.org/results:openamq-tests.
-
 
