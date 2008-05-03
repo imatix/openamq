@@ -153,15 +153,6 @@
           <field name = "setting" type = "bool" label = "1|0"/>
           <exec>self->locked = setting;</exec>
         </method>
-
-        <method name = "shake" label = "Shake broker memory">
-          <doc>
-          Shakes the broker, which forces it to do a garbage collection. The
-          method may create delays for message processing; do not use during
-          heavy traffic.
-          </doc>
-          <exec>icl_system_purge ();</exec>
-        </method>
     </class>
 </data>
 
