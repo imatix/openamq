@@ -36,5 +36,10 @@ c amq_content_basic
 c -r libamq_wireapi amq_content_basic
 
 echo Building test programs
-c -p -l local_lat.cpp local_thr.cpp remote_lat.cpp remote_thr.cpp
 c -l testit testit2 testit3
+
+#   The main test programs need to be build as MT programs, even if the
+#   current boom model is st.  This does not affect the parent shell.
+export BOOM_MODEL=mt
+c -p -l local_lat.cpp local_thr.cpp remote_lat.cpp remote_thr.cpp
+
