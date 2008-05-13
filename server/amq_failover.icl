@@ -121,11 +121,13 @@ typedef enum
         assert (self->status_exchange);
 
         //  Set failover intervals
-        self->monitor = amq_server_config_failover_monitor (amq_server_config);
+        self->monitor = amq_server_config_failover_monitor (amq_server_config)
+            * 1000000;                  //  Timeouts represented internally as usecs
         if (self->monitor == 0)
             self->monitor = 1000000;    //  Default to 1 second
 
-        self->timeout = amq_server_config_failover_timeout (amq_server_config);
+        self->timeout = amq_server_config_failover_timeout (amq_server_config)
+            * 1000000;                  //  Timeouts represented internally as usecs
         if (self->timeout == 0)
             self->timeout = 1000000;    //  Default to 1 second
     }
@@ -242,7 +244,7 @@ typedef enum
             assert (0);
             break;
           case amq_ha_event_new_connection:
-            if (apr_time_now () - self->last_peer_time > self->timeout * 1000) {
+            if (smt_time_now () - self->last_peer_time > self->timeout) {
                 //  If peer is dead, switch to the active state
                 self->state = amq_ha_state_active;
                 smt_log_print (amq_broker->alert_log,
@@ -267,7 +269,7 @@ typedef enum
     <action>
     //  Send state notification to failover peer, if peer is alive
     if (self->last_peer_time == 0 
-    || apr_time_now () - self->last_peer_time <= self->timeout * 1000)
+    || smt_time_now () - self->last_peer_time <= self->timeout)
         amq_failover_send_state (self);
 
     //  Schedule new monitoring event
@@ -302,7 +304,7 @@ s_content_handler (
     assert (peer_method->method_id == AMQ_PEER_BASIC_DELIVER);
 
     //  Status from other HAC party received
-    self->last_peer_time = apr_time_now ();
+    self->last_peer_time = smt_time_now ();
 
     //  Parse content
     amq_content_basic_set_reader (peer_method->content, &reader, 4096);
