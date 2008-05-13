@@ -78,24 +78,6 @@ $\(selftype)
 </path>
 
 <path name = "resources">
-    <property name = "max memory mb" default = "512" type = "size_t" dynamic = "1">
-    Maximum allowed memory, MBytes
-    <doc>
-    Specifies the maximum memory allowed for the server, in MB. When the
-    server reaches this limit, it will slow down publishers. If zero, no
-    limit is enforced.
-    </doc>
-    </property>
-
-    <property name = "per client" type = "size_t" default = "0" dynamic = "1">
-    Default messages per client
-    <doc>
-    Specifies the limit per client, in messages.  Clients that exceed this
-    limit will be disconnected, and their messages discarded.  Applies only
-    to messages held on private queues belonging to one client.
-    </doc>
-    </property>
-
     <property name = "monitor" type = "int" default = "0" dynamic = "1">
     Monitor interval, seconds
     <doc>

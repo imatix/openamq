@@ -47,8 +47,6 @@ This class implements the connection class for the AMQ server.
         *consumer_table;                //  Consumers for connection
     qbyte
         consumer_tag;                   //  Last consumer tag
-    qbyte
-        per_client;                     //  Messages owned by this client
     icl_shortstr_t
         user_name;                      //  User login name
     int
