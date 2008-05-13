@@ -35,7 +35,6 @@ This class implements the connection class for the AMQ server.
 //  These are the connection groups we allow
 #define AMQ_CONNECTION_GROUP_NORMAL    1
 #define AMQ_CONNECTION_GROUP_SUPER     2
-#define AMQ_CONNECTION_GROUP_CLUSTER   3
 </public>
 
 <context>
@@ -219,9 +218,6 @@ static int s_auth_plain (
             else
             if (streq (group, "super"))
                 self->group = AMQ_CONNECTION_GROUP_SUPER;
-            else
-            if (streq (group, "cluster"))
-                self->group = AMQ_CONNECTION_GROUP_CLUSTER;
             else {
                 smt_log_print (amq_broker->alert_log,
                     "E: invalid user group '%s' in config", group);
