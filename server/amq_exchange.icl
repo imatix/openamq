@@ -228,7 +228,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     //      exchange = "pattern"    Name or wildcard using *
     //      attach = "hostname"     Default is --attach if specified
     //    [ vhost = "path" ]        Default is --attach-path ("/")
-    //    [ login = "userid" ]      Default is --attach-lgin ("peering")
+    //    [ login = "userid" ]      Default is --attach-login ("peering")
     //    [ type = "service | data | subscriber | publisher | locator" ]
     //                              Default is 'service' for direct exchanges 
     //                              and 'fanout' for all others.
@@ -535,7 +535,6 @@ for each type of exchange. This is a lock-free asynchronous class.
     //  of message loops with fanout federations because we only push back to 
     //  the parent messages that came from a client app (channel != 0).
     //
-    
     if (self->federation_type == AMQ_FEDERATION_PUBLISHER ||
        (self->federation_type == AMQ_FEDERATION_FANOUT && channel) ||
        (self->federation_type == AMQ_FEDERATION_LOCATOR && !delivered) ||
