@@ -67,7 +67,7 @@ typedef enum
                                         //  If this time is older than the failover
                                         //  timeout, the peer is considered dead
     amq_exchange_t
-        *status_exchange;                //  amq.status exchange
+        *status_exchange;               //  amq.status exchange
 </context>
 
 <method name = "new">
@@ -79,8 +79,23 @@ typedef enum
     </local>
     //
     self->broker = amq_broker_link (broker);
+    self->status_exchange = amq_exchange_table_search (
+        broker->vhost->exchange_table, "amq.status");
+    assert (self->status_exchange);
     backup  = amq_server_config_backup  (amq_server_config);
     primary = amq_server_config_primary (amq_server_config);
+    //  Set failover intervals
+    //  All timeouts are represented internally as microseconds (1/1000000s)
+    //  We default to 1 second if monitor or timeout not set
+    self->monitor = amq_server_config_failover_monitor (amq_server_config)
+        * 1000000;
+    if (self->monitor == 0)
+        self->monitor = 1000000;
+    self->timeout = amq_server_config_failover_timeout (amq_server_config)
+        * 1000000;
+    if (self->timeout == 0)
+        self->timeout = 1000000;
+    //  Check configuration is sane
     if (*backup && *primary)
         icl_console_print ("E: don't set both --backup and --primary");
     else
@@ -91,7 +106,7 @@ typedef enum
     else
     if (*primary)
         self->enabled = TRUE;
-
+    //  Enable failover if requested
     if (self->enabled) {
         smt_log_print (amq_broker->alert_log, "I: failover enabled, acting as %s", 
             self->primary? "master": "slave");
@@ -115,22 +130,12 @@ typedef enum
 
         //  Subscribe for failover peer's state notifications
         amq_peering_bind (self->peering, self->primary? "b": "p", NULL);
+
+        //  Start monitoring failover peer state
         amq_failover_start_monitoring (self);
 
-        self->status_exchange = amq_exchange_table_search (broker->vhost->exchange_table, "amq.status");
-        assert (self->status_exchange);
-
-        //  Set failover intervals
-        self->monitor = amq_server_config_failover_monitor (amq_server_config)
-            * 1000000;                  //  Timeouts represented internally as usecs
-        if (self->monitor == 0)
-            self->monitor = 1000000;    //  Default to 1 second
-
-        self->timeout = amq_server_config_failover_timeout (amq_server_config)
-            * 1000000;                  //  Timeouts represented internally as usecs
-        if (self->timeout == 0)
-            self->timeout = 1000000;    //  Default to 1 second
     }
+    //  Else, configuration not OK, or failover disabled
     else
         smt_log_print (amq_broker->alert_log, "I: no failover defined, READY as stand-alone");
 </method>
