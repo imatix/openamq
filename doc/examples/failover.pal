@@ -4,7 +4,7 @@
     This script connects to a high-availability pair and sends messages to
     itself.  It runs in a loop, and reports the status of the failover pair.
     -->
-<pal script = "amq_pal_gen"5
+<pal script = "amq_pal_gen">
     <session server = "localhost:5555 localhost:6666" failover = "5000">
         <if name = "server_port" value = "5555">
             <echo>Connected to primary server</echo>
