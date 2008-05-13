@@ -193,9 +193,9 @@ $\(selftype)
     <property name = "debug peering" type = "Bool" default = "0" dynamic = "1">
     Debug peering messages?
     <doc>
-    Specifies whether peering activity is logged or not.  Set this
-    option if you need to debug server federation (message forwarding).
-    For production use, we recommend you do not set this option.
+    Specifies whether peering activity is logged or not. Set this option if 
+    you need to debug exchange federation and failover. For production use, 
+    we recommend you do not set this option.                           
     </doc>
     </property>
 
@@ -318,7 +318,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "failover timeout" type = "int" default = "1">
+    <property name = "failover timeout" type = "int" default = "1000">
     Failover timeout, in msecs
     <doc>
     Specifies the delay in seconds after which the backup peer will become 
@@ -330,7 +330,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "failover monitor" type = "int" default = "1">
+    <property name = "failover monitor" type = "int" default = "1000">
     Failover monitor, in msecs
     <doc>
     Specifies the interval at which the server will check that its peer is
