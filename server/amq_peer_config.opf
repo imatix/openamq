@@ -82,6 +82,8 @@ $\(selftype)
 <path name = "internal" />
 <path name = "queue_profile" />
 <path name = "security" />
-<path name = "cluster_mta" />
+<path name = "federation" />
+<path name = "failover" />
+<path name = "federate" />
 
 </opf>
