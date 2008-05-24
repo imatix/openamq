@@ -136,9 +136,9 @@ Software patents
 
 AMQP is not patented technology. OpenAMQ is not patented technology. We think
 our technology is so good that it does not need the protection of patents. We
-think our company is good enough to compete in a free market. We welcome
+think our company is good enough to compete in a free market. Indeed, we welcome
 competition and we want our users to have the fullest possible choice of AMQP
-suppliers. We also think software patents are a Very Bad thing for the software
+suppliers. We also think software patents are a very bad thing for the software
 business and we support efforts to ban them in Europe and the United States.
 
 Trademarks
@@ -594,313 +594,246 @@ Then run the publisher process:
 Note that before starting the publisher you should wait a few seconds to ensure
 all the clients are registered with the broker.
 
-The demo chat application
-*************************
+Deploying the OpenAMQ server
+****************************
 
-Building and testing
-====================
+On Unix systems
+===============
 
-The following OpenAMQ application is a simple example of how to send and receive
-messages via WireAPI. This is a "chat" application. It consists of two programs
-that are listed at the end of this chapter:
+Required files
+--------------
 
- - im_sender.c publishes a line of text to a chat room
- - im_receiver.c joins a chat room and prints everything that is posted there
- 
-To compile and link the files set your environment in the same way as you do to
-build OpenAMQ server and type this command:
+The OpenAMQ server is installed into the $IBASE/bin directory. If you wish to
+move the server elsewhere (e.g. to a different machine), you need to copy these
+files:
 
-    c -l im_sender.c im_receiver.c
+ - amq_server
+ - amq_server_base.cfg
+ - amq_console_schema.cml
 
-To start the chat room demo, open two console windows and run these commands,
-one in each window, in the following order:
+No other files are required.
+
+Starting the server
+-------------------
+
+To start the server in a console window run this command:
 
     amq_server
-    im_receiver localhost:5672 "demo room"
 
-Note that the amq_server by default starts on port 5672.  Now to send a line of
-text to the chat room, run the im_sender program in a third window:
-    
-    im_sender localhost:5672 "demo room" "This is a not a string"
+You can run the server as a detached background process using this command:
 
-There can be any number of clients connected to the same chatroom. There's no
-need to create chat rooms explicitly; these are created on demand.
+    amq_server -b
 
-Sender program
-==============
+Working directory
+-----------------
 
-    //
-    //  im_sender.c - Sends messages to the chatroom
-    //
-    //  Copyright (c) 1996-2007 iMatix Corporation
-    //  All rights reserved.
-    //  
-    //  This file is licensed under the BSD license as follows:
-    //  
-    //  Redistribution and use in source and binary forms, with or without
-    //  modification, are permitted provided that the following conditions
-    //  are met:
-    //  
-    //  * Redistributions of source code must retain the above copyright
-    //    notice, this list of conditions and the following disclaimer.
-    //  * Redistributions in binary form must reproduce the above copyright
-    //    notice, this list of conditions and the following disclaimer in
-    //    the documentation andor other materials provided with the
-    //    distribution.
-    //  * Neither the name of iMatix Corporation nor the names of its
-    //    contributors may be used to endorse or promote products derived
-    //    from this software without specific prior written permission.
-    //  
-    //  THIS SOFTWARE IS PROVIDED BY IMATIX CORPORATION "AS IS" AND ANY
-    //  EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-    //  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-    //  PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL IMATIX CORPORATION BE
-    //  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-    //  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-    //  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-    //  BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-    //  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-    //  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-    //  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-    //
-    
-    //  Name:     im_sender
-    //  Usage:    im_sender <broker-addeess> <chatroom> <your-name>
-    //  Example:  im_sender 127.0.0.1:5672 "OpenAMQ discussion" "Baron Bartholomaeus von Saburg-Fridetzki"
-    //  Sends messages from stdio to the chat room 
-    //  To receive messages from the chat room, use im_receiver application
-    
-    #include "base.h"
-    #include "amq_client_connection.h"
-    #include "amq_client_session.h"
-    
-    int main (int argc, char *argv [])
-    {
-        amq_client_connection_t
-            *connection;
-        amq_client_session_t
-            *session;
-        icl_longstr_t
-            *auth_data;
-        amq_content_basic_t
-            *content;
-        char
-            message_text [1024];
-        char
-            *message_body;
-            
-        assert (argc == 4);
-    
-        //  Initialise system
-        icl_system_initialise (argc, argv);
-    
-        //  Open a connection
-        auth_data = amq_client_connection_auth_plain ("guest", "guest");
-        connection = amq_client_connection_new (
-                argv [1], "/", auth_data, "im_sender", 0, 30000);
-        assert (connection);
-        icl_longstr_destroy (&auth_data);
-    
-        //  Open a channel
-        session = amq_client_session_new (connection);
-        assert (session);
-    
-        while (1) {
-    
-            //  Read one line from stdin
-            fgets (message_text, sizeof (message_text), stdin);
-    
-            //  Exit the loop if Ctrl+C is encountered
-            if (!connection->alive)
-                break;
-    
-            //  Create the message body
-            message_body =
-                malloc (strlen (argv [3]) + 2 + strlen (message_text) + 1);
-            assert (message_body);
-            sprintf (message_body, "%s: %s", argv [3], message_text);
-    
-            //  Create the message itself
-            content = amq_content_basic_new ();
-            amq_content_basic_set_body (content, message_body,
-                strlen (message_body), free);
-    
-            //  Send the message
-            amq_client_session_basic_publish (
-                session,                        //  session
-                content,                        //  content to send
-                0,                              //  ticket
-                "amq.direct",                   //  exchange to send message to
-                argv [2],                       //  routing-key
-                FALSE,                          //  mandatory
-                FALSE);                         //  immediate
-    
-            //  Release the message
-            amq_content_basic_unlink (&content);
-        }
-    
-        //  Close the channel
-        amq_client_session_destroy (&session);
-    
-        //  Close the connection
-        amq_client_connection_destroy (&connection);
-    
-        //  Uninitialise system
-        icl_system_terminate ();
-    
-        return 0;
-    }
+It is best to start amq_server in a specific working directory which has the
+right permissions to allow the process to create logging directories and files.
+You can start many instances of the server in the same directory. The server
+will create two subdirectories:
 
+ - logs, in which the server will create current log files.
+ - archive, to which the server will move old (yesterday's) log files.
 
-Receiver program
-================
+Stopping the server
+-------------------
 
-    //
-    //  im_receiver.c - Receives messages from a chatroom
-    //
-    //  Copyright (c) 1996-2007 iMatix Corporation
-    //  All rights reserved.
-    //  
-    //  This file is licensed under the BSD license as follows:
-    //  
-    //  Redistribution and use in source and binary forms, with or without
-    //  modification, are permitted provided that the following conditions
-    //  are met:
-    //  
-    //  * Redistributions of source code must retain the above copyright
-    //    notice, this list of conditions and the following disclaimer.
-    //  * Redistributions in binary form must reproduce the above copyright
-    //    notice, this list of conditions and the following disclaimer in
-    //    the documentation andor other materials provided with the
-    //    distribution.
-    //  * Neither the name of iMatix Corporation nor the names of its
-    //    contributors may be used to endorse or promote products derived
-    //    from this software without specific prior written permission.
-    //  
-    //  THIS SOFTWARE IS PROVIDED BY IMATIX CORPORATION "AS IS" AND ANY
-    //  EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-    //  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-    //  PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL IMATIX CORPORATION BE
-    //  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-    //  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-    //  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-    //  BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-    //  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-    //  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-    //  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-    //
-    
-    //  Name:     im_receiver
-    //  Usage:    im_receiver <broker-addeess> <chatroom>
-    //  Example:  im_receiver 127.0.0.1:5672 "OpenAMQ discussion"
-    //  Receives messages from the chatroom and writed them to stdout
-    //  To send messages to the chat room, use im_sender application
-    
-    #include "base.h"
-    #include "amq_client_connection.h"
-    #include "amq_client_session.h"
-    
-    int main (int argc, char *argv [])
-    {
-        amq_client_connection_t
-            *connection;
-        amq_client_session_t
-            *session;
-        icl_longstr_t
-            *auth_data;
-        amq_content_basic_t
-            *content;
-        char
-            message_text [1024];
-        size_t
-            message_size;
-    
-    
-        assert (argc == 3);
-    
-        //  Initialise system
-        icl_system_initialise (argc, argv);
-    
-        //  Open a connection
-        auth_data = amq_client_connection_auth_plain ("guest", "guest");
-        connection = amq_client_connection_new (
-                argv [1], "/", auth_data, "im_receiver", 0, 30000);
-        assert (connection);
-        icl_longstr_destroy (&auth_data);
-    
-        //  Open a channel
-        session = amq_client_session_new (connection);
-        assert (session);
-    
-        //  Create a private queue
-        amq_client_session_queue_declare (
-            session,                        //  session
-            0,                              //  ticket
-            NULL,                           //  queue name
-            FALSE,                          //  passive
-            FALSE,                          //  durable
-            TRUE,                           //  exclusive
-            TRUE,                           //  auto-delete
-            NULL);                          //  arguments
-    
-        //  Bind the queue to the exchange
-        amq_client_session_queue_bind (
-            session,                        //  session
-            0,                              //  ticket
-            NULL,                           //  queue
-            "amq.direct",                   //  exchange
-            argv [2],                       //  routing-key
-            NULL);                          //  arguments
-    
-        //  Consume from the queue
-        amq_client_session_basic_consume (
-            session,                        //  session
-            0,                              //  ticket
-            NULL,                           //  queue
-            NULL,                           //  consumer-tag
-            TRUE,                           //  no-local
-            TRUE,                           //  no-ack
-            TRUE,                           //  exclusive
-            NULL);                          //  arguments
-    
-        while (1) {
-    
-            while (1) {
-    
-                //  Get next message
-                content = amq_client_session_basic_arrived (session);
-                if (!content)
-                    break;
-    
-                //  Get the message body and write it to stdout
-                message_size = amq_content_basic_get_body (content,
-                      (byte*) message_text, sizeof (message_text));
-                if (message_size) {
-                    message_text [message_size] = 0;
-                    fputs (message_text, stdout);
-                }
-    
-                //  Destroy the message
-                amq_content_basic_unlink (&content);
-            }
-            
-            //  Wait while next message arrives
-            amq_client_session_wait (session, 0);
-    
-            //  Exit the loop if Ctrl+C is encountered
-            if (!connection->alive)
-                break;
-        }
-    
-        //  Close the channel
-        amq_client_session_destroy (&session);
-    
-        //  Close the connection
-        amq_client_connection_destroy (&connection);
-    
-        //  Uninitialise system
-        icl_system_terminate ();
-    
-        return 0;
-    }
+To stop the server, press Ctrl-C or find the process ID and use the kill -2
+command. Alternatively, [/admin.html:use the amq_shell] to stop the server,
+especially if you are doing remote administration.  If a server does not respond
+to a kill -2 command, use kill -9.  Note that in some cases a server may take up
+to 30 seconds to stop, particularly if there are client applications that do not
+politely disconnect when asked to.
+
+Important server options
+------------------------
+
+To see the current version of the server, type this command:
+
+    amq_server -v
+
+To see a short list of all server options, type this command:
+
+    amq_server -h
+
+If you want to run several instances of the server on the same machine you must
+start them on different ports. The default AMQP port is 5672. To start the
+server on a different port, type this command:
+
+    amq_server --port portnumber
+
+Instant help for options
+------------------------
+
+To see a long list of all server options, with full explanations, type this
+command:
+
+    amq_server --help
+
+Notes
+-----
+
+ - The server needs at least 50Mb and can use much more, depending on how large
+   its queues grow.  OpenAMQ holds queues in memory.
+
+ - The server can run in user mode and to open the AMQP port of 5672, does not
+   need root access (root access is needed to run servers on port numbers lower
+   than 4096).
+   
+On Windows systems
+==================
+
+Required Files
+--------------
+
+The OpenAMQ server is installed into the %IBASE%/bin directory. If you wish to
+move the server elsewhere (e.g. to a different machine), you need to copy these
+files:
+
+ - amq_server.exe
+ - amq_server_base.cfg
+ - amq_console_schema.cml
+
+No other files are required.
+
+Starting the server
+-------------------
+
+To start the server in a console window run this command:
+
+    amq_server
+
+Working directory
+-----------------
+
+It is best to start the OpenAMQ server in a specific working directory since it
+will create new directories and files for logging. You can start many instances
+of the server in the same directory. The server will create two subdirectories:
+
+ - logs, in which the server will create current log files.
+ - archive, to which the server will move old (yesterday's) log files.
+
+Stopping the server
+-------------------
+
+To stop the server, press Ctrl-C or use on the Task Manager.
+
+Important server options
+------------------------
+
+To see the current version of the server, type this command:
+
+    amq_server -v
+
+To see a short list of all server options, type this command:
+
+    amq_server -h
+
+If you want to run several instances of the server on the same machine you must
+start them on different ports. The default AMQP port is 5672. To start the
+server on a different port, type this command:
+
+    amq_server --port portnumber
+
+Instant help for options
+------------------------
+
+To see a long list of all server options, with full explanations, type this
+command:
+
+    amq_server --help
+
+Notes
+-----
+
+ - To start the server as a Windows service use the 'srvany' tool that is part
+   of the Windows Resource Kit.
+
+OpenAMQ security
+****************
+
+General
+=======
+
+OpenAMQ/1.2 is designed for intranet use and does not provide encryption, secure
+authentication, or access controls. Applications login using plain text logins
+and passwords, using the SASL [http://www.faqs.org/rfcs/rfc2595.html: PLAIN
+mechanism].
+
+For production use you must define non-default passwords as explained below. If
+you run the server with the default passwords, it will issue this message at
+startup:
+
+    W: security warning - logins use default passwords
+
+Access controls
+===============
+
+AMQP applications must authenticate using a user login that amq_server accepts.
+User logins and corresponding passwords are defined in the server configuration
+file.
+
+amq_server defines two types of user:
+
+ * Normal application logins, which can do all normal operations on the server.  
+   The default normal login is "guest", with password "guest".
+
+ * Super-user logins, which can exceed configured limits and do updates via the 
+   [/admin.html:OpenAMQ Console].  The default super user login is "super", with 
+   password "super".
+
+Setting custom passwords
+========================
+
+We advise you to set custom passwords for all production-use of OpenAMQ. To do
+this, in the file amq_server.cfg, add this section:
+
+    <security name = "plain">
+        <user name = "guest" password = "[new normal password]" />
+        <user name = "super" password = "[new super password]" />
+    </security>
+
+Note that if amq_server.cfg does not already exist, it should look like this
+(when empty):
+
+    <?xml version="1.0"?>
+    <config>
+        <!-- Configuration data comes here -->
+    </config>
+
+Defining new logins
+===================
+
+To create new logins for normal applications, add lines in this form to the
+amq_server.cfg file:
+
+    <security name = "plain">
+        <user name = "[login name]" password = "[new normal password]" group = "normal"/>
+    </security>
+
+To create new logins for super user applications, add lines in this form to the
+amq_server.cfg file:
+
+    <security name = "plain">
+        <user name = "[login name]" password = "[new super password]" group = "super"/>
+    </security>
+
+Notes
+=====
+
+ - The amq_server.cfg file must be accessible to the amq_server executable when 
+   you start it. The simplest technique is to place the configuration file in 
+   the directory where you run the server.  Alternatively you can place the
+   configuration data on the path, e.g. together with the server binary.
+
+ - The configuration file not be readable or writable by unauthorised system
+   users
+
+ - You can rename the configuration file - the server '-s' option lets you
+   specify alternative configuration file names.
+
+ - The current security model in OpenAMQ is intended for LAN use and to protect
+   against accidental access to the wrong server.  Future versions of OpenAMQ 
+   will support more robust security mechanisms.  If you need this urgently,
+   please contact us.
 

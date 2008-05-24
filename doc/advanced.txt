@@ -50,68 +50,44 @@ the most commonly used configuration options and their command-line syntax:
     --debug_queue 0     Debug queue activity?
     --debug_peering 0   Debug peering messages?
     --heartbeat 2       Heartbeat timer, seconds
-    --backup            Failover backup host:port
-    --primary           Failover primary host:port
-    --attach            Enable auto-federation to specified host
 
-port = "5672":
+/config/server/port:
     Specifies the port on which the server should open its connections.
-    Default value is 5672.                                             
-listen = "*":
-    Specifies the network interface on which the server should listen for
-    connections. By default this is *, meaning all interfaces. You would 
-    choose to set an address when you use OpenAMQ on a server with       
-    multiple network interfaces, e.g. routing between two networks.      
-    Default value is *.                                                  
-monitor = "0":
-    Specifies the interval in seconds at which the server will report its 
-    message rates. If zero, no monitoring is shown. The recommended value 
-    is 1, if monitoring is desired. Default value is 0. This option can be
-    changed at runtime.                                                   
-dump_state = "60":
+    Default value is '5672'
+/config/server/listen:
+    Specifies the network interface on which the server should listen for  
+    connections. By default this is *, meaning all interfaces. You would   
+    choose to set an address when you use OpenAMQ on a server with multiple
+    network interfaces, e.g. routing between two networks.                 
+    Default value is '*'
+/config/resources/monitor:
+    Specifies the interval in seconds at which the server will report its   
+    message rates. If zero, no monitoring is shown. The recommended value is
+    1, if monitoring is desired.                                            
+    Default value is 0.
+/config/resources/dump_state:
     Specifies the interval at which the server will report its state. This
     shows the number of messages, queues, consumers, etc. used by the     
-    server. If zero, no state is logged. Default value is 60. This option 
-    can be changed at runtime.                                            
-debug_route = "0":
-    Specifies whether exchange routing is logged or not. Set this option
-    when you are debugging a message routing design. For production use,
-    we recommend you do not set this option. Default value is 0. This   
-    option can be changed at runtime.                                   
-debug_queue = "0":
-    Specifies whether queue dispatching is logged or not. Set this option 
-    when you are debugging message processing in the server. For          
-    production use, we recommend you do not set this option. Default value
-    is 0. This option can be changed at runtime.                          
-debug_peering = "0":
-    Specifies whether peering activity is logged or not. Set this option  
-    if you need to debug server federation (message forwarding). For      
-    production use, we recommend you do not set this option. Default value
-    is 0. This option can be changed at runtime.                          
-heartbeat = "2":
-    Defines the timeout for connection heartbeating. Default value is 2.
-    This option can be changed at runtime.                              
-backup = "":
-    Used when running the primary server, specifies the failover backup 
-    server for the high-availability pair. Use the internet name of the 
-    backup server as 'host' or 'host:port' if it is not running on port 
-    5672. Do not specify this option together with the 'primary' option.
-    Default value is .                                                  
-primary = "":
-    Used when running the backup server, specifies the failover primary 
-    server for the high-availability pair. Use the internet name of the 
-    primary server as 'host' or 'host:port' if it is not running on port
-    5672. Do not specify this option together with the 'backup' option. 
-    Default value is .                                                  
-attach = "":
-    If specified, the server will auto-federate to the specified parent   
-    OpenAMQ server. This federates three exchanges: amq.service (a direct 
-    exchange) using a service federation; amq.data (a topic exchange)     
-    using a fanout federation; and amq.dataex (a headers exchange) using a
-    fanout exchange. This gives you an instant enterprise service bus     
-    (ESB) based on a spoke-and-hub model. You can fine-tune               
-    auto-federation using the --attach-login and --attach-vhost options.  
-    Default value is .                                                    
+    server. If zero, no state is logged.                                  
+    Default value is 60.
+/config/logging/debug_route:
+    Specifies whether exchange routing is logged or not. Set this option   
+    when you are debugging a message routing design. For production use, we
+    recommend you do not set this option.                                  
+    Default value is 0.
+/config/logging/debug_queue:
+    Specifies whether queue dispatching is logged or not. Set this option  
+    when you are debugging message processing in the server. For production
+    use, we recommend you do not set this option.                          
+    Default value is 0.
+/config/logging/debug_peering:
+    Specifies whether peering activity is logged or not. Set this option if 
+    you need to debug exchange federation and failover. For production use, 
+    we recommend you do not set this option.                           
+    Default value is 0.
+/config/tuning/heartbeat:
+    Defines the timeout for connection heartbeating.
+    Default value is 2.
 
 Creating a configuration file
 =============================
@@ -140,13 +116,15 @@ each option how to add it to a config file.
 For example:
 
     /config/server/port - Server port for clients
-        From command-line: --port newvalue
+        --port newvalue
         Specifies the port on which the server should open its connections.
         Current value is '5672'. Default value is '5672'
 
 Is saved as:
 
     amq_server.cfg:
+    ------------------------------------------------------------------------
+    <?xml?>
     <config>
         <server port = "5672" />
     </config>
@@ -154,6 +132,8 @@ Is saved as:
 You must merge sections together, e.g.:
 
     amq_server.cfg:
+    ------------------------------------------------------------------------
+    <?xml?>
     <config>
         <server
             port = "5672"
@@ -198,6 +178,8 @@ used by a server process:
 For example:
 
     amq_server.cfg:
+    ------------------------------------------------------------------------
+    <?xml?>
     <config>
         <echo>Config file for cluster testing</echo>
     </config>
@@ -208,101 +190,6 @@ Then, running the server:
     ...
     2008-05-02 16:58:25: I: amq_server.cfg: Config file for cluster testing
     ...
-
-Tuning the memory allocator
-===========================
-
-OpenAMQ uses a memory subsystem that can be tuned for different purposes. The
-tradeoff is between performance, and reporting of errors for debugging and to
-detect memory leaks.
-
-The memory subsystem selects an 'allocator' depending on the value of the
-ALLOCATOR environment variable:
-
-ALLOCATOR=thin:
-    The thin allocator tracks memory leaks and reports these when the server
-    stops.  This is the default allocator for production builds (when OpenAMQ
-    is built with BOOM_MODEL=release).
-ALLOCATOR=fat:
-    The fat allocator tracks memory leaks and reports the source file and line
-    number for any leak.  This is the default allocator for debug builds. (when 
-    OpenAMQ is built with BOOM_MODEL=debug).
-ALLOCATOR=direct:
-    The direct allocator does no memory leak detection, and no debug tracking.
-    It is a very thin layer over the system memory allocator (malloc).  This is
-    usually the fastest allocator.
-
-We recommend that in a high-performance scenario (over 20k messages per second)
-you use ALLOCATOR=direct, while in normal scenarios you leave the default
-setting.  As with all tuning options, test before and after using throughput
-and latency tests.
-
-The choice of memory allocator, as well as build model (release vs debug) can
-also have a significant impact on the performance of client applications that do
-over 20k messages in or out per second.  The fastest configuration in most cases
-is ALLOCATOR=direct and BOOM_MODEL=mt,release.
-
-Tuning the client
-*****************
-
-Via a configuration file
-========================
-
-The WireAPI client library cannot be tuned via command-line options.  It uses
-an XML configuration file called amq_wireapi.cfg.  This file, if present, can
-set any of the following options:
-
-    <config>
-        <tuning
-            tcp_nodelay = "1"
-            tcp_rcvbuf = "0"
-            tcp_sndbuf = "0"
-            arrived_low_water = "0"
-            arrived_high_water = "0"
-        />
-    </config>
-
-tcp_nodelay = "1":
-    If this value is 1, socket data is written immediately, which is     
-    usually good for latency. If this value is 0, data is buffered until 
-    there is a full packet, which is usually good for throughput. Default
-    value is 1. This option can be changed at runtime.                   
-tcp_rcvbuf = "0":
-    If this value is greater than zero, the connection to the server will
-    use the specified value. Note: setting this value is delicate, do not
-    use this option unless you know what you are doing. Default value is 
-    0. This option can be changed at runtime.                            
-tcp_sndbuf = "0":
-    If this value is greater than zero, the connection to the server will
-    use the specified value. Note: setting this value is delicate, do not
-    use this option unless you know what you are doing. Default value is 
-    0. This option can be changed at runtime.                            
-arrived_low_water = "0":
-    Number of messages in arrived queue when message flow from server is
-    started again after it had been switched off on high water mark.    
-    Default value is 0.                                                 
-arrived_high_water = "0":
-    Number of messages in arrived queue when message flow from server is
-    stopped. If this property is 0, message flow is never switched off. 
-    Default value is 0.                                                 
-
-Via the environment
-===================
-
-The WireAPI library accepts these environment variables:
-
-WIREAPI_VERBOSE=1
-    If set to 1, causes all errors and warnings to be printed.  If set to 0,
-    the WireAPI library is silent, and assumes that the application will do
-    all necessary error reporting.  Default value is 0.
-WIREAPI_SLOW=1
-    If set to 1, causes the client to operate very slowly.  This can be used
-    for testing, especially to simulate applications that are not reading
-    messages rapidly.  Note that since WireAPI is multithreaded, messages will
-    be collected from the server rapidly even if the calling application is
-    blocked or slow.  Setting the WIREAPI_SLOW variable to 1 will cause 
-    backlogs to be kept on the server instead.  Do not use this in any normal
-    scenario, it will (obviously) create serious performance issues.
 
 Logging subsystem
 *****************
@@ -467,11 +354,14 @@ activity.
 Monitoring the server
 *********************
 
-There are several ways to monitor a running OpenAMQ server process:
+How to monitor an OpenAMQ server
+================================
 
- 1. Using the operating systems' process monitoring tools.
- 2. Using the server's own monitoring output (--dump_state).
- 3. Using the OpenAMQ Console ('amq_shell'), described below.
+There are several ways to monitor a running OpenAMQ server:
+
+ 1. Using the operating systems' process monitoring tools (like 'top').
+ 2. Using the server's own monitoring output (like '--dump_state 5').
+ 3. Using the OpenAMQ console shell ('amq_shell'), described below.
 
 When using the operating system monitoring tools, you will want to look mainly
 at the server's CPU and memory consumption.
@@ -486,18 +376,15 @@ a Unix, Linux or Mac OS/X system:
 
     tail -f name-of-dump-file
 
-Command-line console
-********************
+Console shell
+=============
 
 The amq_shell provides a command-line administration tool for OpenAMQ. You can
 use this tool by hand, or automatically in shell scripts. Normal OpenAMQ users
 can view information; super users can also change the server's state, e.g.
 killing blocked connections or over-full queues.
 
-Console command line
-====================
-
-Run this command:
+To run the shell, do this:
 
     amq_shell -u username -p password
 
@@ -506,7 +393,7 @@ These are the command-line options:
     -s hostname      Server hostname and :port (localhost)
 
 If the amq_server is running on a different system and/or non-standard port,
-use the -s option to specify the correct !servername:port!.
+use the -s option to specify the correct //servername:port//.
 
     -V virtualhost   Specify cluster virtual host
 
@@ -557,18 +444,18 @@ Show a summary list of all the server's connections, without entering the prompt
 
 Add the date and time to all printed messages.
 
-The Console prompt
-==================
+The console shell prompt
+------------------------
 
 When the Console connects successfully to the default or specified OpenAMQ
 server it will display a prompt so that you can enter commands:
 
-    amq_shell/1.2b0 - Management Console for OpenAMQ Brokers
-    Copyright (c) 2007 iMatix Corporation
+    amq_shell/1.2d0 - Management Console for OpenAMQ Brokers
+    Copyright (c) 2008 iMatix Corporation
 
-    Connected to OpenAMQ Server/1.2b0 on 62.176.172.196:5672
+    Connected to OpenAMQ Server/1.2d0 on 62.176.172.196:5672
 
-     server = "OpenAMQ 1.2b0" 
+     server = "OpenAMQ 1.2d0" 
      Date, time server started ............. 2007-03-15T12:55+01:00
      Broker is locked? ..................... no
      Memory used for all data .............. 10604K
@@ -579,17 +466,17 @@ server it will display a prompt so that you can enter commands:
      Number of message exchanges ........... 8 [ls exchange]
      Number of shared queues ............... 0 [ls queue]
      Number of connections ................. 1 [ls connection]
-     [shutdown] [lock] [shake]
+     [shutdown] [lock]
     /62.176.172.196:5672>
 
 Note that:
 
- * The available actions are listed in square brackets.  For example when
+ - The available actions are listed in square brackets.  For example when
    you are looking at a server these are the available actions:
 
-    [shutdown] [lock] [shake]
+    [shutdown] [lock]
 
- * Type 'help' at any prompt to get explanations.  These commands are
+ - Type 'help' at any prompt to get explanations.  These commands are
    available at all times:
 
     Command            Has this effect
@@ -604,47 +491,602 @@ Note that:
     help               Show this text
     exit | quit        Leave the OpenAMQ shell
 
+Automated restarts
+------------------
+
+In some scenarios, you may want to stop and restart a server daily.  Here is
+a simple way to do this:
+
+ - Run the server inside a command shell script that, when the server ends, 
+   logs the error, waits a short time (5 seconds) and then loops to restart 
+   the server.  An example (using Unix bash shell language):
+   
+    while true; do
+        amq_server --whatever-options you need >> somelogfile
+        sleep 5
+    done
+        
+ - On the same, or a different server, run a daemon script that uses the 
+   amq_shell to remotely stop the server.  An example:
+   
+    amq_shell -e "shutdown" -u super -p topsecret
+
+Tuning OpenAMQ
+**************
+
+General principles
+==================
+
+OpenAMQ provides a wide set of tuning options. Before you start tuning your
+server, please note that:
+
+ * The default installation is already tuned for general performance. While we
+   encourage you to experiment to understand how your OpenAMQ server behaves, 
+   tuning is not an essential part of normal OpenAMQ usage.
+
+ * When tuning, make sure you have a good test platform so that you can measure 
+   the impact of each choice.  It is quite easy to make the performance of a 
+   server worse by making the wrong kind of tuning.
+
+ * Test each option independently on the command-line before adding it to a
+   configuration file.
+
+ * You can tune the WireAPI client library using many of the same options as 
+   those for the server.
+
+Process Tuning
+==============
+
+These are the options that affect the server process, each can be specified on
+the command line or in a configuration file:
+
+polling_threads:
+    On multithreaded builds, defines the number of OS threads dedicated to
+    socket polling. Default value is 4.
+working_threads:
+    On multithreaded builds, defines the number of OS threads dedicated to
+    processing, that is, tasks other than socket polling. Default value is 4.
+
+Network Tuning
+===============
+
+These are the options that affect network configuration and performance:
+
+/config/tuning/heartbeat:
+    Defines the timeout for connection heartbeating. Default value is 2.
+    This option can be changed at runtime.
+/config/tuning/tcp_nodelay:
+    If this value is 1, socket data is written immediately, which is
+    usually good for latency. If this value is 0, data is buffered until
+    there is a full packet, which is usually good for throughput. Default
+    value is 1. This option can be changed at runtime.
+/config/tuning/tcp_rcvbuf:
+    If this value is greater than zero, all client connections will use
+    the specified value. Note: setting this value is delicate, do not use
+    this option unless you know what you are doing. Default value is 0.
+    This option can be changed at runtime.
+/config/tuning/tcp_sndbuf:
+    If this value is greater than zero, all client connections will use
+    the specified value. Note: setting this value is delicate, do not use
+    this option unless you know what you are doing. Default value is 0.
+    This option can be changed at runtime.
+
+Note: we recommend that rather than tuning the tcp_rcvbuf and tcp_sndbuf options
+at the application level, you should rely on the default values of "0" and tune
+your operating system's TCP stack appropriately. For a good guide to TCP Tuning,
+see [http://www-didc.lbl.gov/TCP-tuning/:here].
+
+Tuning queue limits
+===================
+
+You can tune the number of messages that queues will accept, and how queues
+respond when they become 'full'. This is useful to ensure that your server does
+not run out of virtual memory when you have fast publishers and slow clients,
+and a very high rate of data.
+
+OpenAMQ provides a mechanism called "queue profiles" to let you control the
+limits on a per-queue basis. By default (in amq_server_base.cfg), we define two
+queue profiles as follows:
+
+    <queue_profile name = "private">
+        <limit name = "warn" value = "10000" />
+        <limit name = "trim" value = "50000" />
+    </queue_profile>
+    <queue_profile name = "shared">
+        <limit name = "warn" value = "10000" />
+        <limit name = "kill" value = "50000" />
+    </queue_profile>
+
+These profiles define the behaviour of private and shared queues respectively.
+In each profile we can define up to 10 limits, which specify a number of
+messages, and an action to perform when that limit is reached:
+
+ * warn - issue a warning to the console and accept the message onto the queue.
+   The warning is only issued once when the limit is crossed.
+
+ * trim - delete an old message from the queue to make space for the new
+   message.
+
+ * drop - drop the new message, do not delete existing queued messages.
+
+ * kill - issue a warning and kill the connection and queue.  This handles the
+   case when publishers are extremely unbalanced.
+
+To override these limits, edit amq_server.cfg (not the base config file) e.g.:
+
+    amq_server.cfg:
+    <?xml version="1.0"?>
+    <config>
+        <queue_profile name = "shared">
+            <limit name = "warn" value = "500" />
+            <limit name = "drop" value = "1000" />
+        </queue_profile>
+        <queue_profile name = "private">
+            <limit name = "warn" value = "500" />
+            <limit name = "trim" value = "1000" />
+        </queue_profile>
+    </config>
+
+OpenAMQ also lets you define per-queue profiles. When your application creates a
+queue, using the Queue.Declare method (the amq_queue_declare() method in the
+WireAPI interface), it can specify a profile name, as follows:
+
+ * The application must be capable of constructing and passing an arguments
+   table.
+
+ * It creates an argument field called "profile" with the value of the
+   profile it wants to use for that queue.
+
+ * OpenAMQ then takes the profile definition from the configuration data.
+
+This only happens when the queue is created; if the Queue.Declare is specified
+for an existing queue, it's profile is not modified. If no profile is specified
+in the Queue.Declare method, OpenAMQ uses 'private' for exclusive queues and
+'shared for non-exclusive queues.
+
+Tuning the memory allocator
+===========================
+
+OpenAMQ uses a memory subsystem that can be tuned for different purposes. The
+tradeoff is between performance, and reporting of errors for debugging and to
+detect memory leaks.
+
+The memory subsystem selects an 'allocator' depending on the value of the
+ALLOCATOR environment variable:
+
+ALLOCATOR=thin:
+    The thin allocator tracks memory leaks and reports these when the server
+    stops.  This is the default allocator for production builds (when OpenAMQ
+    is built with BOOM_MODEL=release).
+ALLOCATOR=fat:
+    The fat allocator tracks memory leaks and reports the source file and line
+    number for any leak.  This is the default allocator for debug builds. (when 
+    OpenAMQ is built with BOOM_MODEL=debug).
+ALLOCATOR=direct:
+    The direct allocator does no memory leak detection, and no debug tracking.
+    It is a very thin layer over the system memory allocator (malloc).  This is
+    usually the fastest allocator.
+
+We recommend that in a high-performance scenario (over 20k messages per second)
+you use ALLOCATOR=direct, while in normal scenarios you leave the default
+setting.  As with all tuning options, test before and after using throughput
+and latency tests.
+
+The choice of memory allocator, as well as build model (release vs debug) can
+also have a significant impact on the performance of client applications that do
+over 20k messages in or out per second.  The fastest configuration in most cases
+is ALLOCATOR=direct and BOOM_MODEL=mt,release.
+
+Tuning the client
+=================
+
+The WireAPI client library cannot be tuned via command-line options. It uses an
+XML configuration file called amq_wireapi.cfg. This file, if present, can set
+any of the following options:
+
+    amq_wireapi.cfg:
+    ------------------------------------------------------------------------
+    <?xml?>
+    <config>
+        <tuning
+            tcp_nodelay = "1"
+            tcp_rcvbuf = "0"
+            tcp_sndbuf = "0"
+            arrived_low_water = "0"
+            arrived_high_water = "0"
+        />
+    </config>
+
+/config/tuning/tcp_nodelay:
+    If this value is 1, socket data is written immediately, which is     
+    usually good for latency. If this value is 0, data is buffered until 
+    there is a full packet, which is usually good for throughput. Default
+    value is 1. This option can be changed at runtime.                   
+/config/tuning/tcp_rcvbuf:
+    If this value is greater than zero, the connection to the server will
+    use the specified value. Note: setting this value is delicate, do not
+    use this option unless you know what you are doing. Default value is 
+    0. This option can be changed at runtime.                            
+/config/tuning/tcp_sndbuf:
+    If this value is greater than zero, the connection to the server will
+    use the specified value. Note: setting this value is delicate, do not
+    use this option unless you know what you are doing. Default value is 
+    0. This option can be changed at runtime.                            
+/config/tuning/arrived_low_water:
+    Number of messages in arrived queue when message flow from server is
+    started again after it had been switched off on high water mark.    
+    Default value is 0.                                                 
+/config/tuning/arrived_high_water:
+    Number of messages in arrived queue when message flow from server is
+    stopped. If this property is 0, message flow is never switched off. 
+    Default value is 0.                                                 
+
+The WireAPI library also accepts these environment variables:
+
+WIREAPI_VERBOSE=1
+    If set to 1, causes all errors and warnings to be printed.  If set to 0,
+    the WireAPI library is silent, and assumes that the application will do
+    all necessary error reporting.  Default value is 0.
+WIREAPI_SLOW=1
+    If set to 1, causes the client to operate very slowly.  This can be used
+    for testing, especially to simulate applications that are not reading
+    messages rapidly.  Note that since WireAPI is multithreaded, messages will
+    be collected from the server rapidly even if the calling application is
+    blocked or slow.  Setting the WIREAPI_SLOW variable to 1 will cause 
+    backlogs to be kept on the server instead.  Do not use this in any normal
+    scenario, it will (obviously) create serious performance issues.
+
+Testing throughput
+==================
+
+The standard test tool for performance is amq_client. This sends a number of
+messages to a private temporary queue, and reads the messages back off that
+queue.
+
+Start the server with monitoring enabled (so that it displays the traffic rate):
+
+    amq_server --monitor 1
+
+Start multiple instances of amq_client on one or a series of test systems:
+
+    amq_client -s !server:port! -n 20000 -x 500 -r 0
+
+This is an example of the monitor output produced by the server:
+
+    I: incoming rate=2545 mean=2392 peak=4115
+    I: outgoing rate=2545 mean=2392 peak=4114 iomean=4784
+
+ - The incoming rate represents the number of messages (AMQP contents) read off 
+   the network each second.
+
+ - The outgoing rate represents the number of messages written to the network
+   each second.
+
+ - The mean rates represent a rolling average per second calculated over the
+   previous ten seconds.
+
+ - The peak rates represent the highest value over the previous ten seconds.
+
+ - the iomean rate represents the combined input and output average per second
+   calculated over the last ten seconds.
+
+When you tune the server performance, it is the iomean that you should be aiming
+to improve.
+    
 High-availability failover
 **************************
 
-OpenAMQ provides two distint clustering functionalities:
+OpenAMQ provides two orthogonal clustering functionalities:
 
 1. High-availability failover in which a pair of servers act as primary and
    backup so that if one server crashes, the other will still be available.
-2. Federation, in which servers, or high-availability pairs, are built into 
-   wide area networks, also known as 'federations'.
+2. Federation, in which servers are built into wide area networks known as 
+   'federations'.
 
 In this section we explain how to use high-availability failover.
 
-High-availability scenarios
-===========================
+Using failover
+==============
 
-In general, OpenAMQ is designed to never crash.  Further, if it crashes it is
-designed to be restartable very rapidly.  In other words, failover to a backup
-server may be more complex, and less suitable, than simply restarting a single
-primary server.
+General
+-------
 
-It makes sense to consider a failover solution when the data being carried over
-the AMQP network is important enough to warrant a second physical server.  Even
-when servers are well-specified, with redundant power supplies and disks, there
-remains a chance of a fatal hardware failure.
+OpenAMQ's failover model consists of two dedicated servers (OpenAMQ server
+processes) in a primary-backup pair. At any given time, one of these accepts
+connections from client applications (it is the "master") and one does not (it
+is the "slave"). Each server monitors the other. If the master disappears from
+the network, the slave takes over as master. This happens after a configurable
+timeout, so that transient problems can be handled without failover.
 
-For such scenarios, OpenAMQ offers a straight-forward failover model.
+The failover model is designed to solve these problems:
 
-Note: the current implementation of the OpenAMQ client APIs do not allow
-failover to be mixed with federation. This is a known limitation and scheduled
-to be removed in a future update.
+ - To provide a straight-forward high-availability solution.
+ - To be simple enough to use without trouble.
+ - To failover reliably when needed, and only when needed.
+ - To be simple to understand and use for client applications. 
+   
+Failover scenarios
+------------------
+
+Assuming we have a failover pair running, here are the different scenarios that
+will result in failover happening:
+
+1. The hardware running the primary server has a fatal problem (power supply
+   explodes, machine catches fire, or someone simply unplugs it by mistake), 
+   and disappears.  Applications see this, and reconnect to the backup server.
+
+2. The network segment on which the primary server sits crashes - perhaps a
+   router gets hit by a power spike - and applications start to reconnect to
+   the backup server.
+   
+3. The primary server crashes or is killed by the operator.
+
+Recovery process
+----------------
+
+Recovery from failover works as follows:
+
+1. The operators restart the primary server and fix whatever problems were
+   causing it to disappear from the network.
+   
+2. The operators stop the backup server, at a moment that will cause minimal
+   disruption to applications.
+   
+3. When applications have reconnected to the primary server, the operators
+   restart the backup server.
+
+Recovery (to using the primary server as master) is a manual operation. In our
+experience, automatic recovery is undesirable. The failover of an OpenAMQ
+network creates an interruption of service to applications, possibly lasting
+10-30 seconds. If there is a real emergency, this is much better than total
+outage. But if recovery creates a further 10-30 second outage, it is better that
+this happens off-peak, when users have gone off the network.
+
+When there is an emergency, we also prefer to create predictability for those
+trying to fix things.  Automatic recovery creates uncertainty for operators, who
+can no longer be certain which server is in charge, without double-checking.
+
+Lastly, we have seen situations with automatic recovery where networks will fail
+over, and recover, and operators are then placed in a difficult position to
+analyse what happened.
+
+Note that OpenAMQ's failover feature will fail back to the primary server if
+this is running (again) and the backup server should fail.
+   
+Normal shutdown process
+-----------------------
+
+The shutdown process for a failover pair is to either:
+
+1. Stop the passive server and then stop the active server, or
+
+2. Stop both servers in any order but within a few seconds of each other.
+
+Stopping the active and then the passive server with any intervening delay will
+force applications to disconnect, then reconnect, then disconnect again, which
+may disturb users.
+
+Split-Brain prevention
+----------------------
+
+"Split-brain" is the syndrome in which different parts of a cluster thing they
+are 'master'. The OpenAMQ failover mechanism has an algorithm for detecting and
+eliminating split brain, based on a three-way decision mechanism (a server will
+not decide to become master until it gets application connection requests and
+it cannot see its peer server).
+
+However it is possible to (mis)design a network to fool this algorithm. A
+typical scenario would a failover pair distributed between two buildings, where
+each building also had a set of applications, and there was a single network
+link between both buildings. Breaking this link would create two sets of client
+applications, each with half of the failover pair, and each failover server
+would become active.
+
+To prevent split-brain situations, we must connect failover peers using a
+dedicated network link, which can be as simple as plugging them both into the
+same switch.
+
+We must not split a failover pair into two islands, each with a set of
+applications. While this may be a common type of network architecture, we use
+federation (see later), not high-availability failover, in such cases.
+
+Alternatives to failover
+------------------------
+
+In general, OpenAMQ is designed to never crash. Further, if it crashes it is
+designed to be restartable very rapidly using a simple shell script as explained
+in the section "Automated restarts" above. In other words, simply restarting a
+single server may be more appropriate to the level of reliability you need than
+failover.
+
+How it works
+============
+
+Implementation
+--------------
+
+We made OpenAMQ's failover functionality as simple as it could be. In fact the
+current implementation is the third complete redesign. Each of the previous
+designs we found to be too complex, trying to do too much, and we stripped out
+functionality until we came to a design that was easy to understand and use, and
+reliable enough to be worth using.
+ 
+These are our requirements for a high-availability architecture:
+
+1. The failover is meant to provide insurance against catastrophic system 
+   failures, such as hardware breakdown, fire, accident, etc.  To guard aganst
+   software crashes (in which the OpenAMQ server crashes) there are simpler
+   ways to recover.
+
+2. Failover time should be under 60 seconds and preferrably under 10 seconds.
+
+3. Failover has to happen automatically, whereas recover must happen manually.
+   We want applications to switch over to the backup server automatically but
+   we do not want them to switch back to the primary server except when the
+   operators have fixed whatever problem there was, and decided that it is a
+   good time to interrupt applications again.
+
+4. The semantics for client applications should be simple and easy for 
+   developers to understand.  Ideally they should be hidden in the client API.
+   
+5. There should be clear instructions for network architects on how to avoid
+   designs that could lead to "split brain" syndrome in which both servers in a
+   failover pair think they are the master server.
+   
+6. There should be no dependencies on the order in which the two servers are
+   started.
+   
+7. It must be possible to make planned stops and restarts of either server
+   without stopping client applications (though they may be forced to reconnect
+   and reregister).
+
+8. Operators must be able to monitor both servers at all times.
+ 
+9. It must be possible to connect the two servers using a high-speed dedicated
+   network connection.  That is, failover synchronization must be able to use a
+   a specific IP route.
+   
+We make these assumptions:
+
+1. A single backup server provides enough insurance, we don't need multiple
+   levels of backup.
+
+2. The primary and backup server are equally capable of carrying the application
+   load.  We do not attempt to balance load across the servers.
+   
+3. There is sufficient funding to pay for a fully redundant backup server that
+   does nothing almost all the time.
+   
+Out of scope
+------------
+
+What we do not attempt to do includes:
+
+1. The use of an active backup server or load balancing.  In a failover pair, 
+   the backup server is inactive and does no useful work until the primary 
+   server goes offline.
+
+2. The handling of persistent messages or transactions in any way. Our failover
+   design is incompatible with server-side persistence and AMQP transactions.
+   This is consequent with iMatix's view on how to implement persistence and
+   transactions, which is end-to-end, assuming a network of unreliable (and 
+   probably untrusted) servers or failover pairs.
+   
+3. Any automatic exploration of the network. The failover pair is manually and
+   explicitly defined in the network and is known to applications (at least in
+   their configuration data).
+
+4. Replication of exchanges, queues, bindings, or messages between servers.
+   All server-side state much be recreated by applications when they fail over.
+
+Terminology
+-----------
+
+Primary:
+    The primary server is the one that is normally 'master'.
+Backup:
+    The backup server is the one that is normally 'slave', it will become master
+    if and when the primary server disappears from the network, and when client
+    applications ask the backup server to connect.
+Master:
+    The master server is the one of a failover pair that accepts client
+    connections.  There is always exactly one master server.
+Slave:
+    The slave server is the one that takes over if the master disappers.  Note 
+    that when a failover pair is running normally, the primary server is master, 
+    and the backup is slave.  When a failover has happened, the roles are 
+    switched.
+Peering:
+    A peering is the relationship between two servers.  A failover pair uses
+    two peerings, one in each direction.
+    
+Failover configuration
+======================
+
+We designed the failover mechanism to be simple to configure and use. You can
+configure failover either from the command line or from a configuration file.
+
+To configure a failover pair, you need to:
+
+ 1. Tell the primary server where the backup server is.
+ 2. Tell the backup server where the primary server is.
+ 3. Optionally, tune the failover response times.
+ 
+You can configure the failover pair using these command line options:
+ 
+    --backup                Failover backup host:port, OR
+    --primary               Failover primary host:port
+    --failover_timeout      Failover timeout, in msecs
+    --failover_monitor      Failover monitor, in msecs
+
+Or, you can set these properties in the amq_server.cfg file for each server:
+
+    amq_server.cfg for the primary server:
+    ------------------------------------------------------------------------
+    <?xml?>
+    <config>
+        <failover
+            backup = "backup-host:port"
+            timeout = "msec value"
+            monitor = "msec value"
+            />
+        />
+        
+    amq_server.cfg for the backup server:
+    ------------------------------------------------------------------------
+    <?xml?>
+    <config>
+        <failover
+            primary = "primary-host:port"
+            timeout = "msec value"
+            monitor = "msec value"
+            />
+        />
+        
+Notes:
+
+ - Do not mix 'primary' and 'backup' settings, or the results will be bogus.
+ - Use the same timeout and monitor settings on both servers, otherwise client
+   applications may fail to failover properly.
+
+/config/failover/backup:
+    Used when running the primary server, specifies the failover backup 
+    server for the high-availability pair. Use the internet name of the 
+    backup server as 'host' or 'host:port' if it is not running on port 
+    5672. Do not specify this option together with the 'primary' option.
+    Default value is ''
+/config/failover/primary:
+    Used when running the backup server, specifies the failover primary 
+    server for the high-availability pair. Use the internet name of the 
+    primary server as 'host' or 'host:port' if it is not running on port
+    5672. Do not specify this option together with the 'backup' option. 
+    Default value is ''
+/config/failover/failover_timeout:
+    Specifies the delay in seconds after which the backup peer will become 
+    the primary peer. This switch over will happen only if and when an     
+    application connects to the backup peer after the failover timeout has 
+    expired. Reducing this value will allow failover to happen faster but  
+    will increase the risk of unnecessary failover due to transient network
+    issues.                                                                
+    Default value is 1.
+/config/failover/failover_monitor:
+    Specifies the interval at which the server will check that its peer is
+    still alive. Reducing this value will allow failover to happen faster 
+    but will create extra traffic between the servers.                    
+    Default value is 1.
 
 Simple example
 ==============
 
-This failover.pal program demonstrates failover:
+This PAL program demonstrates failover:
 
+    failover.pal:
+    ------------------------------------------------------------------------
     <?xml?>
     <!-- 
         Demonstration of failover
-        This script connects to a high-availability pair and sends messages to
-        itself.  It runs in a loop, and reports the status of the failover pair.
+        This script connects to a high-availability pair and reports the 
+        current status of the failover pair.
         -->
     <pal script = "amq_pal_gen"5
         <session server = "localhost:5555 localhost:6666" failover = "5000">
@@ -664,7 +1106,6 @@ follows, in two separate windows:
     amq_server --port 5555 --backup localhost:6666
     amq_server --port 6666 --primary localhost:5555
 
-
 We demonstrate failover by starting the 'failover' test program and then killing
 the primary server:
 
@@ -677,292 +1118,747 @@ the primary server:
 Client-side support
 ===================
 
-WireAPI does not at present include failover support. This will be added in a
-future release. For now, applications need to implement failover themselves in
-the following manner (this is taken from the PAL framework, which implements
-failover):
+The current WireAPI implementation does not hide failover semantics, and any
+application that needs to use this must have some explicit functionality:
 
- - detect a failed connection, which is indicated by the connection>alive
-   property being false, and the connection->reply_code being 100.
- - wait for some short interval (for example, five seconds).
- - reconnect to the failover server.
+1. Client applications need to know both failover server addresses, usually
+   best taken from configuration data.
+
+2. Client applications must try to connect to the primary server, and if that 
+   fails, to the backup server.
+   
+3. Client applications should retry this connection at least twice, and
+   with a delay between retries.  The delay should be equal to or greater than
+   the sum of the server's failover timeout and monitor settings.
+
+4. Client applications should be able to recreate all exchanges, queues, and
+   bindings when (re)connecting to a server.
+   
+5. Client applications should be able to retransmit messages lost during a
+   failover, if messages need to be reliable.
+   
+We hope to be able to fully support these semantics in a future WireAPI version.
+If you urgently need such functionality, contact us.
+
+To detect failover, client applications must (this is taken from the PAL
+framework for scripting OpenAMQ test applications, which implements failover):
+
+ - Detect a failed connection, indicated by the connection>alive property being 
+   false, and the connection->reply_code being 100.
+ - Wait for some short interval (for example, five seconds).
+ - Connect to the first available server.
  
 To do this properly, an application needs to know the primary and the backup
 servers. Typically it knows this by splitting the server name into two tokens.
 
-Here is an example C function that connects to the failover pair:
+Here is an example C program that demonstrates failover handling:
 
-//  We set these global variables
-static amq_client_connection_t *s_connection;
-static amq_client_session_t *s_session;
-
-static int s_establish_session (char *server_name)
-{
-    icl_longstr_t
-        *auth_data;                     //  Login authorisation
-    ipr_token_list_t
-        *host_list;                     //  List of known hosts
-    ipr_token_t
-        *token;                         //  Next host to try
+    /*===========================================================================
+        failover_test.c - demo of high-availability failover in C
+        
+        To run, start two OpenAMQ servers, one as primary on port 5672 and one
+        as backup on port 6666.  You can then stop and restart servers as you
+        like and this program will report the status of the failover pair.
+    
+        By iMatix Corporation, April 2008.  Code released into the public domain.
+     *===========================================================================*/
+    
+    #include "asl.h"
+    #include "amq_client_connection.h"
+    #include "amq_client_session.h"
+    
+    //  Establish or reestablish connection and session
+    static int s_establish_session (char *server_name);
+    
+    //  Static source-global variables
+    static amq_client_connection_t
+        *s_connection = NULL;               //  Current connection
+    static amq_client_session_t
+        *s_session = NULL;                  //  Current session
+    
     int
-        rc = 0;                         //  Return code
-
-    //  Both connection and session must be null when we start
-    assert (!s_connection && !s_session);
+    main (int argc, char *argv [])
+    {
+        int
+            status = -1;                    //  Show status changes only
+            
+        //  Initialise iCL system
+        icl_system_initialise (argc, argv);
     
-    //  Login using default guest credentials
-    auth_data = amq_client_connection_auth_plain ("guest", "guest");
-    
-    //  Split host name into tokens, and check we have one or two names
-    host_list = ipr_token_split (server_name);
-    assert (ipr_token_list_count (host_list) == 1 
-         || ipr_token_list_count (host_list) == 2);
-
-    token = ipr_token_list_first (host_list);
-    while (token) {
-        s_connection = amq_client_connection_new (
-            token->value, virtual_host, auth_data, instance_name, trace_level, 30000);
-        if (s_connection) {
-            ipr_token_unlink (&token);
-            break;
+        FOREVER {
+            if (s_establish_session ("localhost:5672 localhost:6666")) {
+                if (status != 0) {
+                    status = 0;
+                    puts ("Neither server is reachable at present");
+                }
+                apr_sleep (1000 * 1000);    //  Wait one second and retry
+            }
+            else
+            if (streq (s_connection->server_port, "5672")) {
+                if (status != 1) {
+                    puts ("Connected to primary server");
+                    status = 1;
+                }
+            }
+            else {
+                if (status != 2) {
+                    puts ("Now connected to backup server");
+                    status = 2;
+                }
+            }
+            //  Wait for something to happen on the session, if it's active
+            if (s_session)
+                amq_client_session_wait (s_session, 0);
+            //  Now check if the server disappeared (without an error)
+            if (s_connection && !s_connection->alive) {
+                if (s_connection->reply_code == 100) {
+                    puts ("W: connection to server was lost, failing over");
+                    amq_client_session_destroy (&s_session);
+                    amq_client_connection_destroy (&s_connection);
+                }
+                else {
+                    if (s_session)
+                        printf ("E: %d - %s\n", s_session->reply_code, s_session->reply_text);
+                    else
+                        printf ("E: %d - %s\n", s_connection->reply_code, s_connection->reply_text);
+                    break;                      //  Exit if we got a real error
+                }
+            }
         }
-        token = ipr_token_list_next (&token);
-    }
-    ipr_token_list_destroy (&host_list);
-    icl_longstr_destroy (&auth_data);
-
-    if (s_connection) {
-        s_connection->silent = TRUE;
-        s_get_connection_symbols ();
-        s_session = amq_client_session_new (s_connection);
-        if (s_session) {
-            s_session->silent = TRUE;
-            s_start_time = apr_time_now ();     //  Restart the clock
-        }
-        else {
-            icl_console_print ("E: could not open session to server");
-            rc = -1;
-        }
-    }
-    else {
-        icl_console_print ("E: could not connect to %s", server_name);
-        rc = -1;
-    }
-    return (rc);
-}
-
-static int
-s_connection_failed (void)
-{
-    if (s_connection && !s_connection->alive && s_connection->reply_code == 100)
-        return (1);
-    else
-        return (0);
-}
-
-    //  Try once more to connect to all listed servers
-    exit_failover_1:
-        icl_console_print ("W: connection to server was lost, failing over");
+        //  Clean up and exit
         amq_client_session_destroy (&s_session);
         amq_client_connection_destroy (&s_connection);
-        apr_sleep (1000 * 1000);
-        continue;                  //  Start session once again
+        icl_system_terminate ();
+        return (0);
+    }
+    
+    //  Establish connection and session
+    //
+    static int s_establish_session (char *server_name)
+    {
+        icl_longstr_t
+            *auth_data;                     //  Login authorisation
+        ipr_token_list_t
+            *host_list;                     //  List of known hosts
+        ipr_token_t
+            *token;                         //  Next host to try
+        int
+            rc = 0;                         //  Return code
+    
+        //  Both connection and session must be null when we start
+        assert (!s_connection && !s_session);
+        
+        //  Login using default guest credentials
+        auth_data = amq_client_connection_auth_plain ("guest", "guest");
+        
+        //  Split host name into tokens, and check we have one or two names
+        host_list = ipr_token_split (server_name);
+        assert (ipr_token_list_count (host_list) == 1 
+             || ipr_token_list_count (host_list) == 2);
+    
+        token = ipr_token_list_first (host_list);
+        while (token) {
+            s_connection = amq_client_connection_new (
+                token->value, "/", auth_data, "failover test", 0, 30000);
+            if (s_connection) {
+                ipr_token_unlink (&token);
+                break;
+            }
+            token = ipr_token_list_next (&token);
+        }
+        ipr_token_list_destroy (&host_list);
+        icl_longstr_destroy (&auth_data);
+    
+        if (s_connection) {
+            s_session = amq_client_session_new (s_connection);
+            if (!s_session) {
+                puts ("E: could not open session to server");
+                rc = -1;
+            }
+        }
+        else
+            rc = -1;
+    
+        return (rc);
+    }
 
+Known limitations
+=================
 
-Failover configuration
-======================
+In the current OpenAMQ product, federation and failover do not work together.
+That is, you can use failover to create a high-availability server pair for a
+set of applications, or you can use federation to create a wide-area network of
+servers for distributed applications, but you cannot make federations out of
+high-availability pairs. This limitation, which affects only the very largest
+deployments, is scheduled to be resolved in a near future release. If you need
+this feature urgently, please contact us.
 
+Other limitations:
+
+ - A server process cannot be part of more than one failover pair.
+ - A primary server can have a single backup server, no more.
+ - The backup server cannot do useful work while in slave mode.
+ - The backup server must be capable of handling full application loads.
+ - Failover configuration cannot be modified at runtime.
+ - Client applications must do some work to benefit from failover.
+ 
 Debugging failover
 ==================
 
-Workled examples
-================
+If you use a failover pair, you should test it.  To do this, start it as normal
+and then simulate various faults:
+
+ - Unplug one or both server systems from the network
+ - Kill one or both of the server processes and restart one or both of them
+ 
+OpenAMQ prints a summary of its failover status to the console.  If you need to
+get more information, run the server with this option:
+
+    amq_server ... --debug_peering 1 ...
+    
+This will show more verbose messages for what is happening between the two
+servers. Use this option if you are capturing output to send to iMatix for
+technical support.
 
 Tuning failover
 ===============
 
+The main tuning concern is how frequently you want the servers to check their
+peering status, and how quickly you want to activate failover.  You tune using
+two settings:
 
-Application support
-===================
+ 1. The failover monitor value.  This defaults to 1 second (1000 milliseconds).
+    If you reduce this, the backup server will detect a failed primary server
+    faster, but it will create more network traffic.  You should be able to 
+    reduce this to 100msec if you need very responsive failover.
+    
+ 2. The failover timeout.  This defaults to 1 second (1000 milliseconds).
+    If you reduce this, the backup server will take over as master more rapidly
+    but may take over in cases where the primary server could recover.  You may
+    for example have wrapped the primary server in a shell script that restarts
+    it if it crashes.  In that case the timeout should be higher than the time
+    to restart the primary server.
 
-For HA clustering to work, applications must connect to first the primary
-server, and if that fails, the backup server. Applications must use the correct
-order (primary, then secondary).
-
-Note that full HA support may be added at a later stage to WireAPI clients.
-
-Cookbook
-========
-
-We take two servers, running on the same or different systems. One server is the
-primary, one is the backup. When the cluster starts, the primary is master and
-the backup is slave. If the primary dies, the backup takes over the role of
-master. If the primary comes back, it remains slave. To reset the cluster,
-restart the backup.
-
-HA Configuration
-================
-
-You can share the same configuration for both servers by specifying the key
-options on the command-line.  In amq_server.cfg, add this section:
-
-    <cluster
-        vhost = "/"
-        primary_peer = "localhost:5555"
-        backup_peer = "localhost:6666"
-    />
-
-Then start the two servers as follows (you can use any legal values for the
-port numbers):
-
-    amq_server --port 5555 --is_primary 1
-    amq_server --port 6666 --is_backup 1
-
-Alternatively you can use two separate configuration files, with the primary
-server using this:
-
-    <cluster
-        vhost = "/"
-        is_primary = "1"
-        backup_peer = "localhost:6666"
-    />
-
-And the backup server using this:
-
-    <cluster
-        vhost = "/"
-        is_backup = "1"
-        primary_peer = "localhost:5555"
-    />
-
-Virtual host setting
-====================
-
-The virtual host (vhost) setting is used to ensure that connecting applications
-are using the correct cluster. This value must match the value used by
-applications.  Use a setting that matches the environment, e.g. "debug" or 
-"test".
+The application behavior can also have an impact.  In general we recommend you
+stick with the defaults of one second monitor interval, and one second timeout,
+and in applications use a 3-second pause between reconnect attempts.
 
 Federation
 **********
 
-Federation lets you chain OpenAMQ servers together.  This solves certain
-problems of scaling, e.g. letting you define regional hubs that speak to a
-global central server.  Federation is especially useful in high-volume pub-sub
-scenarios.
+Using federation
+================
 
-Cookbook
-========
+General
+-------
 
-We connect an exchange on one server (or HA pair of servers) to the matching
-exchange on a remote server (or HA pair of servers).
+OpenAMQ's federation model lets architects build networks of OpenAMQ servers
+that implement specific kinds of message flows corresponding to the main types
+of work we do with OpenAMQ networks.  The two main reasons for using federation
+are:
 
-The local exchange either sends messages to the remote exchange, or subscribes
-to messages from it.
+ 1. To build very high-performance pub-sub architectures, for market-data and 
+    other scenarios with high volumes of data going to very many subscribers.
+    
+ 2. To partition a large network geographically, e.g. between central and 
+    regional offices, for technical and network management reasons.
 
-There are four message transfer modes:
+We always federate two exchanges in a client-server fashion. That is, the
+exchange on one server is "attached" to the identically-named exchange on
+another server. Generally these servers have an asymetric parent-child
+relationship (e.g. a central parent and regional children) and the attachment is
+done in one direction only.
 
-1. Subscriber forwarding - the local exchange requests messages from the remote
-   exchange.
-2. Full forwarding - the local exchange forwards all messages to the remote
-   exchange.
-3. Default forwarding - the local exchange forwards only unmatched messages to
-   the remote exchange.
-4. Bidirectional forwarding - the local exchange forwards to the remote 
-   exchange, and vice versa.
+The federation model is designed mainly to allow clients applications that speak
+to a particular child server to:
 
-Subscription forwarding
-=======================
+ - Subscribe to data published on a parent server, and receive this data;
+ - Send requests to services hosted on a parent server, and receive responses.
+  
+Scenarios
+---------
+   
+ - A regional location is connected to a central location by a slow satellite
+   link.  The regional applications need to access market data and business
+   services that are provided centrally.  Traffic across the satellite link
+   must be optimised so that messages to multiple subscribes are sent only
+   once across the link.
 
-The classic scenario is when local applications want to receive topic data
-published centrally.
+ - A customer requires a message broker installed at their location so that
+   local applications can interoperate; these applications also subscribe
+   to data feeds from a central server.
 
-The configuration looks like this:
+Federation models
+-----------------
 
-    <federation
-        name = "exchange-name"
-        vhost = "virtual-host-name"
-        host = "remotehost:port"
-        login = "peering"
-        mode = "1"
-    />
+These are a number of plausible network architectures, in which each node in the
+network is a failover pair (note: federation of failover pais is currently not
+supported by OpenAMQ but will be in a future release) or a single stand-alone
+server:
 
-All bindings made to the specified exchange are copied to the specified remote
-host exchange.
+1. A star network, with a single central node and many distributed nodes.
+   This would typically be used to send information from a central point to
+   regional networks, each serving a set of local applications and users.
 
-Most often used with topic or headers exchanges.
+2. A tree network, with one top-level node, a small number of second-level
+   nodes, and more nodes connected to these, in a tree hierarchy.  This
+   would typically be used to create extremely-high volume data publishing
+   networks (capable of delivering many millions of messages per second).
 
-Worked example:
+3. A loose network, with ad-hoc relationships between nodes organised at
+   regional, national, and global levels.  This would typically be used for
+   real-life global organisations with diverse information streams, each
+   involving a set of nodes.
+   
+How it works
+============
 
- - A set of clients in a regional office need to get market data from a
-   central server.
+Exchange federation
+-------------------
 
- - The configuration is done entirely at the regional office by defining an
-   MTA that connects the market data exchanges on both servers.
+From the operator point of view, there are two levels of federation:
 
- - When data is published centrally, any messages that match requests from
-   the regional applications are forwarded to the regional server.
+ - Federate the whole server (using the --attach option)
+ - Federate individual exchanges (using per-exchange configuration)
+  
+"Whole server" federation is actually done by federating a specific set of
+exchanges, so it is worth understanding exchange federation, as this is the
+building block.
 
-Full message forwarding
-=======================
+One exchange may be federated to the identically-named exchange on a parent
+server. You can, in a single server, federate various exchanges to different
+parent servers. We don't recommend this for beginners, it gets complex and
+invites error.
 
-The classic scenario is when local applications want to publish data both to
-local clients and remote ones.
+Federation types
+----------------
 
-The configuration looks like this:
+There are several types of federation. These can be grouped into 'primitive'
+federation types that do one specific thing, and 'compound' federation types
+that do a more useful high-level job.  All federations work with a 'local'
+exchange and a 'remote' exchange on the parent server.
 
-    <federation
-        name = "exchange-name"
-        vhost = "virtual-host-name"
-        host = "remotehost:port"
-        login = "peering"
-        mode = "2"
-    />
+The primitive federation types are:
 
-All messages published to the local exchange are automatically published to the
-remote exchange as well.
+ - "subscriber" - used for publish-subscribe scenarios, to connect a set of 
+   subscribers on one server to a publisher on a parent server.
+ - "publisher" - used for remote scenarios, to forward all requests 
+   on one server to a service on a parent server.
+ - "locator" - used for service scenarios, to forward all requests on
+   one server to the local server if possible and the parent server if no 
+   local service was found.
+   
+Note that "subscriber", "publisher", "request", and "service" are not formal
+AMQP terms but rather common terms to describe familiar business messaging
+scenarios.  We'll explain in more detail how these federation types work later,
+in terms of AMQP semantics.
+   
+The compound federation types are:
 
-Most often used with topic or headers exchanges.
+ - "fanout" - used for publish-subscribe scenarios where publishers can be on
+   any node in a federation, not just the root node.  The fanout federation 
+   works by pushing all published messages to the root node, and fanning them
+   out again to all federation nodes.
+ - "service" - used for enterprise service bus (ESB) scenarios, where requests
+   are forwarded to the nearest service, and responses come back to the original
+   requestor.
 
-Default message forwarding
-==========================
+We'll explain in more detail how federations work. Remember that AMQP works with
+the concepts of exchanges, queues, and bindings: an exchange is a routing engine
+in the server; a queue holds messages destined for one or more applications, and
+bindings tell the server how to route messages from any given exchange to a set
+of queues. We use "command" and "message" as less technical names for the AMQP
+concepts of "method" and "content".
+   
+The subscriber federation type
+..............................
 
-The classic scenario is when local applications want to use services that could
-be either local, or remote.
+The subscriber federation replicates bindings made on one exchange to the same
+exchange on the parent server, so that messages are pulled down from it. Here is
+how the subscriber federation actually works:
 
-The configuration looks like this:
+ - The subscriber federation creates a private queue on the parent server, and 
+   consumes messages off that queue.
+ - It monitors the local exchange for queue.bind and queue.unbind commands.
+ - When it sees a queue.bind or queue.unbind command on the local exchange it
+   sends the same command to the remote exchange, binding or unbinding its 
+   private queue using the same arguments.  This effectively propagates all
+   local subscriptions to the remote server.
+ - The remote exchange will start delivering, into the private queue, messages 
+   that match the binding criteria.
+ - The subscriber federation collects these messages and re-publishes them on 
+   the local exchange, causing them to be re-distributed to all local queues  
+   that were bound with the same arguments.
 
-    <federation
-        name = "exchange-name"
-        vhost = "virtual-host-name"
-        host = "remotehost:port"
-        login = "peering"
-        mode = "3"
-    />
+If many applications bind to the same routing values, the subscriber federation
+still makes a single bind to the parent server. In this way, the traffic between
+the two servers is optimised.
 
-All messages published to the local exchange are automatically published to the
-remote exchange only if they are not delivered locally.
+This federation type is typically used on topic or header exchanges but can also
+make sense on a direct exchange.
 
-Most often used with direct exchanges so that services can be placed either
-locally or remotely, invisibly to the applications.
+The publisher federation type
+.............................
 
-Bidirectional forwarding
+The publisher federation routes all messages to the remote exchange. Here is how
+the publisher federation actually works:
+
+ - The publisher federation monitors the local exchange for basic.publish
+   commands.
+ - When it sees a basic.publish command, it forwards this to the remote 
+   exchange (in addition to routing the message to local queues).
+ - If the remote exchange returns a message as undeliverable, the publisher
+   federation gets this message, and then returns it back to the original client
+   application, if the application is still conencted.
+
+The publisher federation is typically used for direct exchanges.
+
+The locator federation type
+...........................
+
+The locator federation routes all messages to the remote exchange when the
+cannot not be routed successfully on the local exchange. This is used to "locate
+services" on a federated network. Here is how the locator federation actually
+works:
+
+ - The locator federation monitors the local exchange for basic.public commands.
+ - When it sees a basic.publish that could not be routed to one or more local
+   queues, it forwards the command to the remote exchange.
+ - If the remote exchange returns a message as undeliverable, the locator
+   federation gets this message, and then returns it back to the original client
+   application, if the application is still conencted.
+
+The locator federation is typically used for direct exchanges.
+
+The fanout federation type
+..........................
+
+The fanout federation combines the functionality of the publisher and the
+subscriber federations, more or less. It routes all published messages to the
+remote exchange and redistributes all deliveries from the parent to local
+applications.  In detail:
+
+ - The fanout federation monitors the local exchange for basic.publish
+   commands.
+ - When it sees a basic.publish command, it forwards this to the remote 
+   exchange, and does not route the message to local queues.
+ - If the remote exchange returns a message as undeliverable, the fanout
+   federation gets this message, and then returns it back to the original client
+   application, if the application is still conencted.
+ - The fanout federation creates a private queue on the parent server, and 
+   consumes messages off that queue.
+ - It monitors the local exchange for queue.bind and queue.unbind commands.
+ - When it sees a queue.bind or queue.unbind command on the local exchange it
+   sends the same command to the remote exchange, binding or unbinding its 
+   private queue using the same arguments.  This effectively propagates all
+   local subscriptions to the remote server.
+ - The remote exchange will start delivering, into the private queue, messages 
+   that match the binding criteria.
+ - The fanout federation collects these messages and re-publishes them on 
+   the local exchange, causing them to be re-distributed to all local queues  
+   that were bound with the same arguments.
+
+If many applications bind to the same routing values, the fanout federation
+still makes a single bind to the parent server. In this way, the traffic between
+the two servers is optimised.
+
+The fanout federation type is the default federation type for topic or header 
+exchanges, when federation is enabled for the exchange.  
+
+The service federation type
+...........................
+ 
+The fanout federation combines the functionality of the locator and the
+subscriber federations, more or less. It routes requests to the nearest service
+and routes responses back to the original requesting application. In detail:
+
+ - The service federation monitors the local exchange for basic.public commands.
+ - When it sees a basic.publish that could not be routed to one or more local
+   queues, it forwards the command to the remote exchange.
+ - If the remote exchange returns a message as undeliverable, the service
+   federation gets this message, and then returns it back to the original client
+   application, if the application is still conencted.
+ - The service federation creates a private queue on the parent server, and 
+   consumes messages off that queue.
+ - It monitors the local exchange for queue.bind and queue.unbind commands.
+ - When it sees a queue.bind or queue.unbind command on the local exchange it
+   sends the same command to the remote exchange, binding or unbinding its 
+   private queue using the same arguments.  This effectively propagates all
+   local subscriptions to the remote server.
+ - The remote exchange will start delivering, into the private queue, messages 
+   that match the binding criteria.
+ - The service federation collects these messages and re-publishes them on 
+   the local exchange, causing them to be re-distributed to all local queues  
+   that were bound with the same arguments.
+
+The service federation type is the default federation type for direct exchanges,
+when federation is enabled for the exchange.
+
+Peering
+-------
+
+Internally, federation is implemented using 'peerings', server objects that
+maintain connections between pairs of servers.  Peerings are also used in 
+failover.  Peerings are invisible to applications, so you don't need to manage
+them in any way.  However they have some relevance to using federation:
+
+ - Peerings are able to detect absent or disappeared peers, and automatically
+   reconnect when possible.  This means you do not need to synchronise server
+   startup in a federated network.  Each server can start and stop independently
+   and all peerings to and from it will automatically reconnect when they can.
+ - To debug federation you may need to debug peerings, using the --debug-peering
+   option.
+ - Currently, peerings cannot be made to failover pairs, and thus it is not 
+   possible to attach to a failover pair.
+ 
+Federation configuration
 ========================
 
-Bidirectional mode (4) passes messages on particular exchange from in both
-directions. You cannot achieve this behaviour by combining modes 1 and 2 as
-every message would be circulated endlessly between the two servers. However,
-note that this mode is not particularly efficient. For best performance create
-two exchanges instead of a single one and pass messages only in appropriate
-directions.
+Configuring federation is easy for the majority of work, and can be highly 
+customised for specific kinds of work.  OpenAMQ offers a range of options:
 
-The configuration looks like this:
+ - You can choose automatic ESB federation, which supports 90% of scenarios
+   using a set of pre-defined exchanges that are federated in the "right" way.
+   
+ - You can choose bulk federation in which all exchanges except internal ones
+   are federated to a single parent server.  There are various ways to fine-tune
+   this.
+   
+ - You can chose manual federation in which you can federate individual
+   exchanges exactly as you need to.
 
-    <federation
-        name = "exchange-name"
-        vhost = "virtual-host-name"
-        host = "remotehost:port"
-        login = "peering"
-        mode = "3"
-    />
+Automatic ESB federation
+------------------------
+
+The automatic ESB (enterprise service bus) federation option federates three
+specific exchanges, in a way that provides your applications an instant and easy
+ESB.  These exchanges are:
+
+ - amq.service (a direct exchange) is connected with a service federation to
+   the parent server.  You can use amq.service for all request-response work.
+ - amq.data (a topic exchange) is connected with a fanout federation to the 
+   parent server.  You can use amq.data for all pub/sub work that uses topic
+   routing.
+ - amq.dataex (a header exchange) is connected with a fanout federation to the 
+   parent server.  You can use amq.dataex for all pub/sub work that uses header
+   routing.
+
+As with all federation, automatic ESB federation is done by configuring the
+child server - the parent sees nothing except one more client application.  To
+enable automatic ESB federation, run the server with the '--attach' option as
+follows:
+
+    amq_server --attach hostname[:port]
+   
+By default this will use the "/" virtual host and the "peering" credentials.  To
+use different values, use these options:
+
+    --attach_vhost /vhostpath
+    --attach_login userlogin
+
+Or, you can set these options in the amq_server.cfg file for the child server:
+
+    amq_server.cfg:
+    ------------------------------------------------------------------------
+    <?xml?>
+    <config>
+        <failover
+            attach = "hostname[:port]"
+            attach_vhost = "path"
+            attach_login = "userid"
+            />
+        />
+        
+/config/federation/attach:
+    If specified, the server will auto-federate to the specified parent    
+    OpenAMQ server. This federates three exchanges: amq.service (a direct  
+    exchange) using a service federation; amq.data (a topic exchange) using
+    a fanout federation; and amq.dataex (a headers exchange) using a fanout
+    exchange. This gives you an instant enterprise service bus (ESB) based 
+    on a spoke-and-hub model. You can fine-tune auto-federation using the  
+    --attach-login and --attach-vhost options.                             
+    Default value is ''
+
+/config/federation/attach_vhost:
+    Specifies the auto-federation vhost name, an arbitrary string that will
+    be used when connecting to the parent server. This must match the vhost
+    setting of the parent server.                                          
+    Default value is '/'
+
+/config/federation/attach_login:
+    Specifies the user name to be used when logging in. You do not need to
+    specify a password, it is taken from the security section.            
+    Default value is 'peering'
+
+Note that automatic ESB federation is always enabled if the --attach option is
+set on the command line or in the configuration file.  If you want to attach
+some exchanges but explicitly not attach the three ESB exchanges, you can do
+this using manual federation.
+    
+Bulk federation
+---------------
+
+The bulk federation option federates a set of exchanges that you specify using a
+wildcard.
+
+As with all federation, bulk federation is done by configuring the child server
+- the parent sees nothing except one more client application. To use bulk
+federation, run the server as follows:
+
+    amq_server --attach hostname[:port] --attach_all "pattern"
+
+For example:
+
+    amq_server --attach localhost:5673 --attach_all "amq.*"
+
+You can use the default, or explicitly set the virtual host and peering login
+credentials as for automatic ESB federation.
+
+To set these options in the amq_server.cfg file for the child server:
+
+    amq_server.cfg:
+    ------------------------------------------------------------------------
+    <?xml?>
+    <config>
+        <failover
+            attach = "hostname[:port]"
+            attach_all = "pattern"
+            attach_vhost = "path"
+            attach_login = "userid"
+            />
+        />
+        
+/config/federation/attach_all:
+    If set, the server will auto-federate all exchanges that match the      
+    specified pattern which can include * and ? to mean zero or more, or a  
+    single arbitrary character. You can use naming conventions to federate  
+    specific groups of exchanges. Put quotes around wildcards to avoid shell
+    expansion.                                                              
+    Default value is ''
+
+Manual federation
+-----------------
+
+With manual federation you explicitly configure the federation for each exchange
+that you want to federate.  To do this you must use a configuration file, it is
+not possible to do manual federation from the command line:
+
+    amq_server.cfg:
+    ------------------------------------------------------------------------
+    <?xml?>
+    <config>
+        <federate
+            exchange = "pattern
+          [ attach = "hostname" ]
+          [ vhost = "path" ]
+          [ login = "userid" ]
+          [ type = "exchange-type" ]
+            />
+
+You can define as many <federate> entries as you like.  The properties for each
+one work as follows:
+
+ * The exchange pattern is an exchange name or a wild card, following the same
+   rules as the --attach_all option.
+ * The hostname is the server to attach to. This is an optional property - if
+   you do not specify it, the --attach value is used.  If neither are set,
+   you'll get an error message and the server won't start.
+ * The vhost is the virtual host path to use.  This is an optional property - if
+   you do not specify it, the --attach_vhost value is used.  If neither are set,
+   the default "/" path will be used.
+ * The login is the userid to use to login on the parent server.  This is an 
+   optional property - if you do not specify it, the --attach_login value is 
+   used.  If neither are set, the default "peering" user id will be used.
+ * The type is the federation type, one of "service", "data", "subscriber", 
+   "publisher", or "locator.  This is an optional property, it defaults to
+   "service" for direct exchanges and "fanout" for all others.
+
+Login security
+--------------
+
+The child server needs to be able to connect and login to the parent server.
+This means it must provide a valid password. It takes the password from the
+<security> section of its own configuration file. So if to attach to a parent
+server, a child must login as "remote012" with the password "AW766", both the
+child and parent need to have the following identical user definition in their
+amq_server.cfg file:
+
+    amq_server.cfg:
+    ------------------------------------------------------------------------
+    <?xml?>
+    <config>
+        <security name = "plain">
+            ...
+            <user name = "remote012" password = "AW766" group = "super" />
+            ...
+        </security>
+    </config>
+
+Restrictions
+------------
+
+ - Internal, the default, and system exchanges cannot be federated.
+ - There are no restrictions on the number of federations.
+        
+Global routing keys
+===================
+
+In a typical federated application we see various types of message flow:
+
+ - Distribution of data from publishers at different points in the federation to
+   subscribers scattered around the federation.
+   
+ - Routing of service requests to service handlers sitting at different points
+   in the federation.
+   
+ - Routing of service responses back to their original requesting applications.
+ 
+The first two message flows do not need any specific application support but the
+last does.  Replies are generally sent back using the 'reply-to' property of the
+original requesting message.  If two applications have the same reply-to value,
+by accident, they will get each others' service responses in an unpredictable
+fashion.
+
+Thus, to make federated request-response work properly, applications must use
+global routing keys for the reply-to property.  This is not standardized by
+AMQP, and so we propose to reuse a standard from another domain, namely email:
+
+    queuename@hostname
+
+This must be formatted by the application for all private queues used to get
+service responses.  The application must:
+
+ - Receive the host name from somewhere, or use the connection hostname and port
+   combination.
+ - Create a temporary queue, allowing the server to produce the queue name, or
+   using another algorithm to get unique queue names.
+ - Bind the queue to the amq.service exchange (if this is being used for the 
+   request-response stream) using the routing key "queuename@hostname", where
+   queuename is the private queue name, and hostname is the host name.
+       
+Known limitations
+=================
+
+We assume that the connection between partitions is perhaps slow, but reliable.
+That is, we do not attempt to queue and forward messages in case of a network
+failure - messages will simply be dropped.  Applications that require reliable
+message transfer must implement end-to-end reliability.
+
+Federated publish-subscribe creates extra hops when the publisher and subscriber
+are both on a child server. In this case, messages are sent first to the parent,
+root server and from there back out to all child servers that need them. This is
+how we avoid delivering the same message more than once. However it creates
+extra latency. We would normally put important publishers on the root parent
+server.
+
+Debugging federation
+====================
+
+When you make a federation model, it is worth creating test programs to test the
+overall working of the network.  We will collect a set of test programs that can
+be used for testing federations.
+
+To debug peerings, use the --debug_peering 1 command line option. This will
+cause extra output on the console window, which is useful if you need to report
+a problem to iMatix.
 
