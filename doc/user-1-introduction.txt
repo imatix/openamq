@@ -11,14 +11,14 @@ end gdl
 What is OpenAMQ?
 ****************
 
-Messaging middleware
-====================
+Business messaging
+===================
 
-OpenAMQ is a messaging middleware product.  That is, it provides you with a
-framework on which to build distributed applications which communicate using
-messages.  Such distributed applications are sometimes called "loosely
-connected".  Typically the flow of messages is asynchronous.  That means that
-messages flow between parts of the overall application without an overall 
+OpenAMQ is a business messaging product. That is, it provides you with a
+framework on which to build distributed business applications which communicate
+using messages. Such distributed applications are sometimes called "loosely
+connected". Typically the flow of messages is asynchronous. That means that
+messages flow between parts of the overall application without an overall
 synchronizing or controlling logic.
 
 Asynchronous, loosely-coupled messaging is, as far as we know, the best way to
@@ -64,7 +64,8 @@ AMQP
 ====
 
 We (iMatix) developed AMQP in 2004-06 together with JPMorganChase in order to
-commoditize the messaging market.  AMQP is two things:
+commoditize the business messaging market, before handing it over to a more
+diverse work group. AMQP is two things:
 
  1. A standard semantic model for broker-based business messaging, called AMQ.
  2. A standard wire-level protocol to connect the pieces together.
@@ -75,7 +76,7 @@ OpenAMQ, the iMatix AMQP software, adds some further standard pieces:
  2. A standard API for remote administration, called CML.
  3. A standard model for joining brokers together in federation.
 
-These have not yet been adopted by the AMQP working group (probaby being too 
+These have not yet been adopted by the AMQP working group (being deceptively 
 simple and easy to implement) but enjoy some support from other AMQP vendors.
 
 AMQP has some really nice features that set it aside from, e.g. JMS or Stomp or 
@@ -96,23 +97,27 @@ AMQP could be faster, could be more reliable, could be simpler.  But it covers
 90% of the needs of business messaging well and it is being happily used by
 some of the largest businesses in the world.
 
-But these large businesses can pay for commercial messaging products.  The 
-point with OpenAMQ was to make something that could be used very widely, in
-areas where commercial messaging products would be too expensive and too 
-complex.
+But these large businesses can pay for commercial messaging products. The point
+of OpenAMQ was to make something that could be used more widely, in areas where
+commercial messaging products would be too expensive and too complex. Our
+ultimate goal for AMQP (and thus OpenAMQ) is to deliver a messaging bus for open
+source applications that need to, but until now could not, grow into the
+"loosely coupled" space due to the cost of commercial messaging and the lack of
+good open source products.
 
 The AMQ model
 =============
 
-Very briefly, AMQ is a wireable routing and queuing model that sits inside a
-server, and AMQP is the protocol that lets applications talk to such a server.
-AMQP applications manipulate "exchanges" which do routing, and "queues" which
-do queueing.  They "bind" queues to exchanges and "consume" from queues. And
-they "publish" messages to exchanges, so they flow to queues, and thence to 
-consumers.
+Very briefly, the "AMQ" part of "AMQP" is a dynamic routing and queuing model
+that sits inside a server, and AMQP is the protocol that lets client
+applications talk to such a server. AMQP applications manipulate "exchanges"
+which do routing, and "queues" which do queueing. They "bind" queues to
+exchanges and "consume" from queues. And they "publish" messages to exchanges,
+so they flow to queues, and thence to consumers.
 
-The AMQ model is unique in the messaging world but it is a very simple and
-elegant answer to the question "what should a messaging server actually do?"
+The AMQ model is unique in the messaging world but it is a simple and apparently
+accurate answer to the question "what should a business messaging server
+actually do?"
 
 The WireAPI interface
 =====================
@@ -124,15 +129,19 @@ languages, maintain code in different languages, and reuse designs made in one
 language, in another.
 
 With WireAPI, AMQP applications are more likely to survive the inevitable
-changes of programming language.
+changes of programming language.  More usefully, WireAPI protects AMQP users
+from being locked into specific suppliers due to every supplier providing a
+different API.
 
 WireAPI is simple to use and consistent, and follows the semantics of the AMQP
-protocol very closely, using the same names and parameters.  This is not really
-an accident - we designed AMQP as a "high level" protocol, making it look more 
-like an API than a wire-level encoding.
+protocol closely, using the same names and parameters. This is not really an
+accident - we designed AMQP as a "high level" protocol, making it look more like
+an API than a wire-level encoding.
 
-So for example to create a queue, AMQP uses a method called Queue.Declare.  In
-WireAPI, there is a corresponding function "amq_queue_declare".
+So for example to create a queue, AMQP uses a method called Queue.Declare with a
+number of fields. In WireAPI, there is a corresponding function
+"amq_queue_declare" with a number of arguments that match the AMQP Queue.Declare
+fields..
 
 Scales of deployment
 ====================
@@ -400,10 +409,11 @@ goes against modern network design, which is based on pushing intelligence to
 the edge of the network, and using many cheap boxes rather than centralizing
 intelligence on a few expensive ones.
 
-At iMatix we consider the AMQP network to be built from cheap, disposable
-message switches. These can be organized into high-availabilty pairs ("HA
-pairs"). These pairs can be federated together. Queues are transient and based
-in memory. Everything is cheap, simple, transient, and minimalistic.
+At iMatix we consider the AMQP network to be ideally built from cheap,
+disposable message switches. These can be organized into high-availabilty pairs
+("HA pairs") where needed. So a node is either one, or two AMQP servers. These
+nodes can be federated together. Queues are transient and based in memory.
+Everything is cheap, simple, transient, and minimalistic.
 
 Such networks, being simpler than classic messaging brokers, fail less often and
 this solves a large part of the reliabity issue. To get full reliability we put
@@ -421,14 +431,7 @@ and thus better), and needs no support from the server (which can then be
 simpler and more reliable). And it works with any AMQP network, no matter how
 large or how many servers are involved.
 
-For more information see http://wiki.openamq.org/package:switch-or-broker.
-
-The AMQP.com community
-**********************
-
-iMatix is the founder of the AMQP.com community, which it sponsors together with
-other AMQP vendors. AMQP.com is the place to go for all AMQP downloads, news,
-and discussions. See http://www.amqp.com.
+For more information see http://www.openamq.org/tutorial:switch-or-broker.
 
 Throughput testing
 ******************
