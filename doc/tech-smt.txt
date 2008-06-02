@@ -131,17 +131,17 @@ Features
 
 The major features of SMT are:
 
-- Provides a modeling language for multithreaded finite state machines,
-  based on the Libero "dialogue" model.
-- Provides a code generator to digest such models and a target that
-  produces ANSI C code compatible with the iMatix iCL architecture.
-- Includes a library that supports those executable models with a
-  multithreaded kernel.
+- Provides a modeling language for multithreaded finite state machines, based 
+  on the Libero "dialogue" model.
+- Provides a code generator to digest such models and a target that produces 
+  ANSI C code compatible with the iMatix iCL architecture.
+- Includes a library that supports those executable models with a multithreaded 
+  microkernel.
 - Includes support for asynchronous iCL classes.
 - Runs on Linux, Windows, and Solaris.
-- SMT kernel and applications can be compiled for single-threaded or
+- SMT kernel and applications can be compiled for single-threaded or 
   multithreaded operation.
-- In MT operation, can run on 1 or more OS threads, and maps the
+- In multithreaded operation, can run on 1 or more OS threads, and maps the 
   threadlets to OS threads.
 
 Worked Example
@@ -182,11 +182,11 @@ Here is the contents of the file smt_demo_trivial.smt:
                     <action name = "print done"/>
                 </event>
             </state>
-
+            
             <context>
                 int count;
             </context>
-    
+            
             <handler name = "thread init">
                 tcb->count = 0;
                 the_next_event = ok_event;
@@ -202,7 +202,7 @@ Here is the contents of the file smt_demo_trivial.smt:
                 else
                     the_next_event = done_event;
             </action>
-    
+            
             <action name = "print count value">
                 printf ("Value of count is %i\n", tcb->count);
             </action>
@@ -275,7 +275,7 @@ Here is the contents of the file smt_demo_trivial_main.c:
     #include "icl.h"
     #include "smt.h"
     #include "smt_demo_trivial.h"
-
+    
     int main (int argc, char *argv [])
     {
         smt_thread_t
@@ -317,11 +317,11 @@ smt_demo_trivial.h and smt_demo_trivial.c
 
     c smt_demo_trivial
     c -r libsmt.a smt_demo_trivial
-    
+
 compiles the generated C and places the object file in the library libsmt.a
 
     c -l smt_demo_trivial_main
-    
+
 compiles and links the main code.
 
     ./smt_demo_trivial_main
@@ -381,9 +381,9 @@ to represent in text, or in XML (as we do today).
 Libero
 ======
 
-The most popular tool based on this design was Hintjens' Libero tool
-(1991-present), which allowed developers to model their code in a text format,
-and converted this into state machines in about 20 different computer languages
+The most popular tool based on this design was Hintjens' Libero tool (1991 to
+present), which allowed developers to model their code in a text format, and
+converted this into state machines in about 20 different computer languages
 including such bizarre cases as PL/SQL and csh.
 
 Libero is documented on www.imatix.com and the background documents are worth
@@ -396,12 +396,10 @@ SMT's state machine model is derived from Libero's, with additional semantics to
 handle the needs of multithreading. The model remains based on the original
 State/Event/Action breakdown, in which:
 
-- a state represents a point of existence in the lifecycle of the
-  threadlet or program;
-- an event represents a possible exit from the state, moving to a next
-  state;
-- an action represents a unit of work done before moving to a next
-  state.
+- a state represents a point of existence in the lifecycle of the threadlet or 
+  program;
+- an event represents a possible exit from the state, moving to a next state;
+- an action represents a unit of work done before moving to a next state.
 
 States, events, and actions are named, and these names are used to produce
 source code that is readable (as far as needed). Actions are typically mapped to
@@ -416,8 +414,8 @@ It takes a developer new to state machines about 3 days to understand FSMs, and
 several weeks to become moderately good at designing these. The first barriers
 to understanding are:
 
-- the newness of event-driven design, in which actions are always the
-  result of an event, not part of a simple logic flow;
+- the newness of event-driven design, in which actions are always the result of 
+  an event, not part of a simple logic flow;
 - the lack of classic conditional logic;
 - the lack of classic subroutine concepts;
 - the lack of any object-oriented concepts.
@@ -437,11 +435,11 @@ There are some simple rules of thumb that help the developer keep to the
 straight path when writing SMT models (or Libero models; the problems are
 similar):
 
-- The model must be clear enough to explain to someone and close to the
-  level of detail that you would use when explaining to someone how your
-  program or class works.
-- The states are places you find yourself, the events are things that
-  happen, the actions are things you do.
+- The model must be clear enough to explain to someone and close to the level of
+  detail that you would use when explaining to someone how your program or class 
+  works.
+- The states are places you find yourself, the events are things that happen,
+  the actions are things you do.
 - Use long state names, longer action names, and shorter event names.
 - Use default states to compress your model where possible.
 - When you find yourself producing many internal events, consider using
@@ -471,23 +469,20 @@ Common problem symptoms
 
 Here are some ways that people commonly abuse Libero and SMT models:
 
-- An action that sets a single event unconditionally, rather than
-  producing an event that indicates the outcome of some action.  This
-  usually indicates that the author has confused the notion of state
-  with the notion of action.  By shunting to a specific state, the
-  author says 'I want to be in this state to do some specific work'.
-  Very rarely, this is a good way to simplify a model.  99% of times,
-  though, it is bad practice.  If you find yourself doing this,
-  change the model so you do the work in question as early as possible,
-  thus generating an event which you can handle neatly in the next
-  state.
+- An action that sets a single event unconditionally, rather than producing an 
+  event that indicates the outcome of some action.  This usually indicates that 
+  the author has confused the notion of state with the notion of action.  By
+  shunting to a specific state, the author says 'I want to be in this state to 
+  do some specific work'. Very rarely, this is a good way to simplify a model.  
+  99% of times, though, it is bad practice.  If you find yourself doing this,
+  change the model so you do the work in question as early as possible, thus 
+  generating an event which you can handle neatly in the next state.
 
-- Models that are broken into very many small states.  This usually
-  means that the designer has not understood exceptions.
+- Models that are broken into very many small states.  This usually means that 
+  the designer has not understood exceptions.
 
-- Models that use lots and lots of different event names.  This
-  usually means the designer is confusing the notion of event with the
-  notion of action.
+- Models that use lots and lots of different event names.  This usually means 
+  the designer is confusing the notion of event with the notion of action.
 
 Architecture
 ************
@@ -503,18 +498,18 @@ determine how the lower-level object is overlaid on the higher-level object.
 SMT use of threads
 ==================
 
-SMT can be built in two distinct fashions: single-threaded (ST) and
-multi-threaded (MT). Although the abstraction is unchanged, there are
-significant internal differences between an ST and an MT build.
+SMT can be built in two distinct fashions: ST (single-threaded) and MT
+(multi-threaded). Although the abstraction is unchanged, there are significant
+internal differences between an ST and an MT build.
 
 Single-threaded SMT
 -------------------
 
-When SMT is built in single-threaded mode, the entire program runs in a single
-thread. This means that there are no mutexes, read/write locks or any thread
-contention constructs. This has been the historical model of SMT and provides
-very good performance on a single-CPU machine. However it is incapable of
-benefiting from the improved performance that multiple CPUs can provide.
+When SMT is built in ST mode, the entire program runs in a single thread. This
+means that there are no mutexes, read/write locks or any thread contention
+constructs. This has been the historical model of SMT and provides very good
+performance on a single-CPU machine. However it is incapable of benefiting from
+the improved performance that multiple CPUs can provide.
 
 In the ST build of SMT, the FSM can only operate when the calling program
 requests a wait for SMT events. The crucial function is smt_os_thread_wait,
@@ -682,9 +677,9 @@ actions have been performed.
 The correct way to deliver an event is to call the method:
 
     smt_thread_set_next_event (thread, event)
-    
+
 from within an action in the thread.  If an event is to be delivered from a
-different thread then it should be done via a method.
+different thread then it should be done via a m ethod.
 
 Methods
 -------
@@ -712,7 +707,7 @@ immediately to the action list corresponding the the exception event.
 To raise an exception, call the function:
 
     smt_thread_raise_exception (thread, event)
-    
+
 from withing an action in the thread.
 
 Exceptions can also be provoked from error results from function calls. This
@@ -888,15 +883,15 @@ attribute names are case-sensitive and we use only lower-case names.
 Detailed specifications
 =======================
 
-All child entities are optional and can occur zero or more times without
-any specific limits unless otherwise specified.  The same tag may occur
-at different levels with different meanings, and in such cases will be
-detailed more than once here.
+All child entities are optional and can occur zero or more times without any
+specific limits unless otherwise specified. The same tag may occur at different
+levels with different meanings, and in such cases will be detailed more than
+once here.
 
 The 'smt' item
 --------------
 
-An SMT agent.
+Defines an SMT agent.
 
     <agent
         script = "smt_gen.gsl"
@@ -1012,7 +1007,6 @@ trace_size:
     Allows default trace size to be over-ridden in this agent. The trace_size
     attribute is optional.                                                   
 
-
 The 'option' item
 -----------------
 
@@ -1032,11 +1026,8 @@ name:
 value:
     The value for the option. The value attribute is required.
 
-
 The 'inherit' item
 ------------------
-
-
 
     <inherit
         name = "..."
@@ -1062,7 +1053,6 @@ parse: inherited in parser
 condition:
     Specifies a condition which must be TRUE for the inheritence to occur.
     The condition attribute is optional.                                  
-
 
 The 'include' item
 ------------------
@@ -1091,7 +1081,6 @@ Value: Meaning:
 0: File is not required
 1: File is required
 
-
 The 'import' item
 -----------------
 
@@ -1114,7 +1103,6 @@ condition:
 class:
     The name of the class imported. The class attribute is required.
 
-
 The 'private' item
 ------------------
 
@@ -1134,7 +1122,6 @@ Value: Meaning:
 types: The code is inserted before type definitions
 data: The code is inserted before data definitions
 functions: The code is inserted before function definitions
-
 
 The 'public' item
 -----------------
@@ -1156,7 +1143,6 @@ include: The code is inserted in each pass - for iCL class collections.
 types: The code is inserted before type definitions
 functions: The code is inserted before function definitions
 
-
 The 'agent context' item
 ------------------------
 
@@ -1172,11 +1158,10 @@ The agent context item has this single attribute:
 name:
     Context name. The name attribute is required.
 
-
 The 'agent handler' item
 ------------------------
 
-
+Defines a handler for a built-in event, at the agent level.
 
     <handler
       [ name = "agent init | agent term" ]
@@ -1190,14 +1175,14 @@ name:
     The name attribute is optional. It can take one of the following values:
 
 Value: Meaning:
-agent_init: 
-agent_term: 
-
+agent_init: invoked when the agent is initialised.
+agent_term: invoked when the agent is terminated.
 
 The 'argument' item
 -------------------
 
-
+Defines an argument for a handler, method, or message.  The arguments
+definitions define the interface exported to calling programs.
 
     <argument
         name = "..."
@@ -1207,11 +1192,12 @@ The 'argument' item
 The argument item can have these attributes:
 
 name:
-    The name attribute is required.
+    The name attribute is required.  Will be turned into a valid C variable
+    name.
 
 type:
-    The type attribute is required.
-
+    The type attribute is required.  This is a C type for the current SMT code
+    generation framework.
 
 The 'agent state' item
 ----------------------
@@ -1248,11 +1234,10 @@ Value: Meaning:
 name:
     The name attribute is required.
 
-
 The 'state handler' item
 ------------------------
 
-
+Defines a handler for a built-in event, at the state level.
 
     <handler
         name = "before state"
@@ -1264,13 +1249,12 @@ name:
     The name attribute is required. It can take one of the following values:
 
 Value: Meaning:
-before_state: 
-
+before_state: Invoked when entering the state.
 
 The 'agent state event' item
 ----------------------------
 
-
+Defines an event in the state:
 
     <event
         name = "..."
@@ -1287,11 +1271,10 @@ name:
 nextstate:
     The nextstate attribute is optional.
 
-
 The 'agent state action' item
 -----------------------------
 
-
+Defines an action for an event:
 
     <action
       [ name = "..." ]
@@ -1302,11 +1285,11 @@ The agent state action item has this single attribute:
 name:
     The name attribute is optional.
 
+The 'default' item
+------------------
 
-The 'other' item
-----------------
-
-
+Defines default handling for the state, i.e. for events that are not listed in
+the state:
 
     <default
       [ nextstate = "..." ]
@@ -1314,17 +1297,16 @@ The 'other' item
         <action>
     </default>
 
-The other item has this single attribute:
+The default item has this single attribute:
 
 nextstate:
     Defines a link to the 'nextstate' item with the corresponding 'name'
     attribute. The nextstate attribute is optional.                     
 
-
 The 'thread state action' item
 ------------------------------
 
-
+Defines an action for an event:
 
     <action
       [ name = "..." ]
@@ -1335,11 +1317,10 @@ The thread state action item has this single attribute:
 name:
     The name attribute is optional.
 
-
 The 'thread' item
 -----------------
 
-
+Defines a thread:
 
     <thread
         name = "..."
@@ -1395,7 +1376,8 @@ share:
 The 'thread context' item
 -------------------------
 
-
+Defines a context block, i.e. a structure that is created for each thread and 
+associated with it:
 
     <context
       [ name = "..." ]
@@ -1406,11 +1388,10 @@ The thread context item has this single attribute:
 name:
     The name attribute is optional.
 
-
 The 'thread handler' item
 -------------------------
 
-
+Defines a handler for a built-in event, at the thread level.
 
     <handler
         name = "thread new | thread init | thread destroy"
@@ -1424,10 +1405,9 @@ name:
     The name attribute is required. It can take one of the following values:
 
 Value: Meaning:
-thread_new: 
-thread_init: 
-thread_destroy: 
-
+thread_new: invoked when the thread is created.
+thread_init: invoked when the thread is initialized.
+thread_destroy: invoked when the thread is destroyed.
 
 The 'thread state' item
 -----------------------
@@ -1464,11 +1444,8 @@ Value: Meaning:
 name:
     The name attribute is required.
 
-
 The 'thread state event' item
 -----------------------------
-
-
 
     <event
         name = "..."
@@ -1486,11 +1463,8 @@ nextstate:
     Defines a link to the 'nextstate' item with the corresponding 'name'
     attribute. The nextstate attribute is optional.                     
 
-
 The 'thread action' item
 ------------------------
-
-
 
     <action
       [ name = "..." ]
@@ -1508,7 +1482,8 @@ name:
 The 'call' item
 ---------------
 
-
+Defines a call action, which stacks the current state and jumps to a new state
+with the optional event specified:
 
     <call
         state = "..."
@@ -1525,20 +1500,15 @@ event:
     Defines a link to the 'event' item with the corresponding 'name'
     attribute. The event attribute is optional.                     
 
-
 The 'return' item
 -----------------
 
-
+Returns to the parent state, with the event "return":
 
     <return>
 
-
-
 The 'agent event' item
 ----------------------
-
-
 
     <event
         name = "..."
@@ -1553,8 +1523,6 @@ name:
 The 'agent action' item
 -----------------------
 
-
-
     <action
       [ name = "..." ]
         >
@@ -1567,11 +1535,10 @@ The agent action item has this single attribute:
 name:
     The name attribute is optional.
 
-
 The 'catch' item
 ----------------
 
-
+Catches an exception:
 
     <catch
         event = "..."
@@ -1586,7 +1553,6 @@ error:
 event:
     Defines a link to the 'event' item with the corresponding 'name'
     attribute. The event attribute is required.                     
-
 
 The 'method' item
 -----------------
@@ -1622,7 +1588,6 @@ high: High priority
 
 message:
     The message attribute is optional.
-
 
 The 'possess' item
 ------------------

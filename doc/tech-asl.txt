@@ -315,7 +315,7 @@ generation of the client and server layers:
     <include filename = "demo_exchange.asl" />
     <include filename = "demo_queue.asl" />
     <include filename = "demo_basic.asl" />
-
+    
     <option name = "protocol_name"     value = "DEMO" />
     <option name = "protocol_port"     value = "7654" />
     <option name = "protocol_class"    value = "1" />
@@ -351,35 +351,35 @@ routing entities that direct messages into message queues.
     Exchanges match and distribute messages across queues.  Exchanges can be
     configured in the server or created at runtime.
     </doc>
-
+    
     <doc name = "grammar">
         exchange            = C:DECLARE S:DECLARE-OK
                             / C:DELETE  S:DELETE-OK
     </doc>
-
+    
     <chassis name = "server" implement = "MUST" />
     <chassis name = "client" implement = "MUST" />
-
+    
     <method name = "declare" synchronous = "1" index = "10">
     declare exchange, create if needed
     ... (method body ommitted for brevity)
     </method>
-
+    
     <method name = "declare-ok" synchronous = "1" index = "11">
     confirms an exchange declaration
     ... (method body ommitted for brevity)
     </method>
-
+    
     <method name = "delete" synchronous = "1" index = "20">
     delete an exchange
     ... (method body ommitted for brevity)
     </method>
-
+    
     <method name = "delete-ok" synchronous = "1" index = "21">
     confirm deletion of an exchange
     ... (method body ommitted for brevity)
     </method>
-
+    
     </class>
 
 The queue class
@@ -401,7 +401,7 @@ until they can be consumed by applications.
     or created at runtime.  Queues must be attached to at least one exchange
     in order to receive messages from publishers.
     </doc>
-
+    
     <doc name = "grammar">
         queue               = C:DECLARE  S:DECLARE-OK
                             / C:BIND     S:BIND-OK
@@ -409,49 +409,49 @@ until they can be consumed by applications.
                             / C:PURGE    S:PURGE-OK
                             / C:DELETE   S:DELETE-OK
     </doc>
-
+    
     <chassis name = "server" implement = "MUST" />
     <chassis name = "client" implement = "MUST" />
-
+    
     <method name = "declare" synchronous = "1" index = "10">
     declare queue, create if needed
     ... (method body ommitted for brevity)
     </method>
-
+    
     <method name = "declare-ok" synchronous = "1" index = "11">
     confirms a queue definition
     ... (method body ommitted for brevity)
     </method>
-
+    
     <method name = "bind" synchronous = "1" index = "20">
     bind queue to an exchange
     ... (method body ommitted for brevity)
     </method>
-
+    
     <method name = "bind-ok" synchronous = "1" index = "21">
     confirm bind successful
     ... (method body ommitted for brevity)
     </method>
-
+    
     <method name = "purge" synchronous = "1" index = "30">
     ... (method body ommitted for brevity)
     </method>
-
+    
     <method name = "purge-ok" synchronous = "1" index = "31">
     confirms a queue purge
     ... (method body ommitted for brevity)
     </method>
-
+    
     <method name = "delete" synchronous = "1" index = "40">
     delete a queue
     ... (method body ommitted for brevity)
     </method>
-
+    
     <method name = "delete-ok" synchronous = "1" index = "41">
     confirm deletion of a queue
     ... (method body ommitted for brevity)
     </method>
-
+    
     </class>
 
 Base specification for client chassis
@@ -1951,14 +1951,14 @@ you may find it more interesting to skip through to the next sections that
 detail the different frame types and their formats):
 
     protocol            = protocol-header*unit
-
+    
     protocol-header     = literal-ID protocol-id protocol-version
     literal-ID          = 4*CHAR                    ; "NAME"
     protocol-id         = 2*OCTET
     protocol-version    = 2*OCTET
-
+    
     unit                = method | oob-method | trace | heartbeat
-
+    
     method              = method-frame [ content ]
     method-frame        = %d1 frame-properties method-payload frame-end
     frame-properties    = channel payload-size
@@ -1991,7 +1991,7 @@ detail the different frame types and their formats):
     decimal-value       = decimals long-integer
     decimals            = OCTET
     frame-end           = %xCE
-
+    
     content             = %d2 content-header child-content*content-body
     content-header      = frame-properties header-payload frame-end
     header-payload      = content-class content-weight content-body-size
@@ -2004,18 +2004,18 @@ detail the different frame types and their formats):
     child-content       = content-weight*content
     content-body        = %d3 frame-properties body-payload frame-end
     body-payload        =*OCTET
-
+    
     oob-method          = oob-method-frame [ oob-content ]
     oob-method-frame    = %d4 frame-properties frame-end
     oob-content         = %d5 content-header oob-child-content
                          *oob-content-body
     oob-child-content   = content-weight*oob-content
     oob-content-body    = %d6 frame-properties frame-end
-
+    
     trace               = %d7 frame-flags %d0 payload-size trace-payload
                           frame-end
     trace-payload       =*OCTET
-
+    
     heartbeat           = %d8 frame-flags %d0 %d0 frame-end
 
 We use the Augmented BNF syntax defined in IETF RFC 2234. In summary,

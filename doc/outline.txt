@@ -1,5 +1,7 @@
 Internals
 
+www.imatix.com/pub? referenced in several places...
+
 testing federation
     - two brokers, parent and child
     subsciber test:

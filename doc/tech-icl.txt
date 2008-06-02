@@ -219,7 +219,7 @@ A class can refer to its own methods using the self_ prefix:
         $(selftype)
             *item;
         </local>
-
+        
         item = self_new ("Depaul", "New Street");
         self_destroy (&item);
     </method>
@@ -251,7 +251,7 @@ them in your class, with additional code:
         self->name    = icl_mem_strdup (name);
         self->address = icl_mem_strdup (address);
     </method>
-
+    
     <method name = "destroy">
         icl_mem_free (self->name);
         icl_mem_free (self->address);
@@ -347,7 +347,7 @@ elements:
     <public>
     ... definitions available to all users of the class
     </public>
-
+    
     <private>
     ... definitions used only by the class properties and methods
     </private>
@@ -816,11 +816,11 @@ conditional inclusion.
 Here is a prototypical project header file:
 
     /*  Comments and copyright                      */
-
+    
     /*  Hand-built header files                     */
     #include "header1.h"
     #include "header2.h"
-
+    
     /*  Public classes                              */
     #include "class1.h"
     #include "class2.h"
@@ -1147,7 +1147,6 @@ functions: for functions prototypes
 inline: for inline functions
 footer: issued at end of file
 
-
 The 'doc' item
 --------------
 
@@ -1164,7 +1163,6 @@ The doc item has this single attribute:
 domain:
     Allows documentation of different types to be included in the iCL
     definitions. The domain attribute is optional.                   
-
 
 The 'private' item
 ------------------
@@ -1243,7 +1241,6 @@ condition:
 class:
     The name of the class imported. The class attribute is required.
 
-
 The 'assert' item
 -----------------
 
@@ -1259,7 +1256,6 @@ role:
     The name of the class role being asserted. If no class is present 
     (inherited or current) with this role, the code generation process
     aborts. The role attribute is required.                           
-
 
 The 'method' item
 -----------------
@@ -1375,7 +1371,6 @@ trace:
     Specifies which trace object to use; default means global trace; 0 means
     no trace. The trace attribute is optional.                              
 
-
 The 'argument' item
 -------------------
 
@@ -1460,7 +1455,6 @@ default: inherited in the default manner
 before: inherited before existing items
 after: inherited after existing items
 
-
 The 'animate' item
 ------------------
 
@@ -1493,7 +1487,6 @@ format:
     The format string to output the variable. The format (eg '%s') for
     outputting the animated value. The format attribute is required.  
 
-
 The 'dismiss' item
 ------------------
 
@@ -1515,7 +1508,6 @@ argument:
 
 value:
     The calculated value of the argument. The value attribute is required.
-
 
 The 'declare' item
 ------------------
@@ -1561,7 +1553,6 @@ precond:
 animate:
     If set to 1, value is animated at start of method as well as end. The
     animate attribute is optional. Its default value is "0".             
-
 
 The 'local' item
 ----------------
@@ -1620,7 +1611,6 @@ none: may not be inherited
 default: inherited in the default manner
 before: inherited before existing items
 after: inherited after existing items
-
 
 The 'todo' item
 ---------------
