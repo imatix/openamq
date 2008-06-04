@@ -595,7 +595,8 @@ typedef int (amq_peering_return_fn) (
             self->auth_data,
             "Peering connection",       //  Instance name
             self->trace,
-            amq_server_config_setup_timeout (amq_server_config));
+            amq_server_config_setup_timeout (amq_server_config),
+            amq_server_config_debug_peering (amq_server_config));
 
     //  Peering monitor runs once per second
     smt_timer_request_delay (self->thread, 1000 * 1000, monitor_event);
