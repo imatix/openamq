@@ -46,8 +46,6 @@ PKGROOT=$WORKDIR/$(name:)-$(release:)
 
 echo "Checking product versions used for $(name:) $(release:)..."
 .  for product
-# product_rev=`svn ls -v -r $(rev:) $(url:)/project.pdl | \
-#     perl -ne '/^\\s*(\\d+)/ && print $1'` || croak
 product_ver=`svn cat -r $(rev:) $(url:)/project.pdl | perl -ne \
     '/<?xml.+version/ && next; /version\\s*=\\s*"([^"]+)"/ && print $1'` || croak
 echo "$(name:)\t$(rev:)\t$product_ver"
@@ -96,8 +94,8 @@ cat <<EOF >$PKGROOT/build.sh
 
 if [ -z "\\$IBASE" ]; then
     echo 'The IBASE environment variable is not defined.'
-    echo 'Set this to desired installation directory, e.g. $HOME/ibase.'
-    echo 'Then, add $IBASE/bin to your PATH for best results.'
+    echo 'Set this to desired installation directory, e.g. \\$HOME/ibase.'
+    echo 'Then, add \\$IBASE/bin to your PATH for best results.'
     exit 1
 fi
 
@@ -120,7 +118,7 @@ EOF
 cat <<EOF >>$PKGROOT/build.sh
 cd \$$(name:c)_version
 sh ./boomake build test install; 
-if [ $? != 0 ]; then
+if [ \\$? != 0 ]; then
     echo "E: Build of $(name) failed" 1>&2
     exit 1
 fi
