@@ -1,6 +1,6 @@
 <?xml?>
 <!--
-    Copyright (c) 2007 iMatix Corporation
+    Copyright (c) 2007-2008 iMatix Corporation
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 
 <pdl
     name      = "OpenAMQ Server"
-    version   = "1.2c4"
-    copyright = "Copyright (c) 2007 iMatix Corporation"
+    version   = "1.2d0"
+    copyright = "Copyright (c) 2007-2008 iMatix Corporation"
     workflow  = "standard.pwl"
     library   = "libamq_server"
     >

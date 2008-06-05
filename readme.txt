@@ -1,6 +1,6 @@
 OpenAMQ
 
-Copyright (c) 2007 iMatix Corporation
+Copyright (c) 2007-2008 iMatix Corporation
 
 This is the OpenAMQ source distribution, and consists of the following
 subdirectories:
@@ -21,7 +21,7 @@ applications, the final output of the code generation process from the
 the terms of the BSD license.  For the avoidance of doubt, please see
 the individual source files for copying conditions.
 
-Please see the 'index.html' file in the website subdirectory to get
+Please see the online documentation at http://www.openamq.org/ to get
 started.
 
 OpenAMQ is developed by iMatix Corporation.  For information and updates

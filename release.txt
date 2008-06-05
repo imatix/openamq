@@ -1,3 +1,105 @@
+1.2d0 - 2008/06/05
+---------------------------------------------------------------------
+
+Summary of changes:
+
+ * The configuration syntax for failover functionality (formerly
+   "cluster") has changed.  Please see
+   http://wiki.openamq.org/user:3-advanced#toc28 for details.
+
+ * New simplified semantics and automatic configuration for federation
+   functionality.  The configuration syntax (formerly "cluster_mta") has
+   changed.  Please see http://wiki.openamq.org/user:3-advanced#toc46 for
+   details.
+
+ * Stability and build fixes.
+
+Full list of fixes:
+
+ JAMQ-116    Assertion failure in C Client
+
+ JAMQ-113    Queue not deleted immediatly even when 'queue timeout' is set to zero
+
+ JAMQ-109    Intermitten latency as high as 30 seconds was observed in OpenAMQ
+
+  JAMQ-67    Fix some SMT errors
+
+   FOR-19    Cannot build on Mac OS/X
+
+BASE2-293    Make client layer error reporting more controllable
+
+BASE2-292    icl_smt.gsl does not expand variables in "async header" and
+             "async footer" <private> blocks
+
+BASE2-290    Add debugging support for config files
+
+BASE2-288    Remove unused 'name' field from server connection properties
+
+BASE2-287    Extend ASL contants class to include macros for soft/hard
+             errors
+
+BASE2-286    Change config file inheritence to allow entities without name
+             attribute
+
+BASE2-284    SMT gives warnings when compiled with G++
+
+BASE2-282    ASL: Correct timeout handling during connection setup/teardown
+
+BASE2-207    Implement native atomic operations for Linux/AMD64
+
+  BASE-58    OSX porting - smt dies horribly
+
+  AMQ-584    Improve logging/verbosity settings in amq_client_agent,
+             amq_peer_agent
+
+  AMQ-583    unsafe initialisation in amq_failover can cause asserts or bad
+             behaviour
+
+  AMQ-582    build.sh does not detect intermediate failures
+
+  AMQ-579    Change failover times to msec instead of sec
+
+  AMQ-578    Remove broker 'shake' command
+
+  AMQ-577    Remove the resources/max_memory_mb and resources/per_client
+             options
+
+  AMQ-576    Clarify use of vhost identifier
+
+  AMQ-575    Simplify federation semantics
+
+  AMQ-574    ASL: server sends connection.open-ok before executing
+             server_connection_open method
+
+  AMQ-573    HA timeout is hardcoded in code (10 seconds), should be
+             configurable
+
+  AMQ-571    Apply queue limits systematically to all queues
+
+  AMQ-570    Delete queues immediately if queue-timeout is set to zero
+
+  AMQ-569    Topic exchange should route same message to same queue no more
+             than one time
+
+  AMQ-567    Multiple instances of a single message delivered to the queue
+
+  AMQ-564    Reimplement MTA peering debugging
+
+  AMQ-563    Use 'exchange' in place of name for MTA configuration
+
+  AMQ-562    Use names instead of numbers for MTA modes
+
+  AMQ-561    Apply patch: --listen to set the address to listen on
+
+  AMQ-560    Routing key is lost when message passes MTA
+
+  AMQ-559    Headers exchange is not conformant with 0.9 spec for x-match
+
+  AMQ-550    Refactor server shutdown handling to close all connections
+             cleanly
+
+  AMQ-523    Match blank routing key with the # binding key
+
 1.2c4 - 2007/09/04
 ---------------------------------------------------------------------
 

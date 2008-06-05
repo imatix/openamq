@@ -1,6 +1,6 @@
 <?xml?>
 <!--
-    Copyright (c) 2007 iMatix Corporation
+    Copyright (c) 2007-2008 iMatix Corporation
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,10 +18,10 @@
 
 <pdl
     name      = "OpenAMQ Common"
-    version   = "1.2c4"
+    version   = "1.2d0"
     workflow  = "standard.pwl"
     library   = "libamq_common"
-    copyright = "Copyright (c) 2007 iMatix Corporation"
+    copyright = "Copyright (c) 2007-2008 iMatix Corporation"
     >
 
 <include filename = "prelude.pdl" />
