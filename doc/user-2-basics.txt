@@ -1,6 +1,6 @@
 gdl
-    title     = Basic use
-    subtitle  = Basic use of OpenAMQ
+    title     = Basic use of OpenAMQ
+    subtitle  = Download, build, and run
     product   = OpenAMQ
     author    = iMatix Corporation
     date      = 2008/04/12
@@ -8,14 +8,24 @@ gdl
     version   = 1.0
 end gdl
 
+Download, build, and run
+************************
+
+This document explains how to get OpenAMQ running on your system.  It explains
+how to download the software, how to unpack and build it (if you are using a
+source package), and how to run basic tests on the resulting software.
+
 Download the software
 *********************
 
 What is available
 =================
 
+Please read the News section on the http://www.openamq.org site for the latest
+available packages.  The OpenAMQ packages are named as follows:
+
  - OpenAMQ-x.xxx.tar.gz - source package for Unix, Linux and Mac OS/X.
- - OpenAMQ-x.xxx.zip - source package for Windows, requires MSVC++ 6.x or 
+ - OpenAMQ-x.xxx.zip - source package for Windows, requires MSVC++ 6.x or
    VS.NET 7.1.
 
 Download areas
@@ -23,9 +33,9 @@ Download areas
 
 Get your OpenAMQ from the following directories:
 
- - http://downloads.imatix.com/openamq/stable - stable production packages
- - http://downloads.imatix.com/openamq/unstable - older versions of OpenAMQ
- - http://downloads.imatix.com/openamq/historic - new unstable releases
+ - http://download.imatix.com/openamq/stable - stable production packages
+ - http://download.imatix.com/openamq/unstable - older versions of OpenAMQ
+ - http://download.imatix.com/openamq/previous - new unstable releases
 
 The legal stuff
 ***************
@@ -74,9 +84,9 @@ license:
     LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
     CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
     SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-    BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
-    WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE 
-    OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, 
+    BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+    WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+    OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
     EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 License for tools and addons
@@ -122,7 +132,7 @@ least permitted to relicense code that is owned by external contributors and
 other parties, we are free to choose the terms under which we license the code
 to our customers, or the open source community.
 
-We - like other innovative software companies - believe that dual licensing
+We - like many other innovative software companies - believe that dual licensing
 gives both developers and users the best of two worlds. While anyone is free to
 look at the code and even improve it, commercial licenses support the company
 and allow for professional maintenance and support. The open source community
@@ -138,8 +148,9 @@ AMQP is not patented technology. OpenAMQ is not patented technology. We think
 our technology is so good that it does not need the protection of patents. We
 think our company is good enough to compete in a free market. Indeed, we welcome
 competition and we want our users to have the fullest possible choice of AMQP
-suppliers. We also think software patents are a very bad thing for the software
-business and we support efforts to ban them in Europe and the United States.
+suppliers. We believe more generally that software patents are a bad thing for
+the software business, for open standards, and for customer, and we support
+efforts to ban them in Europe and the United States.
 
 Trademarks
 ==========
@@ -158,16 +169,16 @@ can redistribute the contribution under any license we choose. In order to be
 able to accept your contribution, we must therefore ask you to do one of two
 things:
 
- 1. Fill out the iMatix Corporation Copyright Assignment and License (CAL) and 
-    send it to iMatix Corporation. With the CAL, you give iMatix Corporation 
-    permission to use your contribution under licenses other than the main 
-    OpenAMQ license. This is a once-in-a-lifetime event: once we have your 
-    CAL, we will never again ask you to undergo any bureaucratic procedures, 
-    and all future contributions are covered.  See 
+ 1. Fill out the iMatix Corporation Copyright Assignment and License (CAL) and
+    send it to iMatix Corporation. With the CAL, you give iMatix Corporation
+    permission to use your contribution under licenses other than the main
+    OpenAMQ license. This is a once-in-a-lifetime event: once we have your
+    CAL, we will never again ask you to undergo any bureaucratic procedures,
+    and all future contributions are covered.  See
     http://www.imatix.com/copyright-assignment.
 
- 2. If you don't want to sign such an agreement, you can alternatively submit 
-    your contribution under the MIT license. This is a liberal, wide-spread 
+ 2. If you don't want to sign such an agreement, you can alternatively submit
+    your contribution under the MIT license. This is a liberal, wide-spread
     Open Source license that allows iMatix Corporation (and anyone else) to use
     your contribution in both open-source and closed-source projects.
     See http://en.wikipedia.org/wiki/MIT_License.
@@ -175,7 +186,7 @@ things:
 The main difference between the two options is this: with the CAL, a written
 statement is necessary, but then only iMatix Corporation is allowed to relicense
 your code (unless you give other people the same permission). With the MIT
-license, you save the paperwork, but everyone else can use your code as well.
+license, you save the paperwork, but everyone else can reuse your code as well.
 It's your choice.
 
 If you are an employee, then you must get approval from your employer to submit
@@ -187,10 +198,10 @@ Building from source
 Why build from source?
 ======================
 
-OpenAMQ may not be provided as a binary package on the operating system of your
-choice. Additionally, building from source lets you tune and customise your
-OpenAMQ software to get the best performance for your hardware, to get debug
-builds, and to enable other compile time options.
+OpenAMQ may not always be provided as a binary package on the operating system
+of your choice. Additionally, building from source lets you tune and customise
+your OpenAMQ software to get the best performance for your hardware, to get
+debug builds, and to enable other compile time options.
 
 Overview of the build process
 =============================
@@ -473,7 +484,7 @@ Build using Ant
 
 In order to build OpenAMQ/JMS you need:
 
- - Sun J2SE 5.0 JDK from http://java.sun.com/ 
+ - Sun J2SE 5.0 JDK from http://java.sun.com/
  - Apache Ant 1.7.0 or newer from http://ant.apache.org/
 
 To build ensure that Ant and your JDK are installed correctly and that the
@@ -485,7 +496,7 @@ Then, run the following:
     > ant
 
 This will build OpenAMQ/JMS and test classes, and leave the JAR files in the
-dist directory of the distribution.  
+dist directory of the distribution.
 
 To install the JAR files into an OpenAMQ IBASE, you can run:
 
@@ -501,10 +512,7 @@ For other useful targets, try:
 Testing OpenAMQ/JMS on Unix
 ---------------------------
 
-Scripts to run the examples are in the bin directory. 
-
-Service request test
-....................
+Scripts to run the examples are in the bin directory.
 
 The simplest test to ensure everything is working is the "service request reply"
 test. This involves one client that is known as a "service provider" and it
@@ -527,9 +535,6 @@ service requester:
 
 After receiving all the messages the client outputs the rate it achieved.
 
-Headers test
-............
-
 A more realistic example is the "headers test", which tests the performance of
 routing messages based on message headers to a configurable number of clients
 (e.g. 50). A publisher sends e.g. 10000 messages to each client and waits to
@@ -549,10 +554,7 @@ all the clients are registered with the broker.
 Testing OpenAMQ/JMS on Windows
 ------------------------------
 
-Scripts to run the examples are in the bin directory. 
-
-Service request test
-....................
+Scripts to run the examples are in the bin directory.
 
 The simplest test to ensure everything is working is the "service request reply"
 test. This involves one client that is known as a "service provider" and it
@@ -574,9 +576,6 @@ service requester:
     > bin\serviceRequestingClient host:post <message count> <message size in bytes>
 
 After receiving all the messages the client outputs the rate it achieved.
-
-Headers test
-............
 
 A more realistic example is the "headers test", which tests the performance of
 routing messages based on message headers to a configurable number of clients
@@ -679,7 +678,7 @@ Notes
  - The server can run in user mode and to open the AMQP port of 5672, does not
    need root access (root access is needed to run servers on port numbers lower
    than 4096).
-   
+
 On Windows systems
 ==================
 
@@ -755,7 +754,7 @@ OpenAMQ security
 General
 =======
 
-OpenAMQ/1.2 is designed for intranet use and does not provide encryption, secure
+OpenAMQ is designed for intranet use and does not provide encryption, secure
 authentication, or access controls. Applications login using plain text logins
 and passwords, using the SASL [http://www.faqs.org/rfcs/rfc2595.html: PLAIN
 mechanism].
@@ -775,11 +774,11 @@ file.
 
 amq_server defines two types of user:
 
- * Normal application logins, which can do all normal operations on the server.  
+ * Normal application logins, which can do all normal operations on the server.
    The default normal login is "guest", with password "guest".
 
- * Super-user logins, which can exceed configured limits and do updates via the 
-   [/admin.html:OpenAMQ Console].  The default super user login is "super", with 
+ * Super-user logins, which can exceed configured limits and do updates via the
+   [/admin.html:OpenAMQ Console].  The default super user login is "super", with
    password "super".
 
 Setting custom passwords
@@ -821,8 +820,8 @@ amq_server.cfg file:
 Notes
 =====
 
- - The amq_server.cfg file must be accessible to the amq_server executable when 
-   you start it. The simplest technique is to place the configuration file in 
+ - The amq_server.cfg file must be accessible to the amq_server executable when
+   you start it. The simplest technique is to place the configuration file in
    the directory where you run the server.  Alternatively you can place the
    configuration data on the path, e.g. together with the server binary.
 
@@ -833,7 +832,7 @@ Notes
    specify alternative configuration file names.
 
  - The current security model in OpenAMQ is intended for LAN use and to protect
-   against accidental access to the wrong server.  Future versions of OpenAMQ 
+   against accidental access to the wrong server.  Future versions of OpenAMQ
    will support more robust security mechanisms.  If you need this urgently,
    please contact us.
 

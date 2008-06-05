@@ -1,12 +1,19 @@
 gdl
     title     = Developer's Guide to MOP
-    subtitle  = Model-Oriented Programming
+    subtitle  = Model Oriented Programming
     product   = Base/2
     author    = iMatix Corporation <tools@imatix.com>
     date      = 2007/03/12
     copyright = Copyright (c) 2002-2007 iMatix Corporation
     version   = 5.0
 end gdl
+
+Model Oriented Programming
+**************************
+
+This is a technical guide for developers who wish to understand how the iMatix
+code generation frameworks are constructed.  This guide is not fully complete
+and lacks the advanced description of how to build codebots using XNF.
 
 Introduction
 ************
@@ -16,7 +23,7 @@ Summary
 
 This document is aimed at the professional programmer. I'm going to attack a
 complex subject, something that few people know about. It's a way of programming
-called "model-oriented programming". I'm not going to ask you to throw out your
+called "model oriented programming". I'm not going to ask you to throw out your
 programming languages or tools. MOP works as a layer on top of everything you
 know today. I am going to ask you to rethink what it means to "write a program",
 and to see that most of the code you write could be better written by robots,
@@ -182,14 +189,14 @@ modeling language into code? You need to solve four main problems:
   Good models like finite state machines and hierarchical documents took many
   clever people many years to invent and refine.
 
-* You need to define a language that lets people make such models. Again, 
-  getting this right is delicate. There are hundreds of ways to write state 
-  machines, just as there were hundreds of document markup languages before 
+* You need to define a language that lets people make such models. Again,
+  getting this right is delicate. There are hundreds of ways to write state
+  machines, just as there were hundreds of document markup languages before
   HTML, most being far too complex and thus useless.
 
 * You need to build a parser that can read this language, check it, turn it into
   internal structures, optimise those structures, etc. Needless to say, writing
-  parsers is not easy, there exist whole sets of tools just to solve this 
+  parsers is not easy, there exist whole sets of tools just to solve this
   problem.
 
 * You need to build a code generator that can take these internal structures and
@@ -200,7 +207,7 @@ modeling language into code? You need to solve four main problems:
 If you've ever studied how compilers work, it's much the same problem. What I'm
 talking about is building compilers for modeling languages.
 
-Model-oriented programming
+Model oriented programming
 **************************
 
 A real-world example
@@ -244,30 +251,30 @@ or six models we use. The upside is that they only have sixty thousand lines of
 code to read, not half a million.
 
 Let me take you through the main parts of our architecture, which we call
-"Model-Oriented Programming":
+"Model Oriented Programming":
 
 * The basic technology is GSL, a programming language that we use to build code
-  generators. Yes, you can write a web server in GSL, but that would be 
-  pointless. GSL is aimed very much at spitting out huge volumes of perfect 
-  code. GSL is an interpreter, it runs as a command, just like Perl or another 
+  generators. Yes, you can write a web server in GSL, but that would be
+  pointless. GSL is aimed very much at spitting out huge volumes of perfect
+  code. GSL is an interpreter, it runs as a command, just like Perl or another
   scripting language.
 
-* The second main technology is XML, which we did not invent of course, but 
+* The second main technology is XML, which we did not invent of course, but
   which we happily adopted in 1997, having spent several years designing our own
-  very similar meta-languages. We use XML in a simplistic way, to model data, 
-  not to do any kind of complex document manipulation. No stylesheets or 
+  very similar meta-languages. We use XML in a simplistic way, to model data,
+  not to do any kind of complex document manipulation. No stylesheets or
   namespaces, thus.
 
-* The third main technology is XNF, which is a tool for building model-driven 
-  code generators. We start to get meta here. XNF (for "XML Normal Form") lets 
-  you define the grammar of an XML-based modeling language. From that grammar 
-  XNF produces parsers and a framework into which you plug hand-written back-end 
+* The third main technology is XNF, which is a tool for building model-driven
+  code generators. We start to get meta here. XNF (for "XML Normal Form") lets
+  you define the grammar of an XML-based modeling language. From that grammar
+  XNF produces parsers and a framework into which you plug hand-written back-end
   code generators. XNF is a modeling language for code generators. XNF is the
   basis for all our complex modeling tools, including XNF itself.
 
 These tools are somewhat unusual. They are as far as I know, unique in their
 vision and what they deliver. The techniques of code generation are not well
-understood, and no teams have ever pushed these techniques as far as we have. 
+understood, and no teams have ever pushed these techniques as far as we have.
 It remains to be seen whether we pushed things too far, and lost our public,
 so to speak, or whether parts of our technology can be useful to others.
 
@@ -323,18 +330,18 @@ using MOP:
 
 * We get high-level models of important aspects of the system. All systems have
   key models, but they are usually hidden in the code and impossible to verify,
-  formalise, or exploit fully. When the model is turned into a concrete 
+  formalise, or exploit fully. When the model is turned into a concrete
   language, it makes the software much better.
 
 * We can produce extremely high-quality code. This is an effect of doing code
   generation: the generated code we produce has no errors, and is as good as a
   human programmer can write, consistently.
 
-* We write less internal documentation, and often none at all, since each model 
+* We write less internal documentation, and often none at all, since each model
   is documentation.
 
 * We are immune to technological changes since MOP is entirely abstract from
-  specific programming languages, operating systems, and trends. It can take 
+  specific programming languages, operating systems, and trends. It can take
   years to develop really good models but they work for decades.
 
 There are also disadvantages:
@@ -342,14 +349,14 @@ There are also disadvantages:
 * People do not rapidly understand or trust the approach. I've been accused of
   over-investing in tools (sometimes more than half the cost of a project goes
   into modeling tools). The look on the client's face when we deliver version
-  after version of impeccable software in impossibly short deadlines is worth 
+  after version of impeccable software in impossibly short deadlines is worth
   it.
 
 * Programmers do not rapidly understand the models. It takes time to learn each
   one, sometimes weeks or months.
-  
+
 * Developers tend to fall back to older habits unless they are properly hooked
-  (some might call it indoctrinated), usually by being forced to develop their 
+  (some might call it indoctrinated), usually by being forced to develop their
   own models and use them to the point where they understand the benefits.
 
 So, MOP is best used in small, skilled, and long-lasting teams (like iMatix)
@@ -380,7 +387,7 @@ domain):
 
 * Template-driven code generators that use symbolic insertion to inject
   meta-data into a template. This technology makes it much easier to write new
-  ad-hoc templates. Typical examples are any technology that produces dynamic 
+  ad-hoc templates. Typical examples are any technology that produces dynamic
   web page.
 
 * Scripted code generators that use a high-level language to manipulate
@@ -403,7 +410,7 @@ Myths about code generation
 
 * Code generators are often seen as a technological burden, rather than useful
   tools. I suspect that this is because primitive code generators (which covers
-  most code generators) are so painful to use. Some of the common myths about 
+  most code generators) are so painful to use. Some of the common myths about
   code generation are:
 
 * Code generators only work for simplistic cases. This is often true, but only
@@ -411,7 +418,7 @@ Myths about code generation
 
 * Generated code is unreadable, and generated code is low quality. This is often
   true because their authors focus on the application-specific problem, rather
-  than on making the template easy to modify and improve. In a template-based 
+  than on making the template easy to modify and improve. In a template-based
   code generator the code can be as good as or better than hand-written code.
 
 * Code generators are expensive to make. This is typical of hard-coded code
@@ -423,11 +430,11 @@ Myths about code generation
 
 * Code generators are complex. This is true: all abstractions are internally
   complex - look at the work required to write a good web browser or web server.
-  
+
 * Code generators start and stop with UML.  This idea is widespread (one
   Slashdot article about the stagnation and demise of UML asked, "does this mean
   code generation is now dead?").
-  
+
 * XML-based code generation must be done using XSLT.  I've seen people convert
   GSL scripts to XSLT because "GSL is not standard". I regret not convincing
   them to use UML instead, on the principle that failure should be dramatic and
@@ -656,7 +663,7 @@ Note these syntax aspects:
     output expression - Start sending output to the filename specified
     $(name) - Insert value of attribute in output text
 
-To produce the HTML report run the same command as before: 
+To produce the HTML report run the same command as before:
 
     gsl deposits.xml
 
@@ -665,13 +672,13 @@ you're a web developer with any experience, you will see right away what's
 happening. We're generating a web page dynamically, just like a hundred other
 web tools. But there are significant differences:
 
-* Unlike a dynamic web page, here we explicitly specify the output file 
-  ourselves, using the "output" command. We can output zero, one, or a hundred 
+* Unlike a dynamic web page, here we explicitly specify the output file
+  ourselves, using the "output" command. We can output zero, one, or a hundred
   different files if we want to.
 
-* We're working off a data tree that can be as complex as we want. Each "for" 
-  loop opens a new scope, acting on a set of child entities. A dynamic web page 
-  works off some flat data, coming from the browser or a database. You can make 
+* We're working off a data tree that can be as complex as we want. Each "for"
+  loop opens a new scope, acting on a set of child entities. A dynamic web page
+  works off some flat data, coming from the browser or a database. You can make
   web pages that work on a hierarchical data set, but it's extra work.
 
 GSL lets you load and navigate XML data so easily that you don't even realize
@@ -749,20 +756,20 @@ way. Remember that we use XML as a modeling language. So, we invent an XML
 syntax for our model. For each page, I'd like to write something like this:
 
     <page
-        name = "name of page" 
-        title = "Title text goes here" 
+        name = "name of page"
+        title = "Title text goes here"
         subtitle = "Subtitle text goes here">
         <content>
         Content HTML goes here
         </content>
     </page>
 
-When we design new XML languages like the above, we adopt these rules for the 
+When we design new XML languages like the above, we adopt these rules for the
 XML syntax:
 
 * We use entity attributes to hold single-line properties or properties that can
   occur exactly once, like the page name and title.
-* We use child entities to hold multi-line properties or properties that can 
+* We use child entities to hold multi-line properties or properties that can
   occur more than once.  For example, the content is a multi-line property.  A
   page might also have multiple contents, this is implied by defining it as a
   child entity.
@@ -775,7 +782,7 @@ occurrence".  This feels extraordinarily clumsy:
     <page>
         <!-- How NOT to write XML -->
         <name>name of page</name>
-        <title>Title text goes here</title> 
+        <title>Title text goes here</title>
         <subtitle>Subtitle text goes here</subtitle>
         <content>
         Content HTML goes here
@@ -895,7 +902,7 @@ saves this (in a file called root.xml) that we can look at:
     .template 0
      for section
         for page
-            #   Load XML <page> data 
+            #   Load XML <page> data
             xml to section from "$(page.name).xml"
             #   Delete old <page> tag
             delete page
@@ -1084,7 +1091,7 @@ string):
 
     <content><h3>Close to you</h3><p>We're just around the corner, if you live
     near by.</p><h3>Always open</h3><p>And if we're closed, just come back
-    tomorrow.</p><h3>Cheap and convenient</h3><p>Much cheaper and easier than 
+    tomorrow.</p><h3>Cheap and convenient</h3><p>Much cheaper and easier than
     growing your own vegetables and fruit.</p></content>
 
 When we enclose this in $( and ), it writes the string to the current output
@@ -1438,7 +1445,7 @@ get very complex as they try to solve wide types of problems using high-level
 constructs. Some of these languages take years to learn properly.
 
 We have developed an alternative way of writing better code, which we call
-"Model-Oriented Programming", or MOP. MOP turns high-level models into code, in
+"Model Oriented Programming", or MOP. MOP turns high-level models into code, in
 the same way as an HTML-to-PostScript converter produces code.
 
 iMatix provides tools that let you construct your own MOP models and the code
@@ -1451,7 +1458,7 @@ scripting language, and XML, which is the basis for the modeling languages that
 we use. A single MOP definition produces code, documentation, test cases, and so
 on.
 
-In our world, XML becomes a model-oriented programming language that achieves a
+In our world, XML becomes a model oriented programming language that achieves a
 new level of expression - a true fifth generation language - without becoming
 particularly complex, slow, or narrow. Unlike many of the approaches taken to
 overcome the cost of software engineering, we offer an approach that is easy to

@@ -1,12 +1,20 @@
 gdl
-    title     = Introduction
-    subtitle  = Introduction to OpenAMQ
+    title     = Introduction to OpenAMQ
+    subtitle  = Understanding business messaging
     product   = OpenAMQ
     author    = iMatix Corporation
     date      = 2008/04/12
     copyright = Copyright (c) 1996-2007 iMatix Corporation
     version   = 1.0
 end gdl
+
+Understanding business messaging
+********************************
+
+This document is an introduction to the concept of business messaging in
+general, and to OpenAMQ in parricular.  It is intended for new OpenAMQ users who
+wish to understand the problems that OpenAMQ solves, and how OpenAMQ can be
+useful in software applications.
 
 What is OpenAMQ?
 ****************
@@ -24,41 +32,37 @@ synchronizing or controlling logic.
 Asynchronous, loosely-coupled messaging is, as far as we know, the best way to
 build very large, very scalable applications.
 
-Messaging middleware can be used in many ways but it comes down to two main 
+Messaging middleware can be used in many ways but it comes down to two main
 messaging models:
 
  1. Request-response, in which two components exchange messages that compose a
     larger transaction.  An example would be a web application that sends an
     availability request to an airline reservation system, and then places a
     booking.
-    
+
  2. Publish-subscribe, in which a set of publishers distribute messages to a
     larger set of subscribers.  An example would be a news server that sends
     updates to a set of web applications.
-    
+
 In both cases, there are some tricky problems to solve in order to turn these
 models into real, reliable code.  The main problems we need to solve are:
 
- 1. How to address the different parts of a distributed application.  We don't 
+ 1. How to address the different parts of a distributed application.  We don't
     want components knowing too much about each other, so some kind of abstract
     addressing is necessary.
- 2. How and where to queue messages.  We want to put queues in the right place 
+ 2. How and where to queue messages.  We want to put queues in the right place
     so that messages are pushed as close, but no closer, to their destinations
     as necessary.
  3. How to format messages and put them onto "the wire".  We want to handle any
     data from 0 bytes to infinity.
  4. How to format control commands so that parts of the application can talk to
     each other.
- 5. How to handle sessions so that components can keep connections open for a 
+ 5. How to handle sessions so that components can keep connections open for a
     long time.
  6. How to handle errors and failures.
  7. How to implement different kinds of message distribution.
 
 There are of course more challenges but these are the main ones.
-
-AMQP is a reusable, portable, and fairly simple answer to these questions, at
-least if one sticks to the older, saner versions of the protocol (since 2007,
-and version 0-10, AMQP got rather complex and confused).
 
 AMQP
 ====
@@ -158,7 +162,7 @@ mind-boggling:
     queues and topics, 250 messages per second (1M/hour).
  5. Global mission critical application: 64 servers, 2K-10K users, 500-1000 
     queues and topics, 2,500 messages per second (10M/hour).
- 6. Market data (trading): 200 servers, 5K users, 10K topics, 100K messages per 
+ 6. Market data (trading): 200 servers, 5K users, 10K topics, 100K+ messages per 
     second (360M/hour).
 
 As well as volume, the latency of message transfer is often important. For 
@@ -223,15 +227,15 @@ think they are complex and unnecessary for most people. Second, we prefer to
 only implement what our users really need, and make that work really well. Last,
 we aim for performance and that means dropping some features.
 
-The performance of OpenAMQ/1.2 is: about 20k messages per second per CPU core;
+The performance of the base OpenAMQ broker is about 20k messages per second per CPU core;
 latencies of around 300 microseconds. Maximum performance per client is about
 10k messages per second so full broker performance shows when a dozen or more
 clients are working in parallel.
 
-The performance of OpenAMQ/2.0, the new generation we are now building, is: 500k
-messages per second per CPU core; latencies of around 30 microseconds. The
-broker can be fully loaded by a single client, depending on the speed of the
-client application.
+iMatix is also developing an OpenAMQ High Performance Extension (HPX), with
+messaging speeds of around 500k messages per second per CPU core, and latencies
+of around 30 microseconds. This is available on a preview basis. Please contact
+us if you need this level of performance.
 
 OpenAMQ/1.2 functionality
 =========================
@@ -360,9 +364,10 @@ Interoperability
 OpenAMQ/1.2 implements the AMQP/0-9 specification without the Red Hat "work in
 progress" optional features. This is probably the most stable and widely used
 version. We do not recommend the use of AMQP/0-10, which we consider to be
-unnecessarily complex, immature, and lacking in cross-vendor support.  We are
-involved in the development of an updated 0-9 specification that removes the
-"work in progress" along with other unused aspects of the specification.
+unnecessarily complex, immature, and lacking in cross-vendor support. We are
+involved in the development of an updated 0-9 specification (0-9SP1) that
+removes the "work in progress" along with other unused aspects of the
+specification.
 
 We are committed to providing OpenAMQ users with the maximum interoperability
 with other AMQP implementations based on stable, mature, and simple AMQP
@@ -454,9 +459,9 @@ Please note that this figure is for aggregate performance of the broker, i.e.
 a total of all incoming and outgoing messages passing through the broker.
 
 Please also note that this scenario is not necessarily typical and realistic
-applications will probably see a lower throughput.  Users who need performance
-that OpenAMQ/1.2 cannot deliver should contact us about OpenAMQ/2.0, which is
-available today in pre-release packages.
+applications will probably see a lower throughput. Users who need performance
+that the base OpenAMQ package cannot deliver should contact us about the
+High Performance Extension (HPX) package for OpenAMQ.
 
 Software configuration
 ======================
@@ -604,7 +609,7 @@ Running the tests
 The command used to start the server is:
 
     ./amq_server --monitor 1
-    
+
 The command used to start the subscribers is:
 
     ./run_many.sh 64 ./topic_subscribe -s [server address and port]

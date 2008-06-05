@@ -8,6 +8,13 @@ gdl
     version   = 5.0
 end gdl
 
+State Machine Threadlets
+************************
+
+This is a technical guide for developers who wish to understand how the iMatix
+SMT framework works.  To use this guide the reader should be familiar with the
+iMatix iCL framework, and the iMatix Model Oriented Programming principles.
+
 Introduction
 ************
 
@@ -131,17 +138,17 @@ Features
 
 The major features of SMT are:
 
-- Provides a modeling language for multithreaded finite state machines, based 
+- Provides a modeling language for multithreaded finite state machines, based
   on the Libero "dialogue" model.
-- Provides a code generator to digest such models and a target that produces 
+- Provides a code generator to digest such models and a target that produces
   ANSI C code compatible with the iMatix iCL architecture.
-- Includes a library that supports those executable models with a multithreaded 
+- Includes a library that supports those executable models with a multithreaded
   microkernel.
 - Includes support for asynchronous iCL classes.
 - Runs on Linux, Windows, and Solaris.
-- SMT kernel and applications can be compiled for single-threaded or 
+- SMT kernel and applications can be compiled for single-threaded or
   multithreaded operation.
-- In multithreaded operation, can run on 1 or more OS threads, and maps the 
+- In multithreaded operation, can run on 1 or more OS threads, and maps the
   threadlets to OS threads.
 
 Worked Example
@@ -396,7 +403,7 @@ SMT's state machine model is derived from Libero's, with additional semantics to
 handle the needs of multithreading. The model remains based on the original
 State/Event/Action breakdown, in which:
 
-- a state represents a point of existence in the lifecycle of the threadlet or 
+- a state represents a point of existence in the lifecycle of the threadlet or
   program;
 - an event represents a possible exit from the state, moving to a next state;
 - an action represents a unit of work done before moving to a next state.
@@ -414,7 +421,7 @@ It takes a developer new to state machines about 3 days to understand FSMs, and
 several weeks to become moderately good at designing these. The first barriers
 to understanding are:
 
-- the newness of event-driven design, in which actions are always the result of 
+- the newness of event-driven design, in which actions are always the result of
   an event, not part of a simple logic flow;
 - the lack of classic conditional logic;
 - the lack of classic subroutine concepts;
@@ -436,7 +443,7 @@ straight path when writing SMT models (or Libero models; the problems are
 similar):
 
 - The model must be clear enough to explain to someone and close to the level of
-  detail that you would use when explaining to someone how your program or class 
+  detail that you would use when explaining to someone how your program or class
   works.
 - The states are places you find yourself, the events are things that happen,
   the actions are things you do.
@@ -469,19 +476,19 @@ Common problem symptoms
 
 Here are some ways that people commonly abuse Libero and SMT models:
 
-- An action that sets a single event unconditionally, rather than producing an 
-  event that indicates the outcome of some action.  This usually indicates that 
+- An action that sets a single event unconditionally, rather than producing an
+  event that indicates the outcome of some action.  This usually indicates that
   the author has confused the notion of state with the notion of action.  By
-  shunting to a specific state, the author says 'I want to be in this state to 
-  do some specific work'. Very rarely, this is a good way to simplify a model.  
+  shunting to a specific state, the author says 'I want to be in this state to
+  do some specific work'. Very rarely, this is a good way to simplify a model.
   99% of times, though, it is bad practice.  If you find yourself doing this,
-  change the model so you do the work in question as early as possible, thus 
+  change the model so you do the work in question as early as possible, thus
   generating an event which you can handle neatly in the next state.
 
-- Models that are broken into very many small states.  This usually means that 
+- Models that are broken into very many small states.  This usually means that
   the designer has not understood exceptions.
 
-- Models that use lots and lots of different event names.  This usually means 
+- Models that use lots and lots of different event names.  This usually means
   the designer is confusing the notion of event with the notion of action.
 
 Architecture
@@ -927,19 +934,19 @@ Defines an SMT agent.
 The smt item can have these attributes:
 
 abstract:
-    If set, the entity only exists in order to be inherited - no code is    
+    If set, the entity only exists in order to be inherited - no code is
     generated. The abstract attribute is optional. Its default value is "0".
-    It can take one of the following values:                                
+    It can take one of the following values:
 
 Value: Meaning:
 0: normal entity
 1: abstract entity
 
 role:
-    A file may fulfill a role. This serves two purposes: asserting that      
+    A file may fulfill a role. This serves two purposes: asserting that
     essential roles are fulfilled and helping to define the inheritence order
-    using the 'before' and 'after' attributes. The role attribute is         
-    optional.                                                                
+    using the 'before' and 'after' attributes. The role attribute is
+    optional.
 
 before:
     Specifies a role before which this file should should be inherited. The

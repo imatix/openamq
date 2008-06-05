@@ -8,6 +8,14 @@ gdl
     version   = 1.0
 end gdl
 
+The Abstract Syntax Layer
+*************************
+
+This is a technical guide for protocol developers who wish to use the iMatix ASL
+framework for the development of connected client-server protocols.  ASL is a
+generic framework that uses a protocol modelling language to construct the whole
+infrastructure for a given protocol.  ASL was built primarily to support AMQP.
+
 Introduction
 ************
 
@@ -152,13 +160,13 @@ both these techniques to create a hierachy of protocol specification files.
 
 We can look at some specific examples from the demo protocol:
 
-* The two chassis specifications inherit from the same base protocol 
-   specification called demo.asl.  This lets the chassis specifications share 
+* The two chassis specifications inherit from the same base protocol
+   specification called demo.asl.  This lets the chassis specifications share
    the same classes and methods, and layer ASL code on top of those.
 
-* Each class is defined as a seperate .asl file, and included into the base 
-   protocol specification.  This lets the author edit each class separately; 
-   simpler and more convenient than editing the whole protocol as a single 
+* Each class is defined as a seperate .asl file, and included into the base
+   protocol specification.  This lets the author edit each class separately;
+   simpler and more convenient than editing the whole protocol as a single
    file.
 
 Worked Example
@@ -935,7 +943,7 @@ are called from other states to perform some specific work:
    connection, return when we have a non-heartbeat frame.
 * read [class.name] content - this state reads a content sent from the
    server, frame by frame, return when the content is complete.
-* close the connection - close the connection using the handshake model 
+* close the connection - close the connection using the handshake model
    defined in the connection sub-protocol.
 
 Error handling is done in the defaults states, which trap all unexpected events,
@@ -1126,7 +1134,7 @@ are called from other states to perform some specific work:
    connection, return when we have a non-heartbeat frame.
 * read [class.name] content - this state reads a content sent from the
    server, frame by frame, return when the content is complete.
-* close the connection - close the connection using the handshake model 
+* close the connection - close the connection using the handshake model
    defined in the connection sub-protocol.
 
 Error handling is done in the defaults states, which trap all unexpected events,
@@ -1245,12 +1253,12 @@ PAL is the Protocol Automation Language, and documented elsewhere. PAL is a
 protocol scripting framework. It works as follows:
 
 * From the protocol specification, the pal target generates a grammar for a
-   protocol automation language that specifically supports the protocol in 
-   question.  E.g. from demo.asl we get a grammar for a scripting language 
+   protocol automation language that specifically supports the protocol in
+   question.  E.g. from demo.asl we get a grammar for a scripting language
    specifically for the demo protocol.
- 
-* From the grammar, PAL generates a compiler for the language; this compiler 
-   takes scripts and turns them into source code in target languages - the 
+
+* From the grammar, PAL generates a compiler for the language; this compiler
+   takes scripts and turns them into source code in target languages - the
    default is stdc.
 
 The actual code generation process is complex but we can ignore it, and focus on
@@ -1382,11 +1390,11 @@ their compatability before doing any work.
 The protocol header mechanism works like this:
 
  - The client opens a socket and writes a protocol header.
- - The server "sniffs" the first four characters and checks that it understands 
+ - The server "sniffs" the first four characters and checks that it understands
    this.
- - The server then reads the next octets, which indicate the version that the 
+ - The server then reads the next octets, which indicate the version that the
    client wishes to use.
- - The server either accepts this, or writes its own protocol header and closes 
+ - The server either accepts this, or writes its own protocol header and closes
    the socket.
 
 The protocol negotiation design lets us add new protocol variations in a clean
@@ -1421,7 +1429,7 @@ other issues:
 
  - The frame end octet lets us trap malformed frames, a typical problem
    with newly-written client code.
-  
+
 The framing mechanism is easy to extend with new frame types, and easy to
 improve, since each frame type is well separated (changing the way data is
 formatted has no impact on the way commands are formatted, for example).
@@ -1465,10 +1473,10 @@ String data types
 
 Strings are either:
 
- 1. Short printable strings intended for consumption by the server, stored as 
+ 1. Short printable strings intended for consumption by the server, stored as
     octet+content, up to 255 characters long, and without any null octets.
 
- 2. Long binary strings, intended to carry opaque or encoded content, stored as 
+ 2. Long binary strings, intended to carry opaque or encoded content, stored as
     long+content, up to 4Gb octets long.
 
 These two formats solve a number of issues. First, the short string format is
@@ -1571,7 +1579,7 @@ Our design is this:
 
  - All content consists of a header plus a body.  The header holds the
    content properties, and the body holds the content data.
-   
+
  - The body can be from 0 to 16Eb large. Large contents are split into
    frames that are sent as a series.  Frames for different channels are
    mixed within the connection, so smaller contents can be sent at the
@@ -2162,10 +2170,10 @@ Guidelines for implementors:
 
 - Class id values from %x00.01-%xEF.FF are reserved for standard
   classes.
-  
+
 - Class id values from %xF0.00-%xFF.FF (%d61440-%d65535) may be used by
   implementations for non-standard extension classes.
-  
+
 Data fields
 -----------
 

@@ -1,12 +1,20 @@
 gdl
-    title     = AMQP Console Interface
-    subtitle  = Standard Proposal
+    title     = The CML Request for Comments
+    subtitle  = A generic way of managing AMQP servers
     product   = OpenAMQ
     author    = iMatix Corporation
     date      = 2006/07/16
     copyright = Copyright (c) 1996-2007 iMatix Corporation
     version   = 1.0e1
 end gdl
+
+A generic way of managing AMQP servers
+**************************************
+
+We describe a generic technique for managing AMQP servers from a remote client
+application.  This technique consists of a 
+This is a request for comments.  It is not a standard, but it has been designed
+to be a useful basis for a standard, and has been tested and shown to work.
 
 Overview
 ********
@@ -37,21 +45,21 @@ management of an AMQP server, including:
 
 We want the console to be able to have these features:
 
- - To be rapid, even when many people are operating (different parts of) an AMQP 
-   server. The speed of reaction of the console is an important part of its 
+ - To be rapid, even when many people are operating (different parts of) an AMQP
+   server. The speed of reaction of the console is an important part of its
    functionality.
 
- - To be portable to any desired user interface technology, including web, 
+ - To be portable to any desired user interface technology, including web,
    command-line, JMX, etc. Ideally, end-users should be able to make customised
    operator interfaces, scripts, etc. We want the console to be user-extensible.
 
  - To be generally compatible with conventional console abstractions, e.g. Java
    management beans.
 
- - To provide access to all "operable" internals of the server, i.e. to any 
+ - To provide access to all "operable" internals of the server, i.e. to any
    object that may be tuned, configured, or managed.
 
- - To hide all aspects of the server that are not "operable", i.e. any object 
+ - To hide all aspects of the server that are not "operable", i.e. any object
    that should not be touched or seen.  The operator must not be able to cause
    harm by misuse of the console.
 
@@ -104,7 +112,7 @@ The server schema
 
 We specify formally that:
 
- - The console works on a set of entity definitions we call "classes", and a 
+ - The console works on a set of entity definitions we call "classes", and a
    set of live entities we call "objects".
  - The collection of classes that the server supports is its "schema".
  - Schemas are given globally-unique names and versions.
@@ -200,7 +208,7 @@ The console API consists of two pieces:
  - Execute a command on a given object. This consists of a request from the
    client to the server, and a reply back from the server to the client.
 
- - Get a notification from the server. Notifications are sent asynchronously 
+ - Get a notification from the server. Notifications are sent asynchronously
    using the AMQP topic routing mechanisms.
 
 The console API consist of Basic content messages, exchanged using these AMQP
@@ -222,7 +230,7 @@ correctly refers to a queue.
 
 We can show the client's request-reply logic using PAL scripting:
 
- - The client creates a temporary, private reply queue and binds this to the 
+ - The client creates a temporary, private reply queue and binds this to the
    amq.direct exchange:
 
     <queue_declare queue = "" />
@@ -238,7 +246,7 @@ We can show the client's request-reply logic using PAL scripting:
         read = "console.txt"
         reply_to = "$queue"
         message_id = "id-001" />
-   
+
  - The client publishes the request to the amq.system exchange:
 
     <basic_publish
@@ -450,7 +458,7 @@ The goal of defining fields is to allow the automatic production of user
 interface forms without too much work. We allow these types of field:
 
  - string: defines a string field.  The maximum value of a string field is 255
-   octets when an object is modified, and no limit on output. This is the 
+   octets when an object is modified, and no limit on output. This is the
    default type.
  - int: defines an integer. Integers are unsigned 32 bits.
  - bool: defines a boolean value, which can be shown as a check box.

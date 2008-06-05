@@ -8,3 +8,4 @@ else
     mkgdl $1.txt
     gsl3 -quiet:1 -q -gdl:$1 -tpl:wikidot gurudoc
 fi
+
