@@ -2,7 +2,7 @@ gdl
     title     = Developer's Guide to MOP
     subtitle  = Model Oriented Programming
     product   = Base/2
-    author    = iMatix Corporation <tools@imatix.com>
+    author    = iMatix Corporation
     date      = 2007/03/12
     copyright = Copyright (c) 2002-2007 iMatix Corporation
     version   = 5.0
@@ -12,8 +12,10 @@ Model Oriented Programming
 **************************
 
 This is a technical guide for developers who wish to understand how the iMatix
-code generation frameworks are constructed.  This guide is not fully complete
-and lacks the advanced description of how to build codebots using XNF.
+code generation frameworks are constructed.  We explain the principles of model
+oriented programming, and the basics of code generation using the iMatix GSL 
+language.  This provides essential basic knowledge for anyone intending to 
+modify the OpenAMQ software.
 
 Introduction
 ************

@@ -304,8 +304,8 @@ You do this by setting the BOOM_MODEL environment variable:
 These options can be combined. The default build is "mt,release". To choose a
 different build, set the BOOM_MODEL environment variable following this example:
 
-   $ BOOM_MODEL="mt,debug"
-   $ export BOOM_MODEL
+    $ BOOM_MODEL="mt,debug"
+    $ export BOOM_MODEL
 
 You can add these commands to your shell startup script so that you do not need
 to retype them in each shell window.
@@ -430,7 +430,7 @@ You do this by setting the BOOM_MODEL environment variable:
 These options can be combined. The default build is mt,release. To choose a
 different build, set the BOOM_MODEL environment variable following this example:
 
-   > set BOOM_MODEL=mt,debug
+    > set BOOM_MODEL=mt,debug
 
 You can add this command to your server environment so that you do not need to
 retype it in each shell window.

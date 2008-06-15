@@ -12,9 +12,10 @@ A generic way of managing AMQP servers
 **************************************
 
 We describe a generic technique for managing AMQP servers from a remote client
-application.  This technique consists of a 
-This is a request for comments.  It is not a standard, but it has been designed
-to be a useful basis for a standard, and has been tested and shown to work.
+application.  This technique consists of a standard transport mechanism built
+over AMQP, and a standard XML language used to exchange information between a
+management component built-in to the server, and a management application.
+This is a request for comments, it is not a standard.
 
 Overview
 ********

@@ -11,10 +11,10 @@ end gdl
 Configuration, Management and Tuning
 ************************************
 
-This document explains how to configure an OpenAMQ server including logging and
-monitoring, with explanations on tuning an OpenAMQ server for performance.  It
-explains the OpenAMQ high-availability failover system, and how to use it, and
-the OpenAMQ federation model, and how to use it.
+This guide is for people who need to configure and manage OpenAMQ servers.  We
+explain how to configure and tune an OpenAMQ server, covering these topics: 
+logging, monitoring, high-availability failover, and joining OpenAMQ servers 
+into wide-area federations.
 
 Server configuration
 ********************

@@ -8,6 +8,14 @@ gdl
     version   = 1.0
 end gdl
 
+Writing OpenAMQ Applications in C/C++
+**************************************
+
+This is the main guide for developers who wish to use OpenAMQ in their
+applications.  We describe WireAPI, the C/C++ API that OpenAMQ provides for
+accessing AMQP.  Expert WireAPI users may wish to read the iMatix iCL guide, but
+this document is otherwise self-complete.
+
 Overview
 ********
 
@@ -18,7 +26,7 @@ WireAPI is a standardised API that closely maps to the semantics of the AMQP
 wire level protocol. For example, the AMQP method Queue.Declare maps to a
 WireAPI function called amq_client_session_queue_declare. We can contrast this
 approach with the one taken by the other kinds of API that hide the semantics of
-working with AMQP are hidden to the developer. WireAPI has several advantages 
+working with AMQP are hidden to the developer. WireAPI has several advantages
 over more abstracted APIs:
 
  - Any version of AMQP is cleanly mapped to identical semantics in WireAPI.
@@ -28,16 +36,16 @@ over more abstracted APIs:
    restrained by any unnecessary API abstraction.
  - WireAPI semantics are portable to all languages (note that iMatix does not
    yet offer client libraries in languages other than C/C++).
-   
+
 The negative aspects of WireAPI are:
 
  - It can be complex for beginners.
  - It forces the developers to understand the protocol.
  - There are some useful abstractions missing from WireAPI.
- 
+
 Overall WireAPI works well because AMQP was designed to used in this way; its
 semantics were designed to be meaningful to application developers.  We plan to
-develop a WireAPI/2 that adds some useful abstractions such as end-to-end 
+develop a WireAPI/2 that adds some useful abstractions such as end-to-end
 reliability, end-to-end encryption, message eventing (asynchronous deliver) and
 so on.
 
@@ -71,7 +79,7 @@ This design has several consequences that you should take into account when
 designing and building your application and/or messaging frameworks:
 
  * If you build OpenAMQ as a single-threaded application, background processing
-   of messages will be unreliable.  Concretely, the background thread will only 
+   of messages will be unreliable.  Concretely, the background thread will only
    process when the application calls the amq_client_session_wait () method.
 
  * WireAPI is safe to use in multithreaded applications, but you must not share
@@ -162,7 +170,7 @@ The WireAPI classes are all constructed using iCL and some knowledge of iCL will
 make your life easier. However, the syntax for using iCL classes in C is
 consistent and we can summarise it:
 
- - classname_new creates a new object instance and returns a reference to that 
+ - classname_new creates a new object instance and returns a reference to that
    object.
  - classname_destroy takes the address of an object reference and destroys that
    object, if the reference is not null.
@@ -228,11 +236,11 @@ Creates a new connection to the server:
         *connection = NULL;             //  Current connection
     icl_longstr_t
         *auth_data;                     //  Authentication data
-        
+    
     auth_data  = amq_client_connection_auth_plain ("guest", "guest");
     connection = amq_client_connection_new (
         "localhost", "/", auth_data, "test", 0, 30000);
-        
+    
     icl_longstr_destroy (&auth_data);
     if (connection)
         icl_console_print ("I: connected to %s/%s - %s - %s",
@@ -254,7 +262,7 @@ Notes:
    will connect.  The default virtual host is "/".
 
  - The auth_data provides an authentication block, used to login to the server.
-   To create a plain-text authentication block, use the auth_plain method. The 
+   To create a plain-text authentication block, use the auth_plain method. The
    new method destroys the auth_data block on behalf of the caller.
 
  - The instance argument sets the client instance name, which can be used
@@ -264,8 +272,8 @@ Notes:
 
  - The timeout argument governs all synchronous exchanges with the server - if
    the server does not respond within this time, the connection treats it as a
-   fatal error.  A timeout of zero means "infinite".  A good value for fast 
-   networks is five to ten seconds; for a slower network, a value of 30 seconds 
+   fatal error.  A timeout of zero means "infinite".  A good value for fast
+   networks is five to ten seconds; for a slower network, a value of 30 seconds
    or more is reasonable.
 
 amq_client_connection_destroy
@@ -419,26 +427,26 @@ exchange exists, verifies that it is of the correct and expected class:
 
 The Exchange.Declare method has the following specific fields:
 
-- exchange (shortstr) - exchange name. The exchange name is a client-selected 
-  string that identifies the exchange for publish methods. Exchange names may 
-  consist of any mixture of digits, letters, and underscores. Exchange names 
+- exchange (shortstr) - exchange name. The exchange name is a client-selected
+  string that identifies the exchange for publish methods. Exchange names may
+  consist of any mixture of digits, letters, and underscores. Exchange names
   are scoped by the virtual host.
 
-- type (shortstr) - exchange type. Each exchange belongs to one of a set of 
-  exchange types implemented by the server. The exchange types define the 
-  functionality of the exchange - i.e. how messages are routed through it. It 
-  is not valid or meaningful to attempt to change the type of an existing 
+- type (shortstr) - exchange type. Each exchange belongs to one of a set of
+  exchange types implemented by the server. The exchange types define the
+  functionality of the exchange - i.e. how messages are routed through it. It
+  is not valid or meaningful to attempt to change the type of an existing
   exchange.  OpenAMQ supports "fanout", "direct", "topic", and "header"
   exchanges.
 
-- passive (bit) - do not create exchange. If set, the server will not create 
-  the exchange. The client can use this to check whether an exchange exists 
+- passive (bit) - do not create exchange. If set, the server will not create
+  the exchange. The client can use this to check whether an exchange exists
   without modifying the server state.
 
-- auto_delete (bit) - auto-delete when unused. If set, the exchange is deleted 
+- auto_delete (bit) - auto-delete when unused. If set, the exchange is deleted
   when all queues have finished using it.
 
-- arguments (table) - arguments for declaration. A set of arguments for the 
+- arguments (table) - arguments for declaration. A set of arguments for the
   declaration. The syntax and semantics of these arguments depends on the server
   implementation. This field is ignored if passive is 1.
 
@@ -456,8 +464,8 @@ on the exchange are cancelled.
 
 The Exchange.Delete method has the following specific fields:
 
-- exchange (shortstr) - exchange name. The exchange name is a client-selected 
-  string that identifies the exchange for publish methods. Exchange names may 
+- exchange (shortstr) - exchange name. The exchange name is a client-selected
+  string that identifies the exchange for publish methods. Exchange names may
   consist of any mixture of digits, letters, and underscores.
 
 The queue class
@@ -492,7 +500,7 @@ contents, and the level of sharing for the queue.
         0,                          //  If 1, request exclusive queue
         0,                          //  If 1, auto-delete when unused
         arguments_table);           //  Arguments for declaration
-
+        
     asl_field_list_unlink (&field_list);
     icl_longstr_destroy (&arguments_table);
 
@@ -540,24 +548,24 @@ exchange.
 
 The Queue.Bind method has the following specific fields:
 
-- queue (shortstr) - queue name. Specifies the name of the queue to bind. If 
-  the queue name is empty (NULL), refers to the current queue for the channel, 
+- queue (shortstr) - queue name. Specifies the name of the queue to bind. If
+  the queue name is empty (NULL), refers to the current queue for the channel,
   which is the last declared queue. Queue names may consist of any mixture of
   digits, letters, and underscores.
 
-- exchange (shortstr) - exchange name. The exchange name is a client-selected 
+- exchange (shortstr) - exchange name. The exchange name is a client-selected
   string that identifies the exchange for publish methods. Exchange names may
-  consist of any mixture of digits, letters, and underscores. Exchange names 
+  consist of any mixture of digits, letters, and underscores. Exchange names
   are scoped by the virtual host.
 
-- routing_key (shortstr) - message routing key. Specifies the routing key for 
+- routing_key (shortstr) - message routing key. Specifies the routing key for
   the binding. The routing key is used for routing messages depending on the
-  exchange configuration. Not all exchanges use a routing key - refer to the 
-  specific exchange documentation. If the routing key is empty and the queue 
-  name is empty, the routing key will be the current queue for the channel, 
+  exchange configuration. Not all exchanges use a routing key - refer to the
+  specific exchange documentation. If the routing key is empty and the queue
+  name is empty, the routing key will be the current queue for the channel,
   which is the last declared queue.
 
-- arguments (table) - arguments for binding. A set of arguments for the binding. 
+- arguments (table) - arguments for binding. A set of arguments for the binding.
   The syntax and semantics of these arguments depends on the exchange class.
 
 amq_client_session_queue_unbind
@@ -718,7 +726,7 @@ consumer:
         0,                          //  Access ticket (unused)
         queue_name,                 //  Queue name
         0);                         //  No-ack (unused)
-        
+
 Receiving contents
 ==================
 
@@ -743,7 +751,7 @@ methods returns the number of contents waiting. For example:
         while (content) {
             //  Process content
             ...
-            //  Unlink/destroy content, or we get memory leaks     
+            //  Unlink/destroy content, or we get memory leaks
             amq_content_basic_unlink (&content);
             //  Get next content to process, if any
             content = amq_client_session_basic_arrived (session);
@@ -778,7 +786,7 @@ content->propertyname (e.g. 'content->routing_key'):
  - user_id (string) - creating user id.
  - app_id (string) - creating application id.
  - sender_id (string) - the sending application id.
-  
+
 To set any of a basic content's properties, DO NOT modify the property directly
 but use the method:
 
@@ -858,11 +866,11 @@ Field tables in more detail
 
 Field tables are held in two ways:
 
- 1. As a list of fields.  You can navigate this list using standard iCL list 
+ 1. As a list of fields.  You can navigate this list using standard iCL list
     navigation commands (first, next, pop, etc.)
 
- 2. As a serialised block of data, held in an icl_longstr_t.  Field tables held 
-    in this format are portable, and can be sent to other machines.  This is the 
+ 2. As a serialised block of data, held in an icl_longstr_t.  Field tables held
+    in this format are portable, and can be sent to other machines.  This is the
     format we send across a network via AMQP.
 
 To convert from a field table string to a list, create a new list and pass the
@@ -904,7 +912,7 @@ documented class source code.
 You can also access a field's properties directly:
 
  - name (string) - the field name.
- - type (character) - 'S', 'I', 'D', or 'T' for string, integer, date, or time 
+ - type (character) - 'S', 'I', 'D', or 'T' for string, integer, date, or time
    field.
  - decimals (integer) - number of decimals for a decimal field.
  - string (icl_longstr_t *) - string value for the field.
@@ -948,15 +956,15 @@ start-up time.
 
 WireAPI implements nowait as a second set of methods:
 
- - amq_client_session_exchange_declare_nowait 
- - amq_client_session_exchange_delete_nowait 
- - amq_client_session_queue_declare_nowait 
- - amq_client_session_queue_bind_nowait 
- - amq_client_session_queue_purge_nowait 
- - amq_client_session_queue_delete_nowait 
- - amq_client_session_queue_unbind_nowait 
- - amq_client_session_basic_consume_nowait 
- - amq_client_session_basic_cancel_nowait 
+ - amq_client_session_exchange_declare_nowait
+ - amq_client_session_exchange_delete_nowait
+ - amq_client_session_queue_declare_nowait
+ - amq_client_session_queue_bind_nowait
+ - amq_client_session_queue_purge_nowait
+ - amq_client_session_queue_delete_nowait
+ - amq_client_session_queue_unbind_nowait
+ - amq_client_session_basic_consume_nowait
+ - amq_client_session_basic_cancel_nowait
 
 Each of these methods takes the same arguments as their synchronous versions.
 
@@ -974,8 +982,8 @@ WireAPI uses the standard iCL model to define object ownership:
 
  - The layer which calls the "new" method on an object also destroys it.
 
- - If an intermediate layer wants to co-own the object, it does this using 
-   possession.  An object must explicitly allow this. The content objects are 
+ - If an intermediate layer wants to co-own the object, it does this using
+   possession.  An object must explicitly allow this. The content objects are
    designed for this.
 
  - If an intermediate layer wants to hold a reference to an object, it does this
@@ -990,12 +998,12 @@ handles these cases as follows:
 
  - When you use a synchronous method (e.g. Basic.Consume), WireAPI waits for the
    server to respond with a synchronous reply, and it processes this reply.  Any
-   asynchronous methods that the server sends before the reply are also 
+   asynchronous methods that the server sends before the reply are also
    processed (e.g. incoming content will be correctly queued.)
 
  - When you use an asynchronous method (e.g. Basic.Publish), WireAPI does not
    wait for any server response.  You can therefore send such events rapidly and
-   expect WireAPI to return as fast as it can, and process them in the 
+   expect WireAPI to return as fast as it can, and process them in the
    background.
 
 Single-Threaded background processing
@@ -1025,7 +1033,7 @@ that are listed at the end of this chapter:
 
  - im_sender.c publishes a line of text to a chat room
  - im_receiver.c joins a chat room and prints everything that is posted there
- 
+
 To compile and link the files set your environment in the same way as you do to
 build OpenAMQ server and type this command:
 
@@ -1039,7 +1047,7 @@ one in each window, in the following order:
 
 Note that the amq_server by default starts on port 5672.  Now to send a line of
 text to the chat room, run the im_sender program in a third window:
-    
+
     im_sender localhost:5672 "demo room" "This is a not a string"
 
 There can be any number of clients connected to the same chatroom. There's no
@@ -1056,9 +1064,9 @@ Sender program
     //
     //  Name:     im_sender
     //  Usage:    im_sender <broker-addeess> <chatroom> <your-name>
-    //  Example:  im_sender 127.0.0.1:5672 "OpenAMQ discussion" 
+    //  Example:  im_sender 127.0.0.1:5672 "OpenAMQ discussion"
     //                  "Baron Bartholomaeus von Saburg-Fridetzki"
-    //  Sends messages from stdio to the chat room 
+    //  Sends messages from stdio to the chat room
     //  To receive messages from the chat room, use im_receiver application
     
     #include "base.h"
@@ -1081,41 +1089,41 @@ Sender program
             *message_body;
             
         assert (argc == 4);
-    
+        
         //  Initialise system
         icl_system_initialise (argc, argv);
-    
+        
         //  Open a connection
         auth_data = amq_client_connection_auth_plain ("guest", "guest");
         connection = amq_client_connection_new (
                 argv [1], "/", auth_data, "im_sender", 0, 30000);
         assert (connection);
         icl_longstr_destroy (&auth_data);
-    
+        
         //  Open a channel
         session = amq_client_session_new (connection);
         assert (session);
-    
+        
         while (1) {
-
+        
         //  Read one line from stdin
             fgets (message_text, sizeof (message_text), stdin);
-    
+            
             //  Exit the loop if Ctrl+C is encountered
             if (!connection->alive)
                 break;
-    
+                
             //  Create the message body
             message_body =
                 malloc (strlen (argv [3]) + 2 + strlen (message_text) + 1);
             assert (message_body);
             sprintf (message_body, "%s: %s", argv [3], message_text);
-    
+            
             //  Create the message itself
             content = amq_content_basic_new ();
             amq_content_basic_set_body (content, message_body,
                 strlen (message_body), free);
-    
+                
             //  Send the message
             amq_client_session_basic_publish (
                 session,                        //  session
@@ -1125,20 +1133,20 @@ Sender program
                 argv [2],                       //  routing-key
                 FALSE,                          //  mandatory
                 FALSE);                         //  immediate
-    
+                
             //  Release the message
             amq_content_basic_unlink (&content);
         }
-    
+        
         //  Close the channel
         amq_client_session_destroy (&session);
-    
+        
         //  Close the connection
         amq_client_connection_destroy (&connection);
-    
+        
         //  Uninitialise system
         icl_system_terminate ();
-    
+        
         return 0;
     }
 

@@ -8,6 +8,14 @@ gdl
     version   = 1.0
 end gdl
 
+Writing OpenAMQ Test Scenarios
+******************************
+
+This guide is for OpenAMQ developers who need a quick way to write test cases
+and simple scenarios.  We explain the PAL language, an XML scripting tool that
+gives you a fast way to construct AMQP applications to test routing models,
+performance and stability tests, and other test cases.
+
 Overview
 ********
 
@@ -45,7 +53,7 @@ from the PAL developer. Specifically, we hide:
 
  - All Connection class methods.
  - The Channel.Open and Close methods.
- - All methods sent by the server and received by the client. Since PAL is for 
+ - All methods sent by the server and received by the client. Since PAL is for
    client-side automation, methods sent by the server cannot be scripted.
 
 Architecture of PAL
@@ -73,9 +81,9 @@ of all PAL files is:
 
 If the 'script' property is missing, you can specify it on the command line as
 follows (but this is usually extra work and we don't recommend it):
-    
+
     gsl -script:amq_pal_gen.gsl example.pal
-    
+
 The PAL code generation and compilation are encapsulated in a shell script
 called 'pal' which is provided by the OpenAMQ installation, for Unix and for
 Windows systems.
@@ -267,7 +275,7 @@ any complexity:
     inc     - increment a counter variable
     dec     - decrement a counter variable
     random  - set variable to randomised value
-    read    - get input from console, assign to variable 
+    read    - get input from console, assign to variable
     echo    - echo text to the console
     abort   - echo text to the console and abort the script
     assert  - assert some condition is true
@@ -310,7 +318,7 @@ The macro command
 
 The <macro> command defines a block of commands that can be reused in as a
 single command in the script. It has this syntax:
-    
+
     <macro
         name = "macroname">
         [ script command ]...
@@ -338,13 +346,13 @@ The <session> command defines a session:
    whatever the state of previous sessions.  If 0, the session will restart in
    the previous connection, if any.
 
- - The servername can be used to test multiple servers in a single script. This 
+ - The servername can be used to test multiple servers in a single script. This
    option is not used for general-purpose scripts.
 
- - If the failover is set to an integer greater than zero, on a broken  
+ - If the failover is set to an integer greater than zero, on a broken
    connection the script will pause for the specified number of milliseconds,
-   and then try to reconnect to the same or alternate server. To use alternate 
-   servers, specify multiple server names in the 'server' attribute, seperated 
+   and then try to reconnect to the same or alternate server. To use alternate
+   servers, specify multiple server names in the 'server' attribute, seperated
    by spaces.
 
 The invoke command
@@ -394,7 +402,7 @@ The <timer> commands shows or resets the script timer.
         />
 
  - The action is optional and defaults to "reset".
- 
+
 The set command
 ===============
 
@@ -410,7 +418,7 @@ arguments and strings. Untyped variables are typed according to their value.
         />
 
  - The value is optional, and defaults to "".
- 
+
  - If the value is purely numeric, the type will default to "integer",
    and if not the type will default to "string".
 
@@ -563,7 +571,7 @@ The <break> command exits the enveloping repeat or while loop and has this
 syntax:
 
     <break/>
-    
+
 The if command
 ==============
 
@@ -620,7 +628,7 @@ content is received from the server:
 
  - Inside a session the default timeout is 'forever'.  Outside a session,
    the default timeout is 'zero'.
-   
+
 Here is an example of using the <wait> command:
 
     <?xml?>
@@ -861,7 +869,7 @@ Basic.Consume:
     />
 
 Basic.Cancel:
-    
+
     <basic_cancel
         [ consumer_tag = "consumer tag" ]
     />
@@ -971,8 +979,8 @@ arrived content at the moment it is invoked.
         [ script command ]...
     </empty>
 
- - If a counter is specified, this variable is automatically set to zero when 
-   the loop starts and incremented each time the loop runs.  You can access the 
+ - If a counter is specified, this variable is automatically set to zero when
+   the loop starts and incremented each time the loop runs.  You can access the
    counter variable after the loop.
 
  - If there was no arrived content, the script executes the following <empty>
@@ -1002,8 +1010,8 @@ You can use these variables within an arrived loop:
 Additionally, if the content contains header fields (in the 'headers' table),
 these are made available as:
 
- - $header-fieldname - where 'fieldname' is the name of each field. 
- 
+ - $header-fieldname - where 'fieldname' is the name of each field.
+
 Processing returned content
 ===========================
 
@@ -1018,11 +1026,11 @@ We process returned content in a similar way to arrived content:
         [ script command ]...
     </empty>
 
- - If a counter is specified, this variable is automatically set to zero when 
+ - If a counter is specified, this variable is automatically set to zero when
    the loop starts and incremented each time the loop runs.  You can access the
    counter variable after the loop.
 
- - If there was no arrived content, the script executes the following <empty> 
+ - If there was no arrived content, the script executes the following <empty>
    command, if any.
 
 Synchronous content processing
@@ -1051,7 +1059,7 @@ WireAPI implements nowait as a second set of methods:
  - <queue_purge_nowait ... />
  - <queue_delete_nowait ... />
  - <queue_unbind_nowait ... />
- - <basic_consume_nowait ... /> 
+ - <basic_consume_nowait ... />
  - <basic_cancel_nowait ... />
 
 Each of these methods takes the same arguments as their synchronous versions.
@@ -1207,7 +1215,7 @@ This diagram shows the overall ASL code generation process:
     |  ASL front-end   |        GSL parser, generated from asl.xnf.
     |      parser      |        using the iMatix XNF toolkit.
     +------------------+
-             : 
+             :
      .----------------.
      |  Denormalised, |         Data structure held in memory.
      | validated tree |
@@ -1220,7 +1228,7 @@ This diagram shows the overall ASL code generation process:
              :
      .----------------.
      | Generated text |         Documentation or code as desired.
-     |    outputs     |         
+     |    outputs     |
      `----------------'
 
 We can summarise the approach that drives ASL:
@@ -1231,7 +1239,7 @@ We can summarise the approach that drives ASL:
   2. Implement the code generators for this abstract syntax.
 
   3. Use the syntax to define our full protocol.
-  
+
 Note the major benefit of using ASL: writing a large and rich protocol is very
 cheap, as 100% of the protocol support both at the client and server side is
 generated, leaving only the functional implementation of the protocol methods as
@@ -1265,7 +1273,7 @@ constructing a PAL generator for a particular protocol, 'P':
          |      parser      |        using the iMatix XNF toolkit.
          |  "asl_gen.gsl"   |
          +------------------+
-                  : 
+                  :
           .----------------.
           |  Denormalised, |         Data structure held in memory.
           | validated tree |
@@ -1274,18 +1282,18 @@ constructing a PAL generator for a particular protocol, 'P':
          +------------------+
          |       PAL        |        GSL code generator, hand-made.
          |  back-end target |
-         |   "asl_pal.gsl"  |        
+         |   "asl_pal.gsl"  |
          +------------------+
             :           :
     +-----------+   +-----------+
     |  PAL XNF  |   |  PAL stdc |    GSL code generators, hand-made
-    |  driver   |   |   driver  |    
+    |  driver   |   |   driver  |
     +-----------+   +-----------+
           :               :
     .-----------.         :
     |   PAL/P   |         :          XNF grammar of PAL language
     |  grammar  |         :          specifically for protocol 'P'
-    `-----------'         :         
+    `-----------'         :
           :               :
     .-----------.   .-----------.
     | front-end |   |   stdc    |    Components of a PAL generator
@@ -1308,9 +1316,9 @@ Second, the process of turning a PAL script into executable code:
     +------------------+
     |  PAL/P front-end |        GSL parser, generated from p.asl
     |      parser      |        (see previous diagram).
-    | "p_pal_gen.gsl"  |        
+    | "p_pal_gen.gsl"  |
     +------------------+
-             : 
+             :
      .----------------.
      |  Denormalised, |         Data structure held in memory.
      | validated tree |

@@ -1,6 +1,37 @@
-Internals
+------------------------------------------------------------------------------
+main:questions
 
-www.imatix.com/pub? referenced in several places...
++ Tell us what you think
+
+Levels of support
+Public mailing list
+This wiki
+Expert help
+
+
+main:submit-news
+main:all-news
+main:public-list
+main:public-archive
+main:submit-issue
+main:all-issues
+main:contribute
+
+    
+Submit
+    Submit issue
+    Submit FAQ
+    Submit addon
+    Submit tutorial
+    [[[terms of use]]]
+
+legal section
+
+
+todo:
+ - issues: to submit issues
+ - news: for current news
+
 
 testing federation
     - two brokers, parent and child

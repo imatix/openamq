@@ -1,6 +1,6 @@
 gdl
     title     = Programming the Console
-    subtitle  = Using the OpenAMQ Console API
+    subtitle  = Using OpenAMQ Console Automation 
     product   = OpenAMQ
     author    = iMatix Corporation
     date      = 2008/04/12
@@ -8,14 +8,23 @@ gdl
     version   = 1.0
 end gdl
 
+Using OpenAMQ Console Automation
+********************************
+
+This document explains how to write applications that automate management of
+OpenAMQ servers via console automation. The OpenAMQ console automation
+architecture offers developers different ways of accessing the functionality of
+the console API and integrating it with their own preferred tools and management
+facilities.
+
 Overview
 ********
 
-What is the OpenAMQ console API?
-================================
+What is OpenAMQ console automation?
+===================================
 
 Console automation offers system administrators a way to automatically or
-manually manage OpenAMQ servers from a central point.  OpenAMQ offers a standard
+manually manage OpenAMQ servers from a central point. OpenAMQ offers a standard
 'shell' that provides the basic automation functionality but in some cases this
 shell is too limited.
 
@@ -238,7 +247,7 @@ header files in your C/C++ application:
 The simplest way to build and link your applications is using the iMatix Boom
 system.  However you can use whatever processes you are already using to develop
 WireAPI applications, these will also work.
-        
+
 The amq_mgt_console class
 =========================
 
@@ -435,7 +444,7 @@ before working on it. It has these arguments:
  - depth: the 'depth' of the current path - when this is zero, the shell will
    not accept the '..' command.  Use zero when you are calling the 'cmdline'
    method on the broker object.
- - tokens: an ipr_token_list containing one or more tokens to execute, can be 
+ - tokens: an ipr_token_list containing one or more tokens to execute, can be
    NULL.
  - file: an optional XML file for capturing output, can be NULL.
 

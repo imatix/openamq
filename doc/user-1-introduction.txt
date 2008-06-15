@@ -67,7 +67,7 @@ There are of course more challenges but these are the main ones.
 AMQP
 ====
 
-We (iMatix) developed AMQP in 2004-06 together with JPMorganChase in order to
+iMatix developed AMQP in 2004-06 together with JPMorganChase in order to
 commoditize the business messaging market, before handing it over to a more
 diverse work group. AMQP is two things:
 
@@ -80,17 +80,17 @@ OpenAMQ, the iMatix AMQP software, adds some further standard pieces:
  2. A standard API for remote administration, called CML.
  3. A standard model for joining brokers together in federation.
 
-These have not yet been adopted by the AMQP working group (being deceptively 
+These have not yet been adopted by the AMQP working group (being deceptively
 simple and easy to implement) but enjoy some support from other AMQP vendors.
 
-AMQP has some really nice features that set it aside from, e.g. JMS or Stomp or 
+AMQP has some really nice features that set it aside from, e.g. JMS or Stomp or
 XMPP:
 
  - Unlike JMS, it's a wire-level protocol, like HTTP is.  This means that any
    software which cares to implement the protocol can speak to an AMQP server.
- - It works with all languages - we very carefully did not make it depend on 
+ - It works with all languages - we very carefully did not make it depend on
    any language-specific data types or concepts.
- - It works on all platforms - it does not depend on Windows, Linux, or any 
+ - It works on all platforms - it does not depend on Windows, Linux, or any
    other specific OS.
  - It is reasonably simple to implement - there are five or six good AMQP
    products, so users have a real choice in the market.
@@ -150,65 +150,63 @@ fields..
 Scales of deployment
 ====================
 
-OpenAMQ covers deployment at different levels of scale from the trivial to the 
+OpenAMQ covers deployment at different levels of scale from the trivial to the
 mind-boggling:
 
  1. Developer/casual use: 1 server, 1 user, 10 queues, 1 message per second.
- 2. Production application: 2 servers, 10-100 users, 10-50 queues, 30 messages 
+ 2. Production application: 2 servers, 10-100 users, 10-50 queues, 25 messages
     per second (100K/hour).
- 3. Departmental mission critical application: 4 servers, 100-500 users, 50-100 
-    queues, 60 messages per second (250K/hour).
- 4. Regional mission critical application: 16 servers, 500-2,000 users, 100-500 
-    queues and topics, 250 messages per second (1M/hour).
- 5. Global mission critical application: 64 servers, 2K-10K users, 500-1000 
+ 3. Departmental mission critical application: 4 servers, 100-500 users, 50-100
+    queues, 250 messages per second (1M/hour).
+ 4. Regional mission critical application: 16 servers, 500-2,000 users, 100-500
     queues and topics, 2,500 messages per second (10M/hour).
- 6. Market data (trading): 200 servers, 5K users, 10K topics, 100K+ messages per 
-    second (360M/hour).
+ 5. Global mission critical application: 64 servers, 2K-10K users, 500-1000
+    queues and topics, 25,000 messages per second (100M/hour).
+ 6. Market data (trading): 200 servers, 5K users, 10K topics, 250K messages per
+    second (1G/hour).
 
-As well as volume, the latency of message transfer is often important. For 
-instance, market data becomes worthless very rapidly.
+As well as volume, the latency of message transfer is often important. For
+instance, market data becomes worthless very rapidly.  OpenAMQ can deliver
+messages with latencies as low as 200 usec.
 
 What's in the package
 =====================
 
 When you download OpenAMQ you get:
 
- - A server (aka "broker") capable of handling thousands of clients and a 
+ - A server (aka "broker") capable of handling thousands of clients and a
    billion messages a day.
  - A client library for C/C++ applications.
- - Some clients for other languages - Java, Python.
+ - Some clients for other languages, mainly Java
  - A remote console that lets you administer OpenAMQ servers.
  - An application scripting language called PAL.
- - Documentation in various formats including HTML and PDF.
-
-There is some other stuff but this is the most useful.
 
 Licensing
 =========
 
-The OpenAMQ WireAPI ('client') libraries are free software. The complete ANSI 
-C source code for these libraries is distributed under the terms of the BSD 
+The OpenAMQ WireAPI ('client') libraries are free software. The complete ANSI
+C source code for these libraries is distributed under the terms of the BSD
 license.  Original XML models for this ANSI C code are licensed under the GPL.
 
-The OpenAMQ server ('broker') and all other OpenAMQ components are free 
-software; you can redistribute them and/or modify them under the terms of the 
-GNU General Public License as published by the Free Software Foundation; either 
+The OpenAMQ server ('broker') and all other OpenAMQ components are free
+software; you can redistribute them and/or modify them under the terms of the
+GNU General Public License as published by the Free Software Foundation; either
 version 2 of the License, or (at your option) any later version.
 
-For OEMs, ISVs, and VARs who distribute products derived from OpenAMQ, and do 
-not license and distribute their source code under the GPL, iMatix Corporation 
+For OEMs, ISVs, and VARs who distribute products derived from OpenAMQ, and do
+not license and distribute their source code under the GPL, iMatix Corporation
 provides an OEM Commercial License.  Contact us for details.
 
 Support
 =======
 
-OpenAMQ is supported by a small but active online community and all users can 
+OpenAMQ is supported by a small but active online community and all users can
 get free assistance for questions and issues via email.  The OpenAMQ community
 includes tutorials, patches, and addons contributed by OpenAMQ users and by the
 iMatix team.
 
 For businesses that need guaranteed support, several options are available,
-ranging from a simple technical support contract to full 24/7 production 
+ranging from a simple technical support contract to full 24/7 production
 support.  See http://www.imatix.com/support for details.
 
 The OpenAMQ product
@@ -217,9 +215,11 @@ The OpenAMQ product
 Technology roadmap
 ==================
 
-OpenAMQ was designed to be extremely robust and fast. Our performance goal was
-100,000 messages per second going through a single (big) broker, sustained for a
-full working day.
+OpenAMQ was designed to be extremely robust and fast. Our performance goal was 
+100,000 messages per second going through a single (big) broker, sustained for 
+a full working day. Our performance goal for the high performance messaging 
+which forms the next generation of OpenAMQ products is 500,000 messages per 
+second per CPU core using a brokerless delivery model.
 
 OpenAMQ does not implement everything in AMQP. There are three reasons for this.
 First, large parts of AMQP were designed to support JMS-style messaging, and we
@@ -227,15 +227,15 @@ think they are complex and unnecessary for most people. Second, we prefer to
 only implement what our users really need, and make that work really well. Last,
 we aim for performance and that means dropping some features.
 
-The performance of the base OpenAMQ broker is about 20k messages per second per CPU core;
-latencies of around 300 microseconds. Maximum performance per client is about
-10k messages per second so full broker performance shows when a dozen or more
-clients are working in parallel.
+The performance of the base OpenAMQ broker is about 20k messages per second per
+CPU core; latencies of around 200 microseconds. Maximum performance per client
+is about 10k messages per second so full broker performance shows when a dozen
+or more clients are working in parallel.
 
-iMatix is also developing an OpenAMQ High Performance Extension (HPX), with
-messaging speeds of around 500k messages per second per CPU core, and latencies
-of around 30 microseconds. This is available on a preview basis. Please contact
-us if you need this level of performance.
+iMatix also develops the OpenAMQ High Performance Extension (HPX), with 
+messaging speeds of around 500k messages per second per CPU core, and latencies 
+of around 30 microseconds. This is available on a preview basis to selected 
+users. Please contact us if you need this level of performance.
 
 OpenAMQ/1.2 functionality
 =========================
@@ -267,7 +267,6 @@ Resource management
 Provides the operator with control over use of system resources:
 
  - Configurable limits on queue sizes.
- - Configurable limits on maximum memory used for messages.
  - Automatic slowing of heavy publishers when limits are exceeded.
 
 Ease of use
@@ -455,7 +454,7 @@ over ten seconds, in the following scenario:
  - server load around 60-70%, client load around 90%
  - systems connected via gigabit ethernet
 
-Please note that this figure is for aggregate performance of the broker, i.e. 
+Please note that this figure is for aggregate performance of the broker, i.e.
 a total of all incoming and outgoing messages passing through the broker.
 
 Please also note that this scenario is not necessarily typical and realistic
@@ -636,6 +635,6 @@ This is the run_many.sh script used to start the clients:
 Latency testing
 ***************
 
-FastMQ Inc. has tested OpenAMQ latency. The average latency is 250-300
-microseconds. See http://www.zeromq.org/results:openamq-tests.
+FastMQ Inc. has tested OpenAMQ broker-based latency. The average latency is
+250-300 microseconds. See http://www.zeromq.org/results:openamq-tests.
 
