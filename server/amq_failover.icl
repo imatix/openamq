@@ -58,8 +58,8 @@ typedef enum
         enabled,                        //  If FALSE, broker is standalone 
         primary;                        //  TRUE = primary, FALSE = backup
     long
-        monitor,                        //  Monitor frequency in msecs
-        timeout;                        //  Failover timeout in msecs
+        monitor,                        //  Monitor frequency in usec
+        timeout;                        //  Failover timeout in usec
     amq_ha_state
         state;                          //  State of failover FSM
     apr_time_t
@@ -85,16 +85,18 @@ typedef enum
     backup  = amq_server_config_backup  (amq_server_config);
     primary = amq_server_config_primary (amq_server_config);
     //  Set failover intervals
-    //  All timeouts are represented internally as microseconds (1/1000000s)
-    //  We default to 1 second if monitor or timeout not set
-    self->monitor = amq_server_config_failover_monitor (amq_server_config)
-        * 1000000;
-    if (self->monitor == 0)
-        self->monitor = 1000000;
-    self->timeout = amq_server_config_failover_timeout (amq_server_config)
-        * 1000000;
+
+    //  All timeouts are represented internally as usec for SMT
+    self->timeout = amq_server_config_failover_timeout (amq_server_config);
     if (self->timeout == 0)
-        self->timeout = 1000000;
+        self->timeout = 5;
+    if (self->timeout > 300) {
+        icl_console_print ("E: failover timeout too high (%d), reduced to 60 secs", 
+            self->timeout);
+        self->timeout = 60;
+    }
+    self->timeout = self->timeout * 1000000;
+
     //  Check configuration is sane
     if (*backup && *primary)
         icl_console_print ("E: don't set both --backup and --primary");
@@ -142,7 +144,7 @@ typedef enum
 
 <method name = "start_monitoring" template = "async function" async = "1">
     <action>
-    smt_timer_request_delay (self->thread, self->monitor, monitor_event);
+    smt_timer_request_delay (self->thread, self->timeout / 2, monitor_event);
     </action>
 </method>
 
@@ -249,6 +251,7 @@ typedef enum
             assert (0);
             break;
           case amq_ha_event_new_connection:
+            //  Peer becomes master if timeout has passed
             if (smt_time_now () - self->last_peer_time > self->timeout) {
                 //  If peer is dead, switch to the active state
                 self->state = amq_ha_state_active;
@@ -272,13 +275,13 @@ typedef enum
 
 <event name = "monitor">
     <action>
-    //  Send state notification to failover peer, if peer is alive
-    if (self->last_peer_time == 0 
-    || smt_time_now () - self->last_peer_time <= self->timeout)
-        amq_failover_send_state (self);
+    //  Send state notification to failover peer
+    //  We do this unconditionally; if the failover peer is not present the
+    //  message will be discarded (it's sent to the status exchange).
+    amq_failover_send_state (self);
 
     //  Schedule new monitoring event
-    smt_timer_request_delay (self->thread, self->monitor, monitor_event);
+    smt_timer_request_delay (self->thread, self->timeout / 2, monitor_event);
     </action>
 </event>
 
