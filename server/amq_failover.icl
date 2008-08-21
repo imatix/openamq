@@ -58,7 +58,6 @@ typedef enum
         enabled,                        //  If FALSE, broker is standalone 
         primary;                        //  TRUE = primary, FALSE = backup
     long
-        monitor,                        //  Monitor frequency in usec
         timeout;                        //  Failover timeout in usec
     amq_ha_state
         state;                          //  State of failover FSM
@@ -87,7 +86,7 @@ typedef enum
     //  Set failover intervals
 
     //  All timeouts are represented internally as usec for SMT
-    self->timeout = amq_server_config_failover_timeout (amq_server_config);
+    self->timeout = amq_server_config_failover_timeout (amq_server_config)
                   * 1000000;
 
     //  Check configuration is sane
