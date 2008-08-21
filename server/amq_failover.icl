@@ -88,14 +88,7 @@ typedef enum
 
     //  All timeouts are represented internally as usec for SMT
     self->timeout = amq_server_config_failover_timeout (amq_server_config);
-    if (self->timeout == 0)
-        self->timeout = 5;
-    if (self->timeout > 300) {
-        icl_console_print ("E: failover timeout too high (%d), reduced to 60 secs", 
-            self->timeout);
-        self->timeout = 60;
-    }
-    self->timeout = self->timeout * 1000000;
+                  * 1000000;
 
     //  Check configuration is sane
     if (*backup && *primary)
