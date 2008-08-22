@@ -430,6 +430,10 @@ for each type of exchange. This is a lock-free asynchronous class.
     if (arguments && arguments->cur_size == 0)
         arguments = NULL;
 
+    //  Force all fanout bindings to a single instance
+    if (self->type == AMQ_EXCHANGE_FANOUT)
+        routing_key = "";
+
     //  We need to know if this is a new binding or not
     //  First, we`ll check on the routing key
     hash = ipr_hash_table_search (self->binding_hash, routing_key);
