@@ -561,10 +561,4 @@
   </action>
 </class>
 
-<!-- File -->
-<class name = "file">
-  <action name = "consume" sameas = "basic" />
-  <action name = "cancel"  sameas = "basic" />
-</class>
-
 </protocol>
