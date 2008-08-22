@@ -43,6 +43,7 @@
 <file name = "amq_mgt_connection.icl"   class = "icl public cont"   >Management connection class</file>
 <file name = "amq_mgt_queue_connection.icl" class = "icl public cont">Management queue connection class</file>
 <file name = "amq_mgt_connection_queue.icl" class = "icl public cont">Management connection queue class</file>
+<file name = "amq_operate_api.gsl"      class = "public resource"   >Generates the operator API</file>
 
 <!-- Generate AMQ operate API -->
 <actions>
