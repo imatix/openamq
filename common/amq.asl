@@ -149,11 +149,13 @@
 <include filename = "amq_exchange.asl" />
 <include filename = "amq_queue.asl" />
 <include filename = "amq_basic.asl" />
+<!-- not supported by OpenAMQ
 <include filename = "amq_file.asl" />
 <include filename = "amq_stream.asl" />
 <include filename = "amq_tx.asl" />
 <include filename = "amq_dtx.asl" />
 <include filename = "amq_tunnel.asl" />
+-->
 
 <option name = "protocol_name"     value = "AMQP" />
 <option name = "protocol_port"     value = "5672" />
