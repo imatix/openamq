@@ -71,9 +71,4 @@
   </action>
 </class>
 
-<class name = "file">
-  <action name = "deliver" sameas = "basic" />
-  <action name = "return"  sameas = "basic" />
-</class>
-
 </protocol>
