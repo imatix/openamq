@@ -189,30 +189,6 @@ class.
             AMQ_QUEUE_SET_MAX);
 </method>
 
-<method name = "publish" template = "function">
-    <doc>
-    Publish message to all queues and peers defined for the binding.
-    Returns number of times the message was published (fanout), which
-    is 1 or greater if there were recipients, zero if not.
-    </doc>
-    <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
-    <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
-    <local>
-    amq_queue_list_iter_t *
-        iterator;
-    </local>
-    //
-    //  Publish to all queues, sending method to async queue class
-    iterator = amq_queue_list_first (self->queue_list);
-    while (iterator) {
-        if (amq_server_config_debug_route (amq_server_config))
-            smt_log_print (amq_broker->debug_log, "X: deliver  queue=%s", iterator->item->key);
-        amq_queue_publish (iterator->item, channel, method);
-        iterator = amq_queue_list_next (&iterator);
-        rc++;                           //  Count recepients
-    }
-</method>
-
 <method name = "selftest" />
 
 </class>
