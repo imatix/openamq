@@ -49,8 +49,6 @@ for Basic, File, and Stream content classes.
 <import class = "amq_server_classes" />
 
 <context>
-    int
-        class_id;                       //  Consumer content class id
     amq_server_channel_t
         *channel;                       //  Parent channel
     amq_queue_t
@@ -84,16 +82,12 @@ for Basic, File, and Stream content classes.
         *basic_consume;
     </local>
     //
-    self->channel  = amq_server_channel_link (channel);
-    self->queue    = amq_queue_link (queue);
-    self->class_id = method->class_id;
+    self->channel = amq_server_channel_link (channel);
+    self->queue   = amq_queue_link (queue);
 
     //  Interface to console
     self->mgt_connection_queue = amq_connection_queue_new (channel->mgt_connection, self);
     self->mgt_queue_connection = amq_queue_connection_new (queue, self);
-
-    //  Class-dependent properties
-    assert (method->class_id == AMQ_SERVER_BASIC);
 
     basic_consume = &method->payload.basic_consume;
     self->no_local       = basic_consume->no_local;
@@ -113,9 +107,7 @@ for Basic, File, and Stream content classes.
     
     amq_connection_queue_destroy (&self->mgt_connection_queue);
     amq_queue_connection_destroy (&self->mgt_queue_connection);
-
-    if (self->class_id == AMQ_SERVER_BASIC)
-        amq_consumer_basic_destroy (&self->consumer_basic);
+    amq_consumer_basic_destroy   (&self->consumer_basic);
 </method>
 
 <method name = "selftest" />

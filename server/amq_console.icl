@@ -590,12 +590,12 @@ s_reply_xml (amq_content_basic_t *request, ipr_xml_t *xml_item)
 static void
 s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
 {
-    amq_client_method_t
-        *method;                        //  Basic.Publish method
     amq_exchange_t
         *exchange;                      //  We send the reply to amq.direct
     amq_vhost_t
         *vhost;
+    amq_content_basic_t
+        *content;
 
     if (amq_server_config_debug_console (amq_server_config))
         smt_log_print (amq_broker->debug_log, "C: response xml=%s", bucket->data);
@@ -605,20 +605,16 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
         if (*request->reply_to) {
             exchange = amq_exchange_table_search (vhost->exchange_table, "amq.direct");
             if (exchange) {
-                //  Create a Basic.Publish method to carry the content
-                method = amq_client_method_new_basic_publish (
-                    0, "amq.direct", request->reply_to, FALSE, FALSE);
-
                 //  Create a content with our desired reply data
-                method->content = amq_content_basic_new ();
-                amq_content_basic_set_message_id   (method->content, request->message_id);
-                amq_content_basic_set_content_type (method->content, "text/xml");
-                amq_content_basic_record_body      (method->content, bucket);
-                amq_content_basic_set_routing_key  (method->content, "amq.direct", request->reply_to, 0);
+                content = amq_content_basic_new ();
+                amq_content_basic_set_message_id   (content, request->message_id);
+                amq_content_basic_set_content_type (content, "text/xml");
+                amq_content_basic_record_body      (content, bucket);
+                amq_content_basic_set_routing_key  (content, "amq.direct", request->reply_to, 0);
 
                 //  Publish the message
-                amq_exchange_publish (exchange, NULL, (amq_server_method_t *) method);
-                amq_client_method_unlink (&method);
+                amq_exchange_publish (exchange, NULL, content, FALSE, FALSE);
+                amq_content_basic_unlink (&content);
 
                 amq_exchange_unlink (&exchange);
             }

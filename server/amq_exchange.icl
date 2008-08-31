@@ -108,7 +108,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         (*publish) (
             void                 *self,
             amq_server_channel_t *channel,
-            amq_server_method_t  *method);
+            amq_content_basic_t  *content);
     int
         (*compile) (
             void                 *self,
@@ -505,15 +505,17 @@ for each type of exchange. This is a lock-free asynchronous class.
     is defined in the exchange implementations.
     </doc>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
-    <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
+    <argument name = "content" type = "amq_content_basic_t *">Content to publish</argument>
+    <argument name = "mandatory" type = "Bool" />
+    <argument name = "immediate" type = "Bool" />
     //
     <possess>
     channel = amq_server_channel_link (channel);
-    method = amq_server_method_link (method);
+    content = amq_content_basic_link (content);
     </possess>
     <release>
     amq_server_channel_unlink (&channel);
-    amq_server_method_unlink (&method);
+    amq_content_basic_unlink (&content);
     </release>
     //
     <action>
@@ -533,7 +535,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         delivered = 1;                  //  Just fake it
     else
         //  Publish message locally
-        delivered = self->publish (self->object, channel, method);
+        delivered = self->publish (self->object, channel, content);
 
     //  Publish message to federation if necessary. We don't have the problem
     //  of message loops with fanout federations because we only push back to 
@@ -543,53 +545,45 @@ for each type of exchange. This is a lock-free asynchronous class.
        (self->federation_type == AMQ_FEDERATION_FANOUT && channel) ||
        (self->federation_type == AMQ_FEDERATION_LOCATOR && !delivered) ||
        (self->federation_type == AMQ_FEDERATION_SERVICE && !delivered)) {
-        amq_federation_message_published (
-            self->federation,
-            method->content,
-            method->payload.basic_publish.mandatory,
-            method->payload.basic_publish.immediate);
+        amq_federation_message_published (self->federation, content, mandatory, immediate);
         delivered++;
     }
-    if (!delivered && method->payload.basic_publish.mandatory) {
-        if (method->class_id == AMQ_SERVER_BASIC) {
-            if (!((amq_content_basic_t *) method->content)->returned) {
-                connection = channel?
-                    amq_server_connection_link (channel->connection): NULL;
-                if (connection) {
-                    amq_server_agent_basic_return (
-                        connection->thread,
-                        channel->number,
-                        (amq_content_basic_t *) method->content,
-                        ASL_NOT_DELIVERED,
-                        "Message cannot be processed - no route is defined",
-                        method->payload.basic_publish.exchange,
-                        method->payload.basic_publish.routing_key,
-                        NULL);
-                    ((amq_content_basic_t *) method->content)->returned = TRUE;
-                }
-                returned = TRUE;
-                amq_server_connection_unlink (&connection);
+    if (!delivered && mandatory) {
+        if (!content->returned) {
+            connection = channel?
+                amq_server_connection_link (channel->connection): NULL;
+            if (connection) {
+                amq_server_agent_basic_return (
+                    connection->thread,
+                    channel->number,
+                    content,
+                    ASL_NOT_DELIVERED,
+                    "Message cannot be processed - no route is defined",
+                    self->name,
+                    content->routing_key,
+                    NULL);
+                content->returned = TRUE;
             }
+            returned = TRUE;
+            amq_server_connection_unlink (&connection);
         }
     }
     if (amq_server_config_debug_route (amq_server_config)) {
         if (returned)
             smt_log_print (amq_broker->debug_log,
                 "X: return   %s: message=%s reason=unroutable_mandatory",
-                    self->name,
-                    ((amq_content_basic_t *) method->content)->message_id);
+                    self->name, content->message_id);
         else
         if (!delivered)
             smt_log_print (amq_broker->debug_log,
                 "X: discard  %s: message=%s reason=unroutable_optional",
-                    self->name,
-                    ((amq_content_basic_t *) method->content)->message_id);
+                    self->name, content->message_id);
     }
     //  Track exchange statistics
     self->contents_in  += 1;
     self->contents_out += delivered;
-    self->traffic_in   += ((amq_content_basic_t *) method->content)->body_size;
-    self->traffic_out  += (delivered * ((amq_content_basic_t *) method->content)->body_size);
+    self->traffic_in   += content->body_size;
+    self->traffic_out  += delivered * content->body_size;
     </action>
 </method>
 

@@ -153,21 +153,17 @@ typedef enum
     <local>
     icl_shortstr_t
         state;
-    amq_client_method_t
-        *client_method;
+    amq_content_basic_t
+        *content;
     </local>
     //
     icl_shortstr_fmt (state, "%d", self->state);
-    client_method = amq_client_method_new_basic_publish (
-        0, "amq.status", self->primary ? "p" : "b", FALSE, FALSE);
-    client_method->content = amq_content_basic_new ();
-    
-    amq_content_basic_set_body (client_method->content, icl_mem_strdup (state),
-        strlen (state) + 1, icl_mem_free);
-    amq_exchange_publish (self->status_exchange, NULL,
-        (amq_server_method_t *) client_method);
-
-    amq_client_method_unlink (&client_method);
+    content = amq_content_basic_new ();
+    amq_content_basic_set_routing_key (content, "amq.status", self->primary? "p" : "b", 0);
+    amq_content_basic_set_body (content, 
+        icl_mem_strdup (state), strlen (state) + 1, icl_mem_free);
+    amq_exchange_publish (self->status_exchange, NULL, content, FALSE, FALSE);
+    amq_content_basic_unlink (&content);
 </method>
 
 <method name = "execute" return = "rc" template = "function">

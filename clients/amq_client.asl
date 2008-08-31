@@ -32,15 +32,16 @@
     int
         msg_count;
   </local>
-
-    amq_content_$(class.name)_set_routing_key (
+    //
+    amq_content_basic_set_routing_key (
         self->content, method->exchange, method->routing_key, 0);
-    amq_content_$(class.name)_list_queue (session->arrived_$(class.name)_list, self->content);
-    msg_count = amq_content_$(class.name)_list_count (session->arrived_$(class.name)_list);
-    if (amq_client_config_arrived_high_water (amq_client_config) &&
-        msg_count == amq_client_config_arrived_high_water (amq_client_config) &&
-        icl_atomic_cas32 (&session->flow_stopped, TRUE, FALSE) == FALSE)
-            amq_client_session_channel_flow (session, FALSE);
+    amq_content_basic_list_queue (session->arrived_basic_list, self->content);
+    msg_count = amq_content_basic_list_count (session->arrived_basic_list);
+
+    if (amq_client_config_arrived_high_water (amq_client_config) 
+    && msg_count == amq_client_config_arrived_high_water (amq_client_config) 
+    && icl_atomic_cas32 (&session->flow_stopped, TRUE, FALSE) == FALSE)
+        amq_client_session_channel_flow (session, FALSE);
   </action>
 
   <action name = "deliver">
@@ -48,26 +49,64 @@
     int
         msg_count;
   </local>
-
-    amq_content_$(class.name)_set_routing_key (
+    //
+    amq_content_basic_set_routing_key (
         self->content, method->exchange, method->routing_key, 0);
-    amq_content_$(class.name)_list_queue (session->arrived_$(class.name)_list, self->content);
-    msg_count = amq_content_$(class.name)_list_count (session->arrived_$(class.name)_list);
-    if (amq_client_config_arrived_high_water (amq_client_config) &&
-        msg_count == amq_client_config_arrived_high_water (amq_client_config) &&
-        icl_atomic_cas32 (&session->flow_stopped, TRUE, FALSE) == FALSE)
-            amq_client_session_channel_flow (session, FALSE);
+    amq_content_basic_list_queue (session->arrived_basic_list, self->content);
+    msg_count = amq_content_basic_list_count (session->arrived_basic_list);
+    
+    if (amq_client_config_arrived_high_water (amq_client_config) 
+    && msg_count == amq_client_config_arrived_high_water (amq_client_config) 
+    && icl_atomic_cas32 (&session->flow_stopped, TRUE, FALSE) == FALSE)
+        amq_client_session_channel_flow (session, FALSE);
   </action>
 
   <action name = "return">
-    amq_content_$(class.name)_set_routing_key (
+    amq_content_basic_set_routing_key (
         self->content, method->exchange, method->routing_key, 0);
-    amq_content_$(class.name)_list_queue (session->returned_$(class.name)_list, self->content);
-    ((amq_content_$(class.name)_t *) self->content)->returned = TRUE;
+    amq_content_basic_list_queue (session->returned_basic_list, self->content);
+    ((amq_content_basic_t *) self->content)->returned = TRUE;
 
     if (!session->silent)
-        icl_console_print ("W: $(class.name) message was returned: %d - %s",
+        icl_console_print ("W: basic message was returned: %d - %s",
             session->reply_code, session->reply_text);
+  </action>
+
+  <action name = "publish">
+    <local>
+    smt_thread_t
+        *thread;
+    </local>
+    if (self->connection->direct) {
+        thread = amq_client_session_dp_lookup (self, exchange, DP_SINK);
+        if (!thread)
+            thread = amq_client_session_dp_new (self, exchange, DP_SINK);
+        if (thread) {
+            amq_content_basic_set_routing_key (content, exchange, routing_key, NULL);
+            amq_client_agent_direct_out (thread, content);
+        }
+        else
+            icl_console_print ("E: cannot create new direct protocol");
+    }
+    else
+  </action>
+</class>
+
+<class name = "queue">
+  <action name = "declare" when = "after">
+    <local>
+    smt_thread_t
+        *thread;
+    </local>
+    if (self->connection->direct && exclusive) {
+        thread = amq_client_session_dp_lookup (self, self->queue, DP_FEED);
+        if (!thread)
+            thread = amq_client_session_dp_new (self, self->queue, DP_FEED);
+    }
+  </action>
+  <action name = "delete" when = "after">
+    if (self->connection->direct)
+        amq_client_session_dp_destroy (self, queue, DP_FEED);
   </action>
 </class>
 

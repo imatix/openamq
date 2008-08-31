@@ -61,7 +61,4 @@
   </action>
 </class>
 
-<class name = "file">
-</class>
-
 </protocol>

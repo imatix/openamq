@@ -128,6 +128,9 @@
 <file name = "amq_failover.icl"          class = "icl private class" >Failover class</file>
 <file name = "amq_failover_agent.smt"    class = "smt public module"
                                          generated = "1"             >Failover agent</file>
+<file name = "amq_lease.icl"             class = "icl private class" >Server direct lease class</file>
+<file name = "amq_lease_table.icl"       class = "icl private cont"  
+                                         generated = "1"             >Server lease container</file>
 
 <!-- OpenAMQ Management Console back-end -->
 <file name = "amq_console.icl"           class = "icl private class" >Server console class</file>

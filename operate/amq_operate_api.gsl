@@ -639,7 +639,7 @@ s_request_response (
         bucket->data [bucket->cur_size] = 0;
 
         //  Parse as XML message
-        ipr_xml_load_string (&xml_root, bucket->data, FALSE);
+        ipr_xml_load_string (&xml_root, (char *) bucket->data, FALSE);
         ipr_bucket_unlink (&bucket);
         assert (xml_root);
 

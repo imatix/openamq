@@ -144,9 +144,7 @@ limited by size of amq_index_hash table.
         binding_nbr;                    //  Binding number, 1..n from bindset
     </local>
     //
-    if (method->class_id == AMQ_SERVER_BASIC)
-        headers = asl_field_list_new (basic_content->headers);
-        
+    headers = asl_field_list_new (content->headers);
     if (headers) {
         hitset = amq_hitset_new ();
         field = asl_field_list_first (headers);

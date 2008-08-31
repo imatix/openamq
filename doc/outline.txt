@@ -1,82 +1,19 @@
 ------------------------------------------------------------------------------
 main:questions
 
-+ Tell us what you think
+++ Tell us what you think
 
-Levels of support
-Public mailing list
-This wiki
-Expert help
+* Discuss on the public mailing list.
+* Contact us directly for confidential advice.
 
+++ Architecture and design
 
-main:submit-news
-main:all-news
-main:public-list
-main:public-archive
-main:submit-issue
-main:all-issues
-main:contribute
+OpenAMQ is not just a technology, it is also a design philosophy.  The AMQ semantics are a powerful way to design distributed applications.  OpenAMQ takes care of detailed routing and queueing, and you can focus your architecture on the aspects that matter to you.
 
-    
-Submit
-    Submit issue
-    Submit FAQ
-    Submit addon
-    Submit tutorial
-    [[[terms of use]]]
+If you need advice or help, drop us a line.  If we can help by email or phone, we will.  Otherwise, ask for an OpenAMQ expert to drop by your offices - whether you're in Singapore or San Francisco, Brussels or Bangkok, we're happy to walk through your business architecture with you.
 
-legal section
+++ Low latency trials
 
+iMatix is starting trials of its new low latency OpenAMQ/2.0 product.  If your business demands latencies of under 100 microseconds, and throughputs of 1 GB or more, contact us to ask to participate in our low latency trial programme.  OpenAMQ/2.0 is scheduled for release by 4th quarter of 2008.
 
-todo:
- - issues: to submit issues
- - news: for current news
-
-
-testing federation
-    - two brokers, parent and child
-    subsciber test:
-        - attach amq.test.subscriber (topic) to parent
-        - consume at child
-        - consume at parent
-        - publish to parent
-            - expect messages to arrive at parent
-            - expect messages to arrive at child
-        - publish to child
-            - expect messages to arrive at child 
-    publisher test:
-        - attach amq.test.publisher (topic) to parent
-        - consume at child
-        - consume at parent
-        - publish to parent
-            - expect messages to arrive at parent
-        - publish to child
-            - expect messages to arrive at parent
-            - expect messages to arrive at child 
-    locator test:
-        - attach amq.test.locator (direct) to parent
-        - consume at child
-        - consume at parent
-        - publish to parent
-            - expect messages to arrive at parent
-        - publish to child
-            - expect messages to arrive at child 
-    fanout test:
-        - attach amq.test.fanout (topic) to parent
-        - consume at child
-        - consume at parent
-        - publish to parent
-            - expect messages to arrive at parent
-            - expect messages to arrive at child 
-        - publish to child
-            - expect messages to arrive at parent
-            - expect messages to arrive at child 
-    service test:
-        - attach amq.test.service (direct) to parent
-        - consume at child
-        - consume at parent
-        - publish to parent
-            - expect messages to arrive at parent
-        - publish to child
-            - expect messages to arrive at child 
 

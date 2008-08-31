@@ -180,6 +180,11 @@ class.  This is a lock-free asynchronous class.
         limit_value  [AMQ_QUEUE_LIMIT_MAX],
         limit_action [AMQ_QUEUE_LIMIT_MAX];
 
+    amq_lease_t
+        *lease;                         //  Feed lease, if any
+    Bool
+        feed_on;                        //  Feed lease enabled/disabled
+
     //  Statistics
     int64_t
         traffic_in,                     //  Traffic in, in octets
@@ -303,29 +308,24 @@ class.  This is a lock-free asynchronous class.
     Publish message content onto queue.
     </doc>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
-    <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
+    <argument name = "content" type = "amq_content_basic_t *">Content to publish</argument>
+    <argument name = "immediate" type = "Bool" />
     //
     <possess>
     channel = amq_server_channel_link (channel);
-    method = amq_server_method_link (method);
+    content = amq_content_basic_link (content);
     </possess>
     <release>
     amq_server_channel_unlink (&channel);
-    amq_server_method_unlink (&method);
+    amq_content_basic_unlink (&content);
     </release>
     //
     <action>
-    if (self->enabled) {
-        if (method->class_id == AMQ_SERVER_BASIC)
-            amq_queue_basic_publish (
-                self->queue_basic,
-                channel,
-                method->content,
-                method->payload.basic_publish.immediate);
-    }
+    if (self->enabled)
+        amq_queue_basic_publish (self->queue_basic, channel, content, immediate);
     else
         amq_server_channel_error (channel, ASL_ACCESS_REFUSED, "Queue is disabled",
-            method->class_id, method->method_id);
+            AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_PUBLISH);
     </action>
 </method>
 
@@ -343,10 +343,7 @@ class.  This is a lock-free asynchronous class.
     amq_server_channel_unlink (&channel);
     </release>
     <action>
-    if (class_id == AMQ_SERVER_BASIC)
-        amq_queue_basic_get (self->queue_basic, channel);
-    else
-        smt_log_print (amq_broker->alert_log, "E: illegal content class (%d)", class_id);
+    amq_queue_basic_get (self->queue_basic, channel);
     </action>
 </method>
 
@@ -401,13 +398,12 @@ class.  This is a lock-free asynchronous class.
         }
     }
     else {
-        if (consumer->class_id == AMQ_SERVER_BASIC) {
-            consumer->paused = !active;
-            amq_queue_basic_consume (self->queue_basic, consumer);
-            if (connection && !nowait)
-                amq_server_agent_basic_consume_ok (
-                    connection->thread, channel->number, consumer->tag);
-        }
+        consumer->paused = !active;
+        self->feed_on = active;
+        amq_queue_basic_consume (self->queue_basic, consumer);
+        if (connection && !nowait)
+            amq_server_agent_basic_consume_ok (
+                connection->thread, channel->number, consumer->tag);
         amq_queue_dispatch (self);
     }
     amq_server_connection_unlink (&connection);
@@ -439,21 +435,21 @@ class.  This is a lock-free asynchronous class.
     amq_server_channel_t
         *channel;
 
-    if (consumer->class_id == AMQ_SERVER_BASIC) {
-        if (notify) {
-            channel = amq_server_channel_link (consumer->channel);
-            if (channel) {
-                connection = amq_server_connection_link (channel->connection);
-                if (connection && !nowait) {
-                    amq_server_agent_basic_cancel_ok (
-                        connection->thread, channel->number, consumer->tag);
-                    amq_server_connection_unlink (&connection);
-                }
-                amq_server_channel_unlink (&channel);
+    if (notify) {
+        channel = amq_server_channel_link (consumer->channel);
+        if (channel) {
+            connection = amq_server_connection_link (channel->connection);
+            if (connection && !nowait) {
+                amq_server_agent_basic_cancel_ok (
+                    connection->thread, channel->number, consumer->tag);
+                amq_server_connection_unlink (&connection);
             }
+            amq_server_channel_unlink (&channel);
         }
-        amq_queue_basic_cancel (self->queue_basic, consumer);
     }
+    amq_queue_basic_cancel (self->queue_basic, consumer);
+
+    self->feed_on = FALSE;              //  Stop direct feed from queue, if any
     self->locked = FALSE;
     if (self->auto_delete && amq_queue_basic_consumer_count (self->queue_basic) == 0) {
         int

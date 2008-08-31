@@ -296,8 +296,8 @@ s_content_handler (
 {
     amq_federation_t
         *self = (amq_federation_t *) vself;
-    amq_client_method_t
-        *client_method;
+    amq_content_basic_t
+        *content;
 
     assert (peer_method->class_id == AMQ_PEER_BASIC);
     assert (peer_method->method_id == AMQ_PEER_BASIC_DELIVER);
@@ -311,29 +311,19 @@ s_content_handler (
             peer_method->payload.basic_deliver.exchange,
             peer_method->payload.basic_deliver.routing_key);
 
-    //  TODO: implement rejected messages returning in pull model
-    //  Notice two last arguments in the call bellow
-    client_method = amq_client_method_new_basic_publish (
-        0,                          //  Access ticket
-        peer_method->payload.basic_deliver.exchange,
-        peer_method->payload.basic_deliver.routing_key,
-        FALSE,                      //  Mandatory
-        FALSE);                     //  Immediate
-
-    client_method->content = peer_method->content;
+    content = peer_method->content;
     peer_method->content = NULL;
-
     amq_content_basic_set_routing_key (
-        client_method->content,
+        content,
         peer_method->payload.basic_deliver.exchange,
         peer_method->payload.basic_deliver.routing_key,
         0);
- 
-    amq_exchange_publish (self->exchange, NULL, (amq_server_method_t *) client_method);
-    amq_client_method_unlink (&client_method);
 
+    amq_exchange_publish (self->exchange, NULL, content, FALSE, FALSE);
+    amq_content_basic_unlink (&content);
     return (0);
 }
+
 
 //  Callback handler called by our amq_peering instance when a basic.return is
 //  received from the peering connection.  This happens when the parent broker

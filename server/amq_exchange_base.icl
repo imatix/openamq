@@ -69,19 +69,15 @@ This is an abstract base class for all exchange implementations.
     </doc>
     <argument name = "self_v" type = "void *">The exchange cast as a void *</argument>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
-    <argument name = "method" type = "amq_server_method_t *">Publish method</argument>
+    <argument name = "content" type = "amq_content_basic_t *">Content to publish</argument>
     <declare name = "rc" type = "int" default = "0">Return code</declare>
     <local>
     $(selftype)
         *self = self_v;
-    amq_server_basic_publish_t
-        *basic_method = NULL;
-    amq_content_basic_t
-        *basic_content = NULL;
     char
-        *routing_key = "",
-        *message_id = NULL,
-        *sender_id = NULL;
+        *routing_key,
+        *message_id,
+        *sender_id;
     int
         delivered = 0;                  //  Number of message deliveries
     amq_server_connection_t
@@ -96,19 +92,12 @@ This is an abstract base class for all exchange implementations.
     <header>
     $(selfname:upper)_ASSERT_SANE (self);
 
-    if (method->class_id == AMQ_SERVER_BASIC) {
-        basic_method  = &method->payload.basic_publish;
-        basic_content = (amq_content_basic_t *) (method->content);
-        routing_key   = basic_method->routing_key;
-        message_id    = basic_content->message_id;
-        sender_id     = basic_content->sender_id;
-        if (amq_server_config_debug_route (amq_server_config))
-            smt_log_print (amq_broker->debug_log,
-                "X: publish  %s: routing_key=%s", self->exchange->name, routing_key);
-    }
-    else
-        smt_log_print (amq_broker->alert_log,
-            "E: $(selfname) - bad class_id - %d", method->class_id);
+    routing_key = content->routing_key;
+    message_id  = content->message_id;
+    sender_id   = content->sender_id;
+    if (amq_server_config_debug_route (amq_server_config))
+        smt_log_print (amq_broker->debug_log,
+            "X: publish  %s: routing_key=%s", self->exchange->name, routing_key);
    
     //  Grab reference to connection 
     connection = channel?
@@ -128,7 +117,11 @@ This is an abstract base class for all exchange implementations.
             if (amq_server_config_debug_route (amq_server_config))
                 smt_log_print (amq_broker->debug_log, "X: deliver  queue=%s", 
                     last_queue->key);
-            amq_queue_publish (last_queue, channel, method);
+
+            if (last_queue->lease && last_queue->feed_on && last_queue->lease->thread)
+                amq_server_agent_direct_out (last_queue->lease->thread, content);
+            else
+                amq_queue_publish (last_queue, channel, content, FALSE);
             delivered++;
         }
     }

@@ -36,11 +36,6 @@
 
 <!-- EXCHANGE -->
 
-<!-- TODO this entire file needs to be redesigned
-    1. move the method bodies into the respective objects
-    2. allow this layer to be interfaced with other protocol agents
-       such as HTTP
-    -->
 <class name = "exchange">
   <action name = "declare">
     <local>
@@ -331,8 +326,6 @@
                 exchange, channel, queue, method->routing_key, method->arguments);
             if (!method->nowait)
                 amq_server_agent_queue_unbind_ok (connection->thread, channel->number);
-
-            /*  TODO: Clustering code missing  */
             amq_queue_unlink (&queue);
         }
         else
@@ -495,7 +488,7 @@
         if (!exchange->internal || strnull (method->exchange)) {
             //  This method may only come from an external application
             assert (connection);
-            amq_content_$(class.name)_set_routing_key (
+            amq_content_basic_set_routing_key (
                 content,
                 method->exchange,
                 method->routing_key,
@@ -503,11 +496,9 @@
             if (exchange->federation) {
                 icl_shortstr_fmt (sender_id, "%s|%d", connection->key, 
                     channel->number);
-                amq_content_$(class.name)_set_sender_id (
-                    content, sender_id);
+                amq_content_basic_set_sender_id (content, sender_id);
             }
-
-            amq_exchange_publish (exchange, channel, self);
+            amq_exchange_publish (exchange, channel, content, method->mandatory, method->immediate);
         }
         else
             amq_server_channel_error (channel,
@@ -558,6 +549,71 @@
 
   <action name = "cancel">
     amq_server_channel_cancel (channel, method->consumer_tag, TRUE, method->nowait);
+  </action>
+</class>
+
+<class name = "direct">
+  <action name = "put">
+    <local>
+    amq_lease_t
+        *lease;
+    </local>
+    <local>
+    amq_vhost_t
+        *vhost;
+    </local>
+    <header>
+    vhost = amq_vhost_link (amq_broker->vhost);
+    if (vhost) {
+    </header>
+    <footer>
+        amq_vhost_unlink (&vhost);
+    }
+    else
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
+            AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_PUT);
+    </footer>
+    //
+    lease = amq_lease_new (vhost, method->sink, DP_SINK);
+    if (lease) {
+        amq_server_agent_direct_put_ok (channel->connection->thread, channel->number, lease->name);
+        amq_lease_unlink (&lease);
+    }
+    else
+        amq_server_channel_error (channel, ASL_NOT_FOUND, 
+            "No such sink", 
+            AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_PUT);
+  </action>
+  <action name = "get">
+    <local>
+    amq_lease_t
+        *lease;
+    </local>
+    <local>
+    amq_vhost_t
+        *vhost;
+    </local>
+    <header>
+    vhost = amq_vhost_link (amq_broker->vhost);
+    if (vhost) {
+    </header>
+    <footer>
+        amq_vhost_unlink (&vhost);
+    }
+    else
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
+            AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_GET);
+    </footer>
+    //
+    lease = amq_lease_new (vhost, method->feed, DP_FEED);
+    if (lease) {
+        amq_server_agent_direct_get_ok (channel->connection->thread, channel->number, lease->name);
+        amq_lease_unlink (&lease);
+    }
+    else
+        amq_server_channel_error (channel, ASL_NOT_FOUND, 
+            "No such feed", 
+            AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_GET);
   </action>
 </class>
 
