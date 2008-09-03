@@ -1,0 +1,57 @@
+[[div style="float:left; width: 66%; padding: 0 2% 0 2%"]]
+%%content{2}%%
+
+++ Comments
+
+[[module Comments title=""]]
+[[/div]]
+[[div style="float:right; width: 28%; border:1px solid #cedff2; background:#f5faff; padding: 5px 5px 5px 5px"]]
+[[button edit text="Edit"]] | [[button files text="Files"]] | [[button tags text="Tags"]] | [[button source text="Source"]] | [[button print text="Print"]]
+[[module Rate]]
+
+++ Author
+
+%%content{3}%%
+
+[[toc]]
+
+[[div style="font-size:90%"]]
+++ Installing and using OpenAMQ
+[[module ListPages rssShow="no" category="doc" tags="user"]]
+**%%linked_title%%**:  %%content{1}%%
+[[/module]]
+
+++ Writing applications
+[[module ListPages rssShow="no" category="doc" tags="api"]]
+**%%linked_title%%**:  %%content{1}%%
+[[/module]]
+
+++ Technical library
+[[module ListPages rssShow="no" category="doc" tags="tech"]]
+**%%linked_title%%**:  %%content{1}%%
+[[/module]]
+
+++ RFCs
+[[module ListPages rssShow="no" category="doc" tags="rfc"]]
+**%%linked_title%%**:  %%content{1}%%
+[[/module]]
+
+
+[[/div]]
+
+[[/div]]
+~~~~
+
+====
+
+One paragraph that summarizes the article
+
+====
+
+++ Heading
+
+Body
+
+====
+
+Your name <email@address>

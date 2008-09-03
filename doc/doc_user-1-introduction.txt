@@ -1,0 +1,472 @@
+This document is an introduction to the concept of business messaging in general, and to OpenAMQ in particular. It is intended for new OpenAMQ users who wish to understand the problems that OpenAMQ solves, and how OpenAMQ can be useful in software applications.
+
+====
+
++ Understanding business messaging
+
+++ What is OpenAMQ?
+
++++ Business messaging
+
+OpenAMQ is a business messaging product. That is, it provides you with a framework on which to build distributed business applications which communicate using messages. Such distributed applications are sometimes called "loosely connected". Typically the flow of messages is asynchronous. That means that messages flow between parts of the overall application without an overall synchronizing or controlling logic.
+
+Asynchronous, loosely-coupled messaging is, as far as we know, the best way to build very large, very scalable applications.
+
+Messaging middleware can be used in many ways but it comes down to two main messaging models:
+
+# Request-response, in which two components exchange messages that compose a larger transaction.  An example would be a web application that sends an availability request to an airline reservation system, and then places a booking.
+# Publish-subscribe, in which a set of publishers distribute messages to a larger set of subscribers.  An example would be a news server that sends updates to a set of web applications.
+
+In both cases, there are some tricky problems to solve in order to turn these models into real, reliable code. The main problems we need to solve are:
+
+# How to address the different parts of a distributed application.  We don't want components knowing too much about each other, so some kind of abstract addressing is necessary.
+# How and where to queue messages.  We want to put queues in the right place so that messages are pushed as close, but no closer, to their destinations as necessary.
+# How to format messages and put them onto "the wire".  We want to handle any data from 0 bytes to infinity.
+# How to format control commands so that parts of the application can talk to each other.
+# How to handle sessions so that components can keep connections open for a long time.
+# How to handle errors and failures.
+# How to implement different kinds of message distribution.
+
+There are of course more challenges but these are the main ones.
+
++++ AMQP
+
+iMatix developed AMQP in 2004-06 together with JPMorganChase in order to commoditize the business messaging market, before handing it over to a more diverse work group. AMQP is two things:
+
+# A standard semantic model for broker-based business messaging, called AMQ.
+# A standard wire-level protocol to connect the pieces together.
+
+OpenAMQ, the iMatix AMQP software, adds some further standard pieces:
+
+# A standard API for applications, called WireAPI.
+# A standard API for remote administration, called CML.
+# A standard model for joining brokers together in federation.
+
+These have not yet been adopted by the AMQP working group (being deceptively simple and easy to implement) but enjoy some support from other AMQP vendors.
+
+AMQP has useful features that set it aside from, e.g. JMS or Stomp or XMPP:
+
+* Unlike JMS, it's a wire-level protocol, like HTTP is.  This means that any software which cares to implement the protocol can speak to an AMQP server.
+* It works with all languages - we very carefully did not make it depend on any language-specific data types or concepts.
+* It works on all platforms - it does not depend on Windows, Linux, or any other specific OS.
+* It is reasonably simple to implement - there are five or six good AMQP products, so users have a real choice in the market.
+* It is easy to use, mainly because the protocol actually makes sense.
+* It is very fast, because it does not do any complex parsing.
+
+AMQP could be faster, could be more reliable, could be simpler. But it covers 90% of the needs of business messaging well and it is being happily used by some of the largest businesses in the world.
+
+But these large businesses can pay for commercial messaging products. The point of OpenAMQ was to make something that could be used more widely, in areas where commercial messaging products would be too expensive and too complex. Our ultimate goal for AMQP (and thus OpenAMQ) is to deliver a messaging bus for open source applications that need to, but until now could not, grow into the "loosely coupled" space due to the cost of commercial messaging and the lack of good open source products.
+
++++ The AMQ model
+
+Very briefly, the "AMQ" part of "AMQP" is a dynamic routing and queuing model that sits inside a server, and AMQP is the protocol that lets client applications talk to such a server. AMQP applications manipulate "exchanges" which do routing, and "queues" which do queueing. They "bind" queues to exchanges and "consume" from queues. And they "publish" messages to exchanges, so they flow to queues, and thence to consumers.
+
+The AMQ model is unique in the messaging world but it is a simple and apparently accurate answer to the question "what should a business messaging server actually do?"
+
++++ The WireAPI interface
+
+WireAPI was designed to give application programmers in all languages the same semantics for programming AMQP applications. Each language has its own syntax but with a single semantic, it is very easy for the same developers to switch languages, maintain code in different languages, and reuse designs made in one language, in another.
+
+With WireAPI, AMQP applications are more likely to survive the inevitable changes of programming language. More usefully, WireAPI protects AMQP users from being locked into specific suppliers due to every supplier providing a different API.
+
+WireAPI is simple to use and consistent, and follows the semantics of the AMQP protocol closely, using the same names and parameters. This is not really an accident - we designed AMQP as a "high level" protocol, making it look more like an API than a wire-level encoding.
+
+So for example to create a queue, AMQP uses a method called Queue.Declare with a number of fields. In WireAPI, there is a corresponding function "amq_queue_declare" with a number of arguments that match the AMQP Queue.Declare fields..
+
++++ Scales of deployment
+
+OpenAMQ covers deployment at different levels of scale from the trivial to the mind-boggling:
+
+# Developer/casual use: 1 server, 1 user, 10 queues, 1 message per second.
+# Production application: 2 servers, 10-100 users, 10-50 queues, 25 messages per second (100K/hour).
+# Departmental mission critical application: 4 servers, 100-500 users, 50-100 queues, 250 messages per second (1M/hour).
+# Regional mission critical application: 16 servers, 500-2,000 users, 100-500 queues and topics, 2,500 messages per second (10M/hour).
+# Global mission critical application: 64 servers, 2K-10K users, 500-1000 queues and topics, 25,000 messages per second (100M/hour).
+# Market data (trading): 200 servers, 5K users, 10K topics, 250K messages per second (1G/hour).
+
+As well as volume, the latency of message transfer is often important. For instance, market data becomes worthless very rapidly. OpenAMQ can deliver messages with latencies as low as 200 usec.
+
++++ What's in the package
+
+When you download OpenAMQ you get:
+
+* A server (aka "broker") capable of handling thousands of clients and a billion messages a day.
+* A client library for C/C++ applications.
+* Some clients for other languages, mainly Java
+* A remote console that lets you administer OpenAMQ servers.
+* An application scripting language called PAL.
+
++++ Licensing
+
+The OpenAMQ WireAPI ('client') libraries are free software. The complete ANSI C source code for these libraries is distributed under the terms of the BSD license. Original XML models for this ANSI C code are licensed under the GPL.
+
+The OpenAMQ server ('broker') and all other OpenAMQ components are free software; you can redistribute them and/or modify them under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+For OEMs, ISVs, and VARs who distribute products derived from OpenAMQ, and do not license and distribute their source code under the GPL, iMatix Corporation provides an OEM Commercial License. Contact us for details.
+
++++ Support
+
+OpenAMQ is supported by a small but active online community and all users can get free assistance for questions and issues via email. The OpenAMQ community includes tutorials, patches, and addons contributed by OpenAMQ users and by the iMatix team.
+
+For businesses that need guaranteed support, several options are available, ranging from a simple technical support contract to full 24/7 production support. See http://www.imatix.com/support for details.
+
+++ The OpenAMQ product
+
++++ Technology roadmap
+
+OpenAMQ was designed to be extremely robust and fast. Our performance goal was 100,000 messages per second going through a single (big) broker, sustained for a full working day. Our performance goal for the high performance messaging which forms the next generation of OpenAMQ products is 1M messages per second per CPU core using a brokerless delivery model.
+
+OpenAMQ does not implement everything in AMQP. There are three reasons for this. First, large parts of AMQP were designed to support JMS-style messaging, and we think they are complex and unnecessary for most people. Second, we prefer to only implement what our users really need, and make that work really well. Last, we aim for performance and that means dropping some features.
+
+The performance of the base OpenAMQ broker is about 20k messages per second per CPU core; latencies of around 200 microseconds. Maximum performance per client is about 10k messages per second so full broker performance shows when a dozen or more clients are working in parallel.
+
+[[=image scaling.png]]
+
+iMatix is developing OpenAMQ/2.0, with a High Performance Extension (HPX) that achieves messaging speeds of around 1M messages per second per CPU core, and latencies of around 30 microseconds.  HPX uses a brokerless low-latency AMQ architecture for ultra-low latency unicast and multicast PGM messaging.  OpenAMQ/2.0 is available on a preview basis to selected clients.  The graphic shows OpenAMQ/2.0's scaling on 16-core boxes.  Please contact us if you need this level of performance in your new applications.
+
++++ OpenAMQ/1.2 functionality
+
+++++ Message routing
+
+Implements AMQ routing model:
+
+* Implements fanout, direct, topic, and header exchange types.
+* Implements default exchanges.
+* Lets applications create and manage exchanges at runtime.
+* Supports hierarchical topics of any complexity.
+
+++++ Message queuing
+
+Implements the AMQ queueing model with flexible user-defined message queues:
+
+* Create and manage named or unnamed queues.
+* Basic content messages of zero bytes up to 4Gb.
+* Multiple readers per queue with round-robin dispatching.
+* Asynchonous message publishing and dispatching.
+* Shared queues and exclusive private queues.
+
+++++ Resource management
+
+Provides the operator with control over use of system resources:
+
+* Configurable limits on queue sizes.
+* Automatic slowing of heavy publishers when limits are exceeded.
+
+++++ Ease of use
+
+Is designed for extreme usability and configurability:
+
+* Single stand-alone binary.
+* Natively portable to all modern operating systems.
+* Runs with zero configuration if needed.
+* Configurable through command-line switches.
+
+++++ Clustering and federation
+
+Supports failover and scalability through in-built clustering:
+
+* Create high-availability server pairs.
+* Connect servers and server pairs into federations.
+* Fanout publish/subscribe load across many servers.
+* Configurable client-server heartbeating.
+
+++++ Security
+
+Supports extensible and configurable security options:
+
+* Configurable user definitions.
+* SASL authentication (PLAIN mechanism).
+
+++++ Administration
+
+Is easy to administer via secure remote shell or the command line:
+
+* Configuration via XML configuration files or command-line.
+* Remote administration and configuration (amq_shell).
+
+++++ Logging
+
+Includes a complete log file management system:
+
+* Configurable debug logging levels.
+* Logging of normal client application accesses.
+* Logging of all exceptional events, warnings, and errors.
+* Automatic daily cycling of log files.
+* Configurable log archiving process (compression, removal, etc.)
+
+++++ WireAPI client interface
+
+Provides a standardised API for application development:
+
+* Support for all methods defined in the AMQP standard.
+* Asynchronous background message delivery.
+* Error reporting to applications.
+* Currently available for C/C++.
+
+++++ Automation
+
+Comes with tools for testing and automation:
+
+* Includes full test client (amq_client).
+* Extensive [[[doc:prog-pal | PAL]]] scripting language for automation and testing.
+* Console extension protocol.
+
+++++ Code Platform
+
+Built on a high-performance portability framework:
+
+* Multithreaded ANSI C built on custom client/server frameworks.
+* Portable to Linux, Windows, Solaris, and other Unix systems.
+* Single code base builds both single-threaded and multi-threaded versions.
+
+++++ Performance and Stability
+
+Designed for fast performance and reliability:
+
+* Server starts and is ready for connections in one second.
+* Built on a low-latency, high-throughput communications framework.
+* Configurable TCP/IP parameters (timeouts, buffers).
+* Configurable OS footprint (memory, number of threads).
+* Configurable memory managers (including heap caching).
+* Processes 20-30k transient messages per second on single CPU.
+* Processes 140k transient messages per second on multiway box.
+
++++ Interoperability
+
+OpenAMQ/1.2 implements the AMQP/0-9 specification without the Red Hat "work in progress" optional features. This is probably the most stable and widely used version. We do not recommend the use of AMQP/0-10, which we consider to be unnecessarily complex, immature, and lacking in cross-vendor support. We are involved in the development of an updated 0-9 specification (0-9SP1) that removes the "work in progress" along with other unused aspects of the specification.
+
+We are committed to providing OpenAMQ users with the maximum interoperability with other AMQP implementations based on stable, mature, and simple AMQP specifications.
+
++++ LAN vs WAN
+
+OpenAMQ is intended to provide a high-performance messaging backbone for applications that operate on a LAN. It does not have the necessary security model for public network infrastructures. To use OpenAMQ across a public network, we recommend using VPNs or SSH tunnels. OpenAMQ federations can be built across WANs using SSH tunnels and this is our recommended approach to WAN deployment:
+
+[[code]]
+     Network 1      :               :   Network 2
+                    :               :
+          .-----.   :               :   .-----.
+  [_]---- |     |   :               :   |     | ---- [_]
+          |     | ===================== |     |
+  [_]---- |     | --------------------- |     | ---- [_]
+          |     | ===================== |     |
+  [_]---- |     |   :  SSH tunnel   :   |     | ---- [_]
+          `-----'   :               :   `-----'
+                    :               :
+ Clients   Broker   :   Internet    :    Broker     Clients
+[[/code]]
+
++++ Reliability
+
+A controversial but key difference between OpenAMQ and other AMQP products is our approach to reliability. Products such as IBM's WebsphereMQ demonstrate the conventional approach to reliability: they depend on large brokers with persistent queues held on disk. Every message must be part of a transaction so that any failure can be recovered from. Reliability is centralized. There are significant performance penalities. Message delivery is very pedantic, and the protocol becomes complex. When we mix this model with a clustering for high availability (i.e. being able to switch to a backup server if the prime server crashes) we get into even more complex territory.
+
+Complexity itself creates more unreliability and more risk of crashes and data loss. Centralized reliability is incompatible with federations of brokers, and goes against modern network design, which is based on pushing intelligence to the edge of the network, and using many cheap boxes rather than centralizing intelligence on a few expensive ones.
+
+At iMatix we consider the AMQP network to be ideally built from cheap, disposable message switches. These can be organized into high-availabilty pairs ("HA pairs") where needed. So a node is either one, or two AMQP servers. These nodes can be federated together. Queues are transient and based in memory. Everything is cheap, simple, transient, and minimalistic.
+
+Such networks, being simpler than classic messaging brokers, fail less often and this solves a large part of the reliabity issue. To get full reliability we put end-to-end reliability in the application APIs.
+
+Note that WireAPI does not implement this - up to now, this has been done by AMQP applications rather than OpenAMQ. The design is very simple. We build reliable messaging as request-response message pairs. The sender of a request holds the request in memory, or on disk, until it gets a response. If it does not get a response within a short time, it resends the request. The other end ignores duplicate requests.
+
+This reliability model is invisible to the protocol (which can then be simpler and thus better), and needs no support from the server (which can then be simpler and more reliable). And it works with any AMQP network, no matter how large or how many servers are involved.
+
+For more information see http://www.openamq.org/tutorial:switch-or-broker.
+
+++ Throughput testing
+
++++ Figures
+
+OpenAMQ has been recorded as transferring 130K messages per second, sustained over ten seconds, in the following scenario:
+
+* one publisher, 64 subscribers
+* full fanout from publisher to all subscribers
+* messages of 500 bytes large
+* publisher and server running on an 8-way Opteron
+* subscribers all running on a 4-way Opteron
+* server load around 60-70%, client load around 90%
+* systems connected via gigabit ethernet
+
+Please note that this figure is for aggregate performance of the broker, i.e. a total of all incoming and outgoing messages passing through the broker.
+
+Please also note that this scenario is not necessarily typical and realistic applications will probably see a lower throughput. Users who need performance that the base OpenAMQ package cannot deliver should contact us about the High Performance Extension (HPX) package for OpenAMQ.
+
++++ Software configuration
+
+The tests were conducted using this software configuration:
+
+* OpenAMQ server 1.0c2
+* Multithreaded release build (BOOM_MODEL=mt,release)
+* Direct memory allocator (ALLOCATOR=direct)
+* Operating system: Linux Red Hat Enterprise Linux 4
+
++++ Hardware configuration
+
+The server and publisher were run on an 8-way Opteron. The subscribers were run on a 4-way Opteron. The two servers were connected via gigabit Ethernet networking.
+
++++ Publisher application
+
+The publisher is a PAL script (PAL is the WireAPI scripting language provided as part of the OpenAMQ package):
+
+[[code]]
+topic_publish.pal:
+--------------------
+<pal script = "amq_pal_gen">
+    <set name = "once"   value = "0" cmdline = "O" />
+    <set name = "topics" value = "0" cmdline = "T" />
+    <session>
+        <queue_declare exclusive = "1" />
+        <queue_bind queue = "$queue" exchange = "amq.topic" routing_key = "test" />
+        <!-- Create extra topics to load the topic exchange -->
+        <repeat times = "$topics" counter = "id">
+            <queue_bind queue = "$queue" exchange = "amq.topic" routing_key = "test.topic.$id" />
+        </repeat>
+        <echo>Subscriber is ready</echo>
+        <basic_consume queue = "$queue" />
+        <repeat>
+            <wait/>
+            <basic_arrived>
+                <!-- To test a content property we need to assign it to a variable -->
+                <set name = "message_id" value = "$message_id" />
+                <if name = "message_id" test = "eq" value = "END">
+                    <basic_publish routing_key = "$reply_to" />
+                    <echo>End of message stream from $reply_to...</echo>
+                    <if name = "once">
+                        <exit />
+                    </if>
+                </if>
+                <break />
+            </basic_arrived>
+        </repeat>
+    </session>
+</pal>
+[[/code]]
+
++++ Subscriber application
+
+The subscriber application is a PAL script:
+
+[[code]]
+topic_subscribe.pal:
+--------------------
+<!--
+    This pal script sends a series of messages to a topic exchange
+    and waits for a confirmation from each subscriber that it has
+    read the entire series. You should tell this script how many
+    subcribers there are (default = 20).
+
+    To use:
+
+        scriptname -M messages -S subscribers
+
+    The -T option causes the server to set-up a number of topics that
+    are used for nothing except to load the topic exchange.
+ -->
+
+<pal script = "amq_pal_gen">
+    <set name = "messages"    value = "1000" cmdline = "M" />
+    <set name = "subscribers" value = "1"    cmdline = "S" />
+    <set name = "size"        value = "500"  cmdline = "Z" />
+    <set name = "settle"      value = "0"    cmdline = "W" />
+    <set name = "once"        value = "1"    cmdline = "O" />
+    <set name = "topics"      value = "0"    cmdline = "T" />
+
+    <session cluster_key = "my.cluster">
+        <!-- Create reply queue and start consuming from it -->
+        <queue_declare exclusive = "1" />
+        <basic_consume queue = "$queue" />
+
+        <!-- Create extra topics to load the topic exchange -->
+        <repeat times = "$topics" counter = "id">
+            <basic_content size = "1" />
+            <basic_publish exchange = "amq.topic" routing_key = "test.topic.$id" />
+        </repeat>
+
+        <repeat>
+            <!-- Send off our test messages -->
+            <timer action = "reset" />
+            <repeat times = "$messages" counter = "id">
+                <basic_content size = "$size" message_id = "message-$id" reply_to = "$queue" />
+                <basic_publish exchange = "amq.topic" routing_key = "test" />
+            </repeat>
+
+            <!-- Send off END message -->
+            <basic_content size = "0" message_id = "END" reply_to = "$queue" />
+            <basic_publish exchange = "amq.topic" routing_key = "test" />
+
+            <!-- Expect confirmations from subscribers -->
+            <set name = "id" value = "0" />
+            <repeat>
+                <wait timeout = "99999" />
+                <basic_arrived>
+                    <echo>Subscriber $id finished</echo>
+                    <timer action = "show" />
+                    <inc name = "id" />
+                    <if name = "once">
+                        <if name = "id" value = "$subscribers" >
+                            <exit />
+                        </if>
+                    </if>
+                </basic_arrived>
+                <empty>
+                    <abort>E: no response from subscriber</abort>
+                </empty>
+            </repeat>
+            <if name = "settle">
+                <echo>Waiting for $settle msecs...</echo>
+                <wait timeout = "$settle" />
+            </if>
+        </repeat>
+    </session>
+</pal>
+[[/code]]
+
++++ Building the application
+
+The commands used to build the application are:
+
+[[code]]
+pal topic_publish topic_subscribe
+[[/code]]
+
++++ Running the tests
+
+The command used to start the server is:
+
+[[code]]
+./amq_server --monitor 1
+[[/code]]
+
+The command used to start the subscribers is:
+
+[[code]]
+./run_many.sh 64 ./topic_subscribe -s [server address and port]
+[[/code]]
+
+And the command used to start the publisher is:
+
+[[code]]
+./topic_publish -z 500 -S 64 -M 100000
+[[/code]]
+
+This is the run_many.sh script used to start the clients:
+
+[[code]]
+#!/bin/sh
+if [ $# -lt 2  ]; then
+    echo "usage: run_many.sh NUMCLIENTS COMMAND [client options]"
+    exit 1
+fi
+NUMCLIENTS=$1
+shift
+COMMAND=$1
+shift
+for client in `yes | head -${NUMCLIENTS}`; do
+    ${COMMAND} "$@" &
+done
+[[/code]]
+
+++ Latency testing
+
+FastMQ Inc. has tested OpenAMQ broker-based latency. The average latency is 250-300 microseconds. See http://www.zeromq.org/results:openamq-tests.
+
+====
+iMatix Corporation

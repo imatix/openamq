@@ -1,0 +1,664 @@
+This document explains how to get OpenAMQ running on your system. It explains how to download the software, how to unpack and build it (if you are using a source package), and how to run basic tests on the resulting software.
+
+====
+
++ Download, build, and run
+
+++ Download the software
+
++++ What is available
+
+Please read the News section on the http://www.openamq.org site for the latest available packages. The OpenAMQ packages are named as follows:
+
+* OpenAMQ-x.xxx.tar.gz - source package for Unix, Linux and Mac OS/X.
+* OpenAMQ-x.xxx.zip - source package for Windows, requires MSVC++ 6.x or VS.NET 7.1.
+
++++ Download areas
+
+Get your OpenAMQ from the following directories:
+
+* http://download.imatix.com/openamq/stable - stable production packages
+* http://download.imatix.com/openamq/unstable - older versions of OpenAMQ
+* http://download.imatix.com/openamq/previous - new unstable releases
+
+++ The legal stuff
+
++++ Server license
+
+The OpenAMQ server ('broker') is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+The OpenAMQ server is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. See http://www.gnu.org/licenses/gpl.html.
+
++++ Client library license
+
+The OpenAMQ WireAPI ('client') libraries are free software. The complete ANSI C source code for these libraries is distributed under the terms of the BSD license:
+
+[[code]]
+Copyright (c) 1996-2007 iMatix Corporation
+All rights reserved.
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+* Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in
+  the documentation and/or other materials provided with the
+  distribution.
+* Neither the name of iMatix Corporation nor the names of its
+  contributors may be used to endorse or promote products derived
+  from this software without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY IMATIX CORPORATION 'AS IS' AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL IMATIX CORPORATION BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+[[/code]]
+
++++ License for tools and addons
+
+All other OpenAMQ software including the XML models used in the construction of the client library is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+The OpenAMQ software is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. See http://www.gnu.org/licenses/gpl.html.
+
++++ Licenses for third-party addons
+
+All third-party code used in OpenAMQ is redistributable under a BSD or MIT license, or is in the public domain. For detailed licensing information, please refer to the readme.txt file in each package and/or each source file.
+
++++ Commercial licenses
+
+If you are an individual or small business user, there is generally no need to purchase a commercial license, provided that you respect the terms and conditions of the GPL. Note that the GPL applies only to applications that package the OpenAMQ server or addons. Applications that use the OpenAMQ WireAPI clients - which is the normal case - are not subject to the GPL.
+
+As an enterprise customer, we encourage you to purchase an enterprise support package from iMatix Corporation and receive benefits such as support for your mission-critical use of OpenAMQ.
+
+We also encourage ISVs and IHVs to incorporate OpenAMQ into their offerings, either based on the GPL or through a commercial license deal with iMatix Corporation. Please contact us for additional information.
+
+Since iMatix Corporation holds all the copyrights to the OpenAMQ code, or is at least permitted to relicense code that is owned by external contributors and other parties, we are free to choose the terms under which we license the code to our customers, or the open source community.
+
+We - like many other innovative software companies - believe that dual licensing gives both developers and users the best of two worlds. While anyone is free to look at the code and even improve it, commercial licenses support the company and allow for professional maintenance and support. The open source community gets more high-quality free software at no cost, while businesses can rely on quality support from our first-hand developers. Both worlds profit from each other: The commercial licenses support both our business and the open source community, and vice versa.
+
++++ Software patents
+
+AMQP is not patented technology. OpenAMQ is not patented technology. We think our technology is so good that it does not need the protection of patents. We think our company is good enough to compete in a free market. Indeed, we welcome competition and we want our users to have the fullest possible choice of AMQP suppliers. We believe more generally that software patents are a bad thing for the software business, for open standards, and for customer, and we support efforts to ban them in Europe and the United States.
+
++++ Trademarks
+
+IMATIX, OPENAMQ, and WIREAPI are trademarks of iMatix Corporation. The use of these name in the context of promoting any product or service, without the express consent of iMatix Corporation, is not permitted.
+
++++ Contributions
+
+Even though the OpenAMQ source code is licensed to you under the GPL, it's not enough to submit your patches under the GPL. If you wish to contribute work that is subject to copyright (text, media, or code), we need to be legally certain we can redistribute the contribution under any license we choose. In order to be able to accept your contribution, we must therefore ask you to do one of two things:
+
+# Fill out the iMatix Corporation Copyright Assignment and License (CAL) and send it to iMatix Corporation. With the CAL, you give iMatix Corporation permission to use your contribution under licenses other than the main OpenAMQ license. This is a once-in-a-lifetime event: once we have your CAL, we will never again ask you to undergo any bureaucratic procedures, and all future contributions are covered.  See http://www.imatix.com/copyright-assignment.
+# If you don't want to sign such an agreement, you can alternatively submit your contribution under the MIT license. This is a liberal, wide-spread Open Source license that allows iMatix Corporation (and anyone else) to use your contribution in both open-source and closed-source projects. See http://en.wikipedia.org/wiki/MIT_License.
+
+The main difference between the two options is this: with the CAL, a written statement is necessary, but then only iMatix Corporation is allowed to relicense your code (unless you give other people the same permission). With the MIT license, you save the paperwork, but everyone else can reuse your code as well. It's your choice.
+
+If you are an employee, then you must get approval from your employer to submit code to OpenAMQ. The simplest way is to get your employer to sign the CAL.
+
+++ Building from source
+
++++ Why build from source?
+
+OpenAMQ may not always be provided as a binary package on the operating system of your choice. Additionally, building from source lets you tune and customise your OpenAMQ software to get the best performance for your hardware, to get debug builds, and to enable other compile time options.
+
++++ Overview of the build process
+
+The Unix and Windows packages have identical contents but the text files they contain are formatted for Unix and Windows respectively. If you attempt to build the Windows file on Linux, Solaris or an other Unix system, you will get shell errors unless you convert all files to the proper format (using zip or some similar tool).
+
+OpenAMQ depends on a number of supporting packages that are included in the 'foreign' project, and built as part of the process. You do not need to download any other software to build and run OpenAMQ - the OpenAMQ source kits are self-complete and contain qualified and tested versions of all required supporting packages. Note that building OpenAMQ with versions of these packages which are pre-installed on your system may cause faults, since we sometimes patch supporting packages to fix problems.
+
++++ Building on Unix, Linux and Mac OS/X
+
+++++ Quick guide
+
+These shell commands build OpenAMQ from the Unix source kit (replace x.xxx with the actual version number of the package you downloaded):
+
+[[code]]
+$ IBASE=$HOME/ibase
+$ export IBASE
+$ PATH=$IBASE/bin:$PATH
+$ export PATH
+$ tar zxvf /path/to/OpenAMQ-x.xxx.tar.gz
+$ cd /path/to/OpenAMQ-x.xxx
+$ sh build.sh
+[[/code]]
+
+++++ Prerequsities
+
+You need:
+
+* Linux, Mac OS/X, Solaris, or another Unix system
+* An ANSI C compiler (OpenAMQ builds with gcc, Sun C, and Intel C)
+* on Mac OS/X, you need Xcode, from http://developer.apple.com/tools/xcode/
+* 1 gigabyte of available disk space
+* tar, gunzip
+
+OpenAMQ has been tested on these Unix/Linux systems:
+
+* Red Hat Enterprise Linux 3 and 4
+* Debian Linux 3.1 with 2.4, 2.6 kernels
+* Solaris 8*, 10
+* Mac OS/X (Darwin)
+
+It may not build and/or not operate correctly on other Unix systems. If you need help to build OpenAMQ on other Unix systems please contact us.
+
+For optimal performance on Linux we recommend using a 2.6 kernel.
+
+For optimal performance on Solaris we recommend using Solaris 10 or newer and compiling OpenAMQ with the Sun Studio 11 compilers.
+
+++++ Set the IBASE directory
+
+The OpenAMQ libraries and executables are installed into the directory defined by the environment variable IBASE (the shared install base for all iMatix products).
+
+Define IBASE using a command following this example:
+
+[[code]]
+$ IBASE=$HOME/ibase
+$ export IBASE
+[[/code]]
+
+You can add these commands to your shell startup script so that you do not need to retype them in each shell window.
+
+++++ Set the PATH
+
+To correctly access the OpenAMQ executables, you must place the IBASE/bin directory on your path. Do this using these commands:
+
+[[code]]
+$ PATH=$IBASE/bin:$PATH
+$ export PATH
+[[/code]]
+
+You can add these commands to your shell startup script so that you do not need to retype them in each shell window.
+
+++++ Choose a build model
+
+From the same OpenAMQ source kit you can build many variations of the software. You do this by setting the BOOM_MODEL environment variable:
+
+* BOOM_MODEL=st - single-threaded, useful for single-core servers
+* BOOM_MODEL=mt - multi-threaded, ideal for servers with two or more cores
+* BOOM_MODEL=debug - with full debugging information
+* BOOM_MODEL=release - optimised, without debugging information
+
+These options can be combined. The default build is "mt,release". To choose a different build, set the BOOM_MODEL environment variable following this example:
+
+[[code]]
+$ BOOM_MODEL="mt,debug"
+$ export BOOM_MODEL
+[[/code]]
+
+You can add these commands to your shell startup script so that you do not need to retype them in each shell window.
+
+++++ Unpack the source code
+
+After downloading the OpenAMQ source kit, move it to a working directory with sufficient disk space and then unpack the source code using this command:
+
+[[code]]
+$ tar zxvf /path/to/OpenAMQ-x.xxx.tar.gz
+$ cd /path/to/OpenAMQ-x.xxx
+[[/code]]
+
+++++ Build the packages
+
+After setting IBASE, your PATH, and BOOM_MODEL, build the software using this command, in the OpenAMQ-x.xxx directory:
+
+[[code]]
+$ sh build.sh
+[[/code]]
+
+++++ Test the server
+
+After a successful build, start the server as follows:
+
+[[code]]
+$ amq_server
+OpenAMQ/x.xxx
+Production release
+Copyright (c) 2007 iMatix Corporation
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+2006-05-09 10:12:41: W: security warning - console login uses default password
+2006-05-09 10:12:42: I: server ready for incoming AMQ connections
+[[/code]]
+
+And in a second window, start the test client as follows:
+
+[[code]]
+$ amq_client
+[[/code]]
+
+The client will create a temporary queue on the server, send a single message to its own queue, and read the message back off its queue. To stop the server, press Ctrl-C.
+
++++ Building on Windows
+
+++++ Quick guide
+
+These Windows console commands build OpenAMQ from the Windows source kit:
+
+[[code]]
+> set IBASE=c:\ibase
+> set PATH=%IBASE%\bin;%PATH%
+> unzip \path\to\OpenAMQ-x.xxx.zip
+> cd \path\to\OpenAMQ-x.xxx
+> build
+[[/code]]
+
+++++ Prerequsities
+
+* Windows 2000 or newer
+* Microsoft Visual C/C++ 6.x or Visual Studio .NET 2003 7.1
+* 1 gigabyte of available disk space
+* A standard unzip tool (note: WinZip does not handle the tar.gz files correctly).
+
+The C/C++ compiler must be configured for command-line compilation. To test this, open a console window and type this command:
+
+[[code]]
+> cl /?
+[[/code]]
+
+If the command shows help for the MSVC compiler, it has been configured correctly. Otherwise follow these instructions:
+
+* During MSVC installation, make sure you register the environment variables needed for command-line use of the compiler.
+* Check the vcvars32.bat script for correctness.
+* When you open a console box, the MSVCDir variable must point correctly to the MSVC application directory.
+* You can set this manually in the system environment variables.
+
+Note that Visual Studio 2005 (including the Express Edition) is not currently supported.
+
+++++ Set the IBASE directory
+
+The OpenAMQ libraries and executables are installed into the directory defined by the environment variable IBASE (the common base for all iMatix products).
+
+Define IBASE using a command following this example:
+
+[[code]]
+> set IBASE=c:\ibase
+[[/code]]
+
+You can add this command to your server environment so that you do not need to retype it in each shell window.
+
+++++ Set the PATH
+
+To correctly access the OpenAMQ executables, you must place the IBASE\bin directory on your path. Do this using this command:
+
+[[code]]
+> set PATH=%IBASE%\bin;%PATH%
+[[/code]]
+
+You can add this command to your server environment so that you do not need to retype it in each shell window.
+
+++++ Choose a build model
+
+From the same OpenAMQ source kit you can build many variations of the software. You do this by setting the BOOM_MODEL environment variable:
+
+* BOOM_MODEL=st - single-threaded, useful for single-core servers
+* BOOM_MODEL=mt - multi-threaded, ideal for servers with two or more cores
+* BOOM_MODEL=debug - with full debugging information
+* BOOM_MODEL=release - optimised, without debugging information
+
+These options can be combined. The default build is mt,release. To choose a different build, set the BOOM_MODEL environment variable following this example:
+
+[[code]]
+> set BOOM_MODEL=mt,debug
+[[/code]]
+
+You can add this command to your server environment so that you do not need to retype it in each shell window.
+
+++++ Unpack the source code
+
+After downloading the OpenAMQ source kit, move it to a working directory with sufficient disk space and then unpack the source code using these commands:
+
+[[code]]
+> unzip \path\to\OpenAMQ-x.xxx.zip
+> cd \path\to\OpenAMQ-x.xxx
+[[/code]]
+
+++++ Build the packages
+
+After setting IBASE, your PATH, and BOOM_MODEL, build the software using this command, in the OpenAMQ-x.xxx directory:
+
+[[code]]
+> build
+[[/code]]
+
+++++ Test the server
+
+After a successful build, start the server as follows:
+
+[[code]]
+> amq_server
+OpenAMQ/x.xxx
+Production release
+Copyright (c) 2007 iMatix Corporation
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+2006-05-09 10:12:41: W: security warning - console login uses default password
+2006-05-09 10:12:42: I: server ready for incoming AMQ connections
+[[/code]]
+
+And in a second window, start the test client as follows:
+
+[[code]]
+> amq_client
+[[/code]]
+
+The client will create a temporary queue on the server, send a single message to its own queue, and read the message back off its queue. To stop the server, press Ctrl-C.
+
++++ Building OpenAMQ/JMS
+
+++++ Build using Ant
+
+In order to build OpenAMQ/JMS you need:
+
+* Sun J2SE 5.0 JDK from http://java.sun.com/
+* Apache Ant 1.7.0 or newer from http://ant.apache.org/
+
+To build ensure that Ant and your JDK are installed correctly and that the JAVA_HOME environment variable, if set, is pointing to the root directory of the JDK that you wish to build OpenAMQ/JMS with.
+
+Then, run the following:
+
+[[code]]
+> ant
+[[/code]]
+
+This will build OpenAMQ/JMS and test classes, and leave the JAR files in the dist directory of the distribution.
+
+To install the JAR files into an OpenAMQ IBASE, you can run:
+
+[[code]]
+> ant install
+[[/code]]
+
+which will install them into $IBASE/java/lib, if the IBASE environment variable is set.
+
+For other useful targets, try:
+
+[[code]]
+> ant -projecthelp
+[[/code]]
+
+++++ Testing OpenAMQ/JMS on Unix
+
+Scripts to run the examples are in the bin directory.
+
+The simplest test to ensure everything is working is the "service request reply" test. This involves one client that is known as a "service provider" and it listens on a well-known queue for requests.
+
+Another client, known as the "service requester" creates a private (temporary) response queue, creates a message with the private response queue set as the "reply to" field and then publishes the message to the well known service queue. The test allows you to time how long it takes to send messages and receive the response back. It also allows varying of the message size.
+
+You must start the service provider first:
+
+[[code]]
+> bin/serviceProvidingClient.sh host:port
+[[/code]]
+
+where host:port is the host and port you are running the broker on. To run the service requester:
+
+[[code]]
+> bin/serviceRequestingClient.sh host:post <message count> <message size in bytes>
+[[/code]]
+
+After receiving all the messages the client outputs the rate it achieved.
+
+A more realistic example is the "headers test", which tests the performance of routing messages based on message headers to a configurable number of clients (e.g. 50). A publisher sends e.g. 10000 messages to each client and waits to receive a message from each client when it has received all the messages.
+
+You run the listener processes first (repeat for as many listeners as you like):
+
+[[code]]
+> bin/headersListener.sh -host 127.0.0.1 -port 5672
+[[/code]]
+
+Then run the publisher process:
+
+[[code]]
+> bin/headersPublisher.sh -host 10.0.0.1 -port 5672 <message count> <number of listeners>
+[[/code]]
+
+Note that before starting the publisher you should wait a few seconds to ensure all the clients are registered with the broker.
+
+++++ Testing OpenAMQ/JMS on Windows
+
+Scripts to run the examples are in the bin directory.
+
+The simplest test to ensure everything is working is the "service request reply" test. This involves one client that is known as a "service provider" and it listens on a well-known queue for requests.
+
+Another client, known as the "service requester" creates a private (temporary) response queue, creates a message with the private response queue set as the "reply to" field and then publishes the message to the well known service queue. The test allows you to time how long it takes to send messages and receive the response back. It also allows varying of the message size.
+
+You must start the service provider first:
+
+[[code]]
+> bin\serviceProvidingClient host:port
+[[/code]]
+
+where host:port is the host and port you are running the broker on. To run the service requester:
+
+[[code]]
+> bin\serviceRequestingClient host:post <message count> <message size in bytes>
+[[/code]]
+
+After receiving all the messages the client outputs the rate it achieved.
+
+A more realistic example is the "headers test", which tests the performance of routing messages based on message headers to a configurable number of clients (e.g. 50). A publisher sends e.g. 10000 messages to each client and waits to receive a message from each client when it has received all the messages.
+
+You run the listener processes first (repeat for as many listeners as you like):
+
+[[code]]
+> bin\headersListener.bat -host 127.0.0.1 -port 5672
+[[/code]]
+
+Then run the publisher process:
+
+[[code]]
+> bin\headersPublisher.bat -host 10.0.0.1 -port 5672 <message count> <number of listeners>
+[[/code]]
+
+Note that before starting the publisher you should wait a few seconds to ensure all the clients are registered with the broker.
+
+++ Deploying the OpenAMQ server
+
++++ On Unix systems
+
+++++ Required files
+
+The OpenAMQ server is installed into the $IBASE/bin directory. If you wish to move the server elsewhere (e.g. to a different machine), you need to copy these files:
+
+* amq_server
+* amq_server_base.cfg
+* amq_console_schema.cml
+
+No other files are required.
+
+++++ Starting the server
+
+To start the server in a console window run this command:
+
+[[code]]
+amq_server
+[[/code]]
+
+You can run the server as a detached background process using this command:
+
+[[code]]
+amq_server -b
+[[/code]]
+
+++++ Working directory
+
+It is best to start amq_server in a specific working directory which has the right permissions to allow the process to create logging directories and files. You can start many instances of the server in the same directory. The server will create two subdirectories:
+
+* logs, in which the server will create current log files.
+* archive, to which the server will move old (yesterday's) log files.
+
+++++ Stopping the server
+
+To stop the server, press Ctrl-C or find the process ID and use the kill -2 command. Alternatively, [/admin.html:use the amq_shell] to stop the server, especially if you are doing remote administration. If a server does not respond to a kill -2 command, use kill -9. Note that in some cases a server may take up to 30 seconds to stop, particularly if there are client applications that do not politely disconnect when asked to.
+
+++++ Important server options
+
+To see the current version of the server, type this command:
+
+[[code]]
+amq_server -v
+[[/code]]
+
+To see a short list of all server options, type this command:
+
+[[code]]
+amq_server -h
+[[/code]]
+
+If you want to run several instances of the server on the same machine you must start them on different ports. The default AMQP port is 5672. To start the server on a different port, type this command:
+
+[[code]]
+amq_server --port portnumber
+[[/code]]
+
+++++ Instant help for options
+
+To see a long list of all server options, with full explanations, type this command:
+
+[[code]]
+amq_server --help
+[[/code]]
+
+++++ Notes
+
+* The server needs at least 50Mb and can use much more, depending on how large its queues grow.  OpenAMQ holds queues in memory.
+* The server can run in user mode and to open the AMQP port of 5672, does not need root access (root access is needed to run servers on port numbers lower than 4096).
+
++++ On Windows systems
+
+++++ Required Files
+
+The OpenAMQ server is installed into the %IBASE%/bin directory. If you wish to move the server elsewhere (e.g. to a different machine), you need to copy these files:
+
+* amq_server.exe
+* amq_server_base.cfg
+* amq_console_schema.cml
+
+No other files are required.
+
+++++ Starting the server
+
+To start the server in a console window run this command:
+
+[[code]]
+amq_server
+[[/code]]
+
+++++ Working directory
+
+It is best to start the OpenAMQ server in a specific working directory since it will create new directories and files for logging. You can start many instances of the server in the same directory. The server will create two subdirectories:
+
+* logs, in which the server will create current log files.
+* archive, to which the server will move old (yesterday's) log files.
+
+++++ Stopping the server
+
+To stop the server, press Ctrl-C or use on the Task Manager.
+
+++++ Important server options
+
+To see the current version of the server, type this command:
+
+[[code]]
+amq_server -v
+[[/code]]
+
+To see a short list of all server options, type this command:
+
+[[code]]
+amq_server -h
+[[/code]]
+
+If you want to run several instances of the server on the same machine you must start them on different ports. The default AMQP port is 5672. To start the server on a different port, type this command:
+
+[[code]]
+amq_server --port portnumber
+[[/code]]
+
+++++ Instant help for options
+
+To see a long list of all server options, with full explanations, type this command:
+
+[[code]]
+amq_server --help
+[[/code]]
+
+++++ Notes
+
+* To start the server as a Windows service use the 'srvany' tool that is part of the Windows Resource Kit.
+
+++ OpenAMQ security
+
++++ General
+
+OpenAMQ is designed for intranet use and does not provide encryption, secure authentication, or access controls. Applications login using plain text logins and passwords, using the SASL [http://www.faqs.org/rfcs/rfc2595.html: PLAIN mechanism].
+
+For production use you must define non-default passwords as explained below. If you run the server with the default passwords, it will issue this message at startup:
+
+[[code]]
+W: security warning - logins use default passwords
+[[/code]]
+
++++ Access controls
+
+AMQP applications must authenticate using a user login that amq_server accepts. User logins and corresponding passwords are defined in the server configuration file.
+
+amq_server defines two types of user:
+
+* Normal application logins, which can do all normal operations on the server. The default normal login is "guest", with password "guest".
+* Super-user logins, which can exceed configured limits and do updates via the [/admin.html:OpenAMQ Console].  The default super user login is "super", with password "super".
+
++++ Setting custom passwords
+
+We advise you to set custom passwords for all production-use of OpenAMQ. To do this, in the file amq_server.cfg, add this section:
+
+[[code]]
+<security name = "plain">
+    <user name = "guest" password = "[new normal password]" />
+    <user name = "super" password = "[new super password]" />
+</security>
+[[/code]]
+
+Note that if amq_server.cfg does not already exist, it should look like this (when empty):
+
+[[code]]
+<?xml version="1.0"?>
+<config>
+    <!-- Configuration data comes here -->
+</config>
+[[/code]]
+
++++ Defining new logins
+
+To create new logins for normal applications, add lines in this form to the amq_server.cfg file:
+
+[[code]]
+<security name = "plain">
+    <user name = "[login name]" password = "[new normal password]" group = "normal"/>
+</security>
+[[/code]]
+
+To create new logins for super user applications, add lines in this form to the amq_server.cfg file:
+
+[[code]]
+<security name = "plain">
+    <user name = "[login name]" password = "[new super password]" group = "super"/>
+</security>
+[[/code]]
+
++++ Notes
+
+* The amq_server.cfg file must be accessible to the amq_server executable when you start it. The simplest technique is to place the configuration file in the directory where you run the server.  Alternatively you can place the configuration data on the path, e.g. together with the server binary.
+* The configuration file not be readable or writable by unauthorised system users
+* You can rename the configuration file - the server '-s' option lets you specify alternative configuration file names.
+* The current security model in OpenAMQ is intended for LAN use and to protect against accidental access to the wrong server.  Future versions of OpenAMQ will support more robust security mechanisms.  If you need this urgently, please contact us.
+
+====
+iMatix Corporation
