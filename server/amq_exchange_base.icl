@@ -113,15 +113,26 @@ This is an abstract base class for all exchange implementations.
     for (set_index = 0; set_index < set_size; set_index++) {
         if (self->exchange->queue_set [set_index] != last_queue) {
             last_queue = self->exchange->queue_set [set_index];
-
-            if (amq_server_config_debug_route (amq_server_config))
-                smt_log_print (amq_broker->debug_log, "X: deliver  queue=%s", 
-                    last_queue->key);
-
-            if (last_queue->lease && last_queue->feed_on && last_queue->lease->thread)
-                amq_server_agent_direct_out (last_queue->lease->thread, content);
-            else
+            if (last_queue->lease && last_queue->feed_on && last_queue->lease->thread) {
+                if (last_queue->feed_no_local 
+                && streq (content->producer_id, last_queue->lease->connection_id)) {
+                    if (amq_server_config_debug_route (amq_server_config))
+                        smt_log_print (amq_broker->debug_log, "X: discard  queue=%s (direct, no-local, undeliverable)", 
+                            last_queue->key);
+                }
+                else {
+                    amq_server_agent_direct_out (last_queue->lease->thread, content);
+                    if (amq_server_config_debug_route (amq_server_config))
+                        smt_log_print (amq_broker->debug_log, "X: deliver  queue=%s (direct)", 
+                            last_queue->key);
+                }
+            }
+            else {
                 amq_queue_publish (last_queue, channel, content, FALSE);
+                if (amq_server_config_debug_route (amq_server_config))
+                    smt_log_print (amq_broker->debug_log, "X: deliver  queue=%s", 
+                        last_queue->key);
+            }
             delivered++;
         }
     }

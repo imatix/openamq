@@ -183,7 +183,8 @@ class.  This is a lock-free asynchronous class.
     amq_lease_t
         *lease;                         //  Feed lease, if any
     Bool
-        feed_on;                        //  Feed lease enabled/disabled
+        feed_on,                        //  Feed lease enabled/disabled
+        feed_no_local;                  //  No-local applied to feed
 
     //  Statistics
     int64_t
@@ -400,6 +401,7 @@ class.  This is a lock-free asynchronous class.
     else {
         consumer->paused = !active;
         self->feed_on = active;
+        self->feed_no_local = consumer->no_local;
         amq_queue_basic_consume (self->queue_basic, consumer);
         if (connection && !nowait)
             amq_server_agent_basic_consume_ok (
