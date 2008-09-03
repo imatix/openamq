@@ -1,3 +1,27 @@
+++ 1.3a0 - 2008/09/xx
+
++++ Major
+
+* Added support for Direct Message Protocol (see http://wiki.amqp.org).
+
+++ 1.2d1 - 2008/09/xx
+
++++ Major
+
+* On Windows the server crashed on startup if it could not resolve its own 
+  hostname.  Fixed.
+* High-availability would randomly break and fall into a split-brain mode
+  where both nodes would accept application connections.  Fixed.
+* Support for AMQP File, Stream, Tx, Dtx, Access, and Tunnel classes removed.
+* Fanout exchange did not properly accept bindings.  Fixed.
+
++++ Minor
+
+* In server config, /failover/failover_timeout changed to /failover/timeout.
+* In server config, removed /failover/monitor option, is now timeout / 2.
+* In server config, timeout defaults to 5 seconds instead of 1 second.
+* In server config, timeout verified to not exceed 60 seconds.
+
 1.2d0 - 2008/06/05
 ---------------------------------------------------------------------
 
