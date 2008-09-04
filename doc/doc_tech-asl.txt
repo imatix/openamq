@@ -103,7 +103,6 @@ The specifications themselves are composed of these ASL files:
 * demo_client_proto.asl - chassis specification for the client.
 * demo_server_proto.asl - chassis specification for the server.
 * demo.asl - demo protocol base specification.
-* demo_access.asl - 'access' class.
 * demo_basic.asl - 'basic' class.
 * demo_exchange.asl - 'exchange' class.
 * demo_queue.asl - 'queue' class.
@@ -1172,12 +1171,11 @@ The protocol has features specifically designed for asynchronicity:
 * Explicit definition of methods as "synchronous" or "asynchronous".
 * An error-handling mechanism (exceptions) that supports a fully asynchronous dialogue.
 
-To make the command set extensible, we use a class-method semantic. The command set refers to a set of classes, each covering one functional domain. We have four distinct types of class:
+To make the command set extensible, we use a class-method semantic. The command set refers to a set of classes, each covering one functional domain. We have three distinct types of class:
 
-* Classes that manage the transport process (Connection and Session).
-* Classes that manage the workflow (Access, Transaction).
+* Classes that manage the transport process (Connection and Channel).
 * Classes that represent the main AMQ entities (Queue, Exchange).
-* Classes that represent functional domains (Basic, File, Stream).
+* Classes that represent functional domains (Basic).
 
 For each class we define a set of methods that:
 
@@ -1397,12 +1395,6 @@ We place content body in distinct frames (rather than including it in the method
 We place the content properties in their own frame so that recipients can selectively discard contents they do not want to process.
 
 Contents can be structured with sub-contents to any level.
-
-+++++ Out-of-band frames
-
-Out-of-band transport can be used in specific high-performance models. Note that this part of the protocol is speculative because we have not built a working out-of-band prototype. This part of the protocol is a placeholder rather than a formal proposal.
-
-The principle of out-of-band transport is that a TCP/IP connection can be used for controlling another, faster but less abstract protocol such as remote-DMA, shared memory, or multicast.
 
 +++++ Heartbeat frames
 

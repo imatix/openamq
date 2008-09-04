@@ -770,7 +770,6 @@ You can configure the failover pair using these command line options:
 --backup                Failover backup host:port, OR
 --primary               Failover primary host:port
 --failover_timeout      Failover timeout, in secs
---failover_monitor      Failover monitor, in secs
 [[/code]]
 
 Or, you can set these properties in the amq_server.cfg file for each server:
@@ -782,8 +781,7 @@ amq_server.cfg for the primary server:
 <config>
     <failover
         backup = "backup-host:port"
-        failover_timeout = "seconds"
-        failover_monitor = "seconds"
+        timeout = "seconds"
         />
     />
 amq_server.cfg for the backup server:
@@ -792,8 +790,7 @@ amq_server.cfg for the backup server:
 <config>
     <failover
         primary = "primary-host:port"
-        failover_timeout = "seconds"
-        failover_monitor = "seconds"
+        timeout = "seconds"
         />
     />
 [[/code]]
@@ -801,12 +798,11 @@ amq_server.cfg for the backup server:
 Notes:
 
 * Do not mix 'primary' and 'backup' settings, or the results will be bogus.
-* Use the same timeout and monitor settings on both servers, otherwise client applications may fail to failover properly.
+* Use the same timeout setting on both servers, otherwise client applications may fail to failover properly.
 
 : **/config/failover/backup** : Used when running the primary server, specifies the failover backup server for the high-availability pair. Use the internet name of the backup server as 'host' or 'host:port' if it is not running on port 5672. Do not specify this option together with the 'primary' option. Default value is ''
 : **/config/failover/primary** : Used when running the backup server, specifies the failover primary server for the high-availability pair. Use the internet name of the primary server as 'host' or 'host:port' if it is not running on port 5672. Do not specify this option together with the 'backup' option. Default value is ''
-: **/config/failover/failover_timeout** : Specifies the delay in seconds after which the backup peer will become the primary peer. This switch over will happen only if and when an application connects to the backup peer after the failover timeout has expired. Reducing this value will allow failover to happen faster but will increase the risk of unnecessary failover due to transient network issues. Default value is 1.
-: **/config/failover/failover_monitor** : Specifies the interval at which the server will check that its peer is still alive. Reducing this value will allow failover to happen faster but will create extra traffic between the servers. Default value is 1.
+: **/config/failover/timeout** : Specifies the delay in seconds after which the backup peer will become the primary peer. This switch over will happen only if and when an application connects to the backup peer after the failover timeout has expired. Reducing this value will allow failover to happen faster but will increase the risk of unnecessary failover due to transient network issues. Default value is 5.
 
 +++ Simple example
 
@@ -857,7 +853,7 @@ The current WireAPI implementation does not hide failover semantics, and any app
 
 # Client applications need to know both failover server addresses, usually best taken from configuration data.
 # Client applications must try to connect to the primary server, and if that fails, to the backup server.
-# Client applications should retry this connection at least twice, and with a delay between retries.  The delay should be equal to or greater than the sum of the server's failover timeout and monitor settings.
+# Client applications should retry this connection at least twice, and with a delay between retries.  The delay should be equal to or greater than the sum of the server's failover timeout setting.
 # Client applications should be able to recreate all exchanges, queues, and bindings when (re)connecting to a server.
 # Client applications should be able to retransmit messages lost during a failover, if messages need to be reliable.
 
@@ -1029,12 +1025,11 @@ This will show more verbose messages for what is happening between the two serve
 
 +++ Tuning failover
 
-The main tuning concern is how frequently you want the servers to check their peering status, and how quickly you want to activate failover. You tune using two settings:
+The main tuning concern is how frequently you want the servers to check their peering status, and how quickly you want to activate failover. You tune using this setting:
 
-# The failover monitor value.  This defaults to 1 second. If you reduce this, the backup server will detect a failed primary server faster, but it will create more network traffic.
 # The failover timeout value.  This defaults to 1 second. If you reduce this, the backup server will take over as master more rapidly but may take over in cases where the primary server could recover.  You may for example have wrapped the primary server in a shell script that restarts it if it crashes.  In that case the timeout should be higher than the time to restart the primary server.
 
-The application behavior can also have an impact. In general we recommend you stick with the defaults of one second monitor interval, and one second timeout, and in applications use a 3-second pause between reconnect attempts.
+The application behavior can also have an impact. In general we recommend you stick with the defaults of five-second timeout, and in applications use a 10-second pause between reconnect attempts.
 
 ++ Federation
 

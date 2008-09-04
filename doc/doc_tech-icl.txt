@@ -53,26 +53,11 @@ The basic features of iCL are:
 * API standardization: the syntax and semantics of all APIs conform to the best modern practice.
 * self-testing: we embed self-test code directly into the class, and iCL generates self-test programs automatically.
 
-+++ Standard classes
-
-iCL provides these classes:
-
-# icl_base - a base class that defines templates for constructors, destructors, and object functions.
-# icl_object - a base class that defines an object as consisting of a constructor, a destructor, and an allocator class.  icl_object is derived from icl_base.
-# icl_mem - a memory management class that tracks memory allocations and warns of memory leaks.  icl_mem is derived from icl_base.
-# icl_alloc_plain - a simple allocator class that handles object construction and destruction by using heap memory.  icl_alloc_plain is derived from icl_object.
-# icl_alloc_cache - a smart allocator that caches destroyed objects so that construction can happen very rapidly.  Most user classes will be derived from icl_alloc_cache.  icl_alloc_cache is derived from icl_object.
-# icl_ref_count - a class that adds reference counting to stateful objects.
-# icl_system - a system class that provides iCL global functions including memory garbage collection and memory shutdown.
-# Demonstration/test classes.
-
 +++ Concepts
-
-A full definition of every iCL element is provided in the reference section. Here we cover some of the more general, or key, concepts.
 
 ++++ Source files
 
-iCL source files have the extension ".icl". You edit these using a normal text editor, ensuring that the files keep a correct iCL syntax. (This is a matter of using the correct element tags and writing valid XML.)
+iCL source files have the extension ".icl". You edit these using a normal text editor, ensuring that the files keep a correct iCL syntax.  This is a matter of using the correct element tags and writing valid XML.
 
 One class equals one file. We can split large classes into smaller pieces but we do this by creating more classes, not breaking one file into many files. We do not put multiple classes into one source file.
 
@@ -250,7 +235,7 @@ When you import a class you automatically import all the classes it imports. A c
 
 ++++ C class implementation
 
-iCL does not use much magic in its generated code. In fact the C code is intended to look very much like normal hand-written C, except that it is far more consistent and complete than a human programmer could make it.
+iCL does not use much magic in its generated code. In fact the C code is intended to look very much like normal hand-written C, except that it is more consistent and complete than a human programmer could make it, and is rich in assertions and debugging and tracing code.
 
 Methods are implemented as C functions. Objects are implemented as structures of a fixed size. Variable data is allocated in the new method and freed in the destroy method.
 
@@ -311,6 +296,10 @@ The conventional style for iCL XML code can be seen by studying the iCL classes.
 * element content is indented four spaces.
 * when an element is repeated multiple times, the attributes are aligned to make the text easier to read.
 
+++ iCL Classes
+
+The current and accurate documentation for iCL classes is the source code of the classes themselves.
+
 ++ Using iCL
 
 In which we try to empathize with someone seeing iCL for the first time, and probably fail totally.
@@ -331,7 +320,7 @@ Next, let's check that iCL was correctly installed:
 gsl icl_base.icl
 [[/code]]
 
-Now, let's make a trivial test class ("my_class.icl") and build and test it:
+That should show a warning like "WARNING: Abstract class - no code generated."  Now, let's make a trivial test class ("my_class.icl") and build and test it:
 
 [[code]]
 <?xml?>
@@ -340,7 +329,9 @@ Now, let's make a trivial test class ("my_class.icl") and build and test it:
     script  = "icl_gen"
     animate = "1"
     >
-<inherit class = "icl_alloc_plain"  />
+<inherit class = "icl_object">
+    <option name = "alloc" value = "cache" />
+</inherit>
 <context>
     int identifier;
 </context>
@@ -454,6 +445,30 @@ Disables the nullification of new objects. By default this is always done but in
 ++++ Stateless classes
 
 Build stateless classes to encapsulate basic functionality. You may find that some problems do not merit an "object oriented" approach, while others lend themselves naturally to that. It can be very tedious to - e.g. have to create an object just to do an operation like delete a file. But when designing large structures, objects are often elegant.
+
+Here is a trivial example of a stateless class:
+
+[[code]]
+<?xml?>
+<class name = "math" script = "icl_gen">
+<inherit class = "icl_base" />
+
+<method name = "area" return = "value">
+    <argument name = "radius" type = "double" />
+    <declare name = "value" type = "double" />
+    value = 2 * radius * self_pi ();
+</method>
+
+<method name = "pi" return = "value">
+    <declare name = "value" type = "double" />
+    value = 3;          //  Very approximately :-)
+</method>
+
+<method name = "selftest">
+    assert (math_area (1) == 2 * math_pi ());
+</method>
+</class>
+[[/code]]
 
 ++++ Data structures
 
