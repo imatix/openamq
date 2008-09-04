@@ -1101,7 +1101,8 @@ s_show_help (void)
     icl_console_out (" -------               -------------------");
     icl_console_out (" ls [child] [pattern]  Show matching children");
     icl_console_out (" top [child]           Show most important children");
-    icl_console_out (" cd [number]           Look at item [number]");
+    icl_console_out (" cd [nnn]              Look at item [number nnn]");
+    icl_console_out (" nnn                   Look at item number nnn");
     icl_console_out (" /                     Return to broker item");
     icl_console_out (" .                     Show current item");
     icl_console_out (" ..                    Move back to previous item");
