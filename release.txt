@@ -4,6 +4,11 @@
 
 * Added support for Direct Message Protocol (see http://wiki.amqp.org).
 
++++ Minor
+
+* <session failover = "n"> option in PAL changed to seconds, for consistency.
+* Added <session direct = "1"> option to enable DMP for connection.
+
 ++ 1.2d1 - 2008/09/xx
 
 +++ Major
