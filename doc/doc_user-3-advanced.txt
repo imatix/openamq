@@ -486,23 +486,23 @@ OpenAMQ provides a wide set of tuning options. Before you start tuning your serv
 * The default installation is already tuned for general performance. While we encourage you to experiment to understand how your OpenAMQ server behaves, tuning is not an essential part of normal OpenAMQ usage.
 * When tuning, make sure you have a good test platform so that you can measure the impact of each choice.  It is quite easy to make the performance of a server worse by making the wrong kind of tuning.
 * Test each option independently on the command-line before adding it to a configuration file.
-* You can tune the WireAPI client library using many of the same options as those for the server.
 
 +++ Process Tuning
 
 These are the options that affect the server process, each can be specified on the command line or in a configuration file:
 
-: **polling_threads** : On multithreaded builds, defines the number of OS threads dedicated to socket polling. Default value is 4.
-: **working_threads** : On multithreaded builds, defines the number of OS threads dedicated to processing, that is, tasks other than socket polling. Default value is 4.
+: **/config/tuning/polling_threads** : On multithreaded builds, defines the number of OS threads dedicated to socket polling. Default value is 4.
+: **/config/tuning/working_threads** : On multithreaded builds, defines the number of OS threads dedicated to processing, that is, tasks other than socket polling. Default value is 4.
 
-+++ Network Tuning
++++ Performance Tuning
 
-These are the options that affect network configuration and performance:
+These are the options that can directly affect performance:
 
 : **/config/tuning/heartbeat** : Defines the timeout for connection heartbeating. Default value is 2. This option can be changed at runtime.
 : **/config/tuning/tcp_nodelay** : If this value is 1, socket data is written immediately, which is usually good for latency. If this value is 0, data is buffered until there is a full packet, which is usually good for throughput. Default value is 1. This option can be changed at runtime.
 : **/config/tuning/tcp_rcvbuf** : If this value is greater than zero, all client connections will use the specified value. Note: setting this value is delicate, do not use this option unless you know what you are doing. Default value is 0. This option can be changed at runtime.
 : **/config/tuning/tcp_sndbuf** : If this value is greater than zero, all client connections will use the specified value. Note: setting this value is delicate, do not use this option unless you know what you are doing. Default value is 0. This option can be changed at runtime.
+: **/config/tuning/direct** : If this value is 1, all client connections will use Direct Mode for message transfer, unless they explicitly override it.  Direct Mode is explained below.
 
 Note: we recommend that rather than tuning the tcp_rcvbuf and tcp_sndbuf options at the application level, you should rely on the default values of "0" and tune your operating system's TCP stack appropriately. For a good guide to TCP Tuning, see [http://www-didc.lbl.gov/TCP-tuning/:here].
 
@@ -569,48 +569,6 @@ We recommend that in a high-performance scenario (over 20k messages per second) 
 
 The choice of memory allocator, as well as build model (release vs debug) can also have a significant impact on the performance of client applications that do over 20k messages in or out per second. The fastest configuration in most cases is ALLOCATOR=direct and BOOM_MODEL=mt,release.
 
-+++ Tuning the client
-
-The WireAPI client library cannot be tuned via command-line options. It uses an XML configuration file called amq_wireapi.cfg. This file, if present, can set any of the following options:
-
-[[code]]
-amq_wireapi.cfg:
-------------------------------------------------------------------------
-<?xml?>
-<config>
-    <tuning
-        tcp_nodelay = "1"
-        tcp_rcvbuf = "0"
-        tcp_sndbuf = "0"
-        arrived_low_water = "0"
-        arrived_high_water = "0"
-    />
-</config>
-[[/code]]
-
-: **/config/tuning/tcp_nodelay** : If this value is 1, socket data is written immediately, which is usually good for latency. If this value is 0, data is buffered until there is a full packet, which is usually good for throughput. Default value is 1. This option can be changed at runtime.
-: **/config/tuning/tcp_rcvbuf** : If this value is greater than zero, the connection to the server will use the specified value. Note: setting this value is delicate, do not use this option unless you know what you are doing. Default value is 0. This option can be changed at runtime.
-: **/config/tuning/tcp_sndbuf** : If this value is greater than zero, the connection to the server will use the specified value. Note: setting this value is delicate, do not use this option unless you know what you are doing. Default value is 0. This option can be changed at runtime.
-: **/config/tuning/arrived_low_water** : Number of messages in arrived queue when message flow from server is started again after it had been switched off on high water mark. Default value is 0.
-: **/config/tuning/arrived_high_water** : Number of messages in arrived queue when message flow from server is stopped. If this property is 0, message flow is never switched off. Default value is 0.
-
-The WireAPI library also accepts these environment variables:
-
-WIREAPI_VERBOSE=1
-
-[[code]]
-If set to 1, causes all errors and warnings to be printed.  If set to 0,
-the WireAPI library is silent, and assumes that the application will do
-all necessary error reporting.  Default value is 0.
-If set to 1, causes the client to operate very slowly.  This can be used
-for testing, especially to simulate applications that are not reading
-messages rapidly.  Note that since WireAPI is multithreaded, messages will
-be collected from the server rapidly even if the calling application is
-blocked or slow.  Setting the WIREAPI_SLOW variable to 1 will cause
-backlogs to be kept on the server instead.  Do not use this in any normal
-scenario, it will (obviously) create serious performance issues.
-[[/code]]
-
 +++ Testing throughput
 
 The standard test tool for performance is amq_client. This sends a number of messages to a private temporary queue, and reads the messages back off that queue.
@@ -641,6 +599,64 @@ I: outgoing rate=2545 mean=2392 peak=4114 iomean=4784
 * the iomean rate represents the combined input and output average per second calculated over the last ten seconds.
 
 When you tune the server performance, it is the iomean that you should be aiming to improve.
+
+++ Direct Mode
+
++++ Overview
+
+OpenAMQ1.3a0 and later releases support Direct Mode, a protocol for specific kinds of high-speed applications, as explained later.  Direct Mode runs over //Direct Messaging Protocol// (4-DMP@wiki.amqp.org), a specification developed by wiki.amqp.org.  In Direct Mode, OpenAMQ will transfer messages as much as 2x faster.  The following table shows the typical differences between normal AMQP publishing and Direct Mode in OpenAMQ:
+
+||                   ||~ Normal AMQP    ||~ Direct Mode            ||
+||Latency            || 250 usecs       || 150 usecs               ||
+||Capacity, 1 client || 20,000 msg/sec  || 40,000 messages/second  ||
+||Capacity, broker   || 150,000 msg/sec || 250,000 messages/second ||
+
+The speed improvement comes from a simpler wire-level encoding for messages, and the ability to push messages through the OpenAMQ server with less processing.  Client applications will also benefit from reduced CPU usage.
+
++++ How to use
+
+Direct Mode works for the following scenarios:
+
+* Publishers that work primarily with one or a few exchanges.
+* Subscribers that consume from one or a few private queues.
+
+These are typical high-volume scenarios, for topic-based publish/subscribe, and service based request/response.
+
+Your WireAPI applications can use Direct Mode with no application changes.  You can test it simply by starting the broker with this option:
+[[code]]
+amq_server --direct 1
+[[/code]]
+
+To use Direct Mode, you must do at least one of these:
+
+* Enable all compatible clients by setting the tuning/direct option to 1 in the OpenAMQ amq_server.cfg configuration file or using the "--direct 1" command line option.  We recommend this as being the easiest option.
+* Enable specific clients by modifying the wireapi.cfg configuration file for that client application.
+* Enable specific connections from your WireAPI application or framework by setting connection->direct to TRUE on all new connections.
+
+To enable Direct Mode for specific clients (without any program changes), create a file 'wireapi.cfg' in the working directory of your client applications:
+[[code]]
+<config>
+    <tuning direct = "1" />
+</config>
+[[/code]]
+
+If either the server was started with "--direct 1", or the wireapi.cfg file specifies this setting, connections will be created with the direct property set to true by default.  Applications can still override this.
+
++++ Prerequisites
+
+To use Direct Mode you need a full OpenAMQ build from version 1.3a0 or later.  You must relink your applications with the new WireAPI libraries and you must run a 1.3a0 or later version of the amq_server.
+
++++ Interoperability
+
+Direct Mode requires a compatible client library.  Currently, only OpenAMQ's WireAPI library implements Direct Mode, and with other clients the OpenAMQ server will work in normal AMQP mode.
+
+You can freely mix applications using Direct Mode and applications using normal AMQP message transfer.  Messages are fully interoperable between these two protocols and the amq_server broker will automatically use the appropriate message transfer protocol depending on the client's capabilities and configuration.
+
++++ Technical specifications
+
+Direct Mode allows up to six unique exchanges or unique private queues per connection.  Applications that try to use Direct Mode with a higher number of exchanges or private queues will fall back to using normal AMQP message transfer.
+
+Direct Mode is in beta: please test your scenarios before using this in production applications.  For technical details of on the Direct Messaging Protocol, please refer to http://wiki.amqp.org/spec:4.
 
 ++ High-availability failover
 

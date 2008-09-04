@@ -38,8 +38,8 @@
     amq_content_basic_list_queue (session->arrived_basic_list, self->content);
     msg_count = amq_content_basic_list_count (session->arrived_basic_list);
 
-    if (amq_client_config_arrived_high_water (amq_client_config) 
-    && msg_count == amq_client_config_arrived_high_water (amq_client_config) 
+    if (amq_client_config_high_water (amq_client_config) 
+    && msg_count == amq_client_config_high_water (amq_client_config) 
     && icl_atomic_cas32 (&session->flow_stopped, TRUE, FALSE) == FALSE)
         amq_client_session_channel_flow (session, FALSE);
   </action>
@@ -55,8 +55,8 @@
     amq_content_basic_list_queue (session->arrived_basic_list, self->content);
     msg_count = amq_content_basic_list_count (session->arrived_basic_list);
     
-    if (amq_client_config_arrived_high_water (amq_client_config) 
-    && msg_count == amq_client_config_arrived_high_water (amq_client_config) 
+    if (amq_client_config_high_water (amq_client_config) 
+    && msg_count == amq_client_config_high_water (amq_client_config) 
     && icl_atomic_cas32 (&session->flow_stopped, TRUE, FALSE) == FALSE)
         amq_client_session_channel_flow (session, FALSE);
   </action>

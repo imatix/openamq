@@ -310,7 +310,8 @@ The <session> command defines a session:
 <session
   [ restart = "0 | 1" ]
   [ server = "servername" ]
-  [ failover = "msecs" ]
+  [ failover = "seconds" ]
+  [ direct = "0 | 1" ]
     >
     [ script command ]...
 </session>
@@ -319,7 +320,8 @@ The <session> command defines a session:
 * PAL may in future allow multiple sessions to be started in parallel, but for now sessions are executed serially.
 * If the restart option is 1, the session will restart in a new connection, whatever the state of previous sessions.  If 0, the session will restart in the previous connection, if any.
 * The servername can be used to test multiple servers in a single script. This option is not used for general-purpose scripts.
-* If the failover is set to an integer greater than zero, on a broken connection the script will pause for the specified number of milliseconds, and then try to reconnect to the same or alternate server. To use alternate servers, specify multiple server names in the 'server' attribute, seperated by spaces.
+* If failover is set to an integer greater than zero, on a broken connection the script will pause for the specified number of seconds, and then try to reconnect to the same or alternate server. To use alternate servers, specify multiple server names in the 'server' attribute, seperated by spaces.
+* If direct is set to 1, the PAL script will use Direct Mode to publish and receive messages.  See the [[[doc:user-3-advanced | OpenAMQ user guide]]] for details on Direct Mode.
 
 +++ The invoke command
 

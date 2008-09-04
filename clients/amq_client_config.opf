@@ -68,7 +68,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "arrived low water" type = "int" default = "0">
+    <property name = "low water" type = "int" default = "0">
     Low water mark for message flow control
     <doc>
     Number of messages in arrived queue when message flow from server is
@@ -76,11 +76,19 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "arrived high water" type = "int" default = "0">
+    <property name = "high water" type = "int" default = "0">
     High water mark for message flow control
     <doc>
     Number of messages in arrived queue when message flow from server is stopped.
     If this property is 0, message flow is never switched off.
+    </doc>
+    </property>
+
+    <property name = "direct" type = "int" default = "0">
+    Enables Direct Mode for connections
+    <doc>
+    If set to 1, new connections will by default use Direct Mode.  Applications
+    can override this by setting the connection->direct property on new connections.
     </doc>
     </property>
 </path>

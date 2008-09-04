@@ -1,8 +1,23 @@
 OpenAMQ change log
 
-2008-07-28
+2008-09-04 
 
-* Fixed crash at server startup if could not resolve own hostname (win32)
+* Renamed arrived_high_water/low_water to high_water/low_water in wireapi.cfg
+* Added direct option to wireapi.cfg
+* Added direct option to server config (--direct 1, or in config file)
+* In PAL, <session failover = "n"> option changed to seconds for consistency
+* In PAL, added <session direct = "1"> option to enable Direct Mode
+
+2008-08-26
+
+* Removed active/passive arrays from amq_client.c
+* Added support for Direct Message Protocol <4-DMP@wiki.amqp.org>
+
+2008-08-22
+
+* Removed file, stream, tx, dtx, and tunnel classes from OpenAMQ
+* Fanout exchange did not accept multiple bindings - fixed
+* Fixed various compiler warnings for gcc 4.2.3
 
 2008-08-21
 
@@ -15,20 +30,7 @@ Changes to failover functionality
 * Failover timeout verified to not exceed 60 seconds
 * Issues warning if timeout is 0 or > 60 (then fixes timeout)
 
-2008-08-22
+2008-07-28
 
-* Removed file, stream, tx, dtx, and tunnel classes from OpenAMQ
-* Fanout exchange did not accept multiple bindings - fixed
-* Fixed various compiler warnings for gcc 4.2.3
-
-2008-08-26
-
-* Removed active/passive arrays from amq_client.c
-* Added support for Direct Message Protocol <4-DMP@wiki.amqp.org>
-
- ----- Todo ------
-
-* ASL documentation is out of date, classes have been removed & changed
-* Remove amq_queue base class and all class-id content arguments
-* doc/user-3-advanced.txt
+* Fixed crash at server startup if could not resolve own hostname (win32)
 

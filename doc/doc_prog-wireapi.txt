@@ -155,6 +155,39 @@ if (rc) {
 }
 [[/code]]
 
+++ Tuning WireAPI
+
+The WireAPI client library cannot be tuned via command-line options. It uses an XML configuration file called amq_wireapi.cfg. This file, if present, can set any of the following options:
+
+[[code]]
+amq_wireapi.cfg:
+------------------------------------------------------------------------
+<?xml?>
+<config>
+    <tuning
+        tcp_nodelay = "1"
+        tcp_rcvbuf = "0"
+        tcp_sndbuf = "0"
+        low_water = "0"
+        high_water = "0"
+        direct = "0"
+    />
+</config>
+[[/code]]
+
+: **/config/tuning/tcp_nodelay** : If this value is 1, socket data is written immediately, which is usually good for latency. If this value is 0, data is buffered until there is a full packet, which is usually good for throughput. Default value is 1.
+: **/config/tuning/tcp_rcvbuf** : If this value is greater than zero, the connection to the server will use the specified value. Note: setting this value is delicate, do not use this option unless you know what you are doing. Default value is 0.
+: **/config/tuning/tcp_sndbuf** : If this value is greater than zero, the connection to the server will use the specified value. Note: setting this value is delicate, do not use this option unless you know what you are doing. Default value is 0.
+: **/config/tuning/low_water** : Number of messages in arrived queue when message flow from server is started again after it had been switched off on high water mark. Default value is 0.  Has no effect if application is using Direct Mode.
+: **/config/tuning/high_water** : Number of messages in arrived queue when message flow from server is stopped. If this property is 0, message flow is never switched off. Default value is 0.  Has no effect if application is using Direct Mode.
+: **/config/tuning/direct_mode** : If set to 1, all connections will default to using Direct Mode.  This is faster for publish/subscribe and request/response scenarios.  See the [[[doc:user-3-advanced | OpenAMQ user guide]]] for details on Direct Mode.
+
+The WireAPI library also accepts these environment variables:
+
+WIREAPI_VERBOSE=1
+
+If set to 1, causes all errors and warnings to be printed.  If set to 0, the WireAPI library is silent, and assumes that the application will do all necessary error reporting.  Default value is 0. If set to 1, causes the client to operate very slowly.  This can be used for testing, especially to simulate applications that are not reading messages rapidly.  Note that since WireAPI is multithreaded, messages will be collected from the server rapidly even if the calling application is blocked or slow.  Setting the WIREAPI_SLOW variable to 1 will cause backlogs to be kept on the server instead.  Do not use this in any normal scenario, it will (obviously) create serious performance issues.
+
 ++ The connection class
 
 +++ What is a 'connection'?
@@ -266,14 +299,11 @@ amq_client_session_destroy (&session);
 
 +++ amq_client_session_wait
 
-Waits for content to arrive from the server. You must call this method in order to get content. Returns zero if content arrived, or -1 if the timeout expired:
+Waits for content to arrive from the server. You must call this method in order to get content. Returns zero when it ends normally, either because content arrived or because the timeout expired, and -1 if there was an error:
 
 [[code]]
 if (amq_client_session_wait (session, timeout))
-    if (session->alive)
-        //  timeout expired
-    else
-        //  session died
+    //  session died
 else
     //  zero or more contents arrived
 [[/code]]

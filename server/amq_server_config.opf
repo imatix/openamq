@@ -295,6 +295,14 @@ $\(selftype)
     headers but will cause congestion on multi-channel connections.
     </doc>
     </property>
+
+    <property name = "direct" type = "int" default = "0">
+    Enables Direct Mode for client connections
+    <doc>
+    If set to 1, new connections will by default use Direct Mode.  Applications
+    can override this by setting the connection->direct property on new connections.
+    </doc>
+    </property>
 </path>
 
 <path name = "failover">
