@@ -33,9 +33,10 @@
         msg_count;
   </local>
     //
-    amq_content_basic_set_routing_key (
-        self->content, method->exchange, method->routing_key, 0);
-    amq_content_basic_list_queue (session->arrived_basic_list, self->content);
+    icl_shortstr_cpy (content->exchange,    method->exchange);
+    icl_shortstr_cpy (content->routing_key, method->routing_key);
+
+    amq_content_basic_list_queue (session->arrived_basic_list, content);
     msg_count = amq_content_basic_list_count (session->arrived_basic_list);
 
     if (amq_client_config_high_water (amq_client_config) 
@@ -50,9 +51,11 @@
         msg_count;
   </local>
     //
-    amq_content_basic_set_routing_key (
-        self->content, method->exchange, method->routing_key, 0);
-    amq_content_basic_list_queue (session->arrived_basic_list, self->content);
+    icl_shortstr_cpy (content->exchange,     method->exchange);
+    icl_shortstr_cpy (content->routing_key,  method->routing_key);
+    icl_shortstr_cpy (content->consumer_tag, method->consumer_tag);
+
+    amq_content_basic_list_queue (session->arrived_basic_list, content);
     msg_count = amq_content_basic_list_count (session->arrived_basic_list);
     
     if (amq_client_config_high_water (amq_client_config) 
@@ -62,10 +65,11 @@
   </action>
 
   <action name = "return">
-    amq_content_basic_set_routing_key (
-        self->content, method->exchange, method->routing_key, 0);
-    amq_content_basic_list_queue (session->returned_basic_list, self->content);
-    ((amq_content_basic_t *) self->content)->returned = TRUE;
+    icl_shortstr_cpy (content->exchange,    method->exchange);
+    icl_shortstr_cpy (content->routing_key, method->routing_key);
+
+    amq_content_basic_list_queue (session->returned_basic_list, content);
+    content->returned = TRUE;
 
     if (!session->silent)
         icl_console_print ("W: basic message was returned: %d - %s",
