@@ -38,9 +38,6 @@
 <import class = "amq_connection" />
 <import class = "amq_connection_queue" />
 <import class = "amq_content_basic" />
-<import class = "amq_content_file" />
-<import class = "amq_content_stream" />
-<import class = "amq_content_tunnel" />
 <import class = "amq_exchange" />
 <import class = "amq_exchange_direct" />
 <import class = "amq_exchange_topic" />
