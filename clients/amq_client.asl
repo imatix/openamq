@@ -32,15 +32,17 @@
     int
         msg_count;
   </local>
+    //
+    icl_shortstr_cpy (content->exchange,    method->exchange);
+    icl_shortstr_cpy (content->routing_key, method->routing_key);
 
-    amq_content_$(class.name)_set_routing_key (
-        self->content, method->exchange, method->routing_key, 0);
-    amq_content_$(class.name)_list_queue (session->arrived_$(class.name)_list, self->content);
-    msg_count = amq_content_$(class.name)_list_count (session->arrived_$(class.name)_list);
-    if (amq_client_config_arrived_high_water (amq_client_config) &&
-        msg_count == amq_client_config_arrived_high_water (amq_client_config) &&
-        icl_atomic_cas32 (&session->flow_stopped, TRUE, FALSE) == FALSE)
-            amq_client_session_channel_flow (session, FALSE);
+    amq_content_basic_list_queue (session->arrived_basic_list, content);
+    msg_count = amq_content_basic_list_count (session->arrived_basic_list);
+
+    if (amq_client_config_high_water (amq_client_config)
+    && msg_count == amq_client_config_high_water (amq_client_config)
+    && icl_atomic_cas32 (&session->flow_stopped, TRUE, FALSE) == FALSE)
+        amq_client_session_channel_flow (session, FALSE);
   </action>
 
   <action name = "deliver">
@@ -48,25 +50,29 @@
     int
         msg_count;
   </local>
+    //
+    icl_shortstr_cpy (content->exchange,     method->exchange);
+    icl_shortstr_cpy (content->routing_key,  method->routing_key);
+    icl_shortstr_cpy (content->consumer_tag, method->consumer_tag);
 
-    amq_content_$(class.name)_set_routing_key (
-        self->content, method->exchange, method->routing_key, 0);
-    amq_content_$(class.name)_list_queue (session->arrived_$(class.name)_list, self->content);
-    msg_count = amq_content_$(class.name)_list_count (session->arrived_$(class.name)_list);
-    if (amq_client_config_arrived_high_water (amq_client_config) &&
-        msg_count == amq_client_config_arrived_high_water (amq_client_config) &&
-        icl_atomic_cas32 (&session->flow_stopped, TRUE, FALSE) == FALSE)
-            amq_client_session_channel_flow (session, FALSE);
+    amq_content_basic_list_queue (session->arrived_basic_list, content);
+    msg_count = amq_content_basic_list_count (session->arrived_basic_list);
+
+    if (amq_client_config_high_water (amq_client_config)
+    && msg_count == amq_client_config_high_water (amq_client_config)
+    && icl_atomic_cas32 (&session->flow_stopped, TRUE, FALSE) == FALSE)
+        amq_client_session_channel_flow (session, FALSE);
   </action>
 
   <action name = "return">
-    amq_content_$(class.name)_set_routing_key (
-        self->content, method->exchange, method->routing_key, 0);
-    amq_content_$(class.name)_list_queue (session->returned_$(class.name)_list, self->content);
-    ((amq_content_$(class.name)_t *) self->content)->returned = TRUE;
+    icl_shortstr_cpy (content->exchange,    method->exchange);
+    icl_shortstr_cpy (content->routing_key, method->routing_key);
+
+    amq_content_basic_list_queue (session->returned_basic_list, content);
+    content->returned = TRUE;
 
     if (!session->silent)
-        icl_console_print ("W: $(class.name) message was returned: %d - %s",
+        icl_console_print ("W: basic message was returned: %d - %s",
             session->reply_code, session->reply_text);
   </action>
 </class>

@@ -68,7 +68,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "arrived low water" type = "int" default = "0">
+    <property name = "low water" type = "int" default = "0">
     Low water mark for message flow control
     <doc>
     Number of messages in arrived queue when message flow from server is
@@ -76,7 +76,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "arrived high water" type = "int" default = "0">
+    <property name = "high water" type = "int" default = "0">
     High water mark for message flow control
     <doc>
     Number of messages in arrived queue when message flow from server is stopped.

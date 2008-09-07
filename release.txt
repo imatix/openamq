@@ -1,3 +1,24 @@
++ Release Notes
+
+++ 1.2d1 - 2008/09/07
+
++++ Major
+
+* Session now accurately holds content exchange, routing-key, and consumer-tag.  (http://www.openamq.org/issue:2)
+* Fixed: on Windows the server crashed on startup if it could not resolve its own hostname.  (http://www.openamq.org/issue:3)
+* Fixed: High-availability would randomly break and fall into a split-brain mode where both nodes would accept application connections.  (http://www.openamq.org/issue:4)
+* Support for AMQP File, Stream, Tx, Dtx, Access, and Tunnel classes removed.
+* Fanout exchange did not properly accept bindings.  Fixed.
+
++++ Configuration file syntax changes
+
+* In wireapi config, renamed arrived_high_water/low_water to high_water/low_water.
+* In server config, /failover/failover_timeout changed to /failover/timeout.
+* In server config, removed /failover/monitor option, is now timeout divided by 2.
+* In server config, timeout defaults to 5 seconds instead of 1 second.
+* In server config, timeout verified to not exceed 60 seconds.
+
+
 1.2d0 - 2008/06/05
 ---------------------------------------------------------------------
 
