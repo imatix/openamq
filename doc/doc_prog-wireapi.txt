@@ -182,6 +182,8 @@ amq_wireapi.cfg:
 : **/config/tuning/high_water** : Number of messages in arrived queue when message flow from server is stopped. If this property is 0, message flow is never switched off. Default value is 0.  Has no effect if application is using Direct Mode.
 : **/config/tuning/direct_mode** : If set to 1, all connections will default to using Direct Mode.  This is faster for publish/subscribe and request/response scenarios.  See the [[[doc:user-3-advanced | OpenAMQ user guide]]] for details on Direct Mode.
 
+Direct Mode is supported on OpenAMQ versions 1.3a0 and later.
+
 The WireAPI library also accepts these environment variables:
 
 WIREAPI_VERBOSE=1

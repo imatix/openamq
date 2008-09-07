@@ -606,10 +606,10 @@ When you tune the server performance, it is the iomean that you should be aiming
 
 OpenAMQ1.3a0 and later releases support Direct Mode, a protocol for specific kinds of high-speed applications, as explained later.  Direct Mode runs over //Direct Messaging Protocol// (4-DMP@wiki.amqp.org), a specification developed by wiki.amqp.org.  In Direct Mode, OpenAMQ will transfer messages as much as 2x faster.  The following table shows the typical differences between normal AMQP publishing and Direct Mode in OpenAMQ:
 
-||                   ||~ Normal AMQP    ||~ Direct Mode            ||
-||Latency            || 250 usecs       || 150 usecs               ||
-||Capacity, 1 client || 20,000 msg/sec  || 40,000 messages/second  ||
-||Capacity, broker   || 150,000 msg/sec || 250,000 messages/second ||
+||                   ||~ Normal AMQP    ||~ Direct Mode    ||
+||Latency            || 250 usecs       || 180 usecs       ||
+||Client capacity    || 19,000 msg/sec  || 56,000 msg/sec  ||
+||Broker (estimated) || 120,000 msg/sec || 250,000 msg/sec ||
 
 The speed improvement comes from a simpler wire-level encoding for messages, and the ability to push messages through the OpenAMQ server with less processing.  Client applications will also benefit from reduced CPU usage.
 

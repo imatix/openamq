@@ -3,27 +3,27 @@
 +++ Major
 
 * Added support for Direct Message Protocol (see http://wiki.amqp.org).
-* Renamed arrived_high_water/low_water to high_water/low_water in wireapi.cfg
 * Added config/tuning/direct option to wireapi.cfg
 * Added config/tuning/direct option to server config (--direct 1 on cmdline)
 * In PAL, <session failover = "n"> option changed to seconds for consistency
 * In PAL, added <session direct = "1"> option to enable Direct Mode
+* Fixed rare server crash on attempting to read from closing socket.
 
-++ 1.2d1 - 2008/09/xx
+++ 1.2d1 - 2008/09/07
 
 +++ Major
 
-* On Windows the server crashed on startup if it could not resolve its own 
-  hostname.  Fixed.
-* High-availability would randomly break and fall into a split-brain mode
-  where both nodes would accept application connections.  Fixed.
+* Session now accurately holds content exchange, routing-key, and consumer-tag.  (http://www.openamq.org/issue:2)
+* Fixed: on Windows the server crashed on startup if it could not resolve its own hostname.  (http://www.openamq.org/issue:3)
+* Fixed: High-availability would randomly break and fall into a split-brain mode where both nodes would accept application connections.  (http://www.openamq.org/issue:4)
 * Support for AMQP File, Stream, Tx, Dtx, Access, and Tunnel classes removed.
 * Fanout exchange did not properly accept bindings.  Fixed.
 
-+++ Minor
++++ Configuration file syntax changes
 
+* In wireapi config, renamed arrived_high_water/low_water to high_water/low_water.
 * In server config, /failover/failover_timeout changed to /failover/timeout.
-* In server config, removed /failover/monitor option, is now timeout / 2.
+* In server config, removed /failover/monitor option, is now timeout divided by 2.
 * In server config, timeout defaults to 5 seconds instead of 1 second.
 * In server config, timeout verified to not exceed 60 seconds.
 

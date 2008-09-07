@@ -1,4 +1,7 @@
 OpenAMQ change log
+2008-09-06
+
+* JAMQ-120: fixed rare crash on read from closing socket
 
 2008-09-04 
 
@@ -7,6 +10,7 @@ OpenAMQ change log
 * Added direct option to server config (--direct 1, or in config file)
 * In PAL, <session failover = "n"> option changed to seconds for consistency
 * In PAL, added <session direct = "1"> option to enable Direct Mode
+* Session now accurately holds content exchange, routing-key, and consumer-tag.  (http://www.openamq.org/issue:2)
 
 2008-08-26
 
@@ -32,5 +36,5 @@ Changes to failover functionality
 
 2008-07-28
 
-* Fixed crash at server startup if could not resolve own hostname (win32)
+* Fixed crash at server startup if could not resolve own hostname (win32) (http://www.openamq.org/issue:3)
 
