@@ -1,4 +1,8 @@
 OpenAMQ change log
+2008-09-10
+
+* DAMQ-6: fixed protocol class error (asl_connection.asl)
+
 2008-09-06
 
 * JAMQ-120: fixed rare crash on read from closing socket
