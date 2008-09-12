@@ -1,0 +1,28 @@
+<?xml?>
+<!-- Example subscriber
+     Subscribes to "test.*" on amq.topic
+     Discards all messages
+     -->
+<pal script = "amq_pal_gen">
+    <session>
+        <echo>Subscribing to messages...</echo>
+        <set name = "in" value = "0" />
+        <queue_declare exclusive = "1" />
+        <queue_bind routing_key = "test.*" exchange="amq.topic" />
+        <basic_consume auto_ack = "1" />
+        <repeat>
+            <wait />
+            <basic_arrived>
+                <inc name = "in" />
+            </basic_arrived>
+            <if name = "in" value = "10000" test = "ge">
+                <echo>10K messages received, stopping</echo>
+                <break/>
+            </if>
+        </repeat>
+<!--
+        <basic_cancel_nowait consumer_tag = "$consumer_tag" />
+ -->
+    </session>
+</pal>
+
