@@ -4,6 +4,7 @@ This update includes all fixes in 1.2d2 as well as:
 
 * Protocol version was incompatible with 1.2d, fixed (http://www.openamq.org/issue:9).
 * Direct mode properly records input/output rates (trunk) (http://www.openamq.org/issue:11)
+* Added server-side credit-based flow control on private queues (when Direct Mode is not used)
 
 ++ 1.3a0 - 2008/09/07 (UNSTABLE)
 
