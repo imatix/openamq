@@ -1,3 +1,15 @@
+1.1b6 - 2008/09/16
+---------------------------------------------------------------------
+
+Bugfixes:
+    JAMQ-120   AMQ Primary Broker went down in NA 
+
+   BASE2-298   SMT continues to execute actions after thread has been shut down
+               with smt_thread_shut_down()
+
+   BASE2-296   Improve <OBJECT>_ASSERT_SANE macros and icl_mem to provide more
+               information on failure 
+
 1.1b5 - 2007/03/01
 ---------------------------------------------------------------------
 
