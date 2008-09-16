@@ -18,7 +18,7 @@
 
 <pdl
     name      = "OpenAMQ Operate"
-    version   = "1.2d1"
+    version   = "1.2d2"
     workflow  = "standard.pwl"
     library   = "libamq_operate"
     copyright = "Copyright (c) 2007-2008 iMatix Corporation"
