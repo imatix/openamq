@@ -190,8 +190,8 @@ amq_index_hash table.
 //  Topic names observe the Perl "word" syntax, i.e. letters,
 //  digits, and underscores.  The MULTIPLE wildcard matches an
 //  empty topic, expressed as " ".
-#define S_WILDCARD_SINGLE     "`w+"                 //  *
-#define S_WILDCARD_MULTIPLE   " |(?:`w+(?:`.`w+)*)" //  #
+#define S_WILDCARD_SINGLE     "`w+"                     //  *
+#define S_WILDCARD_MULTIPLE   "( |(?:`w+(?:`.`w+)*))"   //  #
 static Bool
     s_topic_to_regexp (char *index_regexp, char *regexp);
 </private>
