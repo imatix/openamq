@@ -418,6 +418,11 @@
 <!-- Basic -->
 
 <class name = "basic">
+  <action name = "qos">
+    //  Does not do anything except respond Qos-Ok
+    amq_server_agent_basic_qos_ok (channel->connection->thread, channel->number);
+  </action>
+
   <action name = "consume">
     <local>
     amq_queue_t
