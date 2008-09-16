@@ -352,13 +352,12 @@ if [ ! -z "$VERSION" ]; then
     #   Commit new manifest and project.pdl files
     if [ $COMMIT = 1 ]; then
         carp "in `pwd`: svn commit of $VERSION update"
-        svn commit -m "Prepare to release version $VERSION" || croak
+        svn commit -m "[make_openamq] Prepare to release version $VERSION" || croak
     else
         carp "in `pwd`: svn stat (manual commit recommended):"
         svn stat
     fi
 fi
-
 
 #   Build source kit, first using distsrc in each product
 for PRODUCT in $PRODUCTS; do
@@ -366,7 +365,7 @@ for PRODUCT in $PRODUCTS; do
     rm -f *.tar.gz *.zip
 
     carp "in `pwd`: boom distsrc..."
-    boom distsrc > $RUNLOG 2>&1 
+    boom configure distsrc > $RUNLOG 2>&1 
     if [ $? -ne 0 ]; then
         cat $RUNLOG
         croak
