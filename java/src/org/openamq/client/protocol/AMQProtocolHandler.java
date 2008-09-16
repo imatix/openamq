@@ -224,7 +224,13 @@ public class AMQProtocolHandler extends IoHandlerAdapter
     {
         _logger.info("Session closed called with failover state currently " + _failoverState);
 
-        if (_failoverState == FailoverState.NOT_STARTED && !_connection.isClosed())
+        if(_failoverState == FailoverState.IN_PROGRESS && !_connection.isClosed())
+        {
+            String message=session.getRemoteAddress().toString()+" closed. Remote server closed connection";
+            _logger.warn(message);
+            _stateManager.error(new Exception(message));
+        }
+        else if (_failoverState == FailoverState.NOT_STARTED && !_connection.isClosed())
         {
             _failoverState = FailoverState.IN_PROGRESS;
             // see javadoc for FailoverHandler to see rationale for separate thread
