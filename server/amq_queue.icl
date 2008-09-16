@@ -56,7 +56,7 @@ class.  This is a lock-free asynchronous class.
         <field name = "durable" label = "Durable queue?" type = "bool">
           <get>icl_shortstr_fmt (field_value, "%d", self->durable);</get>
         </field>
-        <field name = "private" label = "Private queue?" type = "bool">
+        <field name = "exclusive" label = "Exclusive queue?" type = "bool">
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", self->exclusive);</get>
         </field>
