@@ -17,117 +17,139 @@
 #   For information on alternative licensing for OEMs, please contact
 #   iMatix Corporation.
 #
-#   New distribution tool
-#   
-#   make_openamq [-r revision] [-b branch] [-v version] [-m model] [-f]
+#   make_openamq [-r revision] [-b branch] [-v version] [-m model] [-c] [-s] [-a]
 #   
 #       * revision = svn revision number, default = head
 #       * branch = "trunk" or "xxx" where branch name is "/branches/prod_openamq_xxx", e.g. "1.2d"
 #       * version = "x.yRn", default is same as current
 #       * model = "mtr", "mtd", "str", or "std", default is mtd
-#       * -f means "force" for any directory emptying operations
+#       * -c means do clean checkout and build
+#       * -s means just report status and exit
+#       * -a means automatically do svn commits
 #   
-#   What this does:
+#   Working directories
+#    ~/build-$BRANCH-$REVISION-$MODEL       BUILD directory for this version
+#    ~/ibase-$BRANCH-$REVISION-$MODEL       IBASE for build from svn sources
+#    ~/ibase-$BRANCH-$REVISION-$MODEL-kit   IBASE for build from source kit
+#    ~/ibase-boot                           IBASE binary bootstrap packages
+#    $BUILD/OpenAMQ-$VERSION                package root
+#
+#   Prerequisites
+#
+#   make_build.gsl must be installed into ibase-boot
+#
+#   Part 0
+#
+#   * If -s (status) option specified, reports status and then exits
+#
+#   Part 1: done always
 #   
-#      1. It looks for a bootstrap kit in ~/ibase-boot, which must exist, with lr, gsl, gsl4, boom
-#      2. It creates a new directory called ~/build-xxx-revision-model, if directory exists, empties it
-#      3. It creates a new directory called ~/ibase-xxx-revision-model, if directory exists, empties it
-#      4. It sets the IBASE to ~/ibase-xxx-revision-model
-#      5. It sets the PATH to $HOME/ibase-xxx-revision-model/bin:/usr/local/bin:/usr/bin:/bin
-#      6. It sets the BOOM_MODEL according to the model setting (debug,release, mt,st)
-#      7. It copies everything from ~/ibase-boot into ~/ibase-xxx-revision-model/bin
-#      8. It checks out the specified svn branch and revision for foreign, base, gsl4, base2, and openamq
-#      9. It does a full build and aborts if there were errors
+#   * Prepare ibase-boot directory
+#       - if it does not exist, create from IBASE/bin after user confirms
+#   * Prepare the IBASE directory
+#       - empty it if -c (clean) option was specified
+#   * Prepare the BUILD directory
+#       - if directory has been checked out then update
+#       - if directory does not exist then checkout
+#       - if clean option used, then delete and checkout
+#   * Checks out products (foreign, base, gsl4, base2, openamq) into BUILD
+#       - if products already present and clean not specified, does update
+#   * Does boom on each product
+#       - if -c (clean) is specified does "boom all"
+#       - else does "boom configure"
 #   
-#   If a version number was specified, make_openamq then does this:
+#   Part 2: done if a version is specified
 #   
-#      1. If updates the project.pdl files with the new version number
-#      2. It updates the manifest.xml file, which will be included with the distributed package
-#      3. It commits the changes to the project.pdl files and manifest
-#      4. It builds the source kits using the makrsrc procedure (without re-checking out)
-#      5. It unpacks the Linux source kit into a working directory
-#      6. It empties the IBASE at ~/ibase-xxx-revision-model
-#      7. It runs the build process on the extracted source files, installing into the IBASE
-#      8. Later, it may binary packages from the results of the final build process
-#   
-#   Any directory emptying and commits confirmed by the user unless -f was specified.
+#   * Builds source kit for each product
+#   * Generates a manifest.xml file in the openamq directory // should be pkgroot!
+#   * Updates project.pdl of openamq projects with version number
+#   * If -a (commit) specified, commits changes back to svn
+#   * Creates OpenAMQ-$VERSION package root
+#   * Generates readme.txt, build.sh, build.bat in package root
+#   * Unpacks source kits into package root and creates final source kits
+#   * Unpacks source kit into new package root and runs build.sh
+#
+croak() {
+    if [ -n "$*" ]; then
+        echo "E: $* - stop" 1>&2
+    else
+        echo "E: stop" 1>&2
+    fi
+    exit 1
+}
+carp() {
+    echo "I: $*" 1>&2
+}
+trap 'croak "Interrupted"' INT
+trap 'croak "Terminated"' TERM
+trap 'croak "Quit"' QUIT
 
-#   Global options
+#   Set global options for script
 SVN_ROOT=https://svn.imatix.com/imatix
 PRODUCTS="foreign base gsl4 base2 openamq"
-MANIFEST=manifest.aml
+MANIFEST=manifest.xml
+RUNLOG=/tmp/make_openamq_$$.log
 
-#   Process options, if any
+#   Set defaults for processing options
 REVISION=head
 BRANCH=trunk
 VERSION=""
 MODEL=mtd
-FORCE=0
+CLEAN=0
+STATUS=0
+COMMIT=0
 
 #   Parse command line
 while [ ! -z "$1" ]; do
     if [ "$1" = "-h" ]; then
-        echo "make_openamq [-r revision] [-b branch] [-v version] [-m model] [-f]"
-        exit 0
-    elif [ "$1" = "-f" ]; then
-        FORCE=1
+        carp 'make_openamq [-r revision] [-b branch] [-v version] [-m model] [-c] [-s] [-a]'
+        carp '   revision = svn revision number, default = head'
+        carp '   branch = "trunk" or "xxx" where branch name is "/branches/prod_openamq_xxx", e.g. "1.2d"'
+        carp '   version = "x.yRn", default is same as current'
+        carp '   model = "mtr", "mtd", "str", or "std", default is mtd'
+        carp '   -c means do clean checkout and build'
+        carp '   -s means just report status and exit'
+        carp '   -a means automatically do svn commits'
+        exit 1;
+    elif [ "$1" = "-c" ]; then
+        CLEAN=1                         #   Clean checkout and rebuild
+    elif [ "$1" = "-s" ]; then
+        STATUS=1                        #   Report status and then exit
+    elif [ "$1" = "-a" ]; then
+        COMMIT=1                        #   Automatically do svn commits
     elif [ "$1" = "-r" ]; then
         shift
         if [ ! -z "$1" ]; then
             REVISION=$1
         else
-            echo "E: use '-r revision'"
-            exit 1
+            croak "use '-r revision'"
         fi
     elif [ "$1" = "-b" ]; then
         shift
         if [ ! -z "$1" ]; then
             BRANCH=$1
         else
-            echo "E: use '-b branch'"
-            exit 1
+            croak "use '-b branch'"
         fi
     elif [ "$1" = "-v" ]; then
         shift
         if [ ! -z "$1" ]; then
             VERSION=$1
         else
-            echo "E: use '-v version'"
-            exit 1
+            croak "use '-v version'"
         fi
     elif [ "$1" = "-m" ]; then
         shift
         if [ ! -z "$1" ]; then
             MODEL=$1
         else
-            echo "E: use '-m model'"
-            exit 1
+            croak "use '-m model'"
         fi
     else 
-        echo "E: invalid option '$1' - use -h to see available options"
-        exit 1
+        croak "invalid option '$1' - use -h to see available options"
     fi
     shift
 done
-
-#   Check that ibase-boot exists
-if [ ! -d ~/ibase-boot ]; then
-    echo "W: no ~/ibase-boot directory exists"
-    if [ -d $IBASE/bin ]; then
-        echo -n "Create ~/ibase-boot from $IBASE/bin? (y/n)"
-        read answer
-        if [ "$answer" = "y" ]; then
-            echo "Creating ibase-boot..."
-            mkdir ~/ibase-boot
-            cd $IBASE/bin
-            #   Copy everything useful to the ibase-boot
-            cp lr* gsl* boom* pdl* pwl*  ~/ibase-boot
-            cp *.gsl *.pdl *.pwl ~/ibase-boot
-            cd $HOME
-        fi
-    fi
-    test ! -d ~/ibase-boot && exit 1
-fi
 
 #   Set environment variables for work
 MYNAME=$BRANCH-$REVISION-$MODEL
@@ -142,124 +164,250 @@ elif [ $MODEL = "std" ]; then
 elif [ $MODEL = "str" ]; then
     BOOM_MODEL=release,st
 else
-    echo "E: invalid model '$MODEL' - use mtd, mtr, std, or str"
-    exit 1
+    croak "invalid model '$MODEL' - use mtd, mtr, std, or str"
 fi
 
-#   Report where we'll work
-echo "IBASE directory: $IBASE"
-echo "Build directory: $BUILD"
-echo "Boom model:      $BOOM_MODEL"
-echo "svn revision:    $REVISION"
-echo "svn path root:   $SVN_ROOT"
+#   Report where we'll work & what we'll do
+if [ $CLEAN = 1 ]; then
+    carp "** doing full rebuild and installation"
+else
+    carp "** preparing sources and configuring, no rebuild"
+fi
+if [ "$VERSION" = "" ]; then
+    carp "** no source kits will be produced"
+else
+    carp "** preparing source kits for OpenAMQ-$VERSION"
+fi
+carp "IBASE directory: $IBASE"
+carp "build directory: $BUILD"
+carp "Boom model:      $BOOM_MODEL"
+carp "svn revision:    $REVISION"
+carp "svn path root:   $SVN_ROOT"
 
-#   Create/empty ibase and build directories
-if [ -d $IBASE ]; then
-    if [ $FORCE = 1 ]; then
-        echo "W: emptying existing ibase directory $IBASE..."
-        rm -rf $IBASE
+if [ $STATUS = 1 ]; then
+    if [ -f ~/ibase-boot/gsl ]; then
+        carp "found: $HOME/ibase-boot contains bootstrap binaries" 
     else
-        echo -n "Enter 'y' to delete $IBASE directory contents:"
+        carp "empty: $HOME/ibase-boot is empty"
+    fi
+    if [ -d $BUILD/openamq/.svn ]; then
+        carp "found: $BUILD contains checked-out sources"
+    else
+        carp "empty: $BUILD is empty"
+    fi
+    if [ -f $BUILD/openamq/server/amq_server ]; then
+        carp "found: $BUILD contains built packages"
+    else
+        carp "empty: $BUILD not yet built"
+    fi
+    if [ -f $IBASE/lib/libamq_server.a ]; then 
+        carp "found: $IBASE contains installation"
+    else
+        carp "empty: $IBASE is empty"
+    fi
+    exit 0
+fi
+
+#   Check that ibase-boot exists
+if [ ! -d ~/ibase-boot ]; then
+    carp "no ~/ibase-boot directory exists"
+    if [ -d $IBASE/bin ]; then
+        echo -n "Enter 'y' to create ~/ibase-boot from $IBASE/bin: "
         read answer
         if [ "$answer" = "y" ]; then
-            echo "W: emptying existing build directory $IBASE..."
-            rm -rf $IBASE
+            carp "creating ibase-boot..."
+            mkdir ~/ibase-boot || croak
+            cd $IBASE/bin
+            #   Copy everything useful to the ibase-boot
+            cp lr* gsl* boom* pdl* pwl*  ~/ibase-boot || croak
+            cp *.gsl *.pdl *.pwl ~/ibase-boot || croak
+            cd $HOME
         fi
     fi
+    test -d ~/ibase-boot || croak
 fi
-mkdir $IBASE
-mkdir $IBASE/bin
-cp ~/ibase-boot/* $IBASE/bin
+
+#   Check required applications
+for PROGRAM in boom pax zip; do
+    if [ -z "`which $PROGRAM`" ]; then
+        croak "need $PROGRAM on path to run"
+    fi
+done
+
+carp "****  Starting  ****"
+#   Prepare ibase directory
+#    - if clean option used, then empty directory
+if [ -d $IBASE -a $CLEAN = 1 ]; then
+    carp "in $IBASE: deleting everything..."
+    rm -rf $IBASE || croak
+fi
+if [ ! -d $IBASE ]; then
+    mkdir $IBASE || croak
+    mkdir $IBASE/bin || croak
+    cp ~/ibase-boot/* $IBASE/bin || croak
+fi
 PATH=$IBASE/bin:/usr/local/bin:/usr/bin:/bin
 
+if [ ! -f $IBASE/bin/make_build.gsl ]; then
+    carp "make_build.gsl needs to be in $IBASE/bin"
+    carp "suggestion: copy into ~/ibase-boot and delete $IBASE"
+    croak
+fi
+
+#   Prepare build directory
+#   - if directory has been checked out then update
+#   - if directory does not exist then checkout
+#   - if clean option used, then delete and checkout
+
 if [ -d $BUILD ]; then
-    if [ $FORCE = 1 ]; then
-        echo "W: emptying existing build directory $BUILD..."
-        rm -rf $BUILD
+    if [ $CLEAN = 1 ]; then
+        carp "in $BUILD: deleting everything..."
+        rm -rf $BUILD || croak
+        mkdir $BUILD || croak
+    fi
+else
+    mkdir $BUILD || croak
+fi
+cd $BUILD || croak
+
+#   Checkout/update all products into build directory
+for PRODUCT in $PRODUCTS; do
+    if [ "$BRANCH" = "trunk" ]; then
+        SVN_URI=$SVN_ROOT/$PRODUCT/trunk
     else
-        echo -n "Enter 'y' to delete $BUILD directory contents:"
-        read answer
-        if [ "$answer" = "y" ]; then
-            echo "W: emptying existing build directory $BUILD..."
-            rm -rf $BUILD
+        SVN_URI=$SVN_ROOT/$PRODUCT/branches/prod_openamq_$BRANCH
+    fi
+    carp "in `pwd`: get '$SVN_URI' into $PRODUCT..."
+    svn checkout -q -r $REVISION $SVN_URI $PRODUCT || croak
+done
+
+#   If clean option used, do full rebuild
+#   Else configure only
+for PRODUCT in $PRODUCTS; do
+    cd $BUILD/$PRODUCT || croak
+    if [ $CLEAN = 1 ]; then
+        carp "in `pwd`: boom all..."
+        boom all > $RUNLOG 2>&1
+        if [ $? -ne 0 ]; then
+            cat $RUNLOG
+            croak
+        fi
+    else
+        carp "in `pwd` boom configure..."
+        boom configure > $RUNLOG 2>&1
+        if [ $? -ne 0 ]; then
+            cat $RUNLOG
+            croak
         fi
     fi
-fi
-mkdir $BUILD
+done
 
-#   Checkout all products into build directory
+#   If version not specified, we're finished now
+if [ -z "$VERSION" ]; then
+    carp "****  Finished without making source kits ****"
+    exit
+fi
+
+#   Determine name-version for each product
+for PRODUCT in $PRODUCTS; do
+    cd $BUILD/$PRODUCT || croak
+    eval "export $PRODUCT\_version=`boom version`"
+    if [ -z "`eval echo \\$${PRODUCT}_version`" ]; then
+        croak "Unable to determine version of $PRODUCT"
+    fi
+done
+
+#   Update project & manifest with versions
+cd $BUILD/openamq || croak
+if [ ! -z "$VERSION" ]; then
+    cd $BUILD/openamq || croak
+
+    #   Create $MANIFEST file
+    #   Get real revision number
+    if [ "$REVISION" = "head" ]; then
+        REVISION=`svn info | egrep Revision | cut -f 2 -d" "`
+    fi
+
+    echo '<?xml version="1.0"?>'> $MANIFEST
+    echo '<package name = "OpenAMQ" release = "'$VERSION'">' >> $MANIFEST
+    for PRODUCT in $PRODUCTS; do
+        if [ "$BRANCH" = "trunk" ]; then
+            SVN_URI=$SVN_ROOT/$PRODUCT/trunk
+        else
+            SVN_URI=$SVN_ROOT/$PRODUCT/branches/prod_openamq_$BRANCH
+        fi
+        PRODVER=`perl -n -e '/version .*= "(.*)"/ && print $1' $BUILD/$PRODUCT/project.pdl`
+        echo '  <product name = "'$PRODUCT'" url = "'$SVN_URI'" revision = "'$REVISION'" release = "'$PRODVER'" internal = "'`eval echo \\$${PRODUCT}_version`'" />'>> $MANIFEST
+    done
+    echo '</package>'>> $MANIFEST
+
+    #   Patch project.pdl with version number
+    for PROJECT in . common clients server operate; do
+        perl -n -p -e 's/version   = "....."/version   = "'$VERSION'"/' < $PROJECT/project.pdl > _tmp
+        mv _tmp $PROJECT/project.pdl
+    done
+    PRODVER=`perl -n -e '/version .*= "(.*)"/ && print $1' project.pdl`
+    carp "in `pwd`: project.pdl patched to $PRODVER"
+
+    #   Commit new manifest and project.pdl files
+    if [ $COMMIT = 1 ]; then
+        carp "in `pwd`: svn commit of $VERSION update"
+        svn commit -m "Prepare to release version $VERSION" || croak
+    else
+        carp "in `pwd`: svn stat (manual commit recommended):"
+        svn stat
+    fi
+fi
+
+
+#   Build source kit, first using distsrc in each product
+for PRODUCT in $PRODUCTS; do
+    cd $BUILD/$PRODUCT || croak
+    rm -f *.tar.gz *.zip
+
+    carp "in `pwd`: boom distsrc..."
+    boom distsrc > $RUNLOG 2>&1 
+    if [ $? -ne 0 ]; then
+        cat $RUNLOG
+        croak
+    fi
+done
+
 cd $BUILD
+carp "in `pwd`: building OpenAMQ-$VERSION tar/zip kits..."
+rm -rf OpenAMQ-$VERSION || croak
+mkdir  OpenAMQ-$VERSION || croak
+cd     OpenAMQ-$VERSION || croak
+
+#   Generate readme.txt and build.sh files for package
+mv $BUILD/openamq/manifest.xml .
+gsl -q -script:make_build manifest.xml
+
+#   Unzip source kits to create OpenAMQ package tree
 for PRODUCT in $PRODUCTS; do
-    if [ "$BRANCH" = "trunk" ]; then
-        SVN_URI=$SVN_ROOT/$PRODUCT/trunk
-    else
-        SVN_URI=$SVN_ROOT/$PRODUCT/branches/prod_openamq_$BRANCH
-    fi
-    echo "I: checking out $SVN_URI into $BUILD/$PRODUCT..."
-    svn checkout -q -r $REVISION $SVN_URI $PRODUCT 
-    if [ $? -eq 1 ]; then
-        echo "E: svn checkout failed - aborting"
-        exit 1
-    fi
+    PRODVER=`eval echo \\$${PRODUCT}_version`
+    gzip -dc $BUILD/$PRODUCT/$PRODVER-src.tar.gz | tar -xf - || croak
 done
 
-#   Do full rebuild of checked-out products
-for PRODUCT in $PRODUCTS; do
-    cd $PRODUCT
-    boom all
-    if [ $? -eq 1 ]; then
-        echo "E: boom build failed - aborting"
-        exit 1
-    fi
-    cd ..
-done
+cd $BUILD
+pax -w OpenAMQ-$VERSION | gzip -c > OpenAMQ-${VERSION}.tar.gz || croak
+zip -lqrm OpenAMQ-${VERSION}.zip OpenAMQ-$VERSION || croak
+carp "in `pwd`: successfully built source kits:"
+ls -l OpenAMQ-${VERSION}.tar.gz OpenAMQ-${VERSION}.zip
 
-#   If version specified, create source kits
-test -z "$VERSION" && exit
-echo "I: preparing to package OpenAMQ-$version..."
-
-#   Create $MANIFEST file
-#   Get real revision number
-if [ "$REVISION" = "head" ]; then
-    REVISION=`svn info | egrep Revision | cut -f 2 -d" "`
+#   Unpack the Linux source kit and do a full build
+tar -xzf OpenAMQ-${VERSION}.tar.gz
+cd OpenAMQ-$VERSION
+rm -rf ~/ibase-$MYNAME-kit || croak
+IBASE=~/ibase-$MYNAME-kit
+PATH=$IBASE/bin:/usr/local/bin:/usr/bin:/bin
+carp "in `pwd`: testing build from source kit"
+sh build.sh > $RUNLOG 2>&1 
+if [ $? -ne 0 ]; then
+    cat $RUNLOG
+    croak
 fi
+rm -rf ~/ibase-$MYNAME-kit || croak
 
-echo '<?xml version="1.0"?>'> $MANIFEST
-echo '<package name = "OpenAMQ" release = "'$VERSION'">' >> $MANIFEST
-for PRODUCT in $PRODUCTS; do
-    if [ "$BRANCH" = "trunk" ]; then
-        SVN_URI=$SVN_ROOT/$PRODUCT/trunk
-    else
-        SVN_URI=$SVN_ROOT/$PRODUCT/branches/prod_openamq_$BRANCH
-    fi
-    echo '  <product name = "'$PRODUCT'" url = "'$SVN_URI'" rev = "'$REVISION'" />'>> $MANIFEST
-done
-echo '</package>'>> $MANIFEST
-
-#   Patch project.pdl with version number
-for PROJECT in . common clients server operate; do
-    perl -n -p -e 's/version   = "....."/version   = "'$VERSION'"/' < $PROJECT/project.pdl > _tmp
-    mv _tmp $PROJECT/project.pdl
-done
-
-#   Commit new manifest and project.pdl files
-echo "I: project.pdl patched to:" `"version .*=" project.pdl`
-if [ $FORCE = 1 ]; then
-    svn commit -m "Prepare to release version $VERSION"
-else
-    echo -n "Enter 'y' to commit manifest to svn:"
-    read answer
-    if [ "$answer" = "y" ]; then
-        echo "W: committing manifest to svn..."
-        svn commit -m "Prepare to release version $VERSION"
-    fi
-fi
-
-#   Build the source kits
-
-
-#      4. It builds the source kits using the makrsrc procedure (without re-checking out)
-#      5. It unpacks the Linux source kit into a working directory
-#      6. It empties the IBASE at ~/ibase-xxx-revision-model
-#      7. It runs the build process on the extracted source files, installing into the IBASE
+carp "****  Finished making & testing source kits ****"
 
