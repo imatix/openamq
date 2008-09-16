@@ -1,4 +1,13 @@
 OpenAMQ change log
+2008-09-16
+
+* Implemented Basic.Qos (trunk and 1.2d) (issue:5)
+* Direct mode properly records input/output rates (trunk) (issue:11)
+* Fixed use of C++ words in amq_queue.icl (private) and amq_cml (class) (trunk & 1.2d) (issue:6)
+* Fixed setting of last routing key on binding (trunk & 1.2d1) (issue:12)
+* amq_queue reported bad client ip address on shared queues with no connections (trunk & 1.2d) (issue:12)
+* Fixed error in topic routing key (foo.# matched fruit.bar) (issue:7)
+
 2008-09-10
 
 * DAMQ-6: fixed protocol class error (asl_connection.asl)

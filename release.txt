@@ -1,6 +1,11 @@
-++ 1.3a0 - 2008/09/xx
+++ 1.3a1 - 2008/09/16 (UNSTABLE)
 
-+++ Major
+This update includes all fixes in 1.2d2 as well as:
+
+* Protocol version was incompatible with 1.2d, fixed.
+* Direct mode properly records input/output rates (trunk) (http://www.openamq.org/issue:11)
+
+++ 1.3a0 - 2008/09/07 (UNSTABLE)
 
 * Added support for Direct Message Protocol (see http://wiki.amqp.org).
 * Added config/tuning/direct option to wireapi.cfg
@@ -9,9 +14,15 @@
 * In PAL, added <session direct = "1"> option to enable Direct Mode
 * Fixed rare server crash on attempting to read from closing socket.
 
-++ 1.2d1 - 2008/09/07
+++ 1.2d2 - 2008/09/16 (STABLE)
 
-+++ Major
+* Implemented Basic.Qos (http://www.openamq.org/issue:5)
+* Fixed use of C++ words in amq_queue.icl (private) and amq_cml (class) (http://www.openamq.org/issue:6)
+* Fixed setting of last routing key on binding (http://www.openamq.org/issue:12)
+* amq_queue reported bad client ip address on shared queues with no connections (http://www.openamq.org/issue:12)
+* Fixed error in topic routing key (foo.# matched fruit.bar) (http://www.openamq.org/issue:7)
+
+++ 1.2d1 - 2008/09/07 (STABLE)
 
 * Session now accurately holds content exchange, routing-key, and consumer-tag.  (http://www.openamq.org/issue:2)
 * Fixed: on Windows the server crashed on startup if it could not resolve its own hostname.  (http://www.openamq.org/issue:3)
