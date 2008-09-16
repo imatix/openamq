@@ -12,7 +12,6 @@ This update includes all fixes in 1.2d2 as well as:
 * Added config/tuning/direct option to server config (--direct 1 on cmdline)
 * In PAL, <session failover = "n"> option changed to seconds for consistency
 * In PAL, added <session direct = "1"> option to enable Direct Mode
-* Fixed rare server crash on attempting to read from closing socket.
 
 ++ 1.2d2 - 2008/09/16 (STABLE)
 
@@ -21,6 +20,9 @@ This update includes all fixes in 1.2d2 as well as:
 * Fixed setting of last routing key on binding (http://www.openamq.org/issue:12)
 * amq_queue reported bad client ip address on shared queues with no connections (http://www.openamq.org/issue:12)
 * Fixed error in topic routing key (foo.# matched fruit.bar) (http://www.openamq.org/issue:7)
+* Improved internal assertion macros to provide more info in case of crashes (BASE2-296).
+* Fixed occasional crashes caused by race condition on closing client connections (BASE2-298).
+* Fixed occasional memory corruption in handling of Basic.Cancel-Nowait method (AMQ-589)
 
 ++ 1.2d1 - 2008/09/07 (STABLE)
 
