@@ -260,6 +260,8 @@ runs lock-free as a child of the asynchronous queue class.
             self->queue->traffic_out += content->body_size;
             channel = amq_server_channel_link (consumer->channel);
             if (channel) {
+                assert (channel->credit);
+                amq_server_channel_spend (channel);
                 connection = amq_server_connection_link (channel->connection);
                 if (connection) {
                     amq_server_agent_basic_deliver (
