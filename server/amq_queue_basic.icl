@@ -67,9 +67,8 @@ runs lock-free as a child of the asynchronous queue class.
         *connection;
     amq_consumer_t
         *consumer;
-    int
-        active_consumer_count;
     Bool
+        have_active_consumers,
         rejected;
     </local>
     //
@@ -136,8 +135,9 @@ runs lock-free as a child of the asynchronous queue class.
                 break;
         }
     }
-    else {
-        //  Reset warning flags if queue drops below critical
+    else 
+    if (queue_size == 0) {
+        //  Reset warning flags if queue becomes empty
         self->warned  = FALSE;
         self->dropped = FALSE;
         self->trimmed = FALSE;
@@ -146,15 +146,18 @@ runs lock-free as a child of the asynchronous queue class.
         //  If immediate, and no consumers, return the message
         rejected = FALSE;
         if (immediate) {
-            //  Get count of active consumers
-            active_consumer_count = 0;
+            //  Check if there are any active consumers
+            have_active_consumers = FALSE;
             consumer = amq_consumer_by_queue_first (self->consumer_list);
             while (consumer) {
-                if (!consumer->paused)
-                    active_consumer_count++;
+                if (!consumer->paused) {
+                    have_active_consumers = TRUE;
+                    amq_consumer_unlink (&consumer);
+                    break;
+                }
                 consumer = amq_consumer_by_queue_next (&consumer);
             }
-            if (active_consumer_count == 0) {
+            if (have_active_consumers) {
                 rejected = TRUE;
 
                 if (amq_server_config_debug_queue (amq_server_config))
@@ -209,8 +212,8 @@ runs lock-free as a child of the asynchronous queue class.
         *connection;
     amq_server_channel_t
         *channel;
-    int
-        active_consumer_count;
+    Bool
+        have_active_consumers;
     </local>
     //
     if (amq_server_config_debug_queue (amq_server_config))
@@ -223,23 +226,26 @@ runs lock-free as a child of the asynchronous queue class.
     //  This is an optimization to stop us looping over content below
     //  if there are only passive consumers on the queue.
     //  Get count of active consumers
-    active_consumer_count = 0;
+    have_active_consumers = FALSE;
     consumer = amq_consumer_by_queue_first (self->consumer_list);
     while (consumer) {
-        if (!consumer->paused)
-            active_consumer_count++;
+        if (!consumer->paused) {
+            have_active_consumers = TRUE;
+            amq_consumer_unlink (&consumer);
+            break;
+        }
         consumer = amq_consumer_by_queue_next (&consumer);
     }
     if (amq_server_config_debug_queue (amq_server_config) 
-        && active_consumer_count == 0)
+    && have_active_consumers)
         smt_log_print (amq_broker->debug_log,
             "Q: paused   queue=%s nbr_messages=%d nbr_consumers=%d",
             self->queue->name,
             ipr_looseref_list_count (self->content_list),
             amq_consumer_by_queue_count (self->consumer_list));
 
-    while (active_consumer_count &&
-        ipr_looseref_list_count (self->content_list)) {
+    while (have_active_consumers 
+    && ipr_looseref_list_count (self->content_list)) {
         //  Look for a valid consumer for this content
         content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
         rc = s_get_next_consumer (self, content->producer_id, &consumer);
