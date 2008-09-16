@@ -439,11 +439,11 @@ class.  This is a lock-free asynchronous class.
     amq_server_channel_t
         *channel;
 
-    if (notify) {
+    if (notify && !nowait) {
         channel = amq_server_channel_link (consumer->channel);
         if (channel) {
             connection = amq_server_connection_link (channel->connection);
-            if (connection && !nowait) {
+            if (connection) {
                 amq_server_agent_basic_cancel_ok (
                     connection->thread, channel->number, consumer->tag);
                 amq_server_connection_unlink (&connection);
