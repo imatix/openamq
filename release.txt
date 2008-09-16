@@ -2,7 +2,7 @@
 
 This update includes all fixes in 1.2d2 as well as:
 
-* Protocol version was incompatible with 1.2d, fixed.
+* Protocol version was incompatible with 1.2d, fixed (http://www.openamq.org/issue:9).
 * Direct mode properly records input/output rates (trunk) (http://www.openamq.org/issue:11)
 
 ++ 1.3a0 - 2008/09/07 (UNSTABLE)
@@ -16,13 +16,15 @@ This update includes all fixes in 1.2d2 as well as:
 ++ 1.2d2 - 2008/09/16 (STABLE)
 
 * Implemented Basic.Qos (http://www.openamq.org/issue:5)
-* Fixed use of C++ words in amq_queue.icl (private) and amq_cml (class) (http://www.openamq.org/issue:6)
+* Fixed use of C++ words in amq_queue.icl ('private') and amq_cml ('class') (http://www.openamq.org/issue:6)
+* Fixed error in topic routing key (foo.# matched fruit.bar) (http://www.openamq.org/issue:7)
 * Fixed setting of last routing key on binding (http://www.openamq.org/issue:12)
 * amq_queue reported bad client ip address on shared queues with no connections (http://www.openamq.org/issue:12)
-* Fixed error in topic routing key (foo.# matched fruit.bar) (http://www.openamq.org/issue:7)
+* Fixed amq_shell, which blocked when listing shared queues without consumers.
 * Improved internal assertion macros to provide more info in case of crashes (BASE2-296).
 * Fixed occasional crashes caused by race condition on closing client connections (BASE2-298).
 * Fixed occasional memory corruption in handling of Basic.Cancel-Nowait method (AMQ-589)
+* Added support for AMQP nowait methods in PAL scripting language.
 
 ++ 1.2d1 - 2008/09/07 (STABLE)
 
