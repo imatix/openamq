@@ -73,6 +73,8 @@ class.  This is a lock-free asynchronous class.
                 icl_shortstr_cpy (field_value, connection->client_address);
                 amq_server_connection_unlink (&connection);
             }
+            else
+                icl_shortstr_cpy (field_value, "");
           </get>
         </field>
         <field name = "exchange_type" label = "Exchange type">
