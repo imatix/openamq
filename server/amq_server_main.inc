@@ -49,7 +49,7 @@ static char
 "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n" \
     "\n"
 
-#define USAGE1                                                               \
+#define USAGE                                                                \
     "Syntax: %s [options...]\n"                                              \
     "   Starts the OpenAMQ server\n"                                         \
     "\n"                                                                     \
@@ -65,17 +65,6 @@ static char
     "  -h               Show summary of command-line options\n"              \
     "  --help           Show detailed configuration help\n"                  \
     "\n"                                                                     
-
-#define USAGE2                                                               \
-    "\n"                                                                     \
-    "Deprecated options:\n"                                                  \
-    "  -p port          Server port\n"                                       \
-    "  -t level         Set trace level 0-3 (0)\n"                           \
-    "  -m n             Monitor server status every N seconds (1)\n"         \
-    "\n"                                                                     \
-    "The order of arguments is not important. Switches and filenames\n"      \
-    "are case sensitive. See documentation for detailed information.\n"      \
-    "\n"
 
 //  Parse arguments, return 0 if OK, 1 if error
 
@@ -177,9 +166,8 @@ s_start (int argc, char *argv [])
                     printf (BUILDMODEL "\n\n");
                     printf (COPYRIGHT "\n");
                     printf (NOWARRANTY);
-                    printf (USAGE1, SERVER_NAME);
+                    printf (USAGE, SERVER_NAME);
                     amq_server_config_cmdline_help ();
-                    printf (USAGE2);
                     exit (EXIT_SUCCESS);
 
                 //  Anything else is an error
