@@ -493,6 +493,7 @@ for each type of exchange. This is a lock-free asynchronous class.
             amq_queue_bindings_list_queue (bindings_list, binding);
         amq_queue_bindings_list_unlink (&bindings_list);
     }
+    amq_queue_set_last_binding (queue, self->type, routing_key, arguments);
     amq_binding_bind_queue (binding, queue);
     amq_binding_unlink (&binding);
     ipr_hash_unlink (&hash);
