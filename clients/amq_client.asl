@@ -53,7 +53,9 @@
     //
     icl_shortstr_cpy (content->exchange,     method->exchange);
     icl_shortstr_cpy (content->routing_key,  method->routing_key);
-    icl_shortstr_cpy (content->consumer_tag, method->consumer_tag);
+    //  Not filled in for contents delivered by direct mode
+    if (*method->consumer_tag)
+        icl_shortstr_cpy (content->consumer_tag, method->consumer_tag);
 
     amq_content_basic_list_queue (session->arrived_basic_list, content);
     msg_count = amq_content_basic_list_count (session->arrived_basic_list);
