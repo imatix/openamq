@@ -154,7 +154,7 @@ runs lock-free as a child of the asynchronous queue class.
                     active_consumer_count++;
                 consumer = amq_consumer_by_queue_next (&consumer);
             }
-            if (active_consumer_count == 0) {
+            if (!have_active_consumers) {
                 rejected = TRUE;
 
                 if (amq_server_config_debug_queue (amq_server_config))
@@ -231,7 +231,7 @@ runs lock-free as a child of the asynchronous queue class.
         consumer = amq_consumer_by_queue_next (&consumer);
     }
     if (amq_server_config_debug_queue (amq_server_config) 
-        && active_consumer_count == 0)
+    && !have_active_consumers)
         smt_log_print (amq_broker->debug_log,
             "Q: paused   queue=%s nbr_messages=%d nbr_consumers=%d",
             self->queue->name,
@@ -254,6 +254,8 @@ runs lock-free as a child of the asynchronous queue class.
             self->queue->traffic_out += content->body_size;
             channel = amq_server_channel_link (consumer->channel);
             if (channel) {
+                assert (channel->credit);
+                amq_server_channel_spend (channel);
                 connection = amq_server_connection_link (channel->connection);
                 if (connection) {
                     amq_server_agent_basic_deliver (

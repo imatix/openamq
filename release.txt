@@ -3,6 +3,7 @@
 ++ 1.2d3 - 2008/09/25 (STABLE)
 
 * Fixed rare server crash (BASE2-299)
+* Improved internal server event flow between queues and protocol agents, using credit based flow controls.
 
 ++ 1.2d2 - 2008/09/16
 
@@ -13,7 +14,7 @@
 * amq_queue reported bad client ip address on shared queues with no connections (http://www.openamq.org/issue:12)
 * Fixed amq_shell, which blocked when listing shared queues without consumers.
 * Improved internal assertion macros to provide more info in case of crashes (BASE2-296).
-* Fixed occasional server crashe caused by race condition on closing client connections (BASE2-298).
+* Fixed occasional server crashes caused by race condition on closing client connections (BASE2-298).
 * Fixed occasional server memory corruption in handling of Basic.Cancel-Nowait method (AMQ-589)
 * Added support for AMQP nowait methods in PAL scripting language.
 
