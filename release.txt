@@ -1,6 +1,10 @@
 + Release Notes
 
-++ 1.2d2 - 2008/09/16 (STABLE)
+++ 1.2d3 - 2008/09/25 (STABLE)
+
+* Fixed rare server crash (BASE2-299)
+
+++ 1.2d2 - 2008/09/16
 
 * Implemented Basic.Qos (http://www.openamq.org/issue:5)
 * Fixed use of C++ words in amq_queue.icl ('private') and amq_cml ('class') (http://www.openamq.org/issue:6)
@@ -9,11 +13,11 @@
 * amq_queue reported bad client ip address on shared queues with no connections (http://www.openamq.org/issue:12)
 * Fixed amq_shell, which blocked when listing shared queues without consumers.
 * Improved internal assertion macros to provide more info in case of crashes (BASE2-296).
-* Fixed occasional crashes caused by race condition on closing client connections (BASE2-298).
-* Fixed occasional memory corruption in handling of Basic.Cancel-Nowait method (AMQ-589)
+* Fixed occasional server crashe caused by race condition on closing client connections (BASE2-298).
+* Fixed occasional server memory corruption in handling of Basic.Cancel-Nowait method (AMQ-589)
 * Added support for AMQP nowait methods in PAL scripting language.
 
-++ 1.2d1 - 2008/09/07 (STABLE)
+++ 1.2d1 - 2008/09/07
 
 * Session now accurately holds content exchange, routing-key, and consumer-tag.  (http://www.openamq.org/issue:2)
 * Fixed: on Windows the server crashed on startup if it could not resolve its own hostname.  (http://www.openamq.org/issue:3)
