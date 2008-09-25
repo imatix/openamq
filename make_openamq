@@ -177,6 +177,9 @@ if [ "$VERSION" = "" ]; then
     carp "** no source kits will be produced"
 else
     carp "** preparing source kits for OpenAMQ-$VERSION"
+    if [ $CLEAN = 0 ]; then
+        carp "** WARNING: doing dirty rebuild, binary versions may be old"
+    fi
 fi
 carp "IBASE directory: $IBASE"
 carp "build directory: $BUILD"

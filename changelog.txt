@@ -1,4 +1,26 @@
 OpenAMQ change log
+2009-09-23
+
+* Added high/low water handling for Direct Mode (warn, trim, drop, kill)
+* Normalised handling of high/low water into asl_client_session template
+* Defined configuration for Direct Mode high water handling (on_overflow)
+    -> needs to be documented
+
+2009-09-22
+
+* Frame-max limit was wrongly defined as 4M, should be 2M (IPR_BUCKET_MAX)
+* Added configurability to direct mode batching (direct/batching)
+    -> needs to be documented
+
+2009-09-21
+
+* Consumer-tag got corrupted in direct-mode transfers (issue:2 refix)
+* Direct mode caused aborts on client session close (issue:14)
+
+2008-09-17
+
+* Implemented Direct Mode bundling in client and server agents.
+
 2008-09-16
 
 * Implemented Basic.Qos (trunk and 1.2d) (issue:5)

@@ -28,54 +28,18 @@
 
 <class name = "basic">
   <action name = "get-ok">
-  <local>
-    int
-        msg_count;
-  </local>
-    //
-    icl_shortstr_cpy (content->exchange,    method->exchange);
-    icl_shortstr_cpy (content->routing_key, method->routing_key);
-
-    amq_content_basic_list_queue (session->arrived_basic_list, content);
-    msg_count = amq_content_basic_list_count (session->arrived_basic_list);
-
-    if (amq_client_config_high_water (amq_client_config) 
-    && msg_count == amq_client_config_high_water (amq_client_config) 
-    && icl_atomic_cas32 (&session->flow_stopped, TRUE, FALSE) == FALSE)
-        amq_client_session_channel_flow (session, FALSE);
+    amq_client_session_push_arrived (
+        session, content, method->exchange, method->routing_key, NULL);
   </action>
 
   <action name = "deliver">
-  <local>
-    int
-        msg_count;
-  </local>
-    //
-    icl_shortstr_cpy (content->exchange,     method->exchange);
-    icl_shortstr_cpy (content->routing_key,  method->routing_key);
-    //  Not filled in for contents delivered by direct mode
-    if (*method->consumer_tag)
-        icl_shortstr_cpy (content->consumer_tag, method->consumer_tag);
-
-    amq_content_basic_list_queue (session->arrived_basic_list, content);
-    msg_count = amq_content_basic_list_count (session->arrived_basic_list);
-    
-    if (amq_client_config_high_water (amq_client_config) 
-    && msg_count == amq_client_config_high_water (amq_client_config) 
-    && icl_atomic_cas32 (&session->flow_stopped, TRUE, FALSE) == FALSE)
-        amq_client_session_channel_flow (session, FALSE);
+    amq_client_session_push_arrived (
+        session, content, method->exchange, method->routing_key, method->consumer_tag);
   </action>
 
   <action name = "return">
-    icl_shortstr_cpy (content->exchange,    method->exchange);
-    icl_shortstr_cpy (content->routing_key, method->routing_key);
-
-    amq_content_basic_list_queue (session->returned_basic_list, content);
-    content->returned = TRUE;
-
-    if (!session->silent)
-        icl_console_print ("W: basic message was returned: %d - %s",
-            session->reply_code, session->reply_text);
+    amq_client_session_push_returned (
+        session, content, method->exchange, method->routing_key, NULL);
   </action>
 
   <action name = "publish">

@@ -68,14 +68,6 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "low water" type = "int" default = "0">
-    Low water mark for message flow control
-    <doc>
-    Number of messages in arrived queue when message flow from server is
-    started again after it had been switched off on high water mark.
-    </doc>
-    </property>
-
     <property name = "high water" type = "int" default = "0">
     High water mark for message flow control
     <doc>
@@ -84,11 +76,42 @@ $\(selftype)
     </doc>
     </property>
 
+    <property name = "low water" type = "int" default = "0">
+    Low water mark for message flow control
+    <doc>
+    Number of messages in arrived queue when message flow from server is
+    started again after it had been switched off on high water mark.
+    </doc>
+    </property>
+
     <property name = "direct" type = "int" default = "0">
     Enables Direct Mode for connections
     <doc>
     If set to 1, new connections will by default use Direct Mode.  Applications
     can override this by setting the connection->direct property on new connections.
+    </doc>
+    </property>
+</path>
+
+<path name = "direct">
+    <property name = "batching" type = "int" max = "2097152" default = "32768">
+    Maximum size of Direct Mode batches
+    <doc>
+    Defines the maximum batch size for Direct Mode opportunistic batching on message
+    sends.  Setting this higher will improve throughput, and usually with lower latency, 
+    but will cause higher memory consumption.  Setting this to zero will switch off 
+    batching.  Any value less than 2048 is treated as zero.
+    </doc>
+    </property>
+
+    <property name = "on overflow" type = "icl_shortstr_t" default = "trim">
+    Sets action for high-water overflow
+    <doc>
+    Specifies how the WireAPI stack should handle an overflow condition, as defined by
+    the arrived message queue reaching the high-water mark.  The allowed actions are:
+    'warn' - issue a message to the console, 'trim' - discard old messages to make space
+    for new ones, 'drop' - drop new incoming messages, and 'kill' - assert an error and
+    kill the application.
     </doc>
     </property>
 </path>
