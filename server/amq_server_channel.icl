@@ -128,6 +128,23 @@ maximum number of consumers per channel is set at compile time.
     </action>
 </method>
 
+<method name = "recharge" template = "function">
+    <doc>
+    Re-dispatches all queues for the channel, when the credit based flow control
+    is recharged.
+    </doc>
+    <local>
+    amq_consumer_t
+        *consumer;                      //  Consumer object reference
+    </local>
+    //
+    consumer = amq_consumer_by_channel_first (self->consumer_list);
+    while (consumer) {
+        amq_queue_dispatch (consumer->queue);
+        consumer = amq_consumer_by_channel_next (&consumer);
+    }
+</method>
+
 <method name = "cancel" template = "async function" async = "1" on_shutdown = "1">
     <doc>
     Cancels channel consumer specified by tag.  May be called either
