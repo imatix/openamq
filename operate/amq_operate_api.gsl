@@ -273,22 +273,21 @@ NULL, NULL);
 .endfor
     //  Record data in XML form if wanted
     if (xml_data) {
-        fprintf (xml_data, "&lt;$(name) id = \\\\"%d\\\\"\
+        fprintf (xml_data, "&lt;$(name) id = \\\\"%d\\\\""
 .for field
 .   if type = "string"
- $(name) = \\\\"%s\\\\"\
+            " $(name) = \\\\"%s\\\\""
 .   elsif type = "int" | type = "bool"
- $(name) = \\\\"%d\\\\"\
+            " $(name) = \\\\"%d\\\\""
 .   elsif type = "time"
- $(name) = \\\\"%ld\\\\"\
+            " $(name) = \\\\"%ld\\\\""
 .   endif
 .endfor
-/&gt;\\\\n",
-            self->id\
+            "/&gt;\\\\n", self->id
 .for field
-, self->$(name)\
+            , self->$(name)
 .endfor
-);
+        );
     }
 </method>
 
