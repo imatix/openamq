@@ -233,6 +233,7 @@ main (int argc, char *argv [])
                 expected--;
             }
             else
+            if (expected)
                 amq_client_session_wait (session, 1000);
 
             if (!session->alive)
