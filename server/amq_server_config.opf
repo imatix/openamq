@@ -303,6 +303,29 @@ $\(selftype)
     can override this by setting the connection->direct property on new connections.
     </doc>
     </property>
+
+    <property name = "private credit" type = "int" default = "1024">
+    Credit window for private queues
+    <doc>
+    Defines the credit window for private queues.  The credit window regulates
+    the flow of messages internally.  A higher value will move messages faster
+    off private message queues and into the protocol transport threads. This
+    will increase server memory consumption (before configured queue limits
+    are applied) but can improve performance.  For high performance applications
+    we recommend using Direct Mode.  To disable credit based flow control on
+    private queues, set to zero.
+    </doc>
+    </property>
+
+    <property name = "shared credit" type = "int" default = "1">
+    Credit window for shared queues
+    <doc>
+    Defines the credit window for shared queues.  The credit window regulates
+    the flow of messages internally.  The default value of 1 will provide the 
+    best response to blocked/slow clients working on shared queues.  Set to 
+    zero to disable credit based flow control on shared queues.
+    </doc>
+    </property>
 </path>
 
 <path name = "failover">
@@ -386,10 +409,18 @@ $\(selftype)
     <property name = "batching" type = "int" max = "2097152" default = "32768">
     Maximum size of Direct Mode batches
     <doc>
-    Defines the maximum batch size for Direct Mode opportunistic batching on message
-    sends.  Setting this higher will improve throughput, and usually with lower latency, 
-    but will cause higher memory consumption.  Setting this to zero will switch off 
-    batching.  Any value less than 2048 is treated as zero.
+    Defines the maximum batch size for Direct Mode opportunistic batching on 
+    message sends.  Setting this higher will improve throughput, and usually 
+    with lower latency, but will cause higher memory consumption.  Setting 
+    this to zero will switch off batching.  Any value less than 2048 is 
+    treated as zero.
+    </doc>
+    </property>
+
+    <property name = "heartbeat" type = "int" default = "2" prefix = "direct">
+    Heartbeat timer, seconds for Direct Mode
+    <doc>
+    Defines the timeout for Direct Mode connection heartbeating.
     </doc>
     </property>
 </path>

@@ -162,7 +162,7 @@ s_get_next_consumer (
             connection = NULL;
             
         if (channel_active) {
-            if (channel->credit == 0)
+            if (!channel->solvent)
                 rc = CONSUMER_BUSY;     //  Skip this consumer if busy
             else
             if (consumer->no_local) {

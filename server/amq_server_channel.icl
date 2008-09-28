@@ -39,12 +39,19 @@ maximum number of consumers per channel is set at compile time.
     icl_shortstr_t
         current_exchange,               //  Last exchange declared on channel
         current_queue;                  //  Last queue declared on channel
+    int                          
+        credit,                         //  Current credit remaining
+        gained,                         //  Credit gained through work
+        window;                         //  Maximum credit window
+    qbyte
+        solvent;                        //  When we have credit left
 </context>
 
 <method name = "new">
     self->consumer_list = amq_consumer_by_channel_new ();
     if (amq_broker)                     //  Null during self-testing
         self->mgt_connection = amq_connection_new (amq_broker, self);
+    amq_server_channel_set_window (self, 0);
 </method>
 
 <method name = "destroy">
@@ -121,6 +128,11 @@ maximum number of consumers per channel is set at compile time.
     if (consumer) {
         amq_consumer_by_channel_queue (self->consumer_list, consumer);
         amq_queue_consume (queue, consumer, self->active, nowait);
+        if (queue->exclusive)
+            amq_server_channel_set_window (self, amq_server_config_private_credit (amq_server_config));
+        else
+            amq_server_channel_set_window (self, amq_server_config_shared_credit (amq_server_config));
+
         amq_consumer_unlink (&consumer);
     }
     else
@@ -128,21 +140,48 @@ maximum number of consumers per channel is set at compile time.
     </action>
 </method>
 
-<method name = "recharge" template = "function">
+<method name = "set window" template = "function">
     <doc>
-    Re-dispatches all queues for the channel, when the credit based flow control
-    is recharged.
+    Sets the channel's credit window.  Always resets the credit.  For internal
+    use by this method only (not an async function).
     </doc>
-    <local>
+    <argument name = "window" type = "int" />
+    //
+    self->window = window;
+    self->credit = window;
+    self->solvent = 1;
+    self->gained = 0;
+</method>
+
+<method name = "spend">
+    <action>
+    //  Credit can go negative since it's all async
+    //  Do nothing if the window is zero
+    if (self->window && --self->credit == 0)
+        icl_atomic_set32 (&self->solvent, 0);
+    </action>
+</method>
+
+<method name = "earn">
+    <action>
     amq_consumer_t
         *consumer;                      //  Consumer object reference
-    </local>
     //
-    consumer = amq_consumer_by_channel_first (self->consumer_list);
-    while (consumer) {
-        amq_queue_dispatch (consumer->queue);
-        consumer = amq_consumer_by_channel_next (&consumer);
+    //  If we've gained enough, refill our credit
+    //  Do nothing if the window is zero
+    if (self->window && ++self->gained == self->window) {
+        self->credit = self->gained;
+        self->gained = 0;
+        self->solvent = 1;
+
+        //  Dispatch all queues for the channel
+        consumer = amq_consumer_by_channel_first (self->consumer_list);
+        while (consumer) {
+            amq_queue_dispatch (consumer->queue);
+            consumer = amq_consumer_by_channel_next (&consumer);
+        }
     }
+    </action>
 </method>
 
 <method name = "cancel" template = "async function" async = "1" on_shutdown = "1">

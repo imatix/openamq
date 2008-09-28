@@ -166,8 +166,7 @@ class.  This is a lock-free asynchronous class.
         durable,                        //  Is queue durable?
         exclusive,                      //  Is queue exclusive?
         auto_delete,                    //  Auto-delete unused queue?
-        locked,                         //  Queue for exclusive consumer?
-        dirty;                          //  Queue has to be dispatched?
+        locked;                         //  Queue for exclusive consumer?
     amq_queue_basic_t
         *queue_basic;                   //  Basic content queue
     int
@@ -546,7 +545,6 @@ class.  This is a lock-free asynchronous class.
     //
     <action>
     amq_queue_basic_dispatch (self->queue_basic);
-    self->dirty = FALSE;                //  Queue has been dispatched
     </action>
 </method>
 
@@ -555,7 +553,6 @@ class.  This is a lock-free asynchronous class.
     Return number of messages on queue.
     </doc>
     //
-    //  JAMQ-55
     rc = amq_queue_basic_message_count (self->queue_basic) +
          (self->connection ? 
          smt_thread_reply_backlog (self->connection->thread) :
