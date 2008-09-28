@@ -97,21 +97,22 @@ $\(selftype)
     <property name = "batching" type = "int" max = "2097152" default = "32768">
     Maximum size of Direct Mode batches
     <doc>
-    Defines the maximum batch size for Direct Mode opportunistic batching on message
-    sends.  Setting this higher will improve throughput, and usually with lower latency, 
-    but will cause higher memory consumption.  Setting this to zero will switch off 
-    batching.  Any value less than 2048 is treated as zero.
+    Defines the maximum batch size for Direct Mode opportunistic batching on 
+    message sends.  Setting this higher will improve throughput, and usually 
+    with lower latency, but will cause higher memory consumption.  Setting 
+    this to zero will switch off batching.  Any value less than 2048 is 
+    treated as zero.
     </doc>
     </property>
 
     <property name = "on overflow" type = "icl_shortstr_t" default = "trim">
     Sets action for high-water overflow
     <doc>
-    Specifies how the WireAPI stack should handle an overflow condition, as defined by
-    the arrived message queue reaching the high-water mark.  The allowed actions are:
-    'warn' - issue a message to the console, 'trim' - discard old messages to make space
-    for new ones, 'drop' - drop new incoming messages, and 'kill' - assert an error and
-    kill the application.
+    Specifies how the WireAPI stack should handle an overflow condition, as 
+    defined by the arrived message queue reaching the high-water mark.  The 
+    allowed actions are: 'warn' - issue a message to the console, 'trim' - 
+    discard old messages to make space for new ones, 'drop' - drop new incoming 
+    messages, and 'kill' - assert an error and kill the application.
     </doc>
     </property>
 </path>
