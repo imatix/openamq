@@ -119,41 +119,6 @@ consumer object.
             }
           </exec>
         </method>
-        <method name = "debug" label = "Debug queue status">
-          <local>
-            amq_consumer_t
-                *consumer = NULL;               //  First consumer on queue
-            amq_server_channel_t
-                *channel = NULL;                //  Channel for consumer
-            amq_content_basic_t
-                *content;                       //  Next content on queue
-          </local>
-          <exec>
-            queue = amq_queue_link (self->queue);
-            if (queue) {
-                //  Dump significant content properties
-                content = (amq_content_basic_t *) ipr_looseref_pop (queue->queue_basic->content_list);
-                icl_console_print ("D: content body_size=%d exchange=%s routing_key=%s immediate=%d returned=%d",
-                    content->body_size, content->exchange, content->routing_key, content->immediate, content->returned);
-                ipr_looseref_push (queue->queue_basic->content_list, content);
-
-                consumer = amq_consumer_by_queue_first (queue->queue_basic->consumer_list);
-                if (consumer) {
-                    icl_console_print ("D: consumer no_local=%d exclusive=%d paused=%d", 
-                        consumer->no_local, consumer->exclusive, consumer->paused);
-                    channel = amq_server_channel_link (consumer->channel);
-                }
-                if (channel)
-                    icl_console_print ("D: channel active=%d, credit=%d margin=%d gained=%d",
-                        channel->active, channel->credit, channel->margin, channel->gained);
-
-                amq_queue_basic_dispatch (queue->queue_basic);        
-                amq_server_channel_unlink (&channel);
-                amq_consumer_unlink (&consumer);
-                amq_queue_unlink (&queue);
-            }
-          </exec>
-        </method>
     </class>
 </data>
 
