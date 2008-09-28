@@ -71,7 +71,7 @@
     amq_content_basic_list_queue (session->returned_basic_list, content);
     content->returned = TRUE;
 
-    if (!session->silent)
+    if (!session->connection->silent)
         icl_console_print ("W: basic message was returned: %d - %s",
             session->reply_code, session->reply_text);
   </action>
