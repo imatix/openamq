@@ -397,26 +397,6 @@ $\(selftype)
     </property>
 </path>
 
-<path name = "direct">
-    <property name = "batching" type = "int" max = "2097152" default = "32768">
-    Maximum size of Direct Mode batches
-    <doc>
-    Defines the maximum batch size for Direct Mode opportunistic batching on 
-    message sends.  Setting this higher will improve throughput, and usually 
-    with lower latency, but will cause higher memory consumption.  Setting 
-    this to zero will switch off batching.  Any value less than 2048 is 
-    treated as zero.
-    </doc>
-    </property>
-
-    <property name = "heartbeat" type = "int" default = "2" prefix = "direct">
-    Heartbeat timer, seconds for Direct Mode
-    <doc>
-    Defines the timeout for Direct Mode connection heartbeating.
-    </doc>
-    </property>
-</path>
-
 <path name = "internal">
     <property name = "auto crash" type = "int" default = "0" dynamic = "1">
     Auto-crash test timer, seconds
