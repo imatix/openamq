@@ -1,8 +1,28 @@
 OpenAMQ change log
+TODO
+    - remove unused IPR classes
+    - remove C++ generation from boom
+    - remove C++ templates
+    - reorganize openamq archive to be clean
+    - repackage JMS client to release
+    - export from 1.1 official to public GIT
+    - merge amq_queue_basic & amq_queue_base into amq_queue
+
+2009-09-28
+
+* connection->silent set by default from WIREAPI_SILENT environment variable
+* session->silent removed, uses connection setting
+* Refactored CBFC out of base2/asl and into openamq/server, except for minimal stub.
+* Added tuning:private_window and public_window settings
+
+2009-09-27
+
+* Fixed AMQ-590 bug in CBFC and backported to 1.2d.
+
 2009-09-23
 
 * Added high/low water handling for Direct Mode (warn, trim, drop, kill)
-* Normalised handling of high/low water into asl_client_session template
+* Refactored handling of high/low water into asl_client_session template
 * Defined configuration for Direct Mode high water handling (on_overflow)
     -> needs to be documented
 

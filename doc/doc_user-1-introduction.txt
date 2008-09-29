@@ -114,17 +114,11 @@ For businesses that need guaranteed support, several options are available, rang
 
 +++ Technology roadmap
 
-OpenAMQ was designed to be extremely robust and fast. Our performance goal was 100,000 messages per second going through a single (big) broker, sustained for a full working day. Our performance goal for the high performance messaging which forms the next generation of OpenAMQ products is 1M messages per second per CPU core using a brokerless delivery model.
+OpenAMQ was designed to be extremely robust and fast. Our performance goal for OpenAMQ/1.3 is 130,000 msg/sec going through a single client stack, and 3000,000 messages per second going through a broker, sustained for a full working day.  Message latency in OpenAMQ/1.3 is around 200 microseconds.
 
 OpenAMQ does not implement everything in AMQP. There are three reasons for this. First, large parts of AMQP were designed to support JMS-style messaging, and we think they are complex and unnecessary for most people. Second, we prefer to only implement what our users really need, and make that work really well. Last, we aim for performance and that means dropping some features.
 
-The performance of the base OpenAMQ broker is about 20k messages per second per CPU core; latencies of around 200 microseconds. Maximum performance per client is about 10k messages per second so full broker performance shows when a dozen or more clients are working in parallel.
-
-[[=image scaling.png]]
-
-iMatix is developing OpenAMQ/2.0, with a High Performance Extension (HPX) that achieves messaging speeds of around 1M messages per second per CPU core, and latencies of around 30 microseconds.  HPX uses a brokerless low-latency AMQ architecture for ultra-low latency unicast and multicast PGM messaging.  OpenAMQ/2.0 is available on a preview basis to selected clients.  The graphic shows OpenAMQ/2.0's scaling on 16-core boxes.  Please contact us if you need this level of performance in your new applications.
-
-+++ OpenAMQ/1.2 functionality
++++ OpenAMQ/1.3 functionality
 
 ++++ Message routing
 
@@ -228,12 +222,12 @@ Designed for fast performance and reliability:
 * Configurable TCP/IP parameters (timeouts, buffers).
 * Configurable OS footprint (memory, number of threads).
 * Configurable memory managers (including heap caching).
-* Processes 20-30k transient messages per second on single CPU.
-* Processes 140k transient messages per second on multiway box.
+* Processes 130k messages per second on a client stack.
+* Processes 300k messages per second on multiway broker.
 
 +++ Interoperability
 
-OpenAMQ/1.2 implements the AMQP/0-9 specification without the Red Hat "work in progress" optional features. This is probably the most stable and widely used version. We do not recommend the use of AMQP/0-10, which we consider to be unnecessarily complex, immature, and lacking in cross-vendor support. We are involved in the development of an updated 0-9 specification (0-9SP1) that removes the "work in progress" along with other unused aspects of the specification.
+OpenAMQ/1.3 implements the AMQP/0.9 specification without the Red Hat "work in progress" optional features. This is probably the most stable and widely used version. We do not recommend the use of AMQP/0-10, which we consider to be unnecessarily complex, immature, and lacking in cross-vendor support. We are involved in the development of an updated 0.9 specification (AMQP/0.91) that removes the "work in progress" along with other unused aspects of the specification.
 
 We are committed to providing OpenAMQ users with the maximum interoperability with other AMQP implementations based on stable, mature, and simple AMQP specifications.
 
@@ -470,3 +464,4 @@ FastMQ Inc. has tested OpenAMQ broker-based latency. The average latency is 250-
 
 ====
 iMatix Corporation
+

@@ -311,6 +311,15 @@ if [ -z "$VERSION" ]; then
     exit
 fi
 
+#   Update OpenAMQ project.pdl files with new version
+cd $BUILD/openamq || croak
+for PROJECT in . common clients server operate; do
+    perl -n -p -e 's/version   = "....."/version   = "'$VERSION'"/' < $PROJECT/project.pdl > _tmp
+    mv _tmp $PROJECT/project.pdl
+done
+PRODVER=`perl -n -e '/version .*= "(.*)"/ && print $1' project.pdl`
+carp "in `pwd`: project.pdl patched to $PRODVER"
+
 #   Determine name-version for each product
 for PRODUCT in $PRODUCTS; do
     cd $BUILD/$PRODUCT || croak
@@ -320,46 +329,33 @@ for PRODUCT in $PRODUCTS; do
     fi
 done
 
-#   Update project & manifest with versions
+#   Create package manifest
+#   Get real revision number
+if [ "$REVISION" = "head" ]; then
+    REVISION=`svn info | egrep Revision | cut -f 2 -d" "`
+fi
+
 cd $BUILD/openamq || croak
-if [ ! -z "$VERSION" ]; then
-    cd $BUILD/openamq || croak
-
-    #   Create $MANIFEST file
-    #   Get real revision number
-    if [ "$REVISION" = "head" ]; then
-        REVISION=`svn info | egrep Revision | cut -f 2 -d" "`
-    fi
-
-    echo '<?xml version="1.0"?>'> $MANIFEST
-    echo '<package name = "OpenAMQ" release = "'$VERSION'">' >> $MANIFEST
-    for PRODUCT in $PRODUCTS; do
-        if [ "$BRANCH" = "trunk" ]; then
-            SVN_URI=$SVN_ROOT/$PRODUCT/trunk
-        else
-            SVN_URI=$SVN_ROOT/$PRODUCT/branches/prod_openamq_$BRANCH
-        fi
-        PRODVER=`perl -n -e '/version .*= "(.*)"/ && print $1' $BUILD/$PRODUCT/project.pdl`
-        echo '  <product name = "'$PRODUCT'" url = "'$SVN_URI'" revision = "'$REVISION'" release = "'$PRODVER'" internal = "'`eval echo \\$${PRODUCT}_version`'" />'>> $MANIFEST
-    done
-    echo '</package>'>> $MANIFEST
-
-    #   Patch project.pdl with version number
-    for PROJECT in . common clients server operate; do
-        perl -n -p -e 's/version   = "....."/version   = "'$VERSION'"/' < $PROJECT/project.pdl > _tmp
-        mv _tmp $PROJECT/project.pdl
-    done
-    PRODVER=`perl -n -e '/version .*= "(.*)"/ && print $1' project.pdl`
-    carp "in `pwd`: project.pdl patched to $PRODVER"
-
-    #   Commit new manifest and project.pdl files
-    if [ $COMMIT = 1 ]; then
-        carp "in `pwd`: svn commit of $VERSION update"
-        svn commit -m "[make_openamq] Prepare to release version $VERSION" || croak
+echo '<?xml version="1.0"?>'> $MANIFEST
+echo '<package name = "OpenAMQ" release = "'$VERSION'">' >> $MANIFEST
+for PRODUCT in $PRODUCTS; do
+    if [ "$BRANCH" = "trunk" ]; then
+        SVN_URI=$SVN_ROOT/$PRODUCT/trunk
     else
-        carp "in `pwd`: svn stat (manual commit recommended):"
-        svn stat
+        SVN_URI=$SVN_ROOT/$PRODUCT/branches/prod_openamq_$BRANCH
     fi
+    PRODVER=`perl -n -e '/version .*= "(.*)"/ && print $1' $BUILD/$PRODUCT/project.pdl`
+    echo '  <product name = "'$PRODUCT'" url = "'$SVN_URI'" revision = "'$REVISION'" release = "'$PRODVER'" internal = "'`eval echo \\$${PRODUCT}_version`'" />'>> $MANIFEST
+done
+echo '</package>'>> $MANIFEST
+
+#   Commit new manifest and project.pdl files
+if [ $COMMIT = 1 ]; then
+    carp "in `pwd`: svn commit of $VERSION update"
+    svn commit -m "[make_openamq] Prepare to release version $VERSION" || croak
+else
+    carp "in `pwd`: svn stat (manual commit recommended):"
+    svn stat
 fi
 
 #   Build source kit, first using distsrc in each product

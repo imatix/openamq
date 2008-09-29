@@ -555,6 +555,17 @@ OpenAMQ also lets you define per-queue profiles. When your application creates a
 
 This only happens when the queue is created; if the Queue.Declare is specified for an existing queue, it's profile is not modified. If no profile is specified in the Queue.Declare method, OpenAMQ uses 'private' for exclusive queues and 'shared for non-exclusive queues.
 
+Note that to use the queue limits properly you must enable window control, as explained below.
+
++++ Server queue window control
+
+The OpenAMQ server by default sends messages off queues and through to the protocol layer as fast as it can.  This is fast but it means that message queues are usually empty, and so queue limits will not be applied.  You can enable a credit-based window control which ensures that only a certain number of messages are sent in advance to the protocol layers, and the rest remain on the queue.
+
+There are two options for window control, one for private queues and one for shared queues.  Each can be specified on the command line or in a configuration file:
+
+: **/config/tuning/private_credit** : Defines the credit window for private queues. The credit window regulates the flow of messages internally. A higher value will move messages faster off private message queues and into the protocol transport threads. This will increase server memory consumption (before configured queue limits are applied) but can improve performance. For high performance applications we recommend using Direct Mode. To disable credit based flow control on private queues, set to zero. Default value is 1024.
+: **/config/tuning/shared_credit** : Defines the credit window for shared queues. The credit window regulates the flow of messages internally. The default value of 1 will provide the best response to blocked/slow clients working on shared queues. Set to zero to disable credit based flow control on shared queues. Default value is 1.
+
 +++ Tuning the memory allocator
 
 OpenAMQ uses a memory subsystem that can be tuned for different purposes. The tradeoff is between performance, and reporting of errors for debugging and to detect memory leaks.
@@ -604,14 +615,14 @@ When you tune the server performance, it is the iomean that you should be aiming
 
 +++ Overview
 
-OpenAMQ1.3a0 and later releases support Direct Mode, a protocol for specific kinds of high-speed applications, as explained later.  Direct Mode runs over //Direct Messaging Protocol// (4-DMP@wiki.amqp.org), a specification developed by wiki.amqp.org.  In Direct Mode, OpenAMQ will transfer messages as much as 2x faster.  The following table shows the typical differences between normal AMQP publishing and Direct Mode in OpenAMQ:
+OpenAMQ/1.3 and later releases support Direct Mode, a protocol for specific kinds of high-speed applications, as explained later.  Direct Mode runs over //Direct Messaging Protocol// (4-DMP@wiki.amqp.org), a specification developed by wiki.amqp.org.  In Direct Mode, OpenAMQ will transfer messages as much as 2x faster.  The following table shows the typical differences between normal AMQP publishing and Direct Mode in OpenAMQ:
 
 ||                   ||~ Normal AMQP    ||~ Direct Mode    ||
 ||Latency            || 250 usecs       || 180 usecs       ||
-||Client capacity    || 19,000 msg/sec  || 56,000 msg/sec  ||
-||Broker (estimated) || 120,000 msg/sec || 250,000 msg/sec ||
+||Client capacity    || 19,000 msg/sec  || 130,000 msg/sec ||
+||Broker (estimated) || 120,000 msg/sec || 300,000 msg/sec ||
 
-The speed improvement comes from a simpler wire-level encoding for messages, and the ability to push messages through the OpenAMQ server with less processing.  Client applications will also benefit from reduced CPU usage.
+The speed improvement comes from a simpler wire-level encoding for messages, message batching, and the ability to push messages through the OpenAMQ server with less processing.  Client applications will also benefit from reduced CPU usage.
 
 +++ How to use
 
@@ -635,6 +646,8 @@ To use Direct Mode, you must do at least one of these:
 
 To enable Direct Mode for specific clients (without any program changes), create a file 'wireapi.cfg' in the working directory of your client applications:
 [[code]]
+wireapi.cfg:
+------------
 <config>
     <tuning direct = "1" />
 </config>
@@ -642,9 +655,17 @@ To enable Direct Mode for specific clients (without any program changes), create
 
 If either the server was started with "--direct 1", or the wireapi.cfg file specifies this setting, connections will be created with the direct property set to true by default.  Applications can still override this.
 
++++ Tuning Direct Mode
+
+You can tune the batching size used in Direct Mode connections.  For the server, use the --batching command line option, or this setting in amq_server.cfg:
+
+You can tune the batching size using this option, on the command line or in the amq_server.cfg or wireapi.cfg configuration file:
+
+: **/config/direct/batching** : Defines the maximum batch size for Direct Mode opportunistic batching on message sends. Setting this higher will improve throughput, and usually with lower latency, but will cause higher memory consumption. Setting this to zero will switch off batching. Any value less than 2048 is treated as zero. Default value is 32768. Maximum value is 2097152.                                                             
+
 +++ Prerequisites
 
-To use Direct Mode you need a full OpenAMQ build from version 1.3a0 or later.  You must relink your applications with the new WireAPI libraries and you must run a 1.3a0 or later version of the amq_server.
+To use Direct Mode you need a full OpenAMQ/1.3 build or later.  You must relink your applications with the new WireAPI libraries and you must run a 1.3 or later version of the amq_server.  You should use the most recent OpenAMQ/1.3 release.
 
 +++ Interoperability
 
@@ -654,9 +675,9 @@ You can freely mix applications using Direct Mode and applications using normal 
 
 +++ Technical specifications
 
-Direct Mode allows up to six unique exchanges or unique private queues per connection.  Applications that try to use Direct Mode with a higher number of exchanges or private queues will fall back to using normal AMQP message transfer.
+For technical details of on the Direct Messaging Protocol, please refer to http://wiki.amqp.org/spec:4.
 
-Direct Mode is in beta: please test your scenarios before using this in production applications.  For technical details of on the Direct Messaging Protocol, please refer to http://wiki.amqp.org/spec:4.
+Direct Mode allows up to six unique exchanges or unique private queues per connection and limits a message to 2Mb.  Applications that try to use Direct Mode with a higher number of exchanges or private queues will fall back to using normal AMQP message transfer.
 
 ++ High-availability failover
 
