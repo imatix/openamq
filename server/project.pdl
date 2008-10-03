@@ -18,7 +18,7 @@
 
 <pdl
     name      = "OpenAMQ Server"
-    version   = "1.3xx"
+    version   = "1.3b1"
     copyright = "Copyright (c) 2007-2008 iMatix Corporation"
     workflow  = "standard.pwl"
     library   = "libamq_server"
