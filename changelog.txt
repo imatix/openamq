@@ -8,6 +8,11 @@ TODO
     - export from 1.1 official to public GIT
     - merge amq_queue_basic & amq_queue_base into amq_queue
 
+2008-10-02
+
+* allow signal to be registered by multiple threads (issue:16)
+* fixed error in WIREAPI_SILENT handling (issue:18)
+
 2009-09-28
 
 * connection->silent set by default from WIREAPI_SILENT environment variable
