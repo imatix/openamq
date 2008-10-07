@@ -613,7 +613,7 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
                 amq_content_basic_set_routing_key  (content, "amq.direct", request->reply_to, 0);
 
                 //  Publish the message
-                amq_exchange_publish (exchange, NULL, content, FALSE, FALSE);
+                amq_exchange_publish (exchange, NULL, content, FALSE, FALSE, 0);
                 amq_content_basic_unlink (&content);
 
                 amq_exchange_unlink (&exchange);

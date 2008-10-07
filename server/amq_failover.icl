@@ -162,7 +162,7 @@ typedef enum
     amq_content_basic_set_routing_key (content, "amq.status", self->primary? "p" : "b", 0);
     amq_content_basic_set_body (content, 
         icl_mem_strdup (state), strlen (state) + 1, icl_mem_free);
-    amq_exchange_publish (self->status_exchange, NULL, content, FALSE, FALSE);
+    amq_exchange_publish (self->status_exchange, NULL, content, FALSE, FALSE, AMQ_CONNECTION_GROUP_SUPER);
     amq_content_basic_unlink (&content);
 </method>
 

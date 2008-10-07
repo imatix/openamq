@@ -319,7 +319,7 @@ s_content_handler (
         peer_method->payload.basic_deliver.routing_key,
         0);
 
-    amq_exchange_publish (self->exchange, NULL, content, FALSE, FALSE);
+    amq_exchange_publish (self->exchange, NULL, content, FALSE, FALSE, AMQ_CONNECTION_GROUP_SUPER);
     amq_content_basic_unlink (&content);
     return (0);
 }

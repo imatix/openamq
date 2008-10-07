@@ -70,6 +70,7 @@ This is an abstract base class for all exchange implementations.
     <argument name = "self_v" type = "void *">The exchange cast as a void *</argument>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "content" type = "amq_content_basic_t *">Content to publish</argument>
+    <argument name = "group" type = "int">User group, from connection</argument>
     <declare name = "rc" type = "int" default = "0">Return code</declare>
     <local>
     $(selftype)
@@ -122,6 +123,7 @@ This is an abstract base class for all exchange implementations.
                 }
                 else {
                     amq_server_agent_direct_out (last_queue->lease->thread, content);
+                    icl_atomic_inc32 ((volatile qbyte *) &(amq_broker->direct_fed));
                     if (amq_server_config_debug_route (amq_server_config))
                         smt_log_print (amq_broker->debug_log, "X: deliver  queue=%s (direct)", 
                             last_queue->key);

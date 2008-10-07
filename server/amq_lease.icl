@@ -47,6 +47,8 @@
         type;                           //  Field type
     icl_shortstr_t
         connection_id;                  //  ID of main connection
+    int
+        group;                          //  Connection user group
     amq_exchange_t
         *sink;                          //  Sink we are using
     amq_queue_t
@@ -63,6 +65,7 @@ static $(selfname)_table_t
     <argument name = "name" type = "char *">Sink or feed name</argument>
     <argument name  = "type" type = "int">DP_SINK or DP_FEED</argument>
     <argument name  = "connection id" type = "char *">Connection ID</argument>
+    <argument name  = "group" type = "int">Connection group</argument>
     <dismiss argument = "key" value = "self->name">Key is lease name</dismiss>
     <dismiss argument = "table" value = "s_$(selfname)_table">Use global table</dismiss>
     <local>
@@ -72,6 +75,7 @@ static $(selfname)_table_t
     //
     assert (type == DP_SINK || type == DP_FEED);
     self->type = type;
+    self->group = group;
     time_now = apr_time_now ();
     icl_shortstr_cpy (self->connection_id, connection_id);
 
@@ -137,7 +141,8 @@ static $(selfname)_table_t
     <argument name = "content" type = "amq_content_basic_t *" />
     //
     icl_shortstr_cpy (content->producer_id, self->connection_id);
-    amq_exchange_publish (self->sink, NULL, content, FALSE, FALSE);
+    amq_exchange_publish (self->sink, NULL, content, FALSE, FALSE, self->group);
+    icl_atomic_inc32 ((volatile qbyte *) &(amq_broker->direct_sunk));
 </method>
 
 <method name = "initialise">

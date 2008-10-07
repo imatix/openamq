@@ -174,6 +174,9 @@
         *mgt_connection_list;           //  Connection mgt objects list
     amq_failover_t
         *failover;                      //  Failover controller
+    qbyte
+        direct_sunk,                    //  Direct messages sunk
+        direct_fed;                     //  Direct messages fed
 </context>
 
 <method name = "new">
@@ -266,9 +269,13 @@
                 ipr_bits_count ());
 
             smt_log_print (amq_broker->alert_log,
-                "I: qcn=%d cnq=%d",
+                "I: qcn=%d cnq=%d dsk=%d dfd=%d din=%d dot=%d",
                 amq_queue_connection_count (),
-                amq_connection_queue_count ());
+                amq_connection_queue_count (),
+                amq_broker->direct_sunk,
+                amq_broker->direct_fed,
+                amq_broker->direct_in,
+                amq_broker->direct_out);
         }
     }
     if (self->auto_crash_timer) {

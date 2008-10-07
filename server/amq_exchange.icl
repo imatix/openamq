@@ -108,7 +108,8 @@ for each type of exchange. This is a lock-free asynchronous class.
         (*publish) (
             void                 *self,
             amq_server_channel_t *channel,
-            amq_content_basic_t  *content);
+            amq_content_basic_t  *content,
+            int                   group);
     int
         (*compile) (
             void                 *self,
@@ -505,10 +506,11 @@ for each type of exchange. This is a lock-free asynchronous class.
     Publishes the message to the exchange.  The actual routing mechanism
     is defined in the exchange implementations.
     </doc>
-    <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
-    <argument name = "content" type = "amq_content_basic_t *">Content to publish</argument>
+    <argument name = "channel"   type = "amq_server_channel_t *">Channel for reply</argument>
+    <argument name = "content"   type = "amq_content_basic_t *">Content to publish</argument>
     <argument name = "mandatory" type = "Bool" />
     <argument name = "immediate" type = "Bool" />
+    <argument name = "group"     type = "int">User group, from connection</argument>
     //
     <possess>
     channel = amq_server_channel_link (channel);
@@ -536,7 +538,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         delivered = 1;                  //  Just fake it
     else
         //  Publish message locally
-        delivered = self->publish (self->object, channel, content);
+        delivered = self->publish (self->object, channel, content, group);
 
     //  Publish message to federation if necessary. We don't have the problem
     //  of message loops with fanout federations because we only push back to 
