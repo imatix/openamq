@@ -284,6 +284,17 @@ for PRODUCT in $PRODUCTS; do
     svn checkout -q -r $REVISION $SVN_URI $PRODUCT || croak
 done
 
+#   If version specified, update OpenAMQ project.pdl files
+if [ ! -z "$VERSION" ]; then
+    cd $BUILD/openamq || croak
+    for PROJECT in . common clients server operate; do
+        perl -n -p -e 's/version   = "....."/version   = "'$VERSION'"/' < $PROJECT/project.pdl > _tmp
+        mv _tmp $PROJECT/project.pdl
+    done
+    PRODVER=`perl -n -e '/version .*= "(.*)"/ && print $1' project.pdl`
+    carp "in `pwd`: project.pdl patched to $PRODVER"
+fi
+
 #   If clean option used, do full rebuild
 #   Else configure only
 for PRODUCT in $PRODUCTS; do
@@ -310,15 +321,6 @@ if [ -z "$VERSION" ]; then
     carp "****  Finished without making source kits ****"
     exit
 fi
-
-#   Update OpenAMQ project.pdl files with new version
-cd $BUILD/openamq || croak
-for PROJECT in . common clients server operate; do
-    perl -n -p -e 's/version   = "....."/version   = "'$VERSION'"/' < $PROJECT/project.pdl > _tmp
-    mv _tmp $PROJECT/project.pdl
-done
-PRODVER=`perl -n -e '/version .*= "(.*)"/ && print $1' project.pdl`
-carp "in `pwd`: project.pdl patched to $PRODVER"
 
 #   Determine name-version for each product
 for PRODUCT in $PRODUCTS; do
