@@ -213,7 +213,7 @@ main (int argc, char *argv [])
             content = amq_content_basic_new ();
             amq_content_basic_set_body (content, test_data, msgsize, NULL);
 
-            icl_shortstr_fmt (message_id, "ID%d", out_count);
+            icl_shortstr_fmt (message_id, "ID%09d", out_count);
             amq_content_basic_set_message_id (content, message_id);
     
             if (amq_client_session_basic_publish (
@@ -225,6 +225,7 @@ main (int argc, char *argv [])
             amq_content_basic_unlink (&content);
         }
         //  Read messages back from server, discard them
+        icl_console_print ("I: (%d) reading messages back from server...", repeats);
         expected = messages;
         while (expected) {
             content = amq_client_session_basic_arrived (session);
@@ -236,13 +237,13 @@ main (int argc, char *argv [])
             if (expected)
                 amq_client_session_wait (session, 1000);
 
-            if (!session->alive)
-                goto finished;
             if (connection->interrupt) {
                 icl_console_print ("I: Interrupted - ending test");
                 icl_console_print ("I: %d messages not received", expected);
                 goto finished;
             }
+            if (!session->alive)
+                goto finished;
         }
         icl_console_print ("I: received all messages back from server");
         if (repeats > 0)
