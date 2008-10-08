@@ -37,6 +37,7 @@
     "  -x size          Size of each message (default = 1024)\n"            \
     "  -r repeat        Repeat test N times (1)\n"                          \
     "  -t level         Set trace level (default = 0)\n"                    \
+    "  -e exchange      Exchange name (amq.direct)\n"                       \
     "                   0=none, 1=low, 2=medium, 3=high\n"                  \
     "  -a               Asynchronous mode; for testing direct protocol\n"   \
     "  -v               Show version information\n"                         \
@@ -59,6 +60,7 @@ main (int argc, char *argv [])
         *opt_messages,                  //  Size of test set
         *opt_msgsize,                   //  Message size
         *opt_repeats,                   //  Test repetitions
+        *opt_exchange,                  //  Exchange to use
         **argparm;                      //  Argument parameter to pick-up
     amq_client_connection_t
         *connection = NULL;             //  Current connection
@@ -87,6 +89,7 @@ main (int argc, char *argv [])
     opt_messages = "1";
     opt_msgsize  = "1024";
     opt_repeats  = "1";
+    opt_exchange = "amq.direct";
 
     //  Initialise system in order to use console.
     icl_system_initialise (argc, argv);
@@ -122,6 +125,9 @@ main (int argc, char *argv [])
                     break;
                 case 'r':
                     argparm = &opt_repeats;
+                    break;
+                case 'e':
+                    argparm = &opt_exchange;
                     break;
 
                 //  These switches have an immediate effect
@@ -189,11 +195,20 @@ main (int argc, char *argv [])
         connection->server_product, connection->server_version);
     if (async_mode)
         connection->direct = TRUE;
+
+    if (amq_client_session_exchange_declare (
+        session, ticket, opt_exchange, "direct", 0, 0, 1, 0, NULL))
+        goto finished;
     
     //  Declare exclusive private queue
     if (amq_client_session_queue_declare (
         session, ticket, NULL, FALSE, FALSE, TRUE, TRUE, NULL))
         goto finished;
+
+    if (amq_client_session_queue_bind (
+        session, ticket, session->queue, opt_exchange, session->queue, NULL))
+        goto finished;
+
     if (amq_client_session_basic_consume (session,
         ticket,                     //  Access ticket granted by server
         session->queue,             //  Queue name
@@ -217,7 +232,7 @@ main (int argc, char *argv [])
             amq_content_basic_set_message_id (content, message_id);
     
             if (amq_client_session_basic_publish (
-                session, content, ticket, "", session->queue, FALSE, FALSE)) {
+                session, content, ticket, opt_exchange, session->queue, FALSE, FALSE)) {
                 icl_console_print ("E: [%s] could not send message to server - %s",
                     session->queue, session->error_text);
                 goto finished;
