@@ -113,8 +113,8 @@ class.  This is a lock-free asynchronous class.
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", (int) (self->traffic_out / (1024 * 1024)));</get>
         </field>
-        <field name = "dropped" type = "int" label = "Messages dropped">
-          <get>icl_shortstr_fmt (field_value, "%d", self->dropped);</get>
+        <field name = "drop_count" type = "int" label = "Messages dropped">
+          <get>icl_shortstr_fmt (field_value, "%d", self->drop_count);</get>
         </field>
 
         <class name = "queue_connection" label = "Queue connections" repeat = "1">
@@ -142,16 +142,6 @@ class.  This is a lock-free asynchronous class.
 
 <import class = "amq_server_classes" />
 
-<public>
-//  Queue limit actions
-#define AMQ_QUEUE_LIMIT_WARN   1        //  Send warning to alert log
-#define AMQ_QUEUE_LIMIT_DROP   2        //  Drop the message
-#define AMQ_QUEUE_LIMIT_TRIM   3        //  Trim the queue first
-#define AMQ_QUEUE_LIMIT_KILL   4        //  Kill the connection
-
-#define AMQ_QUEUE_LIMIT_MAX    10       //  Allow up to 10 limits
-</public>
-
 <context>
     amq_broker_t
         *broker;                        //  Parent broker
@@ -176,11 +166,10 @@ class.  This is a lock-free asynchronous class.
     icl_shortstr_t
         last_binding_args;              //  Last binding arguments
     qbyte
-        limits,                         //  Number of limits
-        limit_min,                      //  Lowest limit
-        limit_value  [AMQ_QUEUE_LIMIT_MAX],
-        limit_action [AMQ_QUEUE_LIMIT_MAX];
-
+        warn_limit,                     //  Warn user that we're in trouble
+        drop_limit,                     //  Drop new incoming messages
+        trim_limit,                     //  Trim old stored messages
+        kill_limit;                     //  Kill the connection, it's dead Jim
     amq_lease_t
         *lease;                         //  Feed lease, if any
     Bool
@@ -193,7 +182,11 @@ class.  This is a lock-free asynchronous class.
         traffic_out,                    //  Traffic out, in octets
         contents_in,                    //  Contents in, in octets
         contents_out,                   //  Contents out, in octets
-        dropped;                        //  Dropped messages
+        drop_count;                     //  Dropped messages
+    Bool
+        warned,                         //  Have we already warned?
+        dropped,                        //  Are we already dropping?
+        trimmed;                        //  Are we already trimming?
 </context>
 
 <method name = "new">
@@ -612,8 +605,7 @@ s_set_queue_limits ($(selftype) *self, char *profile)
     ipr_config_t
         *config;                        //  Current server config file
     qbyte
-        limit_value,                    //  Specified limit value
-        limit_action;                   //  Specified limit action
+        limit_value;                    //  Specified limit value
     char
         *action_text;                   //  Limit action as string
 
@@ -627,55 +619,33 @@ s_set_queue_limits ($(selftype) *self, char *profile)
     if (config->located)
         ipr_config_locate (config, "limit", NULL);
 
-    self->limit_min = UINT_MAX;
     while (config->located) {
         action_text = ipr_config_get (config, "name", "(empty)");
+        limit_value = atol (ipr_config_get (config, "value",  "0"));
         if (streq (action_text, "warn"))
-            limit_action = AMQ_QUEUE_LIMIT_WARN;
+            self->warn_limit = limit_value;
         else
         if (streq (action_text, "drop"))
-            limit_action = AMQ_QUEUE_LIMIT_DROP;
+            self->drop_limit = limit_value;
         else
         if (streq (action_text, "trim"))
-            limit_action = AMQ_QUEUE_LIMIT_TRIM;
+            self->trim_limit = limit_value;
         else
         if (streq (action_text, "kill"))
-            limit_action = AMQ_QUEUE_LIMIT_KILL;
-        else {
-            limit_action = 0;
-            smt_log_print (amq_broker->alert_log,
-                "E: invalid configured limit action '%s'", action_text);
-        }
-        limit_value = atol (ipr_config_get (config, "value",  "0"));
-        if (limit_value && limit_action) {
-            if (self->limits < AMQ_QUEUE_LIMIT_MAX) {
-                self->limit_value  [self->limits] = limit_value;
-                self->limit_action [self->limits] = limit_action;
-                self->limits++;
-                //  We track lowest limit so that we don't need to start
-                //  testing limits until the queue size has exceeded this.
-                if (self->limit_min > limit_value)
-                    self->limit_min = limit_value;
-                    
-                if (amq_server_config_debug_queue (amq_server_config))
-                    smt_log_print (amq_broker->debug_log,
-                        "Q: setlimit queue=%s limit=%d action=%s",
-                        self->name, limit_value, action_text);
-            }
-            else {
-                smt_log_print (amq_broker->alert_log,
-                    "E: too many limits for queue profile (%d)", self->limits);
-                break;
-            }
-        }
+            self->kill_limit = limit_value;
         else
             smt_log_print (amq_broker->alert_log,
-                "W: configured limit value '%s' ignored", action_text);
+                "E: invalid configured limit action '%s'", action_text);
+
+        if (amq_server_config_debug_queue (amq_server_config))
+            smt_log_print (amq_broker->debug_log,
+                "Q: setlimit queue=%s limit=%d action=%s",
+                self->name, limit_value, action_text);
+
         ipr_config_next (config);
     }
     ipr_config_destroy (&config);
-
-    return 0;
+    return (0);
 }
 </private>
 

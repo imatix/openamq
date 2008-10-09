@@ -29,13 +29,6 @@ runs lock-free as a child of the asynchronous queue class.
 
 <inherit class = "amq_queue_base" />
 
-<context>
-    Bool
-        warned,                         //  Have we already warned?
-        dropped,                        //  Are we already dropping?
-        trimmed;                        //  Are we already trimming?
-</context>
-
 <method name = "new">
 </method>
 
@@ -70,77 +63,68 @@ runs lock-free as a child of the asynchronous queue class.
     Bool
         have_active_consumers,
         rejected;
+    amq_queue_t
+        *queue;                         //  Parent queue object
     </local>
     //
+    queue = self->queue;
     if (amq_server_config_debug_queue (amq_server_config))
         smt_log_print (amq_broker->debug_log,
-            "Q: publish  queue=%s message=%s", self->queue->name, content->message_id);
+            "Q: publish  queue=%s message=%s", queue->name, content->message_id);
 
-    self->queue->contents_in++;
-    self->queue->traffic_in += content->body_size;
+    queue->contents_in++;
+    queue->traffic_in += content->body_size;
 
-    //  Check queue limits
+    //  Check warning limit
     queue_size = ipr_looseref_list_count (self->content_list);
-    if (queue_size > self->queue->limit_min) {
-        qbyte
-            limit_nbr,
-            limit_action = 0;           //  Ultimate action to execute
-        amq_content_basic_t
-            *oldest;
-
-        for (limit_nbr = 0; limit_nbr < self->queue->limits; limit_nbr++)
-            if (queue_size &gt;= self->queue->limit_value [limit_nbr])
-                limit_action = self->queue->limit_action [limit_nbr];
-
-        switch (limit_action) {
-            case AMQ_QUEUE_LIMIT_WARN:
-                if (!self->warned) {
-                    smt_log_print (amq_broker->alert_log,
-                        "I: yellow alert on queue=%s, reached %d messages",
-                        self->queue->name, queue_size);
-                    self->warned = TRUE;
-                }
-                break;
-            case AMQ_QUEUE_LIMIT_DROP:
-                if (!self->dropped) {
-                    smt_log_print (amq_broker->alert_log,
-                        "W: orange alert on queue=%s, reached %d, dropping new messages", 
-                        self->queue->name, queue_size);
-                    self->dropped = TRUE;
-                }
-                self->queue->dropped++;
-                content = NULL;         
-                break;
-            case AMQ_QUEUE_LIMIT_TRIM:
-                if (!self->trimmed) {
-                    smt_log_print (amq_broker->alert_log,
-                        "W: orange alert on queue=%s, reached %d, trimming old messages",
-                        self->queue->name, queue_size);
-                    self->trimmed = TRUE;
-                }
-                oldest = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
-                amq_content_basic_unlink (&oldest);
-                self->queue->dropped++;
-                break;
-            case AMQ_QUEUE_LIMIT_KILL:
-                smt_log_print (amq_broker->alert_log,
-                        "E: red alert on queue=%s, reached %d, killing queue", 
-                        self->queue->name, queue_size);
-                if (self->queue->exclusive)
-                    amq_server_connection_error (self->queue->connection,
-                        ASL_RESOURCE_ERROR, "Queue overflow, connection killed",
-                        AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_PUBLISH);
-                else
-                    amq_queue_self_destruct (self->queue);
-                break;
+    if (queue->warn_limit && queue_size >= queue->warn_limit && !queue->warned) {
+        smt_log_print (amq_broker->alert_log,
+            "I: yellow alert on queue=%s, reached %d messages", queue->name, queue_size);
+        queue->warned = TRUE;
+    }
+    //  Check just one of drop/trim/kill
+    if (queue->drop_limit && queue_size >= queue->drop_limit) {
+        if (!queue->dropped) {
+            smt_log_print (amq_broker->alert_log,
+                "W: orange alert on queue=%s, reached %d, dropping new messages", 
+                queue->name, queue_size);
+            queue->dropped = TRUE;
         }
+        queue->drop_count++;
+        content = NULL;         
+    }
+    else
+    if (queue->trim_limit && queue_size >= queue->trim_limit) {
+        amq_content_basic_t
+            *oldest;                    //  Oldest content to trim
+        if (!queue->trimmed) {
+            smt_log_print (amq_broker->alert_log,
+                "W: orange alert on queue=%s, reached %d, trimming old messages",
+                queue->name, queue_size);
+            queue->trimmed = TRUE;
+        }
+        oldest = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
+        amq_content_basic_unlink (&oldest);
+        queue->drop_count++;
+    }
+    else
+    if (queue->kill_limit && queue_size >= queue->kill_limit) {
+        smt_log_print (amq_broker->alert_log,
+                "E: red alert on queue=%s, reached %d, killing queue", 
+                queue->name, queue_size);
+        if (queue->exclusive)
+            amq_server_connection_error (queue->connection,
+                ASL_RESOURCE_ERROR, "Queue overflow, connection killed",
+                AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_PUBLISH);
+        else
+            amq_queue_self_destruct (queue);
     }
     else 
     if (queue_size == 0) {
         //  Reset warning flags if queue becomes empty
-        self->warned  = FALSE;
-        self->dropped = FALSE;
-        self->trimmed = FALSE;
+        queue->warned  = FALSE;
+        queue->dropped = FALSE;
+        queue->trimmed = FALSE;
     }
     if (content) {
         //  If immediate, and no consumers, return the message
@@ -163,7 +147,7 @@ runs lock-free as a child of the asynchronous queue class.
                 if (amq_server_config_debug_queue (amq_server_config))
                     smt_log_print (amq_broker->debug_log,
                         "Q: return   queue=%s message=%s",
-                        self->queue->name, content->message_id);
+                        queue->name, content->message_id);
 
                 content->returned = TRUE;
                 //  Connection and channel will be null for messages published

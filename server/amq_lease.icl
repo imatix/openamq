@@ -53,6 +53,8 @@
         *sink;                          //  Sink we are using
     amq_queue_t
         *feed;                          //  Feed for the lease
+    volatile qbyte
+        pending;                        //  Number of pending outgoing messages
 </context>
 
 <private name = "header">

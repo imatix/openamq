@@ -111,6 +111,7 @@ This is an abstract base class for all exchange implementations.
     //  Sort the queue set and then publish to all unique queues
     if (set_size > 1)
         qsort (self->exchange->queue_set, set_size, sizeof (void *), s_compare_queue);
+
     for (set_index = 0; set_index < set_size; set_index++) {
         if (self->exchange->queue_set [set_index] != last_queue) {
             last_queue = self->exchange->queue_set [set_index];
@@ -121,13 +122,8 @@ This is an abstract base class for all exchange implementations.
                         smt_log_print (amq_broker->debug_log, "X: discard  queue=%s (direct, no-local, undeliverable)", 
                             last_queue->key);
                 }
-                else {
-                    amq_server_agent_direct_out (last_queue->lease->thread, content);
-                    icl_atomic_inc32 ((volatile qbyte *) &(amq_broker->direct_fed));
-                    if (amq_server_config_debug_route (amq_server_config))
-                        smt_log_print (amq_broker->debug_log, "X: deliver  queue=%s (direct)", 
-                            last_queue->key);
-                }
+                else
+                    s_direct_deliver (last_queue, content);
             }
             else {
                 amq_queue_publish (last_queue, channel, content, FALSE);
@@ -146,20 +142,8 @@ This is an abstract base class for all exchange implementations.
 <private name = "header">
 static int
     s_compare_queue (const void *queue1, const void *queue2);
-</private>
-
-<private>
-static int
-s_compare_queue (const void *queue1, const void *queue2)
-{
-    if (*(void **) queue1 < *(void **) queue2)
-        return (-1);
-    else
-    if (*(void **) queue1 > *(void **) queue2)
-        return (1);
-    else
-        return (0);
-}
+static void
+    s_direct_deliver (amq_queue_t *queue, amq_content_basic_t *content);
 </private>
 
 <method name = "unbind" return = "rc">
@@ -177,6 +161,66 @@ s_compare_queue (const void *queue1, const void *queue2)
     $(selfname:upper)_ASSERT_SANE (self);
     </header>
 </method>
+
+<private>
+static int
+s_compare_queue (const void *queue1, const void *queue2)
+{
+    if (*(void **) queue1 < *(void **) queue2)
+        return (-1);
+    else
+    if (*(void **) queue1 > *(void **) queue2)
+        return (1);
+    else
+        return (0);
+}
+
+void
+s_direct_deliver (amq_queue_t *queue, amq_content_basic_t *content)
+{
+    qbyte 
+        queue_size = 0;
+
+    queue_size = icl_atomic_inc32 ((volatile qbyte *) &(queue->lease->pending));
+    //  Track highest known direct queue size for monitoring
+    if (amq_broker->direct_high < queue_size)
+        amq_broker->direct_high = queue_size;
+
+    //  This code mirrors code in amq_queue_basic.icl
+    //  Check warning limit
+    if (queue->warn_limit && queue_size >= queue->warn_limit && !queue->warned) {
+        smt_log_print (amq_broker->alert_log,
+            "I: yellow alert on queue=%s, reached %d messages", queue->name, queue_size);
+        queue->warned = TRUE;
+    }
+    //  Check just one of drop/trim (trim processed like drop, kill ignored)
+    if ((queue->drop_limit && queue_size >= queue->drop_limit)
+    ||  (queue->trim_limit && queue_size >= queue->trim_limit)) {
+        if (!queue->dropped) {
+            smt_log_print (amq_broker->alert_log,
+                "W: orange alert on queue=%s, reached %d, dropping messages", 
+                queue->name, queue_size);
+            queue->dropped = TRUE;
+        }
+        icl_atomic_dec32 ((volatile qbyte *) &(queue->lease->pending));
+        queue->drop_count++;
+        content = NULL;         
+    }
+    else
+    if (queue_size == 0) {
+        //  Reset warning flags if queue becomes empty
+        queue->warned  = FALSE;
+        queue->dropped = FALSE;
+    }
+    if (content) {
+        amq_server_agent_direct_out (queue->lease->thread, content);
+        icl_atomic_inc32 ((volatile qbyte *) &(amq_broker->direct_fed));
+        if (amq_server_config_debug_route (amq_server_config))
+            smt_log_print (amq_broker->debug_log, 
+                "X: deliver  queue=%s (direct)",  queue->key);
+    }
+}
+</private>
 
 <method name = "selftest" />
 

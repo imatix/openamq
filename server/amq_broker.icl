@@ -177,11 +177,12 @@
     qbyte
         direct_sunk,                    //  Direct messages sunk
         direct_fed;                     //  Direct messages fed
+    qbyte
+        direct_high;                    //  High water mark for direct feeds
 </context>
 
 <method name = "new">
     //  We use a single global vhost for now
-    //  TODO: load list of vhosts from config file
     self->vhost = amq_vhost_new (self, "/");
     self->dump_state_timer = amq_server_config_dump_state (amq_server_config);
     self->auto_crash_timer = amq_server_config_auto_crash (amq_server_config);
@@ -269,13 +270,14 @@
                 ipr_bits_count ());
 
             smt_log_print (amq_broker->alert_log,
-                "I: qcn=%d cnq=%d dsk=%d dfd=%d din=%d dot=%d",
+                "I: qcn=%d cnq=%d dsk=%d dfd=%d din=%d dot=%d dhi=%d",
                 amq_queue_connection_count (),
                 amq_connection_queue_count (),
                 amq_broker->direct_sunk,
                 amq_broker->direct_fed,
                 amq_broker->direct_in,
-                amq_broker->direct_out);
+                amq_broker->direct_out,
+                amq_broker->direct_high);
         }
     }
     if (self->auto_crash_timer) {
