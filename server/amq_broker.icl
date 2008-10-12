@@ -237,20 +237,6 @@
 
 <event name = "monitor">
     <action>
-    //  Config may change, in which case use new configured values
-    /*
-    -- TODO:
-    -- if config is zero, stop timer
-    -- if timer is zero, take from config
-    if (self->monitor_timer == 0)
-        self->monitor_timer = amq_server_config_monitor (amq_server_config);
-    if (self->dump_state_timer == 0)
-        self->dump_state_timer = amq_server_config_dump_state (amq_server_config);
-    if (self->auto_crash_timer == 0)
-        self->auto_crash_timer = amq_server_config_auto_crash (amq_server_config);
-    if (self->auto_crash_timer == 0)
-        self->auto_block_timer = amq_server_config_auto_block (amq_server_config);
-    */
     if (self->dump_state_timer) {
         self->dump_state_timer--;
         if (self->dump_state_timer == 0) {

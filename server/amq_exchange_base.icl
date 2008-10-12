@@ -181,6 +181,8 @@ s_direct_deliver (amq_queue_t *queue, amq_content_basic_t *content)
     qbyte 
         queue_size = 0;
 
+    queue->contents_in++;
+    queue->traffic_in += content->body_size;
     queue_size = icl_atomic_inc32 ((volatile qbyte *) &(queue->lease->pending));
     //  Track highest known direct queue size for monitoring
     if (amq_broker->direct_high < queue_size)
@@ -190,7 +192,8 @@ s_direct_deliver (amq_queue_t *queue, amq_content_basic_t *content)
     //  Check warning limit
     if (queue->warn_limit && queue_size >= queue->warn_limit && !queue->warned) {
         smt_log_print (amq_broker->alert_log,
-            "I: yellow alert on queue=%s, reached %d messages", queue->name, queue_size);
+            "I: queue=%s hit %d (client at %s): no action", 
+            queue->name, queue_size, queue->connection->client_address);
         queue->warned = TRUE;
     }
     //  Check just one of drop/trim (trim processed like drop, kill ignored)
@@ -198,8 +201,8 @@ s_direct_deliver (amq_queue_t *queue, amq_content_basic_t *content)
     ||  (queue->trim_limit && queue_size >= queue->trim_limit)) {
         if (!queue->dropped) {
             smt_log_print (amq_broker->alert_log,
-                "W: orange alert on queue=%s, reached %d, dropping messages", 
-                queue->name, queue_size);
+                "W: queue=%s hit %d (client at %s): dropping messages", 
+                queue->name, queue_size, queue->connection->client_address);
             queue->dropped = TRUE;
         }
         icl_atomic_dec32 ((volatile qbyte *) &(queue->lease->pending));
@@ -213,6 +216,10 @@ s_direct_deliver (amq_queue_t *queue, amq_content_basic_t *content)
         queue->dropped = FALSE;
     }
     if (content) {
+        //  Update queue statistics
+        queue->contents_out++;
+        queue->traffic_out += content->body_size;
+
         amq_server_agent_direct_out (queue->lease->thread, content);
         icl_atomic_inc32 ((volatile qbyte *) &(amq_broker->direct_fed));
         if (amq_server_config_debug_route (amq_server_config))

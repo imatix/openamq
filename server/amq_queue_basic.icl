@@ -79,15 +79,16 @@ runs lock-free as a child of the asynchronous queue class.
     queue_size = ipr_looseref_list_count (self->content_list);
     if (queue->warn_limit && queue_size >= queue->warn_limit && !queue->warned) {
         smt_log_print (amq_broker->alert_log,
-            "I: yellow alert on queue=%s, reached %d messages", queue->name, queue_size);
+            "I: queue=%s hit %d (client at %s): no action", 
+            queue->name, queue_size, queue->connection->client_address);
         queue->warned = TRUE;
     }
     //  Check just one of drop/trim/kill
     if (queue->drop_limit && queue_size >= queue->drop_limit) {
         if (!queue->dropped) {
             smt_log_print (amq_broker->alert_log,
-                "W: orange alert on queue=%s, reached %d, dropping new messages", 
-                queue->name, queue_size);
+                "W: queue=%s hit %d (client at %s): dropping new messages", 
+                queue->name, queue_size, queue->connection->client_address);
             queue->dropped = TRUE;
         }
         queue->drop_count++;
@@ -99,8 +100,8 @@ runs lock-free as a child of the asynchronous queue class.
             *oldest;                    //  Oldest content to trim
         if (!queue->trimmed) {
             smt_log_print (amq_broker->alert_log,
-                "W: orange alert on queue=%s, reached %d, trimming old messages",
-                queue->name, queue_size);
+                "W: queue=%s hit %d (client at %s): trimming old messages",
+                queue->name, queue_size, queue->connection->client_address);
             queue->trimmed = TRUE;
         }
         oldest = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
@@ -110,8 +111,8 @@ runs lock-free as a child of the asynchronous queue class.
     else
     if (queue->kill_limit && queue_size >= queue->kill_limit) {
         smt_log_print (amq_broker->alert_log,
-                "E: red alert on queue=%s, reached %d, killing queue", 
-                queue->name, queue_size);
+                "E: queue=%s hit %d (client at %s): KILLING QUEUE", 
+                queue->name, queue_size, queue->connection->client_address);
         if (queue->exclusive)
             amq_server_connection_error (queue->connection,
                 ASL_RESOURCE_ERROR, "Queue overflow, connection killed",

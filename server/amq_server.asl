@@ -585,7 +585,7 @@
             AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_PUT);
     </footer>
     //
-    lease = amq_lease_new (vhost, method->sink, DP_SINK, connection->id, connection->group);
+    lease = amq_lease_new (vhost, method->sink, DP_SINK, connection);
     if (lease) {
         amq_server_agent_direct_put_ok (channel->connection->thread, channel->number, lease->name);
         amq_lease_unlink (&lease);
@@ -616,7 +616,7 @@
             AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_GET);
     </footer>
     //
-    lease = amq_lease_new (vhost, method->feed, DP_FEED, connection->id, connection->group);
+    lease = amq_lease_new (vhost, method->feed, DP_FEED, connection);
     if (lease) {
         amq_server_agent_direct_get_ok (channel->connection->thread, channel->number, lease->name);
         amq_lease_unlink (&lease);
