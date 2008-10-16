@@ -1,4 +1,4 @@
-package org.openamq.client;
+package org.openamq.client;
 
 import org.openamq.AMQException;
 
@@ -6,11 +6,11 @@ import javax.jms.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-
 public class AMQConnectionFactory implements ConnectionFactory, QueueConnectionFactory, TopicConnectionFactory
 {
-    private String _host;
+    private String _host = null;
     private int _port;
+    private String _brokerDetails = null;
     private String _defaultUsername;
     private String _defaultPassword;
     private String _virtualPath;
@@ -24,6 +24,11 @@ public class AMQConnectionFactory implements ConnectionFactory, QueueConnectionF
         this(host, port, "guest", "guest", virtualPath);
     }
 
+    public AMQConnectionFactory(String brokerDetails, String virtualPath)
+    {
+        this(brokerDetails, "guest", "guest", virtualPath);
+    }
+
     public AMQConnectionFactory(String host, int port, String defaultUsername, String defaultPassword,
                                 String virtualPath)
     {
@@ -34,6 +39,14 @@ public class AMQConnectionFactory implements ConnectionFactory, QueueConnectionF
         _virtualPath = virtualPath;
     }
 
+    public AMQConnectionFactory(String brokerDetails, String defaultUsername, String defaultPassword,
+                                String virtualPath)
+    {
+        _brokerDetails = brokerDetails;
+        _defaultUsername = defaultUsername;
+        _defaultPassword = defaultPassword;
+        _virtualPath = virtualPath;
+    }
 
     /**
      * @param password The _defaultPassword to set.
@@ -47,6 +60,13 @@ public class AMQConnectionFactory implements ConnectionFactory, QueueConnectionF
      */
     public final void setDefaultUsername(String username) {
         _defaultUsername = username;
+    }
+
+   /**
+     * @param _host The _host to set.
+     */
+    public final void setBrokerDetails(String _brokerDetails) {
+        this._brokerDetails = _brokerDetails;
     }
 
      /**
@@ -83,11 +103,20 @@ public class AMQConnectionFactory implements ConnectionFactory, QueueConnectionF
         }
     }
 
+    private Connection createConnection(String username, String password, String clientId, String virtualPath) throws AMQException
+    {
+        if(_host == null){
+            return new AMQConnection(_brokerDetails, username, password, clientId, virtualPath);
+        } else {
+            return new AMQConnection(_host, _port, username, password, clientId, virtualPath);
+        }
+    } 
+
     public Connection createConnection() throws JMSException
     {
         try
         {
-            return new AMQConnection(_host, _port, _defaultUsername, _defaultPassword, getUniqueClientID(), _virtualPath);
+            return createConnection(_defaultUsername, _defaultPassword, getUniqueClientID(), _virtualPath);
         }
         catch (AMQException e)
         {
@@ -97,9 +126,14 @@ public class AMQConnectionFactory implements ConnectionFactory, QueueConnectionF
 
     public Connection createConnection(String userName, String password) throws JMSException
     {
+
+    if((userName == null || userName.length() == 0) && (password == null || password.length() == 0)){
+            return createConnection();
+        }
+
         try
         {
-            return new AMQConnection(_host, _port, userName, password, getUniqueClientID(), _virtualPath);
+            return createConnection(userName, password, getUniqueClientID(), _virtualPath);
         }
         catch (AMQException e)
         {
@@ -127,3 +161,4 @@ public class AMQConnectionFactory implements ConnectionFactory, QueueConnectionF
         return (TopicConnection) createConnection(username, password);
     }
 }
+
