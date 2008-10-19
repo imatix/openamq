@@ -48,6 +48,8 @@
         *thread;
     </local>
     if (self->connection->direct) {
+        if (exchange == NULL)
+            exchange = "";                     //  Default exchange
         thread = amq_client_session_dp_lookup (self, exchange, DP_SINK);
         if (!thread)
             thread = amq_client_session_dp_new (self, exchange, DP_SINK);
