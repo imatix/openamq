@@ -1,0 +1,86 @@
+<?xml?>
+<!-- Test RESTful access -->
+<pal script = "amq_pal_gen">
+    <!-- Macro does set of tests for one valid resource type -->
+    <macro name = "resource crud">
+        <!-- Create the resource and check the create worked -->
+        <rest_put path = "r/$test_type" type = "$test_type" />
+        <assert name = "response" value = "0">$reply_text</assert>
+        <rest_get path = "r/$test_type" />
+        <assert name = "response" value = "0">$reply_text</assert>
+        <assert name = "type" value = "$test_type">$reply_text</assert>
+
+        <!-- Test that update works when the type is correct -->
+        <rest_put path = "r/$test_type" type = "$test_type" />
+        <assert name = "response" value = "0">$reply_text</assert>
+        <rest_put path = "r/$test_type" type = "invalid" />
+        <assert name = "response" value = "1">$reply_text</assert>
+
+        <!-- Now delete the resource, and again a second time -->
+        <rest_delete path = "r/$test_type" />
+        <assert name = "response" value = "0">$reply_text</assert>
+        <rest_delete path = "r/$test_type" />
+        <assert name = "response" value = "0">$reply_text</assert>
+    </macro>
+    <session>
+        <!-- Check all valid types -->
+        <invoke macro = "resource crud">
+            <set name = "test_type" value = "fanout" />
+        </invoke>
+        <invoke macro = "resource crud">
+            <set name = "test_type" value = "direct" />
+        </invoke>
+        <invoke macro = "resource crud">
+            <set name = "test_type" value = "topic" />
+        </invoke>
+        <invoke macro = "resource crud">
+            <set name = "test_type" value = "headers" />
+        </invoke>
+        <invoke macro = "resource crud">
+            <set name = "test_type" value = "queue" />
+        </invoke>
+
+        <!-- Test access to pre-declared resources -->
+        <rest_get path = "amq.direct" />
+        <assert name = "response" value = "0">$reply_text</assert>
+        <assert name = "type" value = "direct">$reply_text</assert>
+        <rest_put path = "amq.direct" type = "direct" />
+        <assert name = "response" value = "0">$reply_text</assert>
+        <rest_put path = "amq.direct" type = "topic" />
+        <assert name = "response" value = "1">$reply_text</assert>
+        <rest_delete path = "amq.direct" />
+        <assert name = "response" value = "1">$reply_text</assert>
+
+        <!-- Test get path resolution -->
+        <rest_get path = "amq.direct/path/info" />
+        <assert name = "response" value = "0">$reply_text</assert>
+        <assert name = "path_info" value = "path/info">Invalid path into: $path_info</assert>
+
+        <rest_get path = "amq.direct" />
+        <assert name = "response" value = "0">$reply_text</assert>
+        <assert name = "path_info" value = "">Invalid path into: $path_info</assert>
+
+        <rest_get path = "/amq.direct/" />
+        <assert name = "response" value = "1">$reply_text</assert>
+        <assert name = "path_info" value = "">Invalid path into: $path_info</assert>
+    
+        <!-- Test invalid accesses -->
+        <rest_put path = "amq.reserved" type = "direct" />
+        <assert name = "response" value = "1">$reply_text</assert>
+        <rest_put path = "r/invalid" type = "invalid" />
+        <assert name = "response" value = "1">$reply_text</assert>
+        <rest_put path = "r/null" type = "" />
+        <assert name = "response" value = "1">$reply_text</assert>
+        <rest_get path = "r/undefined" />
+        <assert name = "response" value = "1">$reply_text</assert>
+        <rest_get path = "$\\default$\\" />
+        <assert name = "response" value = "1">$reply_text</assert>
+        <rest_delete path = "$\\default$\\" />
+        <assert name = "response" value = "1">$reply_text</assert>
+        <rest_get path = "/amq.direct/path/info" />
+        <assert name = "response" value = "1">$reply_text</assert>
+        
+        <echo>RESTful tests passed successfully</echo>
+    </session>
+</pal>
+
