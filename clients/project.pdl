@@ -49,6 +49,9 @@
 <file name = "amq_client_channel.icl"
                                      class = "icl public class"  >Client channel class</file>
 <file name = "amq_client_channel_table.icl"
-                                     class = "icl public cont"  >Client channel table</file>
+                                     class = "icl public cont"   >Client channel table</file>
+
+<!-- OpenAMQ RestAPI implementation -->
+<file name = "amq_rest.icl"          class = "icl public class"  >RestAPI class</file>
 
 </pdl>
