@@ -75,7 +75,6 @@
                         AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DECLARE);
                 else {
                     exchange = amq_exchange_new (
-                        vhost->exchange_table,
                         vhost,
                         exchange_type,
                         method->exchange,
@@ -133,18 +132,24 @@
     if (strnull (method->exchange))
         icl_shortstr_cpy (method->exchange, channel->current_exchange);
 
-    exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
-    if (exchange) {
-        //  Tell client delete was successful
-        if (!method->nowait)
-            amq_server_agent_exchange_delete_ok (connection->thread, channel->number);
+    if (ipr_str_prefixed (method->exchange, "amq."))
+       amq_server_channel_error (channel,
+            ASL_ACCESS_REFUSED, "Exchange name not allowed",
+            AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DECLARE);
+    else {
+        exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
+        if (exchange) {
+            //  Tell client delete was successful
+            if (!method->nowait)
+                amq_server_agent_exchange_delete_ok (connection->thread, channel->number);
 
-        //  Destroy the exchange on this peer
-        amq_exchange_destroy (&exchange);
+            //  Destroy the exchange on this peer
+            amq_exchange_destroy (&exchange);
+        }
+        else
+            amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined",
+                AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DELETE);
     }
-    else
-        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined",
-            AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DELETE);
   </action>
 </class>
 
@@ -200,10 +205,9 @@
                 queue = amq_queue_table_search (vhost->queue_table, method->queue);
 
             if (queue) {
-                //  Make default binding, if wanted
-                if (vhost->default_exchange)
-                    amq_exchange_bind_queue (
-                        vhost->default_exchange, NULL, queue, queue->name, NULL);
+                //  Make automatic binding to default exchange
+                amq_exchange_bind_queue (
+                    vhost->default_exchange, NULL, queue, queue->name, NULL);
 
                 //  Add to connection's exclusive queue list
                 if (method->exclusive)
@@ -371,7 +375,7 @@
                 connection->thread, channel->number, amq_queue_message_count (queue));
 
         //  Destroy the queue on this peer
-        amq_vhost_unbind_queue (vhost, queue);
+        amq_vhost_delete_queue (vhost, queue);
         amq_queue_unlink (&queue);
     }
     else
@@ -595,6 +599,7 @@
             "No such sink", 
             AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_PUT);
   </action>
+
   <action name = "get">
     <local>
     amq_lease_t
@@ -625,6 +630,222 @@
         amq_server_channel_error (channel, ASL_NOT_FOUND, 
             "No such feed", 
             AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_GET);
+  </action>
+</class>
+
+<class name = "rest">
+  <action name = "put">
+    <local>
+    amq_exchange_t
+        *exchange = NULL;
+    amq_queue_t
+        *queue = NULL;
+    int
+        exchange_type;
+    int
+        response = 0;
+    char
+        *type = NULL,              
+        *reply_text = NULL;
+    </local>
+    <local>
+    amq_vhost_t
+        *vhost;
+    </local>
+    <header>
+    vhost = amq_vhost_link (amq_broker->vhost);
+    if (vhost) {
+    </header>
+    <footer>
+        amq_vhost_unlink (&vhost);
+    }
+    else
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
+            AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_PUT);
+    </footer>
+    //
+    exchange = amq_exchange_table_search (vhost->exchange_table, method->path);
+    queue = amq_queue_table_search (vhost->queue_table, method->path);
+    if (exchange)
+        type = amq_exchange_type_name (exchange->type);
+    else
+    if (queue)
+        type = "queue";
+     
+    //  Resource exists, assert type is accurate
+    if (type) {
+        if (strneq (type, method->type)) {
+            response = 1;
+            reply_text = "Cannot create resource: already exists with different type";
+        }
+    }
+    else
+    if (ipr_str_prefixed (method->path, "amq.")) {
+        response = 1;
+        reply_text = "Cannot create resource: name is reserved";
+    }
+    //  Create new resource depending on type
+    else {
+        exchange_type = amq_exchange_type_lookup (method->type);
+        if (streq (method->type, "queue")) {
+            queue = amq_queue_new (vhost, NULL, method->path, FALSE, FALSE, FALSE, NULL);
+            if (!queue)
+                queue = amq_queue_table_search (vhost->queue_table, method->path);
+            if (queue)
+                amq_exchange_bind_queue (vhost->default_exchange, NULL, queue, queue->name, NULL);
+            else {
+                response = 1;
+                reply_text = "Cannot create resource: internal error (queues)";
+            }
+        }
+        else
+        if (exchange_type >= 0) {
+            exchange = amq_exchange_new (vhost, exchange_type, method->path, FALSE, FALSE);
+            if (!exchange)
+                exchange = amq_exchange_table_search (vhost->exchange_table, method->path);
+            if (!exchange) {
+                response = 1;
+                reply_text = "Cannot create resource: internal error (exchanges)";
+            }
+        } 
+        else {
+            response = 1;
+            reply_text = "Cannot create resource: invalid resource type";
+        }
+    }
+    amq_queue_unlink (&queue);
+    amq_exchange_unlink (&exchange);
+    amq_server_agent_rest_put_ok (
+        channel->connection->thread, channel->number, 
+        response, reply_text);
+  </action>
+
+  <action name = "get">
+    <local>
+    amq_exchange_t
+        *exchange = NULL;
+    amq_queue_t
+        *queue = NULL;
+    int
+        response = 0;
+    char
+        *type = NULL,  
+        *reply_text = NULL;
+    int
+        start = 0;                      //  Index to start looking for slash
+    char
+        *slash;                         //  Slash found in path
+    icl_shortstr_t
+        path,                           //  Resolved path
+        path_info;                      //  Remaining path info
+    </local>
+    <local>
+    amq_vhost_t
+        *vhost;
+    </local>
+    <header>
+    vhost = amq_vhost_link (amq_broker->vhost);
+    if (vhost) {
+    </header>
+    <footer>
+        amq_vhost_unlink (&vhost);
+    }
+    else
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
+            AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_GET);
+    </footer>
+    //
+    //  Resolve path from left to right
+    //
+    while (!exchange && !queue) {
+        icl_shortstr_cpy (path, method->path);
+        slash = strchr (path + start, '/');
+        if (slash) {
+            *slash = 0;
+            icl_shortstr_cpy (path_info, slash + 1);
+            start = slash - path + 1;
+        }
+        else
+            strclr (path_info);
+        exchange = amq_exchange_table_search (vhost->exchange_table, path);
+        queue = amq_queue_table_search (vhost->queue_table, path);
+        if (strnull (path_info))
+            break;
+    }
+    if (exchange) {
+        if (exchange->internal) {
+            response = 1;
+            reply_text = "Cannot query resource: illegal access";
+        }
+        else
+            type = amq_exchange_type_name (exchange->type);
+    }
+    else
+    if (queue)
+        type = "queue";
+    else {
+        response = 1;
+        reply_text = "Cannot query resource: not found";
+    }
+    amq_queue_unlink (&queue);
+    amq_exchange_unlink (&exchange);
+    amq_server_agent_rest_get_ok (
+        channel->connection->thread, channel->number, 
+        response, reply_text, 
+        path, path_info, type);
+  </action>
+
+  <action name = "delete">
+    <local>
+    amq_exchange_t
+        *exchange = NULL;
+    amq_queue_t
+        *queue = NULL;
+    int
+        response = 0;
+    char
+        *reply_text = NULL;
+    </local>
+    <local>
+    amq_vhost_t
+        *vhost;
+    </local>
+    <header>
+    vhost = amq_vhost_link (amq_broker->vhost);
+    if (vhost) {
+    </header>
+    <footer>
+        amq_vhost_unlink (&vhost);
+    }
+    else
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
+            AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_GET);
+    </footer>
+    //
+    exchange = amq_exchange_table_search (vhost->exchange_table, method->path);
+    queue = amq_queue_table_search (vhost->queue_table, method->path);
+    if (ipr_str_prefixed (method->path, "amq.")) {
+        response = 1;
+        reply_text = "Cannot delete resource: name is reserved";
+    }
+    else
+    if (exchange) {
+        if (exchange->internal) {
+            response = 1;
+            reply_text = "Cannot delete resource: illegal access";
+        }
+        else
+            amq_exchange_destroy (&exchange);
+    }
+    else
+    if (queue)
+        amq_vhost_delete_queue (vhost, queue);
+
+    amq_queue_unlink (&queue);
+    amq_exchange_unlink (&exchange);
+    amq_server_agent_rest_delete_ok (
+        channel->connection->thread, channel->number, 
+        response, reply_text);
   </action>
 </class>
 
