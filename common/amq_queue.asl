@@ -23,6 +23,7 @@
 <doc name = "grammar">
     queue               = C:DECLARE  S:DECLARE-OK
                         / C:BIND     S:BIND-OK
+                        / C:UNBIND   S:UNBIND-OK
                         / C:PURGE    S:PURGE-OK
                         / C:DELETE   S:DELETE-OK
 </doc>
@@ -504,9 +505,6 @@
     This method unbinds a queue from an exchange.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <doc name = "rule">
-  TODO: What happens if specified binding does not exist?
-  </doc>
   <response name = "unbind-ok" />
 
   <field name = "ticket" domain = "access ticket">

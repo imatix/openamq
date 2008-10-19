@@ -18,7 +18,10 @@
 <include filename = "amq_exchange.asl" />
 <include filename = "amq_queue.asl" />
 <include filename = "amq_basic.asl" />
+
+<!-- Non standard extension classes -->
 <include filename = "asl_direct.asl" />
+<include filename = "amq_rest.asl" />
 
 <!-- not supported by OpenAMQ, will be removed in AMQP/0.91
 <include filename = "amq_access.asl" />

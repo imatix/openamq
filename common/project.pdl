@@ -36,6 +36,9 @@
 <file name = "amq_queue.asl"             class = "public resource"   >Queue management</file>
 <file name = "amq_basic.asl"             class = "public resource"   >Basic content</file>
 
+<!-- OpenAMQ extensions -->
+<file name = "amq_rest.asl"              class = "public resource"   >RESTful access</file>
+
 <!-- PAL/AMQ code generator -->
 <file name = "amq_pal.xnf"               class = "generated" />
 <file name = "amq_pal_stdc.gsl"          class = "generated resource" />
