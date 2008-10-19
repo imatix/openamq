@@ -147,7 +147,8 @@ for each type of exchange. This is a lock-free asynchronous class.
     <argument name = "name" type = "char *">Exchange name</argument>
     <argument name = "internal" type = "Bool">Internal exchange?</argument>
     <argument name = "auto federate" type = "Bool">Auto-federate exchange?</argument>
-    <dismiss argument = "key" value = "name">Key is exchange name</dismiss>
+    <dismiss argument = "table" value = "vhost->exchange_table" />
+    <dismiss argument = "key" value = "name" />
     <local>
     amq_broker_t
         *broker = amq_broker;
@@ -175,6 +176,10 @@ for each type of exchange. This is a lock-free asynchronous class.
     self->queue_bindings = amq_queue_bindings_list_table_new ();
     self->queue_set      = icl_mem_alloc (AMQ_QUEUE_SET_MAX * sizeof (amq_queue_t *));
     icl_shortstr_cpy (self->name, name);
+
+    if (!self->internal && amq_server_config_debug_route (amq_server_config))
+        smt_log_print (amq_broker->debug_log,
+            "X: create   exchange=%s type=%s", self->name, amq_exchange_type_name (self->type));
 
     if (self->type == AMQ_EXCHANGE_SYSTEM) {
         self->object  = amq_exchange_system_new (self);
@@ -317,6 +322,10 @@ for each type of exchange. This is a lock-free asynchronous class.
     amq_queue_bindings_list_table_destroy (&self->queue_bindings);
     icl_mem_free (self->queue_set);
     amq_federation_destroy (&self->federation);
+
+    if (!self->internal && amq_server_config_debug_route (amq_server_config))
+        smt_log_print (amq_broker->debug_log,
+            "X: destroy  exchange=%s type=%s", self->name, amq_exchange_type_name (self->type));
 
     if (self->type == AMQ_EXCHANGE_SYSTEM)
         amq_exchange_system_destroy ((amq_exchange_system_t **) &self->object);
