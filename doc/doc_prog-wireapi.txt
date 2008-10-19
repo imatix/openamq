@@ -192,9 +192,8 @@ Direct Mode is supported on OpenAMQ versions 1.3 and later.
 
 The WireAPI library also accepts these environment variables:
 
-WIREAPI_SILENT=1
-
-If set to 1, causes errors and warnings to be not set to standard output. Default value is 0.  Note that even if set, some serious errors will still be printed.  The connection->silent property inherits from this environment variable.
+* WIREAPI_SILENT=1 - if set to 1, causes errors and warnings to be not set to standard output. Default value is 0.  Note that even if set, some serious errors will still be printed.  The connection->silent property inherits from this environment variable.
+* WIREAPI_FAKESLOW=1 - if set to 1, causes the WireAPI to throttle input to 1,000 messages per second, to simulate a slow network and cause backlogs on the server.  This should not be used in production, it can crash a poorly-configured server.
 
 ++ The connection class
 

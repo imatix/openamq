@@ -504,7 +504,7 @@ These are the options that can directly affect performance:
 : **/config/tuning/tcp_sndbuf** : If this value is greater than zero, all client connections will use the specified value. Note: setting this value is delicate, do not use this option unless you know what you are doing. Default value is 0. This option can be changed at runtime.
 : **/config/tuning/direct** : If this value is 1, all client connections will use Direct Mode for message transfer, unless they explicitly override it.  Direct Mode is explained below.
 
-Note: we recommend that rather than tuning the tcp_rcvbuf and tcp_sndbuf options at the application level, you should rely on the default values of "0" and tune your operating system's TCP stack appropriately. For a good guide to TCP Tuning, see [http://www-didc.lbl.gov/TCP-tuning/:here].
+Note: we recommend that rather than tuning the tcp_rcvbuf and tcp_sndbuf options at the application level, you should rely on the default values of "0" and [[http://www-didc.lbl.gov/TCP-tuning/ tune your operating system's TCP stack] appropriately.
 
 +++ Tuning queue limits
 
@@ -515,11 +515,12 @@ OpenAMQ provides a mechanism called "queue profiles" to let you control the limi
 [[code]]
 <queue_profile name = "private">
     <limit name = "warn" value = "10000" />
-    <limit name = "trim" value = "50000" />
+    <limit name = "trim" value = "40000" />
 </queue_profile>
+
 <queue_profile name = "shared">
-    <limit name = "warn" value = "10000" />
-    <limit name = "kill" value = "50000" />
+    <limit name = "warn" value = "1000" />
+    <limit name = "kill" value = "5000" />
 </queue_profile>
 [[/code]]
 
@@ -543,6 +544,19 @@ amq_server.cfg:
     <queue_profile name = "private">
         <limit name = "warn" value = "500" />
         <limit name = "trim" value = "1000" />
+    </queue_profile>
+</config>
+[[/code]]
+
+In Direct Mode, private queue limits are applied on the server, for cases when slow networks cause backlogs.  However, only the //warn// and //drop// actions are implemented on such backlogs.  To set server-side queue limits for Direct Mode backlogs, edit amq_server.cfg e.g.:
+
+[[code]]
+amq_server.cfg:
+<?xml version="1.0"?>
+<config>
+    <queue_profile name = "private">
+        <limit name = "warn" value = "5000" />
+        <limit name = "drop" value = "10000" />
     </queue_profile>
 </config>
 [[/code]]
@@ -615,12 +629,12 @@ When you tune the server performance, it is the iomean that you should be aiming
 
 +++ Overview
 
-OpenAMQ/1.3 and later releases support Direct Mode, a protocol for specific kinds of high-speed applications, as explained later.  Direct Mode runs over //Direct Messaging Protocol// (4-DMP@wiki.amqp.org), a specification developed by wiki.amqp.org.  In Direct Mode, OpenAMQ will transfer messages as much as 2x faster.  The following table shows the typical differences between normal AMQP publishing and Direct Mode in OpenAMQ:
+OpenAMQ/1.3 and later releases support Direct Mode, a protocol for specific kinds of high-speed applications, as explained later.  Direct Mode runs over //Direct Messaging Protocol// (4-DMP@wiki.amqp.org), a specification developed by wiki.amqp.org.  In Direct Mode, OpenAMQ will transfer messages as much as 5x faster.  The following table shows the typical differences between normal AMQP publishing and Direct Mode in OpenAMQ:
 
-||                   ||~ Normal AMQP    ||~ Direct Mode    ||
-||Latency            || 250 usecs       || 180 usecs       ||
-||Client capacity    || 19,000 msg/sec  || 130,000 msg/sec ||
-||Broker (estimated) || 120,000 msg/sec || 300,000 msg/sec ||
+||                ||~ Normal AMQP    ||~ Direct Mode    ||
+||Latency         || 250 usecs       || 185 usecs       ||
+||Client capacity || 19,000 msg/sec  || 130,000 msg/sec ||
+||Broker capacity || 120,000 msg/sec || 600,000 msg/sec ||
 
 The speed improvement comes from a simpler wire-level encoding for messages, message batching, and the ability to push messages through the OpenAMQ server with less processing.  Client applications will also benefit from reduced CPU usage.
 
@@ -662,6 +676,21 @@ You can tune the batching size used in Direct Mode connections.  For the server,
 You can tune the batching size using this option, on the command line or in the amq_server.cfg or wireapi.cfg configuration file:
 
 : **/config/direct/batching** : Defines the maximum batch size for Direct Mode opportunistic batching on message sends. Setting this higher will improve throughput, and usually with lower latency, but will cause higher memory consumption. Setting this to zero will switch off batching. Any value less than 2048 is treated as zero. Default value is 32768. Maximum value is 2097152.                                                             
+
++++ Server-side backlogs
+
+When the client-side network is too slow to handle incoming data, messages will back-up on the server.  These backlogs can be managed using the server-side configured queue limits.  Only the //warn// and //drop// actions are implemented on such backlogs.  To set server-side queue limits for Direct Mode backlogs, edit amq_server.cfg e.g.:
+
+[[code]]
+amq_server.cfg:
+<?xml version="1.0"?>
+<config>
+    <queue_profile name = "private">
+        <limit name = "warn" value = "5000" />
+        <limit name = "drop" value = "10000" />
+    </queue_profile>
+</config>
+[[/code]]
 
 +++ Prerequisites
 

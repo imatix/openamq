@@ -8,9 +8,9 @@ This guide is for OpenAMQ developers who need a quick way to write test cases an
 
 +++ What is PAL?
 
-AMQP was originally designed using the iMatix ASL framework for protocols. ASL includes a tool for scripting protocols like AMQP, called PAL, the protocol automation language.
+We originally designed AMQP in 2004 using using the iMatix ASL framework for protocols. AMQP inherits its technical structure, up to and including connections and channels, and XML model, from ASL.  ASL includes a tool for scripting protocols like AMQP, called PAL, the protocol automation language.
 
-PAL is an XML language intended to make it very simple to script AMQP scenarios, most importantly for writing test scripts. PAL can be used to develop certain types of AMQP application but this is not its intent.
+PAL is an XML language intended to make it simple to script AMQP scenarios, most importantly for writing test scripts. PAL can be used to develop certain types of AMQP application but this is not its intent.
 
 PAL has two sets of commands:
 
@@ -648,7 +648,11 @@ Note that the standard ASL technique for returning values from protocol methods 
 
 PAL also defines these built-in variables:
 
-* $script - name of current PAL script. - $connection - 1 if the connection is alive, else 0. - $session - 1 if the session is alive, else 0. - $random - a random integer in the range 0..32767, when used as an insertion value, produces a 4-digit hex string. - $body_size - the body size of the last content to be created, arrived, or returned.
+* $script - name of current PAL script. 
+* $connection - 1 if the connection is alive, else 0. 
+* $session - 1 if the session is alive, else 0. 
+* $random - a random integer in the range 0..32767, when used as an insertion value, produces a 4-digit hex string. 
+* $body_size - the body size of the last content to be created, arrived, or returned.
 
 You must not name your own variables using any of the connection, session, or built-in names. PAL resolves a variable reference in this order:
 
@@ -657,6 +661,12 @@ You must not name your own variables using any of the connection, session, or bu
 # Session properties.
 # Connection properties.
 # Script variables and counters.
+
+If you want to use a dollar sign '$' in a string, but not do a variable replacement, put two backslashes after it, like this:
+
+[[code]]
+    <basic_publish routing_key = "$\\0.00" />
+[[/code]]
 
 Here is a sample script that demonstrates various ways of using variables:
 
@@ -935,7 +945,7 @@ PAL does not provide any asynchronous content processing. The script runs as a s
 
 ++ Nowait methods
 
-AMQP/0.9 has a "nowait" option on some methods that turn normally synchronous methods into asynchronous ones. This is important for applications that do very large volumes of wiring (queue creation, etc.) since it can dramatically cut the start-up time.
+AMQP/0.9 has a "nowait" option on some methods that turn normally synchronous methods into asynchronous ones. This is important for applications that do large volumes of wiring (queue creation, etc.) since it can dramatically cut the start-up time.
 
 WireAPI implements nowait as a second set of methods:
 
@@ -1020,8 +1030,7 @@ The -c option clocks the script and produces performance measurement output. Her
 Which produces this output (the figures are obviously just an example):
 
 [[code]]
-...........
-...........
+. . .
 16:41:26: I: elapsed time:781 msecs
 16:41:26: I: outgoing messages:1000 (976 Kbytes)
 16:41:26: I: incoming messages:1000 (976 Kbytes)
@@ -1050,7 +1059,7 @@ ASL is a formal language, a grammar. It does not define the low-level wire-proto
 
 ASL is an extensible framework - a single ASL grammar can be fed to any number of different back-end "targets", each generating some different output. Today we have targets for:
 
-* A Standard C implementation of client and server layers.
+* A C implementation of client and server layers.
 * A Java implementation of client layers.
 * Documentation in iMatix gurudoc format.
 
@@ -1089,11 +1098,11 @@ We can summarise the approach that drives ASL:
 # Implement the code generators for this abstract syntax.
 # Use the syntax to define our full protocol.
 
-Note the major benefit of using ASL: writing a large and rich protocol is very cheap, as 100% of the protocol support both at the client and server side is generated, leaving only the functional implementation of the protocol methods as work for the programmer.
+Note the major benefit of using ASL: writing a large and rich protocol is cheap, as 100% of the protocol support both at the client and server side is generated, leaving only the functional implementation of the protocol methods as work for the programmer.
 
 +++ Large-scale Testing
 
-By making it cheap to design and implement functionality on top of a standard technical base, ASL also encourages very large and explicit protocols. While a hand-built protocol might use a single method for several purposes, ASL would encourage the definition of several individual methods. This clarity is very pleasant for the application developer, but it means that testing must also happen on a large scale.
+By making it cheap to design and implement functionality on top of a standard technical base, ASL also encourages large and explicit protocols. While a hand-built protocol might use a single method for several purposes, ASL would encourage the definition of several individual methods. This clarity is pleasant for the application developer, but it means that testing must also happen on a large scale.
 
 This - cheap large-scale testing - is the problem that PAL solves.
 
