@@ -105,9 +105,9 @@ Defines a virtual host. This is a lock-free asynchronous class.
     </action>
 </method>
 
-<method name = "unbind queue" template = "async function" async = "1">
+<method name = "delete queue" template = "async function" async = "1">
     <doc>
-    Unbind a queue from the vhost.
+    Unbind and delete a queue from the vhost.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">The queue to unbind</argument>
     //
@@ -154,7 +154,6 @@ s_exchange_declare (
     amq_exchange_t
         *exchange;                      //  Predeclared exchange
     exchange = amq_exchange_new (
-        self->exchange_table,
         self,                           //  Parent vhost
         type,                           //  Exchange type
         name,                           //  Exchange name

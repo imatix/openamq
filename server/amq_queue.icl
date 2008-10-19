@@ -286,7 +286,7 @@ class.  This is a lock-free asynchronous class.
             smt_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
 
         queue_ref = amq_queue_link (self);
-        amq_vhost_unbind_queue (self->vhost, queue_ref);
+        amq_vhost_delete_queue (self->vhost, queue_ref);
         //  Ask broker to ask connections to drop link to queue
         if (self->exclusive)
             amq_broker_unbind_queue (amq_broker, queue_ref);
@@ -485,7 +485,7 @@ class.  This is a lock-free asynchronous class.
         *queue_ref;                     //  Need a reference to call destroy
 
     queue_ref = amq_queue_link (self);
-    amq_vhost_unbind_queue (self->vhost, queue_ref);
+    amq_vhost_delete_queue (self->vhost, queue_ref);
     //  Ask broker to ask connections to drop link to queue
     if (self->exclusive)
         amq_broker_unbind_queue (amq_broker, queue_ref);
