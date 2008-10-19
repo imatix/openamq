@@ -133,18 +133,24 @@
     if (strnull (method->exchange))
         icl_shortstr_cpy (method->exchange, channel->current_exchange);
 
-    exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
-    if (exchange) {
-        //  Tell client delete was successful
-        if (!method->nowait)
-            amq_server_agent_exchange_delete_ok (connection->thread, channel->number);
+    if (ipr_str_prefixed (method->exchange, "amq."))
+       amq_server_channel_error (channel,
+            ASL_ACCESS_REFUSED, "Exchange name not allowed",
+            AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DECLARE);
+    else {
+        exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
+        if (exchange) {
+            //  Tell client delete was successful
+            if (!method->nowait)
+                amq_server_agent_exchange_delete_ok (connection->thread, channel->number);
 
-        //  Destroy the exchange on this peer
-        amq_exchange_destroy (&exchange);
+            //  Destroy the exchange on this peer
+            amq_exchange_destroy (&exchange);
+        }
+        else
+            amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined",
+                AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DELETE);
     }
-    else
-        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined",
-            AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DELETE);
   </action>
 </class>
 
