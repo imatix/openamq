@@ -1,5 +1,15 @@
 + Stable branch
 
+++ 1.2d6 - 2008/10/21
+
+* fixed: mixing deliveries with sync methods confused WireAPI (http://www.openamq.org/issue:32)
+* fixed: Queue.Destroy was not working properly (http://www.openamq.org/issue:31)
+* fixed: zero-sized content crashes server & client (http://www.openamq.org/issue:30)
+* fixed: asl_field_list_dump () wrote into unallocated memory. (http://www.openamq.org/issue:29)
+* fixed: PAL did not allow nested repeat blocks (confused the counters).
+* fixed: amq_client.asl crashed when using default exchange (http://www.openamq.org/issue:28)
+* fixed: amq_server let applications delete pre-defined exchanges (http://www.openamq.org/issue:27)
+
 ++ 1.2d5 - 2008/10/03
 
 * allow signal to be registered by multiple threads (http://www.openamq.org/issue:16)
