@@ -30,21 +30,6 @@ REST-like interface to OpenAMQ wiring and messages.  In theory will work with an
 interoperable AMQP server that implements the Rest extension class.
 
 Documentation is on http://wiki.amqp.org/N:rest.
-
-This API implements highly simplified AMQP semantics designed to provide HTTP/HTTPS
-access to AMQP exchanges and queues.
-
-* Private queues, bindings, and consumers are invisible and managed automatically 
-  by this API.
-* Exchanges and shared queues are both considered server "resources", and are
-  containers for messages.
-* Applications can publish both to exchanges, and directly to shared queues.
-* Resource names are paths (should not start or end with slash).
-
-Not supported:
-
-* Does not allow binding arguments (headers) yet.
-* Binding shared queues using arbitrary routing keys.
 </doc>
 
 <inherit class = "icl_object">
@@ -62,6 +47,10 @@ Not supported:
     icl_shortstr_t
         queue,                          //  Our private queue
         routing_key;                    //  Last binding made
+    icl_shortstr_t
+        cached_path,                    //  Cache Rest.Get calls
+        cached_info,
+        cached_type;
 </context>
 
 <method name = "new">
@@ -82,7 +71,7 @@ Not supported:
     self->connection = amq_client_connection_new (
         hostname, "/", auth_data, "RestAPI", 0, 5000);
     if (self->connection) {
-        self->connection->direct = TRUE;
+        self->connection->direct = FALSE;
         self->session = amq_client_session_new (self->connection);
     }
     if (!self->session) {
@@ -97,15 +86,28 @@ Not supported:
     amq_client_connection_destroy (&self->connection);
 </method>
 
+    PUT (path, [type])
+        type -> create sink
+        else try to create binding
+    DELETE (path)
+    POST (path)
+    [message] = GET (path)
+
 <method name = "put" template = "function">
     <doc>
-    Declares a resource on the server.  Only needed when the application 
-    wants to explicitly create wiring (exchanges and shared queues).  Returns
-    0 if successful, -1 if failed.
+    Declares a resource on the server.  A resource is either a sink (a queue or
+    exchange), or a binding.  Sinks are containers for bindings.  This method
+    lets an application explicitly create sinks or bindings, or assert that they
+    exist.  If the type argument is specified, the path is the sink name.  If
+    the type argument is not specified, the path is an existing sink name
+    followed by a routing key pattern. Returns 0 if successful, -1 if failed.
+    The valid sink types are the AMQP exchange types plus "queue".
     </doc>
-    <argument name = "path" type = "char *">Resource name</argument>
-    <argument name = "type" type = "char *">Exchange type, or "queue"</argument>
+    <argument name = "path" type = "char *">Resource path</argument>
+    <argument name = "type" type = "char *">Sink type</argument>
     //
+    assert (path && strused (path));
+    //  Maps straight through to Rest.Put
     amq_client_session_rest_put (self->session, path, type);
     rc = self->session->reply_code;
     if (rc)
@@ -114,23 +116,44 @@ Not supported:
 
 <method name = "get" template = "function">
     <doc>
+    Queries a resource on the server.  A resource is either a sink (a queue or
+    exchange), or a binding.  Sinks are containers for bindings.  This method
+    lets an application 
+
+
+
+-- merge this with fetch
     Returns information about the resource.  Returns 0 if the resource exists, 
-    else -1.  If the resource exists, puts the type and path_info into the 
+    else -1.  If the resource exists, puts the type and info into the 
     provided string, which must be icl_shortstr_t or null.
     </doc>
     <argument name = "path" type = "char *">Resource name</argument>
-    <argument name = "type p" type = "char **">Pointer to type string</argument>
-    <argument name = "path info p" type = "char **">Pointer to path info string</argument>
+    <argument name = "out path" type = "char *">Pointer to path string</argument>
+    <argument name = "out type" type = "char *">Pointer to type string</argument>
+    <argument name = "out info" type = "char *">Pointer to path info string</argument>
     //
-    amq_client_session_rest_get (self->session, path);
-    rc = self->session->reply_code;
-    if (rc)
-        icl_console_print ("E: %s", self->session->reply_text);
+    assert (path && strused (path));
+    if (strused (self->cached_path) 
+    &&  ipr_str_prefixed (path, self->cached_path))
+        icl_shortstr_cpy (self->cached_info, path + strlen (self->cached_path) + 1);
     else {
-        if (type_p)
-            icl_shortstr_cpy (*type_p, self->session->type);
-        if (path_info_p)
-            icl_shortstr_cpy (*path_info_p, self->session->path_info);
+        amq_client_session_rest_get (self->session, path);
+        rc = self->session->reply_code;
+        if (rc)
+            icl_console_print ("E: %s", self->session->reply_text);
+        else {
+            icl_shortstr_cpy (self->cached_path, self->session->path);
+            icl_shortstr_cpy (self->cached_type, self->session->type);
+            icl_shortstr_cpy (self->cached_info, self->session->info);
+        }
+    }
+    if (!rc) {
+        if (out_path)
+            icl_shortstr_cpy (out_path, self->cached_path);
+        if (out_type)
+            icl_shortstr_cpy (out_type, self->cached_type);
+        if (out_info)
+            icl_shortstr_cpy (out_info, self->cached_info);
     }
 </method>
 
@@ -140,6 +163,7 @@ Not supported:
     </doc>
     <argument name = "path" type = "char *">Resource name</argument>
     //
+    assert (path && strused (path));
     amq_client_session_rest_delete (self->session, path);
     rc = self->session->reply_code;
     if (rc)
@@ -158,25 +182,31 @@ Not supported:
     <local>
     amq_content_basic_t
         *content = NULL;
+    icl_shortstr_t
+        resource_name,        
+        resource_type,        
+        resource_info;        
     </local>
     //
-    amq_client_session_rest_get (self->session, path);
-    rc = self->session->reply_code;
+    assert (path && strused (path));
+    assert (bucket);
+
+    rc = amq_rest_get (self, path, resource_name, resource_type, resource_info);
     if (rc == 0) {
         content = amq_content_basic_new ();
         amq_content_basic_record_body (content, bucket);
 
-        if (streq (self->session->type, "queue")) {
+        if (streq (resource_type, "queue")) {
             //  Publish to default exchange, routing-key = queue
             //  Path-info is reply-to
             //  Standard pattern for request-response
-            amq_content_basic_set_reply_to (content, self->session->path_info);
+            amq_content_basic_set_reply_to (content, self->session->info);
             rc = amq_client_session_basic_publish (
                 self->session, 
                 content, 
                 0,                      //  Access ticket
                 NULL,                   //  Exchange = default exchange
-                self->session->path,    //  Routing key = resource name
+                resource_name,          //  Routing key = resource name
                 TRUE,                   //  Mandatory routing to queue
                 FALSE);                 //  Immediate to consumer
         }
@@ -187,8 +217,8 @@ Not supported:
                 self->session, 
                 content, 
                 0,                      //  Access ticket
-                self->session->path,    //  Exchange = resource name
-                self->session->path_info,   //  Routing key = path info
+                resource_name,          //  Exchange = resource name
+                resource_info,          //  Routing key = path info
                 FALSE,                  //  Mandatory routing to queue
                 FALSE);                 //  Immediate to consumer
         }
@@ -204,11 +234,12 @@ Not supported:
 <method name = "fetch" return = "bucket">
     <doc>
     Fetches a message from the specified resource.  Returns a bucket containing
-    the message, or NULL if there was no message to fetch.  Will wait for up to 
-    one second for a message to arrive.
+    the message, or NULL if there was no message to fetch.  If timeout is zero,
+    does not wait but returns immediately if there are no messages pending.
     </doc>
     <argument name = "self" type = "$(selftype) *">Object reference</argument>
     <argument name = "path" type = "char *">Resource name</argument>
+    <argument name = "timeout" type = "size_t">Msecs to wait for message</argument>
     <declare name = "bucket" type = "ipr_bucket_t *" default = "NULL">Returned message</declare>
     <local>
     amq_content_basic_t
@@ -216,28 +247,29 @@ Not supported:
     asl_reader_t
         reader;                         //  Body reader
     int
-        rc,                             //  Return code from calls
-        polls;
+        rc;                             //  Return code from calls
+    icl_shortstr_t
+        resource_name,        
+        resource_type,        
+        resource_info;        
     </local>
     //
-    amq_client_session_rest_get (self->session, path);
-    rc = self->session->reply_code;
+    assert (path && strused (path));
+    rc = amq_rest_get (self, path, resource_name, resource_type, resource_info);
     if (rc == 0) {
-        if (streq (self->session->type, "queue")) {
+        if (streq (resource_type, "queue")) {
             //  Get message using synchronous Basic.Get with explicit acknowledge
-            amq_client_session_basic_get (self->session, 0, self->session->path, FALSE);
+            amq_client_session_basic_get (self->session, 0, resource_name, FALSE);
             content = amq_client_session_basic_arrived (self->session);
-            polls = 5;
-            while (!content && polls) {
-                amq_client_session_wait (self->session, 200);
-                amq_client_session_basic_get (self->session, 0, self->session->path, FALSE);
+            if (timeout && !content) {
+                amq_client_session_wait (self->session, timeout);
+                amq_client_session_basic_get (self->session, 0, resource_name, FALSE);
                 content = amq_client_session_basic_arrived (self->session);
-                polls--;
             }
         }
         else {
             //  Create private queue if this is the first fetch
-            if (!self->queue) {
+            if (strnull (self->queue)) {
                 amq_client_session_queue_declare (
                     self->session, 0, NULL, FALSE, FALSE, TRUE, TRUE, NULL);
                 icl_shortstr_cpy (self->queue, self->session->queue);
@@ -245,16 +277,15 @@ Not supported:
                     self->session, 0, self->queue, NULL, FALSE, TRUE, FALSE, NULL);
             }
             //  Unbind old routing key if needed and bind new one
-            if (strneq (self->routing_key, self->session->path_info)) {
+            if (strneq (self->routing_key, resource_info)) {
                 if (strused (self->routing_key))
                     amq_client_session_queue_unbind (
-                        self->session, 0, self->queue, self->session->path, self->routing_key, NULL);
-                icl_shortstr_cpy (self->routing_key, self->session->path_info);
+                        self->session, 0, self->queue, resource_name, self->routing_key, NULL);
+                icl_shortstr_cpy (self->routing_key, resource_info);
                 amq_client_session_queue_bind (
-                    self->session, 0, self->queue, self->session->path, self->routing_key, NULL);
+                    self->session, 0, self->queue, resource_name, self->routing_key, NULL);
             }
-            //  Wait up to one second for a message
-            amq_client_session_wait (self->session, 1000);
+            amq_client_session_wait (self->session, timeout? timeout: 1);
             content = amq_client_session_basic_arrived (self->session);
         }
         //  Process content, if any
@@ -268,14 +299,12 @@ Not supported:
 
 <method name = "selftest">
     <local>
-    ipr_process_t
-        *process;
+//    ipr_process_t
+  //      *process;
     amq_rest_t
         *rest;
     ipr_bucket_t
         *bucket;
-    int
-        messages;
     </local>
     /*
     //  Start an instance of amq_server
@@ -288,49 +317,18 @@ Not supported:
     rest = amq_rest_new ("localhost", "guest", "guest");
     assert (rest);
 
+    //  Test creating, querying, deleting a bunch of resources
     assert (amq_rest_put (rest, "my/test/fanout", "fanout") == 0);
     assert (amq_rest_put (rest, "my/test/direct", "direct") == 0);
     assert (amq_rest_put (rest, "my/test/topic", "topic") == 0);
     assert (amq_rest_put (rest, "my/test/header", "header") == 0);
     assert (amq_rest_put (rest, "my/test/queue", "queue") == 0);
 
-    assert (amq_rest_get (rest, "my/test/fanout", NULL, NULL) == 0);
-    assert (amq_rest_get (rest, "my/test/direct", NULL, NULL) == 0);
-    assert (amq_rest_get (rest, "my/test/topic", NULL, NULL) == 0);
-    assert (amq_rest_get (rest, "my/test/header", NULL, NULL) == 0);
-    assert (amq_rest_get (rest, "my/test/queue", NULL, NULL) == 0);
-
-    bucket = ipr_bucket_new (1000);
-    ipr_bucket_fill_random (bucket, 1000);
-    assert (amq_rest_post (rest, "my/test/queue", bucket) == 0);
-    assert (amq_rest_post (rest, "my/test/queue/reply", bucket) == 0);
-    assert (amq_rest_post (rest, "my/test/queue/reply/to/me", bucket) == 0);
-    ipr_bucket_unlink (&bucket);
-
-    //  We have three test messages, check we get them all and no more
-    for (messages = 0; messages &lt; 3; messages++) {
-        bucket = amq_rest_fetch (rest, "my/test/queue");
-        assert (bucket);
-        ipr_bucket_unlink (&bucket);
-    }
-    bucket = amq_rest_fetch (rest, "my/test/queue");
-    assert (!bucket);
-
-    bucket = ipr_bucket_new (1000);
-    ipr_bucket_fill_random (bucket, 1000);
-    assert (amq_rest_post (rest, "my/test/topic", bucket) == 0);
-    assert (amq_rest_post (rest, "my/test/topic/routing", bucket) == 0);
-    assert (amq_rest_post (rest, "my/test/topic/routing/key/value", bucket) == 0);
-    ipr_bucket_unlink (&bucket);
-
-    //  We have three test messages, check we get them all and no more
-    for (messages = 0; messages &lt; 3; messages++) {
-        bucket = amq_rest_fetch (rest, "my/test/queue");
-        assert (bucket);
-        ipr_bucket_unlink (&bucket);
-    }
-    bucket = amq_rest_fetch (rest, "my/test/queue");
-    assert (!bucket);
+    assert (amq_rest_get (rest, "my/test/fanout", NULL, NULL, NULL) == 0);
+    assert (amq_rest_get (rest, "my/test/direct", NULL, NULL, NULL) == 0);
+    assert (amq_rest_get (rest, "my/test/topic", NULL, NULL, NULL) == 0);
+    assert (amq_rest_get (rest, "my/test/header", NULL, NULL, NULL) == 0);
+    assert (amq_rest_get (rest, "my/test/queue", NULL, NULL, NULL) == 0);
 
     assert (amq_rest_delete (rest, "my/test/fanout") == 0);
     assert (amq_rest_delete (rest, "my/test/direct") == 0);
@@ -338,6 +336,71 @@ Not supported:
     assert (amq_rest_delete (rest, "my/test/header") == 0);
     assert (amq_rest_delete (rest, "my/test/queue") == 0);
 
+    //  Test publishing and reading from a queue
+    bucket = ipr_bucket_new (1000);
+    ipr_bucket_fill_random (bucket, 1000);
+    assert (amq_rest_put  (rest, "my/test/queue", "queue") == 0);
+    assert (amq_rest_post (rest, "my/test/queue", bucket) == 0);
+    assert (amq_rest_post (rest, "my/test/queue/reply", bucket) == 0);
+    assert (amq_rest_post (rest, "my/test/queue/reply/to/me", bucket) == 0);
+    ipr_bucket_unlink (&bucket);
+
+    //  We have three test messages, check we get them all and no more
+    bucket = amq_rest_fetch (rest, "my/test/queue", 100);
+    assert (bucket);
+    ipr_bucket_unlink (&bucket);
+
+    bucket = amq_rest_fetch (rest, "my/test/queue", 100);
+    assert (bucket);
+    ipr_bucket_unlink (&bucket);
+
+    bucket = amq_rest_fetch (rest, "my/test/queue", 100);
+    assert (bucket);
+    ipr_bucket_unlink (&bucket);
+
+    bucket = amq_rest_fetch (rest, "my/test/queue", 0);
+    assert (!bucket);
+    assert (amq_rest_delete (rest, "my/test/queue") == 0);
+
+    //  Test publishing and reading from a topic
+    bucket = amq_rest_fetch (rest, "amq.topic/" "*/*", 0);
+    assert (!bucket);
+
+    bucket = ipr_bucket_new (1000);
+    bucket->cur_size = 1;
+    bucket->data [0] = '!';
+
+    //  These messages will match
+    assert (amq_rest_post (rest, "amq.topic/one/two", bucket) == 0);
+    assert (amq_rest_post (rest, "amq.topic/routing/key", bucket) == 0);
+    assert (amq_rest_post (rest, "amq.topic//key", bucket) == 0);
+
+    //  These messages won't match
+    assert (amq_rest_post (rest, "amq.topic/one", bucket) == 0);
+    assert (amq_rest_post (rest, "amq.topic/one/two/three", bucket) == 0);
+    ipr_bucket_unlink (&bucket);
+
+    bucket = amq_rest_fetch (rest, "amq.topic/" "*/*", 100);
+    assert (bucket);
+    ipr_bucket_unlink (&bucket);
+
+    bucket = amq_rest_fetch (rest, "amq.topic/" "*/*", 100);
+    assert (bucket);
+    ipr_bucket_unlink (&bucket);
+
+    bucket = amq_rest_fetch (rest, "amq.topic/" "*/*", 100);
+    assert (bucket);
+    ipr_bucket_unlink (&bucket);
+
+    bucket = amq_rest_fetch (rest, "amq.topic/" "*/*", 0);
+    assert (!bucket);
+
+/*
+- allow put to create binding
+- also allow fetch/bind in one go
+- allow delete to do unbind
+- handle post in Rest class
+*/
     //  Close RestAPI session and clean up
     amq_rest_destroy (&rest);
     /*

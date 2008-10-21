@@ -1,0 +1,195 @@
+**** REST METHODS ****
+
+Resolve - resolve path into sink, info, type
+Put - declare a sink of specified type
+Get - query a sink and get back type
+Delete 
+
+****  NEW  ****
+
+amq_rest_new (hostname, login, password)
+
+Connects to the specified host.  If successful, creates a private queue for own messages.
+
+****  RESOLVE  ****
+
+rc = amq_rest_resolve (path, sink, info, type)
+
+Resolves a path and returns the sink, info, and type if any.  If the path cannot be resolved, returns -1, else returns 0.  Uses a local cache to reduce the number of exchanges with the server.  Uses the Rest.Resolve method.
+
+****  PUT  ****
+
+rc = amq_rest_put (path, [type])
+
+Creates or asserts a resource.  The path is a sink name optionally followed by binding info.  If the path has binding info, then the sink must already exist.  The type is needed when creating a sink, and must be a valid exchange type, or  "queue".  Returns 0 if the resource could be asserted, -1 if not.
+
+Implementation:
+
+* Resolve path via amq_rest_resolve()
+* If path is unknown, use Rest.Put to declare sink (type is mandatory).
+* If info is not empty, create binding:
+ * If sink is exchange, do Queue.Bind from private queue to exchange with info
+ * If sink is queue
+  * if info is "*", start to consume from queue
+  * else do Queue.Bind from queue to amq.direct with info
+
+****  GET  ****
+
+message = amq_rest_get (path, timeout)
+
+Attempts to fetch a message from a specified path.  The path is one of: "/", meaning the private feed for the client or a sink name followed by a selector.  Valid selectors are "*" for queue sinks, and binding keys for exchange sinks.  The sink must exist.  If the path refers to a sink name with no selector, acts as an assertion that the sink exists, but does not return a message.
+
+Implementation:
+
+* If path is /, wait on message from private queue 
+* Else
+ * Resolve path via amq_rest_resolve()
+ * If path is unknown, print error and end
+ * If info is empty, do Rest.Get on resource (assertion), and end
+ * If sink is exchange, re-bind to specified info and wait for message
+ * If sink is queue, 
+   * if selector must be "*", get next message from queue
+   * if selector is value, bind queue to amq.direct and get next message
+
+
+
+
+
+
+++ Overview
+
+The RESTful interface provides a mapping from AMQP to HTTP and vice-versa.  The main characteristics of the RESTful interface are that AMQP wiring is exposed as resources, addressed via a URI and manipulated via the HTTP GET, PUT, and POST methods.
+
+The RESTful interface is necessarily somewhat simpler than the full AMQP interface as expressed by APIs like WireAPI.  However it supports the common scenarios for AMQP applications and can be extended to cover more.
+
+Since HTTP has its own conventions for what constitutes a resource name, the RESTful interface imposes some changes to AMQP's naming and matching rules:
+
+* Exchange and queue names can contain slashes (not at the start or end).
+* In topic matching, / is equivalent to ., both when binding and publishing
+* In topic matching, empty segments are allowed
+* In topic matching, * matches an empty routing key
+
+The RESTful interface makes these further simplifications to the AMQP model (which do not prevent it from interoperating with AMQP applications):
+
+* Private queues and consumers are invisible and managed automatically.  To be precise, every client session has its own automatic private queue, and consumers are created automatically when needed.
+* Shared queues look and act somewhat like a type of exchange.  There are some differences.
+
+In very gross terms, the RESTful interface handles these three main scenarios:
+
+# Publish-subscribe using the topic or headers exchange type.
+# Request-response.
+# Workload-distribution over shared queues.
+
+Currently, the RESTful interface does not support persistent messaging, but this will be added.
+
+++ API
+
+    PUT (path, [type])
+        type -> create sink
+        else try to create binding
+    DELETE (path)
+    POST (path)
+    [message] = GET (path)
+
+++ Wiring
+
+REST semantics are based around containers and resources.  In our RESTful interface, we consider exchanges and queues to be containers of bindings:
+
+* An exchange contains the bindings which push messages to our private queue.  The private queue is implicit and cannot be addressed directly.
+* A shared queue contains the bindings which pull messages into it.  All bindings are onto amq.direct, which is not addressed directly.
+
+To declare an exchange or queue, we use the PUT method:
+    PUT http://hostname/amqp/resource-name?type=exchange-type|queue
+
+To query an exchange or queue, we use the GET method:
+    GET http://hostname/amqp/resource-name
+
+To delete an exchange or queue, we use the DELETE method:
+    DELETE http://hostname/amqp/resource-name
+
+To bind our hidden private queue to an exchange we use PUT:
+    PUT http://hostname/amqp/exchange-name/routing-key
+
+This automatically creates the private queue and does a consume on it, if necessary.
+
+We can query an exchange binding using GET:
+    GET http://hostname/amqp/exchange-name/routing-key
+
+To unbind a particular routing key we use DELETE:
+    DELETE http://hostname/amqp/exchange-name/routing-key
+
+To bind a shared queue for a specific routing key, we use PUT:
+    PUT http://hostname/amqp/queue-name/routing-key
+
+We can query a shared queue binding using GET:
+    GET http://hostname/amqp/queue-name/routing-key
+
+To unbind a specific routing key for a shared queue we use DELETE:
+    DELETE http://hostname/amqp/queue-name/routing-key
+
+In very gross terms, both types of binding will act similarly, except that shared queues will round-robin messages to as many clients as ask for them.
+
+++ Message transfer
+
+To publish message to an exchange we use POST:
+    POST http://hostname/amqp/exchange-name[/routing-key]
+
+Note that if we have set-up multiple bindings to a shared queue, this will direct messages to that queue.
+
+To publish message to a shared queue we use POST:
+    POST http://hostname/amqp/queue-name[/reply-to]
+
+The publish always goes via the default exchange, using the queue name as routing key.
+
+To fetch a message from a shared queue, we use GET and specify a selector:
+    GET http://hostname/amqp/queue-name/*
+
+The '*' is a selector, currently only this value is allowed.
+
+To fetch a message from an exchange, we use GET and specify a routing-key:
+    GET http://hostname/amqp/exchange-name/routing-key
+
+To fetch the next message for this client, we use GET with an empty path:
+    GET http://hostname/amqp/
+
+The routing key may be "*" to get all messages (if the exchange is a topic exchange), which is analogous to using the "*" selector on a queue.  This request automatically creates a private queue if needed, and binds it to the exchange as specified, sets up a consumer if needed, and waits for a message to arrive.  If you do multiple fetches with different routing keys, each will unbind the previous routing key.
+
+Changes:
+ - put queue/info -> bind to queue from amq.direct
+    - not via private queue...
+ - put exchange/info -> bind from exchange
+    - also create private queue and consume
+ - get / -> get next message from private queue
+ - get /queue-name/* -> get next message from queue
+
+
+
+Consider
+    put /name?type=topic
+        put /name/selector          bind
+        delete /name/selector       unbind
+        post /name/routing-key      publish to exchange
+        get /name/selector          bind & receive
+        get /                       receive
+    get /name                       get info on exchange
+    delete /name                    delete exchange
+
+    put /name?type=queue
+        put /name/selector          bind (amq.direct)
+        delete /name/selector       unbind (amq.direct)
+        post /name/reply-to         publish to queue
+        get /name/selector          get matching message 
+    get /name                       get info on queue
+    delete /name                    delete queue
+
+Not supported:
+
+* Does not allow binding arguments (headers) yet.
+
+RESTful extensions
+    - could be configurable...
+    - Rest class
+    - / in topics equivalent to ., both in bind and publish
+    - * in topics matches empty routing-key
+    - empty topic segments are allowed (.value or /value)
+
