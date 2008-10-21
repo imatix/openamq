@@ -1,9 +1,18 @@
 **** REST METHODS ****
 
-Resolve - resolve path into sink, info, type
-Put - declare a sink of specified type
-Get - query a sink and get back type
-Delete 
+Resolve - resolve path into sink, selector, type
+Put - declare a sink of specified type, or selector on existing sink
+Get - query a sink and get back type, or get selector information
+Delete - delete a sink or selector
+
+Resources are sinks or selectors:
+
+    /
+    /sink-name
+    /sink-name/selector-string
+    /sink-name/*
+    
+Sinks are exchanges or queues.  These share the same namespace.  Selectors are, for queues, patterns that match the message-id field.  For exchanges, selectors are binding keys.  All selectors have the same effect: pull messages into own private message queue.  Application can define selectors in advance, using Put method, or dynamically, using Get method.
 
 ****  NEW  ****
 
@@ -21,40 +30,63 @@ Resolves a path and returns the sink, info, and type if any.  If the path cannot
 
 rc = amq_rest_put (path, [type])
 
-Creates or asserts a resource.  The path is a sink name optionally followed by binding info.  If the path has binding info, then the sink must already exist.  The type is needed when creating a sink, and must be a valid exchange type, or  "queue".  Returns 0 if the resource could be asserted, -1 if not.
+    put /exchange-name?type="exchange-type"
+    put /queue-name?type="queue"
+    put /exchange-name/binding-key
+    put /queue-name/*
+
+Assert-creates a resource specified by path.  The path is a sink name + optional selector.  To specify a selector, the sink must already exist.  The type is mandatory when creating a sink, and must be a valid exchange type, or  "queue".  Returns 0 if the resource could be assert-created, -1 if not.  Attempting to create an existing resource is not an error.
 
 Implementation:
 
 * Resolve path via amq_rest_resolve()
-* If path is unknown, use Rest.Put to declare sink (type is mandatory).
-* If info is not empty, create binding:
- * If sink is exchange, do Queue.Bind from private queue to exchange with info
- * If sink is queue
-  * if info is "*", start to consume from queue
-  * else do Queue.Bind from queue to amq.direct with info
+* If sinkname is unknown, use Rest.Put to declare sink (type is mandatory).
+* If selector is not empty, create binding:
+ * If sink is exchange, do Queue.Bind to exchange using selector
+ * If sink is queue, consume from queue (selector must be "*")
 
 ****  GET  ****
 
 message = amq_rest_get (path, timeout)
 
-Attempts to fetch a message from a specified path.  The path is one of: "/", meaning the private feed for the client or a sink name followed by a selector.  Valid selectors are "*" for queue sinks, and binding keys for exchange sinks.  The sink must exist.  If the path refers to a sink name with no selector, acts as an assertion that the sink exists, but does not return a message.
+    get /
+    get /exchange-name
+    get /queue-name
+    get /exchange-name/binding-key
+    get /queue-name/*
+
+Attempts to fetch a message from a specified path.  The path is one of: "/", meaning the private queue for the client or a sink name followed by a selector.  Valid selectors are "*" for queue sinks, and binding keys for exchange sinks.  The sink must exist.  If the path refers to a sink name with no selector, acts as a passive assertion that the sink exists, but does not return a message.
 
 Implementation:
 
 * If path is /, wait on message from private queue 
 * Else
  * Resolve path via amq_rest_resolve()
- * If path is unknown, print error and end
- * If info is empty, do Rest.Get on resource (assertion), and end
- * If sink is exchange, re-bind to specified info and wait for message
- * If sink is queue, 
-   * if selector must be "*", get next message from queue
-   * if selector is value, bind queue to amq.direct and get next message
+ * If sinkname is unknown, print error and end
+ * If selector is empty, do Rest.Get on resource (assertion), and end
+ * If sinktype is exchange, re-bind to specified selector and wait for message
+ * If sinktype is queue, get message from queue (selector must be "*")
 
+****  DELETE  ****
 
+rc = amq_rest_delete (path)
 
+    delete /exchange-name
+    delete /queue-name
+    delete /exchange-name/binding-key
+    delete /queue-name/*
 
+Assert-deletes a resource specified by path.  The path is a sink name + optional selector.  To specify a selector, the sink must exist.  Deletes the selector by doing an unbind if the sinktype is exchange, otherwise stops consuming from the queue.  Deletes a sink (if only a sink name is specified) by deleting the exchange or queue as specified.  Attempting to delete a non-existing resource is not an error.
 
+****  POST  ****
+
+rc = amq_rest_post (path, message)
+
+Posts a message to a resource specified by path.  The path is a sink name + optional address.  The sink must exist.  If the sink is an exchange, the address is used as a routing-key.  If the sink is a queue, the address is used as a message-id.
+
+- content-type
+- content-encoding
+- reply-to
 
 ++ Overview
 
