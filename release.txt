@@ -1,5 +1,27 @@
 + Unstable branch
 
+++ 1.3c0 - 2008/10/21
+
+* fixed: mixing deliveries with sync methods confused WireAPI (http://www.openamq.org/issue:32)
+* fixed: Queue.Destroy was not working properly (http://www.openamq.org/issue:31)
+* fixed: zero-sized content crashes server & client (http://www.openamq.org/issue:30)
+* fixed: asl_field_list_dump () wrote into unallocated memory. (http://www.openamq.org/issue:29)
+* fixed: PAL did not allow nested repeat blocks (confused the counters).
+* fixed: amq_client.asl crashed when using default exchange (http://www.openamq.org/issue:28)
+* fixed: amq_server let applications delete pre-defined exchanges (http://www.openamq.org/issue:27)
+* fixed: in direct mode, queue & connection transfer statistics were not updated
+* Java JMS client moved to public git at http://github.com/pieterh/openamq-jms/tree/master
+
+++ 1.3b2 - 2008/10/09
+
+* amq_shell did not work with Direct Mode (http://www.openamq.org/issue:19)
+* Fixed loss of messages caused by Direct Mode heartbeating (http://www.openamq.org/issue:20)
+* Implemented warn/drop on Direct Mode for slow network links, using private queue config (http://www.openamq.org/issue:22)
+* Added WIREAPI_FAKESLOW environment variable to simulate slow network at client end (http://www.openamq.org/issue:22)
+* Fixed crash in content wire_get with malformed content (http://www.openamq.org/issue:24)
+* Improved amq_client test tool to report lost messages, if any, on interrupt
+* Improved amq_server --dump_state output to show direct messages in/out/sunk/fed
+
 ++ 1.3b1 - 2008/10/03
 
 This update includes all fixes in 1.2d5.
