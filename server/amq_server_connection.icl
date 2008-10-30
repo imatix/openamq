@@ -35,7 +35,6 @@ This class implements the connection class for the AMQ server.
 //  These are the connection groups we allow
 #define AMQ_CONNECTION_GROUP_NORMAL    1
 #define AMQ_CONNECTION_GROUP_SUPER     2
-#define AMQ_CONNECTION_GROUP_CLUSTER   3
 </public>
 
 <context>
@@ -47,8 +46,6 @@ This class implements the connection class for the AMQ server.
         *consumer_table;                //  Consumers for connection
     qbyte
         consumer_tag;                   //  Last consumer tag
-    qbyte
-        per_client;                     //  Messages owned by this client
     icl_shortstr_t
         user_name;                      //  User login name
     int
@@ -58,24 +55,21 @@ This class implements the connection class for the AMQ server.
 <method name = "new">
     self->own_queue_list = amq_queue_list_new ();
     self->consumer_table = amq_consumer_table_new ();
-
-    //  Notify HAC that new connection is being created
-    amq_cluster_hac_new_connection (amq_broker->hac);
 </method>
 
 <method name = "destroy">
     <local>
-    amq_queue_list_iterator_t
+    amq_queue_list_iter_t *
        iterator;
     </local>
     //
     //  Firstly, send notification of connection termination to all
     //  exclusive queues created by the connection, so that they can be
     //  destroyed even if there is no consumer on the queue.
-    for (iterator = amq_queue_list_begin (self->own_queue_list);
+    for (iterator = amq_queue_list_first (self->own_queue_list);
           iterator != NULL;
-          iterator = amq_queue_list_next (iterator))
-        amq_queue_unbind_connection (*iterator);
+          iterator = amq_queue_list_next (&iterator))
+        amq_queue_unbind_connection (iterator->item);
 
     amq_vhost_unlink       (&self->vhost);
     amq_queue_list_destroy (&self->own_queue_list);
@@ -89,7 +83,7 @@ This class implements the connection class for the AMQ server.
     <argument name = "queue" type = "amq_queue_t *">Queue reference</argument>
     <inherit name = "wrlock" />
     assert (queue->exclusive);
-    amq_queue_list_push_back (self->own_queue_list, queue);
+    amq_queue_list_queue (self->own_queue_list, queue);
 </method>
 
 <method name = "unbind queue" template = "function">
@@ -99,36 +93,18 @@ This class implements the connection class for the AMQ server.
     <argument name = "queue" type = "amq_queue_t *">The queue to unbind</argument>
     <inherit name = "wrlock" />
     <local>
-    amq_queue_list_iterator_t
+    amq_queue_list_iter_t *
         iterator;
     </local>
     //
     //  Remove the queue from the list of exclusive connections
-    iterator = amq_queue_list_find (
-        amq_queue_list_begin (self->own_queue_list), NULL, queue);
+    iterator = amq_queue_list_find (self->own_queue_list, queue);
     if (iterator)
-        amq_queue_list_erase (self->own_queue_list, iterator);
+        amq_queue_list_iter_destroy (&iterator);
 </method>
 
 <method name = "ready" template = "function">
     rc = TRUE;
-</method>
-
-<method name = "error">
-    <doc>
-    If the connection is alive, raises an exception with the specified
-    reply code/text, otherwise prints it to the console.
-    </doc>
-    <argument name = "self" type = "amq_server_connection_t *" />
-    <argument name = "reply code" type = "dbyte" >Error code</argument>
-    <argument name = "reply text" type = "char *">Error text</argument>
-    <inherit name = "wrlock" />
-    //
-    if (self)
-        self_exception (self, reply_code, reply_text);
-    else
-        smt_log_print (amq_broker->alert_log,
-            "E: connection exception: (%d) %s", reply_code, reply_text);
 </method>
 
 <method name = "start ok" template = "function">
@@ -142,7 +118,9 @@ This class implements the connection class for the AMQ server.
     if (s_auth_plain (self, method))
         self->authorised = TRUE;
     else
-        self_exception (self, ASL_ACCESS_REFUSED, "Invalid authentication data");
+        self_raise_exception (self, ASL_ACCESS_REFUSED, 
+            "Invalid authentication data",
+            AMQ_SERVER_CONNECTION, AMQ_SERVER_CONNECTION_START_OK);
 </method>
 
 <method name = "open">
@@ -150,30 +128,37 @@ This class implements the connection class for the AMQ server.
     self->vhost = amq_vhost_link (amq_broker->vhost);
 
     if (!self->vhost)
-        self_exception (self, ASL_ACCESS_REFUSED, "Server is not ready");
+        self_raise_exception (self, ASL_ACCESS_REFUSED, 
+            "Server is not ready",
+            AMQ_SERVER_CONNECTION, AMQ_SERVER_CONNECTION_OPEN);
     else
     //  If locked, allow only super user access
     if (amq_broker->locked && self->group == AMQ_CONNECTION_GROUP_NORMAL)
-        self_exception (self, ASL_ACCESS_REFUSED, "Connections not allowed at present");
+        self_raise_exception (self, ASL_ACCESS_REFUSED, 
+            "Connections not allowed at present",
+            AMQ_SERVER_CONNECTION, AMQ_SERVER_CONNECTION_OPEN);
     else
-    if (amq_broker->clustered) {
-        if (streq (method->virtual_host, amq_server_config_cluster_vhost (amq_server_config))) {
-            if (amq_broker->hac->state == AMQ_HAC_STATE_ACTIVE
-            ||  self->group > AMQ_CONNECTION_GROUP_NORMAL)
-                amq_server_agent_connection_open_ok (self->thread, NULL);
-            else
-                self_exception (self, ASL_ACCESS_REFUSED,
-                    "Application connections not allowed at present");
-        }
-        else {
-            smt_log_print (amq_broker->alert_log,
-                "E: client at %s tried to connect to invalid vhost '%s'",
-                self->client_address, method->virtual_host);
-            self_exception (self, ASL_INVALID_PATH, "Cluster vhost is not correct");
+    if (strneq (method->virtual_host, amq_server_config_vhost (amq_server_config))) {
+        smt_log_print (amq_broker->alert_log,
+            "E: client at %s tried to connect to invalid vhost '%s'",
+            self->client_address, method->virtual_host);
+        self_raise_exception (self, ASL_INVALID_PATH, "vhost is incorrect",
+            AMQ_SERVER_CONNECTION, AMQ_SERVER_CONNECTION_OPEN);
+    }
+    else
+    if (amq_broker->failover->enabled) {
+        //  Application connections send an event to the failover FSM.
+        //  Failover state machine determines whether connection should 
+        //  be accepted or rejected
+        if (self->group == AMQ_CONNECTION_GROUP_NORMAL) {
+            if (!amq_failover_execute (amq_broker->failover, amq_ha_event_new_connection))
+                self_raise_exception (self, ASL_ACCESS_REFUSED,
+                    "Connections not allowed at present",
+                    AMQ_SERVER_CONNECTION, AMQ_SERVER_CONNECTION_OPEN);
         }
     }
     else
-        amq_server_agent_connection_open_ok (self->thread, NULL);
+        rc = TRUE;                      //  Proceed
 </method>
 
 <private name = "header">
@@ -207,7 +192,9 @@ static int s_auth_plain (
         s_collect_plain_token (method->response->data, login, token_null);
 
     if (strnull (login) || strnull (password)) {
-        self_exception (self, ASL_SYNTAX_ERROR, "Missing authentication data");
+        self_raise_exception (self, ASL_SYNTAX_ERROR, 
+            "Missing authentication data",
+            AMQ_SERVER_CONNECTION, AMQ_SERVER_CONNECTION_START_OK);
         return (0);
     }
     config = ipr_config_dup (amq_server_config->config);
@@ -215,7 +202,8 @@ static int s_auth_plain (
     if (!config->located) {
         smt_log_print (amq_broker->alert_log,
             "E: no 'plain' security defined in server config");
-        self_exception (self, ASL_INTERNAL_ERROR, "Bad server configuration");
+        self_raise_exception (self, ASL_INTERNAL_ERROR, 
+            "Bad server configuration", 0, 0);
         return (0);
     }
     //  Now check user login and password and set group if found
@@ -230,13 +218,11 @@ static int s_auth_plain (
             else
             if (streq (group, "super"))
                 self->group = AMQ_CONNECTION_GROUP_SUPER;
-            else
-            if (streq (group, "cluster"))
-                self->group = AMQ_CONNECTION_GROUP_CLUSTER;
             else {
                 smt_log_print (amq_broker->alert_log,
                     "E: invalid user group '%s' in config", group);
-                self_exception (self, ASL_INTERNAL_ERROR, "Bad server configuration");
+                self_raise_exception (self, ASL_INTERNAL_ERROR, 
+                    "Bad server configuration", 0, 0);
             }
             smt_log_print (amq_broker->daily_log,
                 "I: valid login from=%s user=%s group=%s", self->client_address, login, group);

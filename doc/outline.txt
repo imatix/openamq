@@ -1,0 +1,82 @@
+------------------------------------------------------------------------------
+main:questions
+
++ Tell us what you think
+
+Levels of support
+Public mailing list
+This wiki
+Expert help
+
+
+main:submit-news
+main:all-news
+main:public-list
+main:public-archive
+main:submit-issue
+main:all-issues
+main:contribute
+
+    
+Submit
+    Submit issue
+    Submit FAQ
+    Submit addon
+    Submit tutorial
+    [[[terms of use]]]
+
+legal section
+
+
+todo:
+ - issues: to submit issues
+ - news: for current news
+
+
+testing federation
+    - two brokers, parent and child
+    subsciber test:
+        - attach amq.test.subscriber (topic) to parent
+        - consume at child
+        - consume at parent
+        - publish to parent
+            - expect messages to arrive at parent
+            - expect messages to arrive at child
+        - publish to child
+            - expect messages to arrive at child 
+    publisher test:
+        - attach amq.test.publisher (topic) to parent
+        - consume at child
+        - consume at parent
+        - publish to parent
+            - expect messages to arrive at parent
+        - publish to child
+            - expect messages to arrive at parent
+            - expect messages to arrive at child 
+    locator test:
+        - attach amq.test.locator (direct) to parent
+        - consume at child
+        - consume at parent
+        - publish to parent
+            - expect messages to arrive at parent
+        - publish to child
+            - expect messages to arrive at child 
+    fanout test:
+        - attach amq.test.fanout (topic) to parent
+        - consume at child
+        - consume at parent
+        - publish to parent
+            - expect messages to arrive at parent
+            - expect messages to arrive at child 
+        - publish to child
+            - expect messages to arrive at parent
+            - expect messages to arrive at child 
+    service test:
+        - attach amq.test.service (direct) to parent
+        - consume at child
+        - consume at parent
+        - publish to parent
+            - expect messages to arrive at parent
+        - publish to child
+            - expect messages to arrive at child 
+

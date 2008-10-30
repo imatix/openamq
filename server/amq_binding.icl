@@ -55,7 +55,8 @@ class.
     icl_longstr_t
         *arguments;                     //  Additional binding arguments
     Bool
-        is_wildcard;                    //  Matches multiple routing keys?
+        is_wildcard,                    //  Matches multiple routing keys?
+        exclusive;                      //  Has at least one exclusive queue
     int
         index;                          //  Index in exchange->binding_index
 
@@ -74,9 +75,16 @@ class.
     <argument name = "exchange"    type = "amq_exchange_t *">Parent exchange</argument>
     <argument name = "routing key" type = "char *">Bind to routing key</argument>
     <argument name = "arguments"   type = "icl_longstr_t *" >Additional arguments</argument>
+    <argument name = "exclusive"   type = "Bool">Queue is exclusive?</argument>
+    <local>
+    amq_federation_t
+        *federation;
+    </local>
+    //
     self->exchange   = exchange;
     self->queue_list = amq_queue_list_new ();
     self->index_list = ipr_looseref_list_new ();
+    self->exclusive  = exclusive;
     icl_shortstr_cpy (self->routing_key, routing_key);
 
     //  Store empty arguments as null to simplify comparisons
@@ -90,18 +98,28 @@ class.
             "E: too many bindings in %s exchange", exchange->name);
         self_destroy (&self);
     }
-    //  Notify MTA about new binding
-    if (self->exchange->mta)
-        amq_cluster_mta_binding_created (self->exchange->mta, 
-            self->routing_key, self->arguments);
+    //  Notify federation, if any, about new binding
+    federation = amq_federation_link (self->exchange->federation);
+    if (federation) {
+        amq_federation_binding_created (federation, 
+            self->routing_key, self->arguments, self->exclusive);
+        amq_federation_unlink (&federation);
+    }
 </method>
 
 <method name = "destroy">
-    //  Notify MTA about binding being destroyed
-    if (self->exchange->mta)
-        amq_cluster_mta_binding_destroyed (self->exchange->mta,
+    <local>
+    amq_federation_t
+        *federation;
+    </local>
+    //
+    //  Notify federation, if any, about binding being destroyed
+    federation = amq_federation_link (self->exchange->federation);
+    if (federation) {
+        amq_federation_binding_destroyed (federation,
             self->routing_key, self->arguments);
-
+        amq_federation_unlink (&federation);
+    }
     if (self->exchange->binding_index)
         ipr_index_delete (self->exchange->binding_index, self->index);
 
@@ -116,9 +134,8 @@ class.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">Queue to bind</argument>
     //
-    if (!amq_queue_list_find (
-        amq_queue_list_begin (self->queue_list), NULL, queue))
-        amq_queue_list_push_back (self->queue_list, queue);
+    if (!amq_queue_list_find (self->queue_list, queue))
+        amq_queue_list_queue (self->queue_list, queue);
 </method>
 
 <method name = "unbind queue" template = "function">
@@ -129,44 +146,47 @@ class.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">Queue to unbind</argument>
     <local>
-    amq_queue_list_iterator_t
+    amq_queue_list_iter_t *
         iterator;
     </local>
     //
     if (!self->zombie) {
-        iterator = amq_queue_list_find (
-            amq_queue_list_begin (self->queue_list), NULL, queue);
+        iterator = amq_queue_list_find (self->queue_list, queue);
         if (iterator)
-            amq_queue_list_erase (self->queue_list, iterator);
+            amq_queue_list_iter_destroy (&iterator);
 
         //  Signal to caller if binding is now empty
-        if (amq_queue_list_size (self->queue_list) == 0)
+        if (amq_queue_list_count (self->queue_list) == 0)
             rc = -1;
     }
 </method>
 
-<method name = "publish" template = "function">
+<method name = "collect" template = "function">
     <doc>
-    Publish message to all queues and peers defined for the binding.
-    Returns number of times the message was published (fanout), which
-    is 1 or greater if there were recipients, zero if not.
+    Collect all queues for the binding into the caller's publish set.
+    To avoid the same message being published multiple times to the same
+    queue via different bindings, the exchane collects all queues for a 
+    message, sorts, and eliminates duplicates.  Returns new queue set
+    size.  If queue set size reaches 75% of limit, prints warning.
     </doc>
-    <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
-    <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
+    <argument name = "queue set" type = "amq_queue_t **">Queue set</argument>
+    <argument name = "set size"  type = "size_t">Queue set size</argument>
     <local>
-    amq_queue_list_iterator_t
+    amq_queue_list_iter_t *
         iterator;
     </local>
     //
-    //  Publish to all queues, sending method to async queue class
-    iterator = amq_queue_list_begin (self->queue_list);
+    iterator = amq_queue_list_first (self->queue_list);
     while (iterator) {
-        if (amq_server_config_debug_route (amq_server_config))
-            smt_log_print (amq_broker->debug_log, "X: deliver  queue=%s", (*iterator)->key);
-        amq_queue_publish (*iterator, channel, method);
-        iterator = amq_queue_list_next (iterator);
-        rc++;                           //  Count recepients
+        if (set_size < AMQ_QUEUE_SET_MAX)
+            queue_set [set_size++] = (amq_queue_t *) iterator->item;
+        iterator = amq_queue_list_next (&iterator);
     }
+    rc = set_size;
+    if (set_size > AMQ_QUEUE_SET_MAX * 75 / 100)
+        smt_log_print (amq_broker->alert_log,
+            "W: reaching AMQ_QUEUE_SET_MAX (at %d), please notify openamq-dev@imatix.com", 
+            AMQ_QUEUE_SET_MAX);
 </method>
 
 <method name = "selftest" />

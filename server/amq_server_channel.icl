@@ -39,12 +39,19 @@ maximum number of consumers per channel is set at compile time.
     icl_shortstr_t
         current_exchange,               //  Last exchange declared on channel
         current_queue;                  //  Last queue declared on channel
+    int                          
+        credit,                         //  Current credit remaining
+        gained,                         //  Credit gained through work
+        window;                         //  Maximum credit window
+    qbyte
+        solvent;                        //  When we have credit left
 </context>
 
 <method name = "new">
     self->consumer_list = amq_consumer_by_channel_new ();
     if (amq_broker)                     //  Null during self-testing
         self->mgt_connection = amq_connection_new (amq_broker, self);
+    amq_server_channel_set_window (self, 0);
 </method>
 
 <method name = "destroy">
@@ -120,10 +127,59 @@ maximum number of consumers per channel is set at compile time.
     if (consumer) {
         amq_consumer_by_channel_queue (self->consumer_list, consumer);
         amq_queue_consume (queue, consumer, self->active, nowait);
+        if (queue->exclusive)
+            amq_server_channel_set_window (self, amq_server_config_private_credit (amq_server_config));
+        else
+            amq_server_channel_set_window (self, amq_server_config_shared_credit (amq_server_config));
+
         amq_consumer_unlink (&consumer);
     }
     else
         smt_log_print (amq_broker->alert_log, "W: cannot create consumer - too many consumers?");
+    </action>
+</method>
+
+<method name = "set window" template = "function">
+    <doc>
+    Sets the channel's credit window.  Always resets the credit.  For internal
+    use by this method only (not an async function).
+    </doc>
+    <argument name = "window" type = "int" />
+    //
+    self->window = window;
+    self->credit = window;
+    self->solvent = 1;
+    self->gained = 0;
+</method>
+
+<method name = "spend">
+    <action>
+    //  Credit can go negative since it's all async
+    //  Do nothing if the window is zero
+    if (self->window && --self->credit == 0)
+        icl_atomic_set32 (&self->solvent, 0);
+    </action>
+</method>
+
+<method name = "earn">
+    <action>
+    amq_consumer_t
+        *consumer;                      //  Consumer object reference
+    //
+    //  If we've gained enough, refill our credit
+    //  Do nothing if the window is zero
+    if (self->window && ++self->gained == self->window) {
+        self->credit = self->gained;
+        self->gained = 0;
+        self->solvent = 1;
+
+        //  Dispatch all queues for the channel
+        consumer = amq_consumer_by_channel_first (self->consumer_list);
+        while (consumer) {
+            amq_queue_dispatch (consumer->queue);
+            consumer = amq_consumer_by_channel_next (&consumer);
+        }
+    }
     </action>
 </method>
 
@@ -165,23 +221,8 @@ maximum number of consumers per channel is set at compile time.
     }
     else
     if (sync)
-        amq_server_channel_error (self, ASL_NOT_FOUND, "Not a valid consumer tag");
+        amq_server_agent_basic_cancel_ok (self->connection->thread, self->number, tag);
     </action>
-</method>
-
-<method name = "error">
-    <doc>
-    If the channel is alive, closes the channel with the specified
-    reply code/text, otherwise prints it to the console.
-    </doc>
-    <argument name = "self" type = "amq_server_channel_t *">Reference to channel</argument>
-    <argument name = "reply code" type = "dbyte" >Error code</argument>
-    <argument name = "reply text" type = "char *">Error text</argument>
-    if (self)
-        amq_server_channel_close (self, reply_code, reply_text);
-    else
-        smt_log_print (amq_broker->alert_log,
-            "E: channel exception: (%d) %s", reply_code, reply_text);
 </method>
 
 <method name = "selftest">

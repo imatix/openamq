@@ -79,7 +79,7 @@ Unix Deployment FAQ
 
  - !How much memory does the amq_server need?! Answer: from 50Mb upwards.
    You can specify a limit for the server's memory usage in the
-   [config.html:server configuration].
+   [/options.html:server configuration].
 
  - !Do I need root access to run the server?! Answer: no, it runs in user
    space, and the official AMQP port 5672) does not need root access.

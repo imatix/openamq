@@ -1,6 +1,6 @@
 <?xml?>
 <!--
-    Copyright (c) 2007 iMatix Corporation
+    Copyright (c) 2007-2008 iMatix Corporation
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,10 +18,10 @@
 
 <pdl
     name      = "OpenAMQ Common"
-    version   = "1.2c0"
+    version   = "1.2d7"
     workflow  = "standard.pwl"
     library   = "libamq_common"
-    copyright = "Copyright (c) 2007 iMatix Corporation"
+    copyright = "Copyright (c) 2007-2008 iMatix Corporation"
     >
 
 <include filename = "prelude.pdl" />
@@ -32,15 +32,9 @@
 
 <!-- AMQ protocol specification -->
 <file name = "amq.asl"                   class = "gsl public data"   >AMQ protocol definition</file>
-<file name = "amq_access.asl"            class = "public resource"   >Access control</file>
 <file name = "amq_exchange.asl"          class = "public resource"   >Exchange management</file>
 <file name = "amq_queue.asl"             class = "public resource"   >Queue management</file>
 <file name = "amq_basic.asl"             class = "public resource"   >Basic content</file>
-<file name = "amq_file.asl"              class = "public resource"   >File content</file>
-<file name = "amq_stream.asl"            class = "public resource"   >Stream content</file>
-<file name = "amq_tx.asl"                class = "public resource"   >Transactions</file>
-<file name = "amq_dtx.asl"               class = "public resource"   >Distributed transactions</file>
-<file name = "amq_tunnel.asl"            class = "public resource"   >Method tunneling</file>
 
 <!-- PAL/AMQ code generator -->
 <file name = "amq_pal.xnf"               class = "generated" />
@@ -55,16 +49,8 @@
 <file name = "amq_constants.icl"         class = "icl public data"   generated = "1"
                                                                      >Constants class</file>
 <file name = "amq_content_basic.icl"     class = "icl public cont"   >Basic content class</file>
-<file name = "amq_content_file.icl"      class = "icl public cont"   >File content class</file>
-<file name = "amq_content_stream.icl"    class = "icl public cont"   >Stream content class</file>
-<file name = "amq_content_tunnel.icl"    class = "icl public cont"   >Tunnel content class</file>
-<file name = "amq_content_stream_list.icl"
-                                         class = "icl public cont"   >List of stream contents</file>
-<file name = "amq_content_tunnel_list.icl"
-                                         class = "icl public cont"   >List of tunnel contents</file>
 <file name = "amq_content_basic_list.icl"
                                          class = "icl public cont"   >List of basic contents</file>
-<file name = "amq_content_file_list.icl" class = "icl public cont"   >List of file contents</file>
 
 <!-- Generate AMQ protocol documentation -->
 <actions>

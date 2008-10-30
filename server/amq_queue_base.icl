@@ -114,7 +114,7 @@ independent of the queue content type.
 <private name = "header">
 #define CONSUMER_FOUND  0
 #define CONSUMER_NONE   1
-#define CONSUMER_BUSY   2 //  Currently not used, pending review of flow control
+#define CONSUMER_BUSY   2
 #define CONSUMER_PAUSED 3
 
 static int
@@ -151,7 +151,6 @@ s_get_next_consumer (
     //  We expect to process the first consumer on the active list
     consumer = amq_consumer_by_queue_first (self->consumer_list);
     while (consumer) {
-
         channel_active = FALSE;
         channel = amq_server_channel_link (consumer->channel);
         if (channel) {
@@ -162,17 +161,22 @@ s_get_next_consumer (
         else
             connection = NULL;
             
-        if (!channel_active)
-            rc = CONSUMER_PAUSED;       //  Skip this consumer
-        else
-        if (consumer->no_local == FALSE)
-            rc = CONSUMER_FOUND;        //  We have our consumer
-        else
-        if (strneq (connection->id, producer_id)) {
-            //  If the consumer is an application then we can compare the
-            //  content producer_id with the connection id of the consumer.
-            rc = CONSUMER_FOUND;        //  We have our consumer
+        if (channel_active) {
+            if (!channel->solvent)
+                rc = CONSUMER_BUSY;     //  Skip this consumer if busy
+            else
+            if (consumer->no_local) {
+                //  If the consumer is an application then we can compare the
+                //  content producer_id with the connection id of the consumer.
+                if (strneq (connection->id, producer_id))
+                    rc = CONSUMER_FOUND; //  We have our consumer
+            }
+            else
+                rc = CONSUMER_FOUND;    //  We have our consumer
         }
+        else
+            rc = CONSUMER_PAUSED;       //  Skip this consumer
+
         amq_server_connection_unlink (&connection);
         amq_server_channel_unlink (&channel);
         if (rc == CONSUMER_FOUND)

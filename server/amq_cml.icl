@@ -35,7 +35,7 @@
     not null, the fields are included in the command.
     </doc>
     <argument name = "name" type = "char *">Command name</argument>
-    <argument name = "class" type = "char *">Object class name</argument>
+    <argument name = "object class" type = "char *">Object class name</argument>
     <argument name = "object id" type = "qbyte">Object id</argument>
     <argument name = "status" type = "char *">Status, or null</argument>
     <argument name = "method" type = "char *">Method name, or null</argument>
@@ -62,7 +62,7 @@
     ipr_xml_attr_set (cml_item, "xmlns", "http://www.openamq.org/schema/cml");
 
     cur_item = ipr_xml_new (cml_item, name, NULL);
-    ipr_xml_attr_set (cur_item, "class",  class);
+    ipr_xml_attr_set (cur_item, "class",  object_class);
     ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%d", object_id));
     
     if (status)

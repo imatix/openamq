@@ -2,7 +2,7 @@
 <pdl
     name      = "OpenAMQ performance tests"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2006 JPMorgan and iMatix Corporation"
+    copyright = "Copyright (c) 2007 iMatix Corporation"
     workflow  = "standard.pwl"
     >
 
@@ -17,6 +17,8 @@
                                      class = "pal script" />
 <file name = "grm_sender_resp_burst.pal"
                                      class = "pal script" />
+<file name = "grm_sender_resp_large.pal"
+                                     class = "pal script" />
 <file name = "grm_sender_pubsub_stable.pal"
                                      class = "pal script" />
 <file name = "grm_sender_pubsub_burst.pal"
@@ -28,25 +30,10 @@
 <file name = "echo_server.pal"       class = "pal script" />
 <file name = "s_topic_publish.pal"   class = "pal script" />
 <file name = "s_topic_subscribe.pal" class = "pal script" />
-<!-- Must be rewritten as PAL
-<file name = "n_topic_publish.c"     class = "main program" />
-<file name = "n_topic_subscribe.c"   class = "main program" />
- -->
 <file name = "topic_publish.pal"     class = "pal script" />
 <file name = "topic_subscribe.pal"   class = "pal script" />
-
-<file name = "blaster_client"      class = "public command" />
-<file name = "blaster_server"      class = "public command" />
-<file name = "echo_client"         class = "public command" />
-<file name = "echo_server"         class = "public command" />
-<file name = "s_topic_publish"     class = "public command" />
-<file name = "s_topic_subscribe"   class = "public command" />
-<!-- Must be rewritten as PAL
-<file name = "n_topic_publish"     class = "public command" />
-<file name = "n_topic_subscribe"   class = "public command" />
--->
-<file name = "topic_publish"       class = "public command" />
-<file name = "topic_subscribe"     class = "public command" />
+<file name = "jamq_83_publish.pal"   class = "pal script" />
+<file name = "jamq_83_subscribe.pal" class = "pal script" />
 
 <class name = "pal script" inherit = "gsl data">
 PAL script

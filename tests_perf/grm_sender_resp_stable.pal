@@ -16,17 +16,17 @@
         <repeat>
             <!-- Publish 9 common messages -->
             <repeat times = "9">
-                <set_random name = "msg_size" max = "$msg_size_cmdline" />
+                <random name = "msg_size" max = "$msg_size_cmdline" />
                 <basic_content size = "$msg_size" message_id = "$msg_id"/>
                 <basic_publish exchange = "grm.r" routing_key = "stable" />
-                <set_random name = "delay" min = "1" max = "$delay_cmdline" />
+                <random name = "delay" min = "1" max = "$delay_cmdline" />
                 <wait timeout = "$delay" />
             </repeat>
             <!-- Publish synchronisation message -->
-            <set_random name = "msg_size" max = "$msg_size_cmdline" />
+            <random name = "msg_size" max = "$msg_size_cmdline" />
             <basic_content size = "$msg_size" message_id = "$sync_id"/>
             <basic_publish exchange = "grm.r" routing_key = "stable" />
-            <set_random name = "delay" min = "1" max = "$delay_cmdline" />
+            <random name = "delay" min = "1" max = "$delay_cmdline" />
             <wait timeout = "$delay" />
         </repeat>
     </session>

@@ -67,16 +67,11 @@ runs lock-free as a child of the asynchronous queue class.
         *connection;
     amq_consumer_t
         *consumer;
-    int
-        active_consumer_count;
     Bool
+        have_active_consumers,
         rejected;
     </local>
     //
-    /*  Limitations of current design:
-        - no acknowledgements
-        - no windowing
-     */
     if (amq_server_config_debug_queue (amq_server_config))
         smt_log_print (amq_broker->debug_log,
             "Q: publish  queue=%s message=%s", self->queue->name, content->message_id);
@@ -93,15 +88,10 @@ runs lock-free as a child of the asynchronous queue class.
         amq_content_basic_t
             *oldest;
 
-        connection = channel?
-            amq_server_connection_link (channel->connection): NULL;
-        if (connection) {
-            if (connection->group == AMQ_CONNECTION_GROUP_NORMAL)
-                for (limit_nbr = 0; limit_nbr < self->queue->limits; limit_nbr++)
-                    if (queue_size &gt;= self->queue->limit_value [limit_nbr])
-                        limit_action = self->queue->limit_action [limit_nbr];
-            amq_server_connection_unlink (&connection);
-        }
+        for (limit_nbr = 0; limit_nbr < self->queue->limits; limit_nbr++)
+            if (queue_size &gt;= self->queue->limit_value [limit_nbr])
+                limit_action = self->queue->limit_action [limit_nbr];
+
         switch (limit_action) {
             case AMQ_QUEUE_LIMIT_WARN:
                 if (!self->warned) {
@@ -114,8 +104,8 @@ runs lock-free as a child of the asynchronous queue class.
             case AMQ_QUEUE_LIMIT_DROP:
                 if (!self->dropped) {
                     smt_log_print (amq_broker->alert_log,
-                        "W: orange alert on queue=%s, dropping new messages", 
-                        self->queue->name);
+                        "W: orange alert on queue=%s, reached %d, dropping new messages", 
+                        self->queue->name, queue_size);
                     self->dropped = TRUE;
                 }
                 self->queue->dropped++;
@@ -124,8 +114,8 @@ runs lock-free as a child of the asynchronous queue class.
             case AMQ_QUEUE_LIMIT_TRIM:
                 if (!self->trimmed) {
                     smt_log_print (amq_broker->alert_log,
-                        "W: orange alert on queue=%s, trimming old messages",
-                        self->queue->name);
+                        "W: orange alert on queue=%s, reached %d, trimming old messages",
+                        self->queue->name, queue_size);
                     self->trimmed = TRUE;
                 }
                 oldest = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
@@ -134,42 +124,51 @@ runs lock-free as a child of the asynchronous queue class.
                 break;
             case AMQ_QUEUE_LIMIT_KILL:
                 smt_log_print (amq_broker->alert_log,
-                        "E: red alert on queue=%s, killing queue", self->queue->name);
+                        "E: red alert on queue=%s, reached %d, killing queue", 
+                        self->queue->name, queue_size);
                 if (self->queue->exclusive)
                     amq_server_connection_error (self->queue->connection,
-                        ASL_RESOURCE_ERROR, "Queue overflow, connection killed");
+                        ASL_RESOURCE_ERROR, "Queue overflow, connection killed",
+                        AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_PUBLISH);
                 else
                     amq_queue_self_destruct (self->queue);
                 break;
         }
     }
-    else {
-        //  Reset warning flags if queue drops below critical
+    else 
+    if (queue_size == 0) {
+        //  Reset warning flags if queue becomes empty
         self->warned  = FALSE;
         self->dropped = FALSE;
         self->trimmed = FALSE;
     }
     if (content) {
         //  If immediate, and no consumers, return the message
-	rejected = FALSE;
+        rejected = FALSE;
         if (immediate) {
-            //  Get count of active consumers
-            active_consumer_count = 0;
+            //  Check if there are any active consumers
+            have_active_consumers = FALSE;
             consumer = amq_consumer_by_queue_first (self->consumer_list);
             while (consumer) {
-                if (!consumer->paused)
-                    active_consumer_count++;
+                if (!consumer->paused) {
+                    have_active_consumers = TRUE;
+                    amq_consumer_unlink (&consumer);
+                    break;
+                }
                 consumer = amq_consumer_by_queue_next (&consumer);
             }
-            if (active_consumer_count == 0) {
+            if (!have_active_consumers) {
                 rejected = TRUE;
-	    
+
                 if (amq_server_config_debug_queue (amq_server_config))
                     smt_log_print (amq_broker->debug_log,
                         "Q: return   queue=%s message=%s",
                         self->queue->name, content->message_id);
 
                 content->returned = TRUE;
+                //  Connection and channel will be null for messages published
+                //  by an internal agent rather than an external application.
+                //  In that case we do not return undeliverable messages.
                 connection = channel?
                     amq_server_connection_link (channel->connection): NULL;
                 if (connection) {
@@ -213,8 +212,8 @@ runs lock-free as a child of the asynchronous queue class.
         *connection;
     amq_server_channel_t
         *channel;
-    int
-        active_consumer_count;
+    Bool
+        have_active_consumers;
     </local>
     //
     if (amq_server_config_debug_queue (amq_server_config))
@@ -227,23 +226,26 @@ runs lock-free as a child of the asynchronous queue class.
     //  This is an optimization to stop us looping over content below
     //  if there are only passive consumers on the queue.
     //  Get count of active consumers
-    active_consumer_count = 0;
+    have_active_consumers = FALSE;
     consumer = amq_consumer_by_queue_first (self->consumer_list);
     while (consumer) {
-        if (!consumer->paused)
-            active_consumer_count++;
+        if (!consumer->paused) {
+            have_active_consumers = TRUE;
+            amq_consumer_unlink (&consumer);
+            break;
+        }
         consumer = amq_consumer_by_queue_next (&consumer);
     }
     if (amq_server_config_debug_queue (amq_server_config) 
-        && active_consumer_count == 0)
+    && !have_active_consumers)
         smt_log_print (amq_broker->debug_log,
             "Q: paused   queue=%s nbr_messages=%d nbr_consumers=%d",
             self->queue->name,
             ipr_looseref_list_count (self->content_list),
             amq_consumer_by_queue_count (self->consumer_list));
 
-    while (active_consumer_count &&
-        ipr_looseref_list_count (self->content_list)) {
+    while (have_active_consumers 
+    && ipr_looseref_list_count (self->content_list)) {
         //  Look for a valid consumer for this content
         content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
         rc = s_get_next_consumer (self, content->producer_id, &consumer);
@@ -258,6 +260,7 @@ runs lock-free as a child of the asynchronous queue class.
             self->queue->traffic_out += content->body_size;
             channel = amq_server_channel_link (consumer->channel);
             if (channel) {
+                amq_server_channel_spend (channel);
                 connection = amq_server_connection_link (channel->connection);
                 if (connection) {
                     amq_server_agent_basic_deliver (

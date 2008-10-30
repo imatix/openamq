@@ -1,0 +1,705 @@
+gdl
+    title     = Programming the Console
+    subtitle  = Using OpenAMQ Console Automation 
+    product   = OpenAMQ
+    author    = iMatix Corporation
+    date      = 2008/04/12
+    copyright = Copyright (c) 1996-2007 iMatix Corporation
+    version   = 1.0
+end gdl
+
+Using OpenAMQ Console Automation
+********************************
+
+This document explains how to write applications that automate management of
+OpenAMQ servers via console automation. The OpenAMQ console automation
+architecture offers developers different ways of accessing the functionality of
+the console API and integrating it with their own preferred tools and management
+facilities.
+
+Overview
+********
+
+What is OpenAMQ console automation?
+===================================
+
+Console automation offers system administrators a way to automatically or
+manually manage OpenAMQ servers from a central point. OpenAMQ offers a standard
+'shell' that provides the basic automation functionality but in some cases this
+shell is too limited.
+
+In this document we explain how the console automation architecture offers
+developers different ways of extending the functionality and integrate it with
+their own preferred tools and management facilities.
+
+Architecture
+============
+
+The request for comments "AMQP Console Interface" (RFC-CML) defines a standard
+way to access AMQP servers for the purposes of management. OpenAMQ implements
+this specification and is interoperable with all tools and applications that
+conform to the RFC-CML specification.
+
+OpenAMQ provides a CML schema that documents the OpenAMQ server-side entities,
+their properties, and all methods allowed on them.
+
+For developers, OpenAMQ provides a client-side console API that implements CML
+to speak to an AMQP server. This API is specific to an OpenAMQ schema but
+OpenAMQ includes tools to generate new C/C++ APIs for arbitrary CML schemas.
+
+In this document we explain:
+
+# The OpenAMQ CML schema.
+# How to use the OpenAMQ console API.
+# How to generate new APIs for other CML schemas.
+
+OpenAMQ CML schema
+******************
+
+CML is the XML language defined in the RFC-CML specifications.  The OpenAMQ CML
+tree defines these classes (nested as shown here):
+
+    broker
+        exchange
+        queue
+            queue_connection
+        connection
+            connection_queue
+        config
+
+The current CML schema, showing the fields and methods for each class, is:
+
+    amq_console_schema.cml
+    ---------------------------------------------------------------------------
+    <?xml version="1.0"?>
+    <cml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://www.openamq.org/schema/cml cml.xsd"
+     xmlns="http://www.openamq.org/schema/cml" version="1.0">
+    <schema-reply name = "openamq.org/kernel" version = "0.3" status = "ok">
+       <class name = "broker" label = "Broker">
+          <field name = "name"       label = "Broker name" />
+          <field name = "started"    label = "Date, time broker started" />
+          <field name = "locked"     label = "Broker is locked?" type = "bool" />
+          <field name = "datamem"    label = "Memory used for all data" />
+          <field name = "bucketmem"  label = "Memory used for messages" />
+          <field name = "messages"   label = "Number of queued messages" type = "int" />
+          <field name = "consumers"  label = "Number of queue consumers" type = "int" />
+          <field name = "bindings"   label = "Number of queue bindings" type = "int" />
+          <field name = "exchange"   label = "Message exchanges" type = "objref" repeat = "1" />
+          <field name = "queue"      label = "Shared queues" type = "objref" repeat = "1" />
+          <field name = "connection" label = "Connections" type = "objref" repeat = "1" />
+          <field name = "config"     label = "Configuration" type = "objref" />
+          <method name = "shutdown"  label = "Shutdown broker">
+          </method>
+          <method name = "lock" label = "Prevent new connections">
+              <field name = "setting" label = "1|0" type = "bool" />
+          </method>
+       </class>
+       <class name = "exchange" label = "Exchange">
+          <field name = "name" />
+          <field name = "type" />
+          <field name = "bindings"      label = "Number of bindings" type = "int" />
+          <field name = "messages_in"   label = "Messages published" type = "int" />
+          <field name = "messages_out"  label = "Messages routed" type = "int" />
+          <field name = "megabytes_in"  label = "Megabytes published" type = "int" />
+          <field name = "megabytes_out" label = "Megabytes routed" type = "int" />
+       </class>
+       <class name = "queue" label = "Message Queue">
+          <field name = "name" />
+          <field name = "pending"       label = "Messages pending" type = "int" />
+          <field name = "durable"       label = "Durable queue?" type = "bool" />
+          <field name = "private"       label = "Private queue?" type = "bool" />
+          <field name = "client"        label = "Client host name" />
+          <field name = "exchange_type" label = "Exchange type" />
+          <field name = "routing_key"   label = "Routing key" />
+          <field name = "binding_args"  label = "Binding arguments" />
+          <field name = "auto_delete"   label = "Auto-deleted?" type = "bool" />
+          <field name = "consumers"     label = "Number of consumers" type = "int" />
+          <field name = "messages_in"   label = "Messages published" type = "int" />
+          <field name = "messages_out"  label = "Messages consumed" type = "int" />
+          <field name = "megabytes_in"  label = "Megabytes published" type = "int" />
+          <field name = "megabytes_out" label = "Megabytes consumed" type = "int" />
+          <field name = "dropped"       label = "Messages dropped" type = "int" />
+          <field name = "queue_connection" label = "Queue connections" type = "objref" repeat = "1" />
+          <method name = "purge" label = "Purge all queue messages">
+          </method>
+       </class>
+       <class name = "queue_connection" label = "Queue connection">
+          <field name = "name"          label = "Connection name" />
+          <field name = "address"       label = "Client IP address:port" />
+          <field name = "user_name"     label = "User login name" />
+          <field name = "instance"      label = "Client instance name" />
+          <field name = "started"       label = "Date, time connection started" />
+          <field name = "messages_in"   label = "Messages published" type = "int" />
+          <field name = "messages_out"  label = "Messages consumed" type = "int" />
+          <field name = "megabytes_in"  label = "Megabytes published" type = "int" />
+          <field name = "megabytes_out" label = "Megabytes consumed" type = "int" />
+          <field name = "product"       label = "Reported client product name" />
+          <field name = "version"       label = "Reported client version" />
+          <field name = "platform"      label = "Reported client platform" />
+          <field name = "information"   label = "Other client information" />
+          <field name = "trace" label = "Trace level, 0-3" type = "int" modify = "1" />
+          <method name = "kill" label = "Kill connection">
+          </method>
+       </class>
+       <class name = "connection" label = "Client Connection">
+          <field name = "name"          label = "Connection name" />
+          <field name = "pending"       label = "Messages pending" type = "int" />
+          <field name = "address"       label = "Client IP address:port" />
+          <field name = "user_name"     label = "User login name" />
+          <field name = "instance"      label = "Client instance name" />
+          <field name = "started"       label = "Date, time connection started" />
+          <field name = "messages_in"   label = "Messages published" type = "int" />
+          <field name = "messages_out"  label = "Messages consumed" type = "int" />
+          <field name = "megabytes_in"  label = "Megabytes published" type = "int" />
+          <field name = "megabytes_out" label = "Megabytes consumed" type = "int" />
+          <field name = "product"       label = "Reported client product name" />
+          <field name = "version"       label = "Reported client version" />
+          <field name = "platform"      label = "Reported client platform" />
+          <field name = "information"   label = "Other client information" />
+          <field name = "trace"         label = "Trace level, 0-3" type = "int" modify = "1" />
+          <field name = "connection_queue" label = "Connection queues" type = "objref" repeat = "1" />
+          <method name = "kill" label = "Kill connection">
+          </method>
+       </class>
+       <class name = "connection_queue" label = "Connection queue">
+          <field name = "name" />
+          <field name = "enabled"       label = "Queue accepts new messages?" modify = "1" />
+          <field name = "durable"       label = "Durable queue?" type = "bool" />
+          <field name = "exclusive"     label = "Exclusive to one client?" type = "bool" />
+          <field name = "exchange_type" label = "Exchange type" />
+          <field name = "routing_key"   label = "Routing key" />
+          <field name = "binding_args"  label = "Binding arguments" />
+          <field name = "auto_delete"   label = "Auto-deleted?" type = "bool" />
+          <field name = "consumers"     label = "Number of consumers" type = "int" />
+          <field name = "pending"       label = "Messages pending" type = "int" />
+          <field name = "messages_in"   label = "Messages published" type = "int" />
+          <field name = "messages_out"  label = "Messages consumed" type = "int" />
+          <field name = "megabytes_in"  label = "Megabytes published" type = "int" />
+          <field name = "megabytes_out" label = "Megabytes consumed" type = "int" />
+          <field name = "dropped" label = "Messages dropped" type = "int" />
+          <method name = "purge" label = "Purge all queue messages">
+          </method>
+       </class>
+       <class name = "config" label = "Configuration">
+          <field name = "name"          label = "Configuration name" />
+          <field name = "port"          label = "Server port for clients" type = "string" modify = "1" />
+          <field name = "listen"        label = "Address (local network interface) to listen on" type = "string" modify = "1" />
+          <field name = "queue_timeout" label = "Timeout for auto-deleted queues" type = "int" modify = "1" />
+          <field name = "vhost"         label = "Server vhost identifier" type = "string" modify = "1" />
+          <field name = "monitor"       label = "Monitor interval, seconds" type = "int" modify = "1" />
+          <field name = "dump_state"    label = "Dump state interval, seconds" type = "int" modify = "1" />
+          <field name = "record_stats"  label = "Record performance statistics" type = "bool" modify = "1" />
+          <field name = "log_path"      label = "Active log file directory" type = "string" modify = "1" />
+          <field name = "keep_logs"     label = "Keep log files" type = "bool" modify = "1" />
+          <field name = "archive_path"  label = "Archive log file directory" type = "string" modify = "1" />
+          <field name = "archive_cmd"   label = "Archive log file command" type = "string" modify = "1" />
+          <field name = "alert_log"     label = "Error log file name" type = "string" modify = "1" />
+          <field name = "daily_log"     label = "Daily log file name" type = "string" modify = "1" />
+          <field name = "debug_log"     label = "Debug log file name" type = "string" modify = "1" />
+          <field name = "debug_route"   label = "Debug message routing?" type = "bool" modify = "1" />
+          <field name = "debug_queue"   label = "Debug queue activity?" type = "bool" modify = "1" />
+          <field name = "debug_peering" label = "Debug peering messages?" type = "bool" modify = "1" />
+          <field name = "debug_console" label = "Debug console I/O?" type = "bool" modify = "1" />
+          <field name = "trace"         label = "Protocol trace level" type = "int" modify = "1" />
+          <field name = "heartbeat"     label = "Heartbeat timer, seconds" type = "int" modify = "1" />
+          <field name = "setup_timeout" label = "Connection setup timeout, seconds" type = "int" modify = "1" />
+          <field name = "close_timeout" label = "Connection close timeout, seconds" type = "int" modify = "1" />
+          <field name = "polling_threads" label = "Number of polling OS threads" type = "int" modify = "1" />
+          <field name = "working_threads" label = "Number of working OS threads" type = "int" modify = "1" />
+          <field name = "tcp_nodelay"   label = "TCP/IP NODELAY option" type = "bool" modify = "1" />
+          <field name = "tcp_rcvbuf"    label = "TCP/IP receive buffer, in bytes" type = "int" modify = "1" />
+          <field name = "tcp_sndbuf"    label = "TCP/IP send buffer, in bytes" type = "int" modify = "1" />
+          <field name = "frame_max"     label = "Maximum size of AMQP content frames" type = "int" modify = "1" />
+          <field name = "backup"        label = "Failover backup host:port" type = "string" modify = "1" />
+          <field name = "primary"       label = "Failover primary host:port" type = "string" modify = "1" />
+          <field name = "failover_timeout" label = "Failover timeout, in seconds" type = "int" modify = "1" />
+          <field name = "failover_monitor" label = "Failover monitor, in seconds" type = "int" modify = "1" />
+          <field name = "attach"        label = "Enable auto-federation to specified host" type = "string" modify = "1" />
+          <field name = "attach_vhost"  label = "Auto-federation virtual host name" type = "string" modify = "1" />
+          <field name = "attach_login"  label = "Auto-federation login user name" type = "string" modify = "1" />
+          <field name = "attach_all"    label = "Auto-federate exchanges by pattern" type = "string" modify = "1" />
+          <field name = "auto_crash"    label = "Auto-crash test timer, seconds" type = "int" modify = "1" />
+          <field name = "auto_block"    label = "Auto-freeze test timer, seconds" type = "int" modify = "1" />
+          <field name = "kernel_limit"  label = "SMT kernel limit" type = "int" modify = "1" />
+          <method name = "commit" label = "Save custom configuration file">
+          </method>
+          <method name = "rollback" label = "Restore previous configuration">
+          </method>
+       </class>
+    </schema-reply>
+    </cml>
+
+The OpenAMQ console API
+***********************
+
+Resources
+=========
+
+The console API consists of a set of functions in the libamq_operate library.
+To use these functions you need all libraries in $IBASE/lib, and you need these
+header files in your C/C++ application:
+
+    #include "icl.h"
+    #include "amq_mgt_console.h"
+    #include "amq_mgt_broker.h"
+
+The simplest way to build and link your applications is using the iMatix Boom
+system.  However you can use whatever processes you are already using to develop
+WireAPI applications, these will also work.
+
+The amq_mgt_console class
+=========================
+
+To talk to an OpenAMQ server, an application creates and uses an object of the
+class amq_mgt_console.  This object acts as the container for the CML data tree
+representing the last received state of the remote server.
+
+To create a new amq_mgt_console the application uses the 'new' method, passing
+connection data:
+
+    amq_mgt_console_t
+        *console;
+    console = amq_mgt_console_new (host, vhost, login, password);
+    if (!console)
+        exit (-1);
+
+The amq_mgt_console object has these properties, all child objects:
+
+    amq_client_connection_t
+        *connection;                    //  Current connection
+    amq_client_session_t
+        *session;                       //  Current session
+    amq_mgt_broker_t
+        *broker;                        //  Top-level object
+
+We can use the connection to report information about the remote server:
+
+    icl_console_out ("Connected to %s/%s on %s\n",
+        console->connection->server_product,
+        console->connection->server_version,
+        console->connection->server_host);
+
+Normally we don't use the session object, this is used internally by the console
+API.  The broker object is the top level of the CML tree, we'll see how to use
+that next.
+
+When the application is finished with talking to the server, it destroys the
+console using this method:
+
+    amq_mgt_console_destroy (&console);
+
+Which releases all memory used by the console and closes the connection to the
+OpenAMQ server.
+
+Console objects
+===============
+
+Creating and destroying objects
+-------------------------------
+
+The API automatically creates and destroys objects, so you should never use the
+'new' and 'destroy' methods on API objects except amq_mgt_console itself.
+
+Object properties
+-----------------
+
+All objects have these properties, which are read-only and must not be modified
+by calling applications:
+
+ - id: an integer identifier for the object.  Used internally by the API.
+ - notice: a string that holds the last error message from the server, if any.
+ - all fields defined in the CML layout for the object.
+ - all child classes, either as single items ('amq_mgt_childname_t *child') or
+   as loose reference lists.
+
+Loading an object
+-----------------
+
+The console API does lazy loading, that is, it fetches data only when needed.
+This cuts traffic and lets console applications work with specific objects
+faster.
+
+Before accessing the properties or children of an object the caller must load
+the object using the 'load' method, e.g.:
+
+    amq_mgt_connection_load (connection);
+
+Certain other methods automatically do a 'load', as noted below.  If the load
+method fails, it returns a non-zero value.  This means either that the server
+went offline, or (more typically) that the remote object no longer exists.
+
+Printing an object
+------------------
+
+There are three methods that print details about an object:
+
+ - print_properties: prints object's properties in two-column list.  Does a load
+   automatically.
+ - print_children: prints a summary of all children. Does a load automatically.
+ - print_summary: prints a summary of the single object.  Does not load the
+   object automatically.
+
+For example, to print information about the broker and then show a summary of
+all its child objects:
+
+    amq_mgt_broker_print_properties (console->broker, NULL);
+    amq_mgt_broker_print_children   (console->broker, NULL);
+
+Or, to print the summary of all connections active for the broker:
+
+    amq_mgt_connection_t
+        *connection;                //  Child connection
+    amq_mgt_broker_load (console->broker);
+    
+    connection = amq_mgt_broker_connection_first (console->broker);
+    while (connection) {
+        amq_mgt_connection_load (connection);
+        amq_mgt_connection_print_summary (connection, NULL);
+        connection = amq_mgt_broker_connection_next (console->broker);
+    }
+
+Object tree navigation
+----------------------
+
+As we noted above, the CML schema for OpenAMQ provides these object classes:
+
+    broker
+        exchange
+        queue
+            queue_connection
+        connection
+            connection_queue
+        config
+
+The console API delivered with OpenAMQ maps this tree directly to a hierarchical
+C/C++ API, that is, to a set of functions that let you explicitly navigate
+through the object tree.
+
+This is simplest to understand from an example.  Here we navigate through the
+connections for the broker, which is the root object.  The broker is accessed as
+'console->broker'.
+
+Before we can navigate any object we have to load it.  The 'load' method fetches
+the object state from the OpenAMQ server:
+
+    amq_mgt_broker_load (console->broker);
+
+Having loaded an object we can navigate its children.  To do this we use the
+'first' and 'next' methods as follows:
+
+    amq_mgt_connection_t
+        *connection;                //  Child connection
+    
+    connection = amq_mgt_broker_connection_first (console->broker);
+    while (connection) {
+        //  Do something useful with the connection
+        connection = amq_mgt_broker_connection_next (console->broker);
+    }
+
+Note that if an object 'Y' has a child object - as shown on the CML object tree
+for OpenAMQ - called 'X' then the API will have functions called
+amq_mgt_Y_X_first and amq_mgt_Y_X_next.  The 'first' method returns an object
+reference or null, if there are no children of the specified class.  The 'next'
+method returns an object reference, or null if there are no more children of
+that type.  If you do 'next' again (or without doing a 'first') you get the
+first child object, if any.
+
+XML data capture
+================
+
+The print methods take two arguments: the object reference and an optional FILE
+pointer.  The FILE, if not null, refers to an XML stream that has been opened
+for writing.  In this case the output is sent to that XML stream rather than the
+terminal window.
+
+The caller must properly write the XML file header and footer, it can use
+arbitrary tags to wrap the list of elements output by the console API. Here is
+an example of using the XML data capture:
+
+    FILE
+        *xml_data = NULL;               //  XML capture stream
+    
+    xml_data = fopen ("server_state.xml", "w");
+    fprintf (xml_data, "<?xml?>\n");
+    fprintf (xml_data, "<console_data>\n");
+    amq_mgt_broker_print_properties (console->broker, xml_data);
+    amq_mgt_broker_print_children   (console->broker, xml_data);
+    fprintf (xml_data, "</console_data>\n");
+    fclose (xml_data);
+
+Command-line processing
+=======================
+
+The console API includes a simple command line processor that lets you:
+
+ 1. Provide the user with an interactive shell.
+ 2. Execute methods on remote objects.
+
+The 'cmdline' method works on all objects. It automatically loads the object
+before working on it. It has these arguments:
+
+ - path: a string that is used as the command prompt.  Usually we pass the
+   server hostname but an empty string ("") also works well.
+ - depth: the 'depth' of the current path - when this is zero, the shell will
+   not accept the '..' command.  Use zero when you are calling the 'cmdline'
+   method on the broker object.
+ - tokens: an ipr_token_list containing one or more tokens to execute, can be
+   NULL.
+ - file: an optional XML file for capturing output, can be NULL.
+
+The 'cmdline' method return code, if not zero, has these meanings:
+
+ - 1: the user asked to move to the parent object (navigation 'up').
+ - 2: the user asked to move to the top-level (broker) object.
+ - 3: the user asked to exit the shell.
+
+Here, for example, is how to provide the user with an interactive shell for
+managing a broker:
+
+    amq_mgt_broker_cmdline (console->broker, "", 0, NULL, NULL);
+
+The syntax that the shell provides is:
+
+    Command               Has this effect
+    -------               -------------------
+    ls [child] [pattern]  Show matching children
+    top [child]           Show most important children
+    cd [nnn]              Look at item [number nnn]
+    nnn                   Look at item number nnn
+    /                     Return to broker item
+    .                     Show current item
+    ..                    Move back to previous item
+    set name value        Set object property
+    help                  Show this text
+    exit | quit           Leave the console shell
+    methodname            CML method on the object
+
+Here is how to lock a broker using the 'lock' method.  The CML fragment, to
+remind you, is:
+
+    <?xml version="1.0"?>
+    <schema-reply name = "openamq.org/kernel" version = "0.3" status = "ok">
+       <class name = "broker" label = "Broker">
+          ...
+          <method name = "lock" label = "Prevent new connections">
+              <field name = "setting" label = "1|0" type = "bool" />
+          </method>
+       </class>
+       ...
+
+And we automate this as follows (having already created the console):
+
+    ipr_token_list_t
+        *tokens = ipr_token_split ("lock 1");
+    amq_mgt_broker_cmdline (console->broker, "", 0, tokens, NULL);
+    ipr_token_list_destroy (&tokens);
+
+Runtime options
+===============
+
+The console API has these runtime options, set as global variables:
+
+    int
+        g_opt_trace = 0;            //  If 1, 2, 3 does protocol trace
+    Bool
+        g_opt_addr = FALSE;         //  If true, does RDNS lookups (slow)
+
+Worked example
+==============
+
+The following program connects to a broker, prints summary information about it,
+and then shuts it down:
+
+    /*===========================================================================
+        amq_kill.c - demo of remote broker management in C
+        
+        Connects to an OpenAMQ server as specified on the command line, reports
+        current status of server, and shuts it down.
+    
+        By iMatix Corporation, May 2008.  Code released into the public domain.
+     *===========================================================================*/
+    
+    #include "icl.h"
+    #include "amq_mgt_console.h"
+    #include "amq_mgt_broker.h"
+    
+    #define USAGE                                                                \
+        "Syntax: amq_kill [options...]\n"                                        \
+        "   Kill OpenAMQ server\n"                                               \
+        "\n"                                                                     \
+        "General options:\n"                                                     \
+        "  -s hostname      Server hostname and :port (localhost)\n"             \
+        "  -u user          User name for console access (guest)\n"              \
+        "  -p password      Password for console access (guest)\n"               \
+        "  -h               Show summary of command-line options\n"              \
+        "\n"                                                                     \
+        "The order of arguments is not important. Switches and filenames\n"      \
+        "are case sensitive. See documentation for detailed information.\n"      \
+        "\n"
+    
+    int main (int argc, char *argv[])
+    {
+        int
+            argn;                           //  Argument number
+        Bool
+            args_ok = TRUE;                 //  Were the arguments okay?
+        char
+            *s_opt_host = NULL,             //  -s specifies server name
+            *s_opt_user = NULL,             //  -u specifies user name
+            *s_opt_pass = NULL;             //  -p specifies password
+        char
+            **argparm;                      //  Argument parameter to pick-up
+        amq_mgt_console_t
+            *console;
+        ipr_token_list_t
+            *tokens;                        //  Command tokens
+    
+        argparm = NULL;                     //  Argument parameter to pick-up
+        for (argn = 1; argn < argc; argn++) {
+            //  If argparm is set, we have to collect an argument parameter
+            if (argparm) {
+                if (*argv [argn] != '-') {  //  Parameter can't start with '-'
+                    *argparm = argv [argn];
+                    argparm = NULL;
+                }
+                else {
+                    args_ok = FALSE;
+                    break;
+                }
+            }
+            else
+            if (*argv [argn] == '-') {
+                switch (argv [argn][1]) {
+                    case 's':
+                        argparm = &s_opt_host;
+                        break;
+                    case 'u':
+                        argparm = &s_opt_user;
+                        break;
+                    case 'p':
+                        argparm = &s_opt_pass;
+                        break;
+                    case 'h':
+                        printf (USAGE);
+                        exit (EXIT_SUCCESS);
+                    //  Anything else is an error
+                    default:
+                        args_ok = FALSE;
+                }
+            }
+            else {
+                args_ok = FALSE;
+                break;
+            }
+        }
+        //  Initialise global class so we can use the console
+        icl_system_initialise (argc, argv);
+    
+        //  If there was a missing parameter or an argument error, quit
+        if (argparm) {
+            icl_console_print ("E: argument missing - use '-h' option for help");
+            exit (EXIT_FAILURE);
+        }
+        else
+        if (!args_ok) {
+            icl_console_print ("E: invalid arguments - use '-h' option for help");
+            exit (EXIT_FAILURE);
+        }
+        //  Default connection values
+        if (!s_opt_host)
+            s_opt_host = "localhost";
+        if (!s_opt_user)
+            s_opt_user = "guest";
+        if (!s_opt_pass)
+            s_opt_pass = "guest";
+    
+        console = amq_mgt_console_new (s_opt_host, "/", s_opt_user, s_opt_pass);
+        if (!console)
+            exit (EXIT_FAILURE);
+    
+        icl_console_out ("Connected to %s/%s on %s\n",
+            console->connection->server_product,
+            console->connection->server_version,
+            console->connection->server_host);
+    
+        amq_mgt_broker_print_properties (console->broker, NULL);
+    
+        tokens = ipr_token_split ("shutdown");
+        amq_mgt_broker_cmdline (console->broker, console->connection->server_host, 0, tokens, NULL);
+        ipr_token_list_destroy (&tokens);
+        amq_mgt_console_destroy (&console);
+    
+        icl_system_terminate ();            //  Terminate all classes
+        return (EXIT_SUCCESS);
+    }
+
+Building new APIs
+*****************
+
+Overview
+========
+
+OpenAMQ relies very heavily on code generation, which turns slow and clumsy C
+development into something much more modern.  The console API is a good example
+- it is 100% generated from the CML schema.  This can be done at runtime in
+languages like Python.
+
+Our code generation relies on GSL, the language developed by iMatix to generate
+code from XML models.  GSL is a minimalist code generation language and lets us
+produce high-quality code with modest effort.
+
+Here is part of the script that generates the console API:
+
+    xml from "amq_console_schema.xml"
+    for ->root.class
+    .template
+    .if !defined (switches.quiet)
+    .   echo "Generating amq_mgt_$(name).icl..."
+    .endif
+    .output "amq_mgt_$(name).icl"
+    <?xml?>
+    <class
+        name      = "amq_mgt_$(name)"
+        comment   = "Management console $(name) class"
+        version   = "1.0"
+        script    = "icl_gen"
+        >
+    <doc>
+    Implements the management console $(name) object, used by applications
+    to manage OpenAMQ servers. Use in conjunction with the amq_mgt_console
+    class.
+    </doc>
+    
+    <inherit class = "icl_object">
+        <option name = "alloc" value = "cache" />
+    </inherit>
+    
+    <import class = "amq_mgt_console" />
+    .for class
+    <import class = "amq_mgt_$(name)" />
+    .endfor
+
+Note that this script does not generate C/C++, it generates iCL (our XML class
+language).  While the final C/C++ code is about 20K lines, the original input
+XML is 1,191 lines.
+
+Code generation process
+=======================
+
+The current code generation process works as follows:
+
+1. The openamq/server/amq_console_schema.gsl script walks all OpenAMQ objects
+  starting with amq_broker, and extracts the CML tree from these objects.
+2. The script generates a matching CML file and saves the extracted data tree as
+  amq_console_schema.xml.
+3. The openamq/operate/amq_operate_api.gsl script takes that XML data (not the
+  CML, which has insufficient data) and generates a set of iCL classes to
+  implement the API.
+4. These iCL classes are built into C code and compiled along with the rest of
+  the OpenAMQ source tree.
+
+Thus, if you want to exploit this code generation you will need to copy and
+modify the two GSL scripts, amq_console_schema.gsl and amq_operate_api.gsl.
+
+If you start on such a project, please contact us for help.

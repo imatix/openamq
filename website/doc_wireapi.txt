@@ -3,9 +3,9 @@ gdl
     subtitle  = A Standard API for AMQP
     product   = OpenAMQ
     author    = iMatix Corporation
-    date      = 2005/10/28
+    date      = 2007/04/04
     copyright = Copyright (c) 2004-2007 iMatix Corporation
-    version   = 1.0b1
+    version   = 1.2c4
 end gdl
 
 Cover
@@ -125,7 +125,7 @@ program does no error handling so you should *not* copy this code:
         //  Open session to local server
         auth_data  = amq_client_connection_auth_plain ("guest", "guest");
         connection = amq_client_connection_new (
-            "localhost", "/", auth_data, 0, 30000);
+            "localhost", "/", auth_data, "test", 0, 30000);
         icl_longstr_destroy (&auth_data);
         session = amq_client_session_new (connection);
 
@@ -135,7 +135,7 @@ program does no error handling so you should *not* copy this code:
         amq_content_basic_set_message_id (content, "ID001");
         amq_client_session_basic_publish (
             session, content, 0, "to-address", NULL, FALSE, FALSE);
-        amq_content_basic_set_destroy (&content);
+        amq_content_basic_unlink         (&content);
 
         //  Shutdown connection and session
         amq_client_session_destroy    (&session);
@@ -177,7 +177,7 @@ this:
 
     auth_data  = amq_client_connection_auth_plain ("guest", "guest");
     connection = amq_client_connection_new (
-        "localhost", "/", auth_data, 0, 30000);
+        "localhost", "/", auth_data, "test", 0, 30000);
     icl_longstr_destroy (&auth_data);
     if (!connection) {
         icl_console_print ("E: could not open connection");
@@ -197,7 +197,7 @@ And the correct way to call a method like publish is:
     ...
     rc = amq_client_session_basic_publish (
         session, content, 0, "queue", "mydest", FALSE, FALSE);
-    amq_content_basic_set_destroy (&content);
+    amq_content_basic_unlink (&content);
     if (rc) {
         icl_console_print ("E: could not publish message");
         return (1);
@@ -227,7 +227,7 @@ Creates a new connection to the server.
 
     auth_data  = amq_client_connection_auth_plain ("guest", "guest");
     connection = amq_client_connection_new (
-        "localhost", "/", auth_data, 0, 30000);
+        "localhost", "/", auth_data, "test", 0, 30000);
 
     icl_longstr_destroy (&auth_data);
     if (connection)
@@ -251,6 +251,9 @@ Creates a new connection to the server.
    server. To create a plain-text authentication block, use the
    auth_plain method. The new method destroys the auth_data block on
    behalf of the caller.
+
+ - The instance argument sets the client instance name, which can be used
+   to identify a specific client in the management console or server log.
 
  - The trace argument sets the trace level for WireAPI.
 
@@ -333,12 +336,12 @@ amq_client_session_wait ()
 ==========================
 
 Waits for content to arrive from the server.  You must call this method
-in order to get content.  Returns zero if content arrived, or -1 if the
-timeout expired:
+in order to get content.  Returns zero if content arrived or the timeout
+expired, -1 if the session died or there was another error:
 
     if (amq_client_session_wait (session, timeout))
         if (session->alive)
-            //  timeout expired
+            //  this should never happen
         else
             //  session died
     else
@@ -350,8 +353,8 @@ Content Access Methods
 For each content class (Basic, File, Stream), WireAPI provides a set of
 methods to access arrived and returned content:
 
-    amq_client_session_<classname>_<arrived|returned> ()
-    amq_client_session_<classname>_<arrived|returned>_count ()
+    amq_client_session_[classname]_[arrived|returned] ()
+    amq_client_session_[classname]_[arrived|returned]_count ()
 
 The first method returns the oldest content waiting to be processed,
 the second methods returns the number of contents waiting.  For example:
@@ -386,6 +389,7 @@ and you should read the AMQP specifications for details:
  - amq_client_session_exchange_delete - mapped to Exchange.Delete.
  - amq_client_session_queue_declare - mapped to Queue.Declare.
  - amq_client_session_queue_bind - mapped to Queue.Bind.
+ - amq_client_session_queue_unbind - mapped to Queue.Unbind.
  - amq_client_session_queue_purge - mapped to Queue.Purge.
  - amq_client_session_queue_delete - mapped to Queue.Delete.
  - amq_client_session_basic_consume - mapped to Basic.Consume.
@@ -442,10 +446,13 @@ an iCL class that lets you create and manipulate contents. For example:
     content = amq_content_basic_new ();
     amq_content_basic_set_body       (content, "0123456789", 10, NULL);
     amq_content_basic_set_message_id (content, "ID001");
-    amq_content_basic_destroy (&content);
+    // publish the content
+    amq_content_basic_unlink (&content);
 
 To create a new content, use the 'new' method.  To destroy a content,
-use the 'destroy' method.
+use the 'unlink' method.  The 'destroy' method will work in low-volume
+scenarios but is actually wrong.  Contents are reference-counted objects
+and when we publish them, we do not know which reference is released last.
 
 Content Properties
 ==================
@@ -482,14 +489,14 @@ Basic content has these specific properties:
 To set any of a basic content's properties, do not modify the property
 directly but use the method:
 
-    amq_content_basic_set_<propertyname> (content, newvalue)
+    amq_content_basic_set_[propertyname] (content, newvalue)
 
 Content Body Data
 =================
 
 To set a content's body, use this method (depending on the content class):
 
-    amq_content_<class>_set_body (content, byte *data, size_t size, free_fn)
+    amq_content_[class]_set_body (content, byte *data, size_t size, free_fn)
 
 Where the free_fn is a function of type 'icl_mem_free_fn *' (compatible
 with the standard library free() function).  If free_fn is not null, it
@@ -498,7 +505,7 @@ destroyed, or if you call _set_body() again.
 
 To get a content's body, use this method:
 
-    amq_content_<class>_get_body (content, byte *buffer, size_t limit)
+    amq_content_[class]_get_body (content, byte *buffer, size_t limit)
 
 Where the buffer is at least as large as content->body_size.  This method
 returns the number of bytes copied, or -1 if the buffer was too small.

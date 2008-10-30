@@ -101,6 +101,8 @@ There are three message transfer modes:
    exchange.
 3. Default forwarding - the local exchange forwards only unmatched messages to
    the remote exchange.
+4. Bidirectional forwarding - the local exchange forwards to the remote 
+   exchange, and vice versa.
 
 Subscribe Forwarding
 --------------------
@@ -110,7 +112,7 @@ published centrally.
 
 The configuration looks like this:
 
-    &lt;cluster-mta
+    &lt;cluster_mta
         name = "exchange-name"
         vhost = "virtual-host-name"
         host = "remotehost:port"
@@ -142,7 +144,7 @@ local clients and remote ones.
 
 The configuration looks like this:
 
-    &lt;cluster-mta
+    &lt;cluster_mta
         name = "exchange-name"
         vhost = "virtual-host-name"
         host = "remotehost:port"
@@ -163,7 +165,7 @@ be either local, or remote.
 
 The configuration looks like this:
 
-    &lt;cluster-mta
+    &lt;cluster_mta
         name = "exchange-name"
         vhost = "virtual-host-name"
         host = "remotehost:port"
@@ -176,6 +178,27 @@ remote exchange only if they are not delivered locally.
 
 Most often used with direct exchanges so that services can be placed either
 locally or remotely, invisibly to the applications.
+
+Bidirectional Forwarding
+------------------------
+
+Bidiretional mode (4) passes messages on particular exchange from in both
+directions. You cannot achieve this behaviour by combining modes 1 and 2 as
+every message would be circulated endlessly between the two brokers. However, 
+note that this mode is not particularly efficient. For best performance create 
+two exchanges instead of a single one and pass messages only in appropriate 
+directions.
+
+The configuration looks like this:
+
+&lt;cluster_mta
+        name = "exchange-name"
+        vhost = "virtual-host-name"
+        host = "remotehost:port"
+        login = "peering"
+        mode = "3"
+    /&gt;
+
 
 Cluster FAQ
 ***********

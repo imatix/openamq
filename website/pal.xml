@@ -34,6 +34,18 @@ functionality with an example. Here is a sample PAL script:
         &lt;/echo&gt;
     &lt;/pal&gt;
 
+To compile the script use "pal" command. It will create an executable for
+you. You can run the executable straight away. Use "-h" option to get
+command line parameters for the executable.
+
+    $ pal hello.pal
+    2007/03/23 06:46:41: gsl/4 M: Generating hello.c...
+    Compiling hello...
+    Linking hello...
+    $ ./hello
+    06:46:56: Hello world!
+    $
+
 Here is a script that demonstrates some of the standard PAL control
 commands:
 
@@ -67,24 +79,16 @@ connection properties:
     &lt;?xml?&gt;
     &lt;pal script = "amq_pal_gen"&gt;
         &lt;session&gt;
-            &lt;echo&gt;channel_max=$$(name)&lt;/echo&gt;
-            &lt;echo&gt;class_id=$$(name)&lt;/echo&gt;
-            &lt;echo&gt;frame_max=$$(name)&lt;/echo&gt;
-            &lt;echo&gt;heartbeat=$$(name)&lt;/echo&gt;
-            &lt;echo&gt;host=$$(name)&lt;/echo&gt;
-            &lt;echo&gt;known_hosts=$$(name)&lt;/echo&gt;
-            &lt;echo&gt;method_id=$$(name)&lt;/echo&gt;
-            &lt;echo&gt;reply_code=$$(name)&lt;/echo&gt;
-            &lt;echo&gt;reply_text=$$(name)&lt;/echo&gt;
-            &lt;echo&gt;server_copyright=$$(name)&lt;/echo&gt;
-            &lt;echo&gt;server_host=$$(name)&lt;/echo&gt;
-            &lt;echo&gt;server_information=$$(name)&lt;/echo&gt;
-            &lt;echo&gt;server_name=$$(name)&lt;/echo&gt;
-            &lt;echo&gt;server_platform=$$(name)&lt;/echo&gt;
-            &lt;echo&gt;server_product=$$(name)&lt;/echo&gt;
-            &lt;echo&gt;server_version=$$(name)&lt;/echo&gt;
-            &lt;echo&gt;version_major=$$(name)&lt;/echo&gt;
-            &lt;echo&gt;version_minor=$$(name)&lt;/echo&gt;
+            &lt;echo&gt;channel_max=$channel_max&lt;/echo&gt;
+            &lt;echo&gt;frame_max=$frame_max&lt;/echo&gt;
+            &lt;echo&gt;heartbeat=$heartbeat&lt;/echo&gt;
+            &lt;echo&gt;server_copyright=$server_copyright&lt;/echo&gt;
+            &lt;echo&gt;server_host=$server_host&lt;/echo&gt;
+            &lt;echo&gt;server_information=$server_information&lt;/echo&gt;
+            &lt;echo&gt;server_platform=$server_platform&lt;/echo&gt;
+            &lt;echo&gt;server_product=$server_product&lt;/echo&gt;
+            &lt;echo&gt;version_major=$version_major&lt;/echo&gt;
+            &lt;echo&gt;version_minor=$version_minor&lt;/echo&gt;
         &lt;/session&gt;
     &lt;/pal&gt;
 
@@ -102,7 +106,7 @@ Having established a session we can send methods to the server:
             &lt;queue_bind queue = "myqueue" exchange = "myexchange" /&gt;
             &lt;basic_content size = "64000" message_id = "id-0001" /&gt;
             &lt;basic_publish exchange = "myexchange" routing_key = "myqueue" /&gt;
-            &lt;basic_browse queue = "myqueue" /&gt;
+            &lt;basic_get queue = "myqueue" /&gt;
             &lt;basic_arrived&gt;
                 &lt;echo&gt;Message '$message_id' came back to us&lt;/echo&gt;
             &lt;/basic_arrived&gt;
@@ -127,7 +131,7 @@ So we can rewrite the above script to make it shorter:
             &lt;queue_bind /&gt;
             &lt;basic_content size = "64000" message_id = "id-0001" /&gt;
             &lt;basic_publish routing_key = "myqueue" /&gt;
-            &lt;basic_browse /&gt;
+            &lt;basic_get /&gt;
             &lt;basic_arrived&gt;
                 &lt;echo&gt;Message '$message_id' came back to us&lt;/echo&gt;
             &lt;/basic_arrived&gt;
@@ -156,7 +160,7 @@ line.  Here is a simple example:
 Which we can run with the options -N and -S:
 
     cmdline -N 9999 -S XXXX
-    
+
 Lastly let's look at macros, which are ways of collecting repetitive
 commands into groups to save time:
 
@@ -177,7 +181,7 @@ commands into groups to save time:
             &lt;invoke macro = "send message"&gt;
                 &lt;set name = "size" value = "64000" /&gt;
             &lt;/invoke&gt;
-            &lt;basic_browse queue = "myqueue" /&gt;
+            &lt;basic_get queue = "myqueue" /&gt;
             &lt;basic_arrived&gt;
                 &lt;echo&gt;Message '$message_id' came back to us&lt;/echo&gt;
             &lt;/basic_arrived&gt;
@@ -263,8 +267,8 @@ The &lt;session&gt; command defines a session:
 
     &lt;session
       [ restart = "0 | 1" ]
-      [ error_handling = "abort | recover"]
       [ server = "servername" ]
+      [ failover = "msecs" ]
         &gt;
         [ script command ]...
     &lt;/session&gt;
@@ -276,17 +280,14 @@ The &lt;session&gt; command defines a session:
    whatever the state of previous sessions.  If 0, the session will restart
    in the previous connection, if any.
 
- - If error_handling is 'abort', the script will exit if the server reports
-   an error on any command.  This is the default behaviour.
-
- - If error_handling is 'recover', the script will reconnect.  You can use
-   this in scripts that deliberately provoke server errors.  However, mixing
-   error recovery with asynchronous methods such as sending or receiving
-   messages may have interesting results as the asynchronous methods can
-   interfere with session shutdown and restart.
-
  - The servername can be used to test multiple servers in a single script.
    This option is not used for general-purpose scripts.
+
+ - If the failover is set to an integer greater than zero, on a broken
+   connection the script will pause for the specified number of milliseconds,
+   and then try to reconnect to the same or alternate server.  To use
+   alternate servers, specify multiple server names in the 'server'
+   attribute, seperated by spaces.
 
 The Invoke Command
 ==================
@@ -359,7 +360,7 @@ to their value.
  - The cmdline option specifies a single character. Do not use one of
    the command-line options already used by the PAL implementation (see
    section at the end of this document).
-   
+
 The Inc Command
 ===============
 
@@ -372,7 +373,7 @@ The &lt;inc&gt; command increments an integer variable:
 The Dec Command
 ===============
 
-The &lt;dec&gt; command decrements an integer variable:  
+The &lt;dec&gt; command decrements an integer variable:
 
     &lt;dec
         name = "variablename"
@@ -381,7 +382,36 @@ The &lt;dec&gt; command decrements an integer variable:
  - Decrementing a variable below zero is illegal and raises a fatal error.
    This is done to catch script errors - negative values are normally not
    meaningful in test scripts.
-   
+
+
+The Random Command
+------------------
+
+The &lt;random&gt; command sets a variable to a random value within a specified
+range:
+
+    &lt;random
+        name = "variablename"
+      [ min = "minvalue" ]
+        max = "maxvalue"
+        /&gt;
+
+ - The minimum is optional, and defaults to zero.
+
+The Read Command
+----------------
+
+The &lt;read&gt; command accepts a line of input from the console and assigns this
+to a variable:
+
+    &lt;read
+        name = "variablename"
+      [ prompt = "promptstring" ]
+        /&gt;
+
+ - The prompt is optional; if defined, this will be shown to the user (with no
+   newline) before the console waits for input.
+
 The Echo Command
 ================
 
@@ -628,15 +658,15 @@ queue.browse-ok response.
 PAL also defines these built-in variables:
 
   - $script - name of current PAL script.
-  
+
   - $connection - 1 if the connection is alive, else 0.
-  
+
   - $session - 1 if the session is alive, else 0.
 
   - $random - a random integer in the range 0..32767, when used as an
     insertion value, produces a 4-digit hex string.
 
-  - $body_size - the body size of the last content to be created, 
+  - $body_size - the body size of the last content to be created,
     arrived, or returned.
 
 You must not name your own variables using any of the connection,
@@ -674,7 +704,7 @@ variables:
               &lt;basic_publish routing_key = "$queue" /&gt;
             &lt;/repeat&gt;
             &lt;repeat&gt;
-                &lt;basic_browse /&gt;
+                &lt;basic_get /&gt;
                 &lt;basic_returned&gt;
                     &lt;echo&gt;Returned: $message_id&lt;/echo&gt;
                 &lt;/basic_returned&gt;
@@ -739,15 +769,19 @@ and set its properties. E.g.
               [ type = "string | integer"  ("string") ]
                 /&gt; ]...
         &lt;/headers&gt; ]
+      [ content text ]
     &lt;/basic_content&gt;
 
  - The size attribute specifies the size in octets of the content buffer.
-   Its default value is "1024".                                   
+   Its default value is "1024".
 
  - The fill attribute specifies the fill mode. It can be "random", which
-   sets the body to random data, or "null", which sets it to binary zeroes.
-   (Note: the fill attribute is not implemented in the current version of
-   PAL).
+   sets the body to random data, or "null", which sets it to binary zeroes,
+   or "repeat", which repeats the content text up to the specified size.
+
+ - The body of the content item optionally provides a content text.  If
+   this is set, it's reformatted as a single line of text, and used as
+   message body.  This overrides the default fill ('random').
 
  - The read attribute specifies a file from which to read the content
    body. This is useful when you want to send test messages with a specific
@@ -758,7 +792,7 @@ and set its properties. E.g.
    name of an executable program, on the path, with arguments as desired.
    The program receives the current content body as stdin, much like a
    web server CGI program.
-   
+
  - If the headers field is set to zero, the output of the executed
    program is not reparsed. If one, the output is reparsed to collect
    message properties and headers as follows: each line specifies a
@@ -808,6 +842,7 @@ invoked.
 
 You can use these variables within an arrived loop:
 
+ - $body_text - content body as printable text.
  - $body_size - size of content body.
  - $exchange - original exchange to which content was sent.
  - $routing_key - routing key specified in content.

@@ -2,7 +2,7 @@
  *
  *  Main set-up for amq_servers
  *
- *  Copyright (c) 2007 iMatix Corporation
+ *  Copyright (c) 2007-2008 iMatix Corporation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -49,15 +49,14 @@ static char
 "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n" \
     "\n"
 
-#define USAGE1                                                               \
+#define USAGE                                                                \
     "Syntax: %s [options...]\n"                                              \
     "   Starts the OpenAMQ server\n"                                         \
     "\n"                                                                     \
     "General options:\n"                                                     \
     "  -w directory     Working directory for server (current)\n"            \
     "  -s filename      Load custom settings from file (amq_server.cfg)\n"   \
-    "  -c name          Run server as high-availability peer (none)\n"       \
-    "  -X comment       Comment\n"                                           \
+    "  -X comment       Comment, has no effect\n"                            \
     "  -q               Quiet mode: no messages (no)\n"                      \
     "  -b               Run as background server process (no)\n"             \
     "  -f               Run as foreground console process (yes)\n"           \
@@ -66,17 +65,6 @@ static char
     "  -h               Show summary of command-line options\n"              \
     "  --help           Show detailed configuration help\n"                  \
     "\n"                                                                     
-
-#define USAGE2                                                               \
-    "\n"                                                                     \
-    "Deprecated options:\n"                                                  \
-    "  -p port          Server port\n"                                       \
-    "  -t level         Set trace level 0-3 (0)\n"                           \
-    "  -m n             Monitor server status every N seconds (1)\n"         \
-    "\n"                                                                     \
-    "The order of arguments is not important. Switches and filenames\n"      \
-    "are case sensitive. See documentation for detailed information.\n"      \
-    "\n"
 
 //  Parse arguments, return 0 if OK, 1 if error
 
@@ -178,9 +166,8 @@ s_start (int argc, char *argv [])
                     printf (BUILDMODEL "\n\n");
                     printf (COPYRIGHT "\n");
                     printf (NOWARRANTY);
-                    printf (USAGE1, SERVER_NAME);
+                    printf (USAGE, SERVER_NAME);
                     amq_server_config_cmdline_help ();
-                    printf (USAGE2);
                     exit (EXIT_SUCCESS);
 
                 //  Anything else is an error
@@ -239,7 +226,6 @@ s_start (int argc, char *argv [])
     //  Set system options from configuration
     smt_set_polling_threads (amq_server_config_polling_threads (amq_server_config));
     smt_set_working_threads (amq_server_config_working_threads (amq_server_config));
-    smt_set_poll_frequency  (amq_server_config_poll_frequency  (amq_server_config));
     smt_set_action_limit    (amq_server_config_kernel_limit    (amq_server_config));
 
     //  Move into the background if so desired

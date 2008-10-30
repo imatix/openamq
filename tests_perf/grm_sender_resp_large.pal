@@ -1,0 +1,34 @@
+<?xml?>
+<pal script = "amq_pal_gen">
+    Publishes a stable stream of "response" messages to the "grm.r" exchange.
+    Intended for use as a sender for "large" messages, to simulate the occasional
+    multi-megabyte response to a GTW GUI query.
+
+    Command line arguments:
+    -A interval between messages (in miliseconds)
+    -B size of a message (in bytes, default 15MB)
+    -M message ID (default is YRSS)
+    -S sync ID (default is YRSS-SYNC)
+    <set name = "delay_cmdline" value = "60000" cmdline = "A" />
+    <set name = "msg_size_cmdline" value = "15000000" cmdline = "B" />
+    <set name = "msg_id" value = "YRSS" cmdline = "M" />
+    <set name = "sync_id" value = "YRSS-SYNC" cmdline = "S" />
+    <session>
+        <exchange_declare exchange = "grm.r" type = "direct" />
+        <repeat>
+            <!-- Publish 1 large message, followed by 8 small messages 
+                 (needed for synchronization to work) -->
+            <basic_content size = "$msg_size_cmdline" message_id = "$msg_id"/>
+            <basic_publish exchange = "grm.r" routing_key = "large" />
+            <repeat times = "8">
+                <basic_content size = "500" message_id = "$msg_id"/>
+                <basic_publish exchange = "grm.r" routing_key = "large" />
+            </repeat>
+            <!-- Publish synchronisation message -->
+            <basic_content size = "500" message_id = "$sync_id"/>
+            <basic_publish exchange = "grm.r" routing_key = "large" />
+            <!-- Wait -->
+            <wait timeout = "$delay_cmdline" />
+        </repeat>
+    </session>
+</pal>

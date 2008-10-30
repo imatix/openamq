@@ -47,7 +47,7 @@
     amq_exchange_t
         *exchange;
     int
-        exchange_type = 0;
+        exchange_type;
     </local>
     <local>
     amq_vhost_t
@@ -61,29 +61,31 @@
         amq_vhost_unlink (&vhost);
     }
     else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
+            AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DECLARE);
     </footer>
     //
     exchange_type = amq_exchange_type_lookup (method->type);
-    if (exchange_type) {
+    if (exchange_type != -1) {
         //  Find exchange and create if necessary
         exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
         if (!exchange) {
             if (method->passive)
-                amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined");
+                amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined",
+                    AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DECLARE);
             else {
                 if (ipr_str_prefixed (method->exchange, "amq."))
                     amq_server_channel_error (channel,
-                        ASL_ACCESS_REFUSED, "Exchange name not allowed");
+                        ASL_ACCESS_REFUSED, "Exchange name not allowed",
+                        AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DECLARE);
                 else {
                     exchange = amq_exchange_new (
                         vhost->exchange_table,
                         vhost,
                         exchange_type,
                         method->exchange,
-                        method->durable,
-                        method->auto_delete,
-                        method->internal);
+                        method->internal,
+                        FALSE);         //  Do not federate automatically
 
                     //  This can fail if two threads create the same exchange at the
                     //  same time... so let's go find the actual exchange object
@@ -100,13 +102,15 @@
             }
             else
                 amq_server_connection_error (connection,
-                    ASL_NOT_ALLOWED, "Exchange exists with different type");
+                    ASL_NOT_ALLOWED, "Exchange exists with different type",
+                    AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DECLARE);
 
             amq_exchange_unlink (&exchange);
         }
     }
     else
-        amq_server_connection_error (connection, ASL_COMMAND_INVALID, "Unknown exchange type");
+        amq_server_connection_error (connection, ASL_COMMAND_INVALID, "Unknown exchange type",
+            AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DECLARE);
   </action>
 
   <action name = "delete">
@@ -126,24 +130,32 @@
         amq_vhost_unlink (&vhost);
     }
     else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
+            AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DELETE);
     </footer>
     //
     //  Use current channel exchange if method has a blank name
     if (strnull (method->exchange))
         icl_shortstr_cpy (method->exchange, channel->current_exchange);
 
-    exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
-    if (exchange) {
-        //  Tell client delete was successful
-        if (!method->nowait)
-            amq_server_agent_exchange_delete_ok (connection->thread, channel->number);
+    if (ipr_str_prefixed (method->exchange, "amq."))
+       amq_server_channel_error (channel,
+            ASL_ACCESS_REFUSED, "Exchange name not allowed",
+            AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DECLARE);
+    else {
+        exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
+        if (exchange) {
+            //  Tell client delete was successful
+            if (!method->nowait)
+                amq_server_agent_exchange_delete_ok (connection->thread, channel->number);
 
-        //  Destroy the exchange on this peer
-        amq_exchange_destroy (&exchange);
+            //  Destroy the exchange on this peer
+            amq_exchange_destroy (&exchange);
+        }
+        else
+            amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined",
+                AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DELETE);
     }
-    else
-        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined");
   </action>
 </class>
 
@@ -169,7 +181,8 @@
         amq_vhost_unlink (&vhost);
     }
     else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
+            AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_DECLARE);
     </footer>
     //
     //  Find queue and create if necessary
@@ -178,7 +191,8 @@
     queue = amq_queue_table_search (vhost->queue_table, method->queue);
     if (!queue) {
         if (method->passive)
-            amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
+            amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined",
+                AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_DECLARE);
         else {
             //  The queue->connection specifies owner connection, for exclusive queues
             queue = amq_queue_new (
@@ -208,7 +222,8 @@
             }
             else
                 amq_server_connection_error (connection,
-                    ASL_RESOURCE_ERROR, "Unable to declare queue");
+                    ASL_RESOURCE_ERROR, "Unable to declare queue",
+                    AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_DECLARE);
         }
     }
     if (queue) {
@@ -219,7 +234,8 @@
             amq_server_channel_error (
                 channel,
                 ASL_ACCESS_REFUSED,
-                "Queue cannot be made exclusive to this connection");
+                "Queue cannot be made exclusive to this connection",
+                AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_DECLARE);
         else {
             //  AMQP requires us to hold a current queue per channel
             icl_shortstr_cpy (channel->current_queue, queue->name);
@@ -254,7 +270,8 @@
         amq_vhost_unlink (&vhost);
     }
     else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
+            AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_BIND);
     </footer>
     //
     //  Use current channel queue if method uses a blank queue
@@ -274,11 +291,13 @@
             amq_queue_unlink (&queue);
         }
         else
-            amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
+            amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined",
+                AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_BIND);
         amq_exchange_unlink (&exchange);
     }
     else
-        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined");
+        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined",
+            AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_BIND);
   </action>
 
   <action name = "unbind">
@@ -300,7 +319,8 @@
         amq_vhost_unlink (&vhost);
     }
     else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
+            AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_UNBIND);
     </footer>
     //
     //  Use current channel queue if method uses a blank queue
@@ -322,11 +342,13 @@
             amq_queue_unlink (&queue);
         }
         else
-            amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
+            amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined",
+                AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_UNBIND);
         amq_exchange_unlink (&exchange);
     }
     else
-        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined");
+        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined",
+            AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_UNBIND);
   </action>
 
   <action name = "delete">
@@ -346,7 +368,8 @@
         amq_vhost_unlink (&vhost);
     }
     else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
+            AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_DELETE);
     </footer>
     //
     //  Use current channel queue if method uses a blank queue
@@ -362,10 +385,11 @@
 
         //  Destroy the queue on this peer
         amq_vhost_unbind_queue (vhost, queue);
-        amq_queue_unlink (&queue);
+        amq_queue_destroy (&queue);
     }
     else
-        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
+        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined",
+            AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_DELETE);
   </action>
 
   <action name = "purge">
@@ -385,7 +409,8 @@
         amq_vhost_unlink (&vhost);
     }
     else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready", 
+            AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_PURGE);
     </footer>
     //
     //  Use current channel queue if method uses a blank queue
@@ -398,13 +423,19 @@
         amq_queue_unlink (&queue);
     }
     else
-        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
+        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined",
+            AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_PURGE);
   </action>
 </class>
 
 <!-- Basic -->
 
 <class name = "basic">
+  <action name = "qos">
+    //  Does not do anything except respond Qos-Ok
+    amq_server_agent_basic_qos_ok (channel->connection->thread, channel->number);
+  </action>
+
   <action name = "consume">
     <local>
     amq_queue_t
@@ -422,7 +453,8 @@
         amq_vhost_unlink (&vhost);
     }
     else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
+            AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_CONSUME);
     </footer>
     //
     //  Use current channel queue if method uses a blank queue
@@ -436,13 +468,16 @@
         amq_queue_unlink (&queue);
     }
     else
-        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
+        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined",
+            AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_CONSUME);
   </action>
 
   <action name = "publish">
     <local>
     amq_exchange_t
         *exchange;
+    icl_shortstr_t
+        sender_id;
     </local>
     <local>
     amq_vhost_t
@@ -456,7 +491,8 @@
         amq_vhost_unlink (&vhost);
     }
     else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
+            AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_PUBLISH);
     </footer>
     //
     if (*method->exchange)
@@ -475,17 +511,25 @@
                 method->exchange,
                 method->routing_key,
                 connection->id);
+            if (exchange->federation) {
+                icl_shortstr_fmt (sender_id, "%s|%d", connection->key, 
+                    channel->number);
+                amq_content_$(class.name)_set_sender_id (
+                    content, sender_id);
+            }
 
             amq_exchange_publish (exchange, channel, self);
         }
         else
             amq_server_channel_error (channel,
-                ASL_ACCESS_REFUSED, "Exchange is for internal use only");
+                ASL_ACCESS_REFUSED, "Exchange is for internal use only",
+                AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_PUBLISH);
 
         amq_exchange_unlink (&exchange);
     }
     else
-        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined");
+        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined",
+            AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_PUBLISH);
   </action>
 
   <action name = "get">
@@ -505,7 +549,8 @@
         amq_vhost_unlink (&vhost);
     }
     else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
+            AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_GET);
     </footer>
     //
     //  Use current channel queue if method uses a blank queue
@@ -518,18 +563,13 @@
         amq_queue_unlink (&queue);
     }
     else
-        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
+        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined",
+            AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_GET);
   </action>
 
   <action name = "cancel">
     amq_server_channel_cancel (channel, method->consumer_tag, TRUE, method->nowait);
   </action>
-</class>
-
-<!-- File -->
-<class name = "file">
-  <action name = "consume" sameas = "basic" />
-  <action name = "cancel"  sameas = "basic" />
 </class>
 
 </protocol>

@@ -131,6 +131,11 @@ amq_index_hash table.
     </local>
     //
     //  Check if routing_key is already indexed, else reindex bindings on it
+    //  If the routing key is null, use a single space " " instead so that we
+    //  can match empty routing keys with wildcards.
+    if (strnull (routing_key))
+        routing_key = " ";              //  Not a shortstr but a char *...
+
     index = amq_index_hash_search (self->index_hash, routing_key);
     if (index == NULL) {
         if (amq_server_config_debug_route (amq_server_config))
@@ -142,8 +147,6 @@ amq_index_hash table.
         binding = amq_binding_list_first (self->exchange->binding_list);
 
         while (binding && binding->is_wildcard) {
-            //  TODO: size of regexp object? keep it active per binding
-            //  sub-structure for bindings, dependent on exchange class...
             regexp = ipr_regexp_new (binding->regexp);
             if (ipr_regexp_match (regexp, routing_key, NULL)) {
                 if (amq_server_config_debug_route (amq_server_config))
@@ -166,6 +169,8 @@ amq_index_hash table.
             "X: route    %s: routing_key=%s", self->exchange->name, routing_key);
 
     assert (index);
+    
+    //  Collect all queues to publish to
     binding_nbr = ipr_bits_first (index->bindset);
     while (binding_nbr >= 0) {
         binding = self->exchange->binding_index->data [binding_nbr];
@@ -173,17 +178,20 @@ amq_index_hash table.
         if (amq_server_config_debug_route (amq_server_config))
             smt_log_print (amq_broker->debug_log,
                 "X: hit      %s: wildcard=%s", self->exchange->name, binding->routing_key);
-        delivered += amq_binding_publish (binding, channel, method);
+        set_size = amq_binding_collect (binding, self->exchange->queue_set, set_size);
         binding_nbr = ipr_bits_next (index->bindset, binding_nbr);
     }
     amq_index_unlink (&index);
+    //  The queue_set is processed in the footer of this function in 
+    //  amq_exchange_base.icl, the same way for all exchanges
 </method>
 
 <private name = "header">
 //  Topic names observe the Perl "word" syntax, i.e. letters,
-//  digits, and underscores.
-#define S_WILDCARD_SINGLE     "`w+"                 //  *
-#define S_WILDCARD_MULTIPLE   "`w+(?:`.`w+)*"       //  #
+//  digits, and underscores.  The MULTIPLE wildcard matches an
+//  empty topic, expressed as " ".
+#define S_WILDCARD_SINGLE     "`w+"                     //  *
+#define S_WILDCARD_MULTIPLE   "( |(?:`w+(?:`.`w+)*))"   //  #
 static Bool
     s_topic_to_regexp (char *index_regexp, char *regexp);
 </private>

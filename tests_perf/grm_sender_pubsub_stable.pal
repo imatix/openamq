@@ -42,7 +42,7 @@
                     </headers>
                 </basic_content>
                 <basic_publish exchange = "grm.p" routing_key = "" />
-                <set_random name = "delay" min = "1" max = "$delay_cmdline" />
+                <random name = "delay" min = "1" max = "$delay_cmdline" />
                 <wait timeout = "$delay" />
             </repeat>
             <!-- Publish synchronisation message  -->
@@ -53,7 +53,7 @@
                 </headers>
             </basic_content>
             <basic_publish exchange = "grm.p" routing_key = "" />
-            <set_random name = "delay" min = "1" max = "$delay_cmdline" />
+            <random name = "delay" min = "1" max = "$delay_cmdline" />
             <wait timeout = "$delay" />
         </repeat>
     </session>

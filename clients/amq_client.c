@@ -65,11 +65,11 @@ main (int argc, char *argv [])
     amq_client_connection_t
         **a_connections,                //  Active connection table
         **p_connections,                //  Passive connection table
-        *connection;                    //  Current connection
+        *connection = NULL;             //  Current connection
     amq_client_session_t
         **a_sessions,                   //  Active session table
         **p_sessions,                   //  Passive session table
-        *session;                       //  Current session
+        *session = NULL;                //  Current session
     amq_content_basic_t
         *content = NULL;                //  Message content
     dbyte
@@ -250,7 +250,8 @@ main (int argc, char *argv [])
             NULL,                       //  Client key
             FALSE,                      //  No local messages
             TRUE,                       //  Auto-acknowledge
-            FALSE);                     //  Exclusive access to queue
+            FALSE,                      //  Exclusive access to queue
+            NULL);                      //  Arguments
     }
     while (repeats) {
         //  Send messages to server
@@ -274,7 +275,7 @@ main (int argc, char *argv [])
                     goto finished;
                 }
             }
-            amq_content_basic_unlink (&content);
+            amq_content_basic_destroy (&content);
         }
         //  Read messages back from server, discard them
         expected = messages * nbr_active;
@@ -283,17 +284,18 @@ main (int argc, char *argv [])
                 session = a_sessions [the_index];
                 content = amq_client_session_basic_arrived (session);
                 if (content) {
-                    amq_content_basic_unlink (&content);
+                    amq_content_basic_destroy (&content);
                     expected--;
                 }
                 else
+                if (expected)
                     amq_client_session_wait (session, 1000);
 
                 if (!session->alive)
                     goto finished;
-                if (smt_signal_raised) {
-                    icl_console_print ("I: SMT signal raised - ending test");
-                    icl_console_print ("I: %d messages not received");
+                if (connection->interrupt) {
+                    icl_console_print ("I: Interrupted - ending test");
+                    icl_console_print ("I: %d messages not received", expected);
                     goto finished;
                 }
             }
@@ -319,7 +321,7 @@ main (int argc, char *argv [])
         if (p_connections [the_index])
             amq_client_connection_destroy (&p_connections [the_index]);
     }
-    amq_content_basic_unlink (&content);
+    amq_content_basic_destroy (&content);
     icl_longstr_destroy (&auth_data);
     icl_mem_free (test_data);
     icl_mem_free (a_connections);

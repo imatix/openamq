@@ -1,0 +1,23 @@
+<?xml?>
+
+<pal script = "amq_pal_gen">
+    <repeat>
+    <session failover = "500">
+        <basic_content size = "500" />
+        <basic_publish exchange = "amq.topic" routing_key = "test" />
+        <break/>
+        <echo>end of session</echo>
+    </session>
+    <break/>
+    <echo>end of repeat</echo>
+    </repeat>
+    <sleep timeout = "1000" />
+    <repeat times = "5">
+    <session failover = "500">
+        <echo>session 2</echo>
+        <basic_content size = "500" />
+        <basic_publish exchange = "amq.topic" routing_key = "test" />
+        <sleep timeout = "1000" />
+    </session>
+    </repeat>
+</pal>

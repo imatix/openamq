@@ -45,6 +45,16 @@ $\(selftype)
     </doc>
     </property>
 
+    <property name = "listen" type = "char *" default = "*">
+    Address (local network interface) to listen on
+    <doc>
+    Specifies the network interface on which the server should listen for 
+    connections.  By default this is *, meaning all interfaces.  You would 
+    choose to set an address when you use OpenAMQ on a server with multiple 
+    network interfaces, e.g. routing between two networks.
+    </doc>
+    </property>
+
     <property name = "queue timeout" type = "int" default = "0" dynamic = "1">
     Timeout for auto-deleted queues
     <doc>
@@ -53,27 +63,21 @@ $\(selftype)
     consumer. If zero, queues are deleted immediately.
     </doc>
     </property>
+
+    <property name = "vhost" type = "icl_shortstr_t" default = "/">
+    Server vhost identifier
+    <doc>
+    Specifies the virtual host name, an arbitrary string. OpenAMQ does not
+    implement virtual hosts but uses this string to identify servers to
+    prevent client applications from mistakenly connecting to the wrong
+    server.  We recommend you set this on production servers and on all
+    failover pairs.  Note that the two servers in a failover pair must use
+    an identical vhost identifier.
+    </doc>
+    </property>
 </path>
 
 <path name = "resources">
-    <property name = "max memory mb" default = "512" type = "size_t" dynamic = "1">
-    Maximum allowed memory, MBytes
-    <doc>
-    Specifies the maximum memory allowed for the server, in MB. When the
-    server reaches this limit, it will slow down publishers. If zero, no
-    limit is enforced.
-    </doc>
-    </property>
-
-    <property name = "per client" type = "size_t" default = "0" dynamic = "1">
-    Default messages per client
-    <doc>
-    Specifies the limit per client, in messages.  Clients that exceed this
-    limit will be disconnected, and their messages discarded.  Applies only
-    to messages held on private queues belonging to one client.
-    </doc>
-    </property>
-
     <property name = "monitor" type = "int" default = "0" dynamic = "1">
     Monitor interval, seconds
     <doc>
@@ -189,9 +193,9 @@ $\(selftype)
     <property name = "debug peering" type = "Bool" default = "0" dynamic = "1">
     Debug peering messages?
     <doc>
-    Specifies whether peering activity is logged or not.  Set this
-    option when you are configuring or debugging peerings.  For
-    production use, we recommend you do not set this option.
+    Specifies whether peering activity is logged or not. Set this option if 
+    you need to debug exchange federation and failover. For production use, 
+    we recommend you do not set this option.                           
     </doc>
     </property>
 
@@ -216,21 +220,27 @@ $\(selftype)
 </path>
 
 <path name = "tuning">
-    <property name = "packio" type = "Bool" default = "0" dynamic = "1">
-    Pack network writes?
-    <doc>
-    If set, data is packed into larger buffers before writing. This
-    can improve performance significantly on some systems, especially
-    Windows and Linux with 2.4 kernels. If you disable this setting,
-    you should test the performance using a bulk message transfer
-    test.
-    </doc>
-    </property>
-
     <property name = "heartbeat" type = "int" default = "2" dynamic = "1">
     Heartbeat timer, seconds
     <doc>
     Defines the timeout for connection heartbeating.
+    </doc>
+    </property>
+
+    <property name = "setup timeout" type = "int" default = "5">
+    Connection setup timeout, seconds
+    <doc>
+    Defines the maximum amount of time connection negotiation may
+    take, before the connection is forcibly closed by the server.
+    </doc>
+    </property>
+
+    <property name = "close timeout" type = "int" default ="5">
+    Connection close timeout, seconds
+    <doc>
+    Defines the maximum amount of time the server will wait for a
+    client to send a connection.close-ok when closing the 
+    connection due to an exception.
     </doc>
     </property>
 
@@ -250,19 +260,8 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "poll frequency" type = "int" default = "0" dynamic = "1">
-    Kernel polling frequency
-    <doc>
-    To experiment with the effect of different socket polling strategies we
-    allow the user to set the frequency of non-essential socket polling.
-    Zero means no non-essential polling, one means maximal non-essential
-    polling, and in general N means do non-essential polling one time in N.
-    The maximum valid value for this setting is 1024.
-    </doc>
-    </property>
-
     <property name = "tcp nodelay" type = "Bool" default = "1" dynamic = "1">
-    TCP/IP NDELAY option
+    TCP/IP NODELAY option
     <doc>
     If this value is 1, socket data is written immediately, which is
     usually good for latency.  If this value is 0, data is buffered
@@ -296,53 +295,104 @@ $\(selftype)
     headers but will cause congestion on multi-channel connections.
     </doc>
     </property>
+
+    <property name = "private credit" type = "int" default = "1024">
+    Credit window for private queues
+    <doc>
+    Defines the credit window for private queues.  The credit window regulates
+    the flow of messages internally.  A higher value will move messages faster
+    off private message queues and into the protocol transport threads. This
+    will increase server memory consumption (before configured queue limits
+    are applied) but can improve performance.  For high performance applications
+    we recommend using Direct Mode.  To disable credit based flow control on
+    private queues, set to zero.
+    </doc>
+    </property>
+
+    <property name = "shared credit" type = "int" default = "1">
+    Credit window for shared queues
+    <doc>
+    Defines the credit window for shared queues.  The credit window regulates
+    the flow of messages internally.  The default value of 1 will provide the 
+    best response to blocked/slow clients working on shared queues.  Set to 
+    zero to disable credit based flow control on shared queues.
+    </doc>
+    </property>
 </path>
 
-<path name = "cluster">
-    <property name = "cluster vhost" type = "icl_shortstr_t" default = "/">
-    Cluster virtual host
+<path name = "failover">
+    <property name = "backup" type = "icl_shortstr_t" default = "">
+    Failover backup host:port
     <doc>
-    Specifies the cluster vhost name, which must be identical for both
-    HA peers.  Any string, up to 255 chars long, may be used. By convention
-    virtual host names are formatted as POSIX paths, starting with '/'.  Note
-    that all applications must use the same virtual host name when connecting
-    to the cluster.
+    Used when running the primary server, specifies the failover backup 
+    server for the high-availability pair. Use the internet name of the 
+    backup server as 'host' or 'host:port' if it is not running on port 
+    5672.  Do not specify this option together with the 'primary' option.
+    </doc>
+    </property>
+    
+    <property name = "primary" type = "icl_shortstr_t" default = "">
+    Failover primary host:port
+    <doc>
+    Used when running the backup server, specifies the failover primary
+    server for the high-availability pair. Use the internet name of the 
+    primary server as 'host' or 'host:port' if it is not running on port 
+    5672.  Do not specify this option together with the 'backup' option.
     </doc>
     </property>
 
-    <property name = "is primary" type = "Bool" default = "0">
-    Server is HA primary
+    <property name = "timeout" type = "int" default = "5" min = "1" max = "60" prefix = "failover">
+    Failover timeout, in seconds
     <doc>
-    Specifies whether or not this server instance is the HA primary peer.
-    If this option is set, the cluster backup-peer option must be set as
-    well.
+    Specifies the delay in seconds after which the backup peer will become 
+    the primary peer.  This switch over will happen only if and when an 
+    application connects to the backup peer after the failover timeout has 
+    expired.  Reducing this value will allow failover to happen faster but
+    will increase the risk of unnecessary failover due to transient network 
+    issues.
+    </doc>
+    </property>
+</path>
+
+<path name = "federation">
+    <property name = "attach" type = "char *" default = "">
+    Enable auto-federation to specified host
+    <doc>
+    If specified, the server will auto-federate to the specified parent 
+    OpenAMQ server.  This federates three exchanges: amq.service (a direct
+    exchange) using a service federation; amq.data (a topic exchange) using
+    a fanout federation; and amq.dataex (a headers exchange) using a fanout
+    exchange.  This gives you an instant enterprise service bus (ESB) based
+    on a spoke-and-hub model.  You can fine-tune auto-federation using the
+    --attach-login and --attach-vhost options.
     </doc>
     </property>
 
-    <property name = "is backup" type = "Bool" default = "0">
-    Server is HA backup
+    <property name = "attach vhost" type = "icl_shortstr_t" default = "/">
+    Auto-federation virtual host name
     <doc>
-    Specifies whether or not this server instance is the HA backup peer.
-    If this option is set, the cluster primary-peer option must be set as
-    well.
+    Specifies the auto-federation vhost name, an arbitrary string that 
+    will be used when connecting to the parent server. This must match 
+    the vhost setting of the parent server.
     </doc>
     </property>
 
-    <property name = "primary peer" type = "icl_shortstr_t" default = "">
-    HA primary peer address
+    <property name = "attach login" type = "icl_shortstr_t" default = "peering">
+    Auto-federation login user name
     <doc>
-    Specifies the primary high-availability peer address.  This should consist
-    of a servername:portnumber combination that allows the backup peer to
-    correctly address the primary peer.
+    Specifies the user name to be used when logging in.  You do not need to 
+    specify a password, it is taken from the security section.
     </doc>
     </property>
 
-    <property name = "backup peer" type = "icl_shortstr_t" default = "">
-    HA backup peer address
+    <property name = "attach all" type = "icl_shortstr_t" default = "">
+    Auto-federate exchanges by pattern
     <doc>
-    Specifies the backup high-availability peer address.  This should consist
-    of a servername:portnumber combination that allows the primary peer to
-    correctly address the backup peer.
+    If set, the server will auto-federate all exchanges that match the
+    specified pattern which can include * and ? to mean zero or more, or
+    a single arbitrary character.  You can use naming conventions to
+    federate specific groups of exchanges.  Put quotes around wildcards
+    to avoid shell expansion.
     </doc>
     </property>
 </path>
@@ -381,6 +431,6 @@ $\(selftype)
 <!-- These sections are allowed but ignored -->
 <path name = "queue_profile" />
 <path name = "security" />
-<path name = "cluster_mta" />
+<path name = "federate" />
 
 </opf>

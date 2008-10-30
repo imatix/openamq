@@ -88,7 +88,7 @@ Bool
 
         if (!rc)
             rc = amq_client_session_basic_consume (self->session,
-                0, self->session->queue, NULL, FALSE, TRUE, TRUE);
+                0, self->session->queue, NULL, FALSE, TRUE, TRUE, NULL);
 
         if (!rc)
             rc = amq_client_session_queue_bind (self->session,

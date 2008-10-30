@@ -126,7 +126,7 @@
           <exec>
             smt_log_print (amq_broker->alert_log,
                 "W: operator requested shutdown - closing all connections");
-            smt_shut_down ();
+            amq_broker_shutdown (self);
           </exec>
         </method>
 
@@ -153,15 +153,6 @@
           <field name = "setting" type = "bool" label = "1|0"/>
           <exec>self->locked = setting;</exec>
         </method>
-
-        <method name = "shake" label = "Shake broker memory">
-          <doc>
-          Shakes the broker, which forces it to do a garbage collection. The
-          method may create delays for message processing; do not use during
-          heavy traffic.
-          </doc>
-          <exec>icl_system_purge ();</exec>
-        </method>
     </class>
 </data>
 
@@ -171,7 +162,6 @@
 
 <context>
     Bool
-        clustered,                      //  Is broker part of HAC ?
         locked,                         //  Is broker locked?
         restart;                        //  Restart broker after exit?
     int
@@ -182,8 +172,8 @@
         *vhost;                         //  Single vhost (for now)
     amq_connection_by_broker_t
         *mgt_connection_list;           //  Connection mgt objects list
-    amq_cluster_hac_t
-        *hac;                           //  High availabilty cluster
+    amq_failover_t
+        *failover;                      //  Failover controller
 </context>
 
 <method name = "new">
@@ -202,13 +192,13 @@
     if (self->auto_block_timer)
         self->auto_block_timer = randomof (self->auto_block_timer) + 1;
 
-    //  Initialise high-availability controller (HAC)
-    self->hac = amq_cluster_hac_new (self);
+    //  Initialise failover agent
+    self->failover = amq_failover_new (self);
 </method>
 
 <method name = "destroy">
     <action>
-    amq_cluster_hac_destroy (&self->hac);
+    amq_failover_destroy (&self->failover);
     amq_console_config_destroy (&amq_console_config);
     amq_vhost_destroy (&self->vhost);
     amq_connection_by_broker_destroy (&self->mgt_connection_list);

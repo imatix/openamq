@@ -54,7 +54,7 @@ limited by size of amq_index_hash table.
     to match on.  Each field with a non-empty value is matched for
     that field/value pair.  Each field with an empty value is matched
     for presence only (matching any value in the message).  Fields
-    prefixed by X- are not matched on.  The field called "X-match"
+    prefixed by x- are not matched on.  The field called "x-match"
     can have the value "all" or "any", meaning logical AND or OR of
     all matches.  It defaults to "all".
     </doc>
@@ -76,8 +76,10 @@ limited by size of amq_index_hash table.
         binding->match_all = TRUE;      //  By default, want full match
         field = asl_field_list_first (fields);
         while (field) {
-            if (field->name [0] == 'X' && field->name [1] == '-') {
-                if (streq (field->name, "X-match")) {
+            if ((field->name [0] == 'X' 
+              || field->name [0] == 'x') && field->name [1] == '-') {
+                if (streq (field->name, "x-match") 
+                 || streq (field->name, "X-match")) {
                     if (streq (asl_field_string (field), "any")) {
                         if (amq_server_config_debug_route (amq_server_config))
                             smt_log_print (amq_broker->debug_log,
@@ -113,14 +115,16 @@ limited by size of amq_index_hash table.
             amq_server_connection_error (
                 channel? channel->connection: NULL,
                 ASL_COMMAND_INVALID,
-                "Queue binding failed, too many bindings");
+                "Queue binding failed, too many bindings",
+                AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_BIND);
     }
     else {
         rc = 1;
         amq_server_connection_error (
             channel? channel->connection: NULL,
             ASL_COMMAND_INVALID,
-            "Invalid binding arguments");
+            "Invalid binding arguments",
+            AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_BIND);
     }
 </method>
 
@@ -142,7 +146,7 @@ limited by size of amq_index_hash table.
     //
     if (method->class_id == AMQ_SERVER_BASIC)
         headers = asl_field_list_new (basic_content->headers);
-
+        
     if (headers) {
         hitset = amq_hitset_new ();
         field = asl_field_list_first (headers);
@@ -167,7 +171,7 @@ limited by size of amq_index_hash table.
             if (binding) {
                 if ((binding->match_all && hitset->hit_count [binding_nbr] == binding->field_count)
                 || (!binding->match_all && hitset->hit_count [binding_nbr] > 0)) {
-                    delivered += amq_binding_publish (binding, channel, method);
+                    set_size = amq_binding_collect (binding, self->exchange->queue_set, set_size);
                     if (amq_server_config_debug_route (amq_server_config))
                         smt_log_print (amq_broker->debug_log,
                             "X: have_hit %s: match=%s hits=%d binding=%d",
@@ -180,6 +184,8 @@ limited by size of amq_index_hash table.
         amq_hitset_destroy (&hitset);
         asl_field_list_destroy (&headers);
     }
+    //  The queue_set is processed in the footer of this function in 
+    //  amq_exchange_base.icl, the same way for all exchanges
 </method>
 
 <private name = "header">

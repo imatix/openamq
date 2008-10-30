@@ -1,3 +1,347 @@
++ Stable branch
+
+++ 1.2d6 - 2008/10/21
+
+* fixed: mixing deliveries with sync methods confused WireAPI (http://www.openamq.org/issue:32)
+* fixed: Queue.Destroy was not working properly (http://www.openamq.org/issue:31)
+* fixed: zero-sized content crashes server & client (http://www.openamq.org/issue:30)
+* fixed: asl_field_list_dump () wrote into unallocated memory. (http://www.openamq.org/issue:29)
+* fixed: PAL did not allow nested repeat blocks (confused the counters).
+* fixed: amq_client.asl crashed when using default exchange (http://www.openamq.org/issue:28)
+* fixed: amq_server let applications delete pre-defined exchanges (http://www.openamq.org/issue:27)
+
+++ 1.2d5 - 2008/10/03
+
+* allow signal to be registered by multiple threads (http://www.openamq.org/issue:16)
+* fixed error in WIREAPI_SILENT handling (http://www.openamq.org/issue:18)
+
+++ 1.2d4 - 2008/09/29
+
+* WireAPI Connection->silent property now taken from WIREAPI_SILENT environment variable if any
+* Fixed: documentation still referred to WIREAPI_VERBOSE variable, which was replaced by WIREAPI_SILENT
+* Improved internal server event flow between queues and protocol agents, using credit based flow controls.
+
+This change is designed to make the server more manageable when using very high message rates, and slow clients.  Prior to this change, messages were offloaded from message queues to protocol threads (for sending to clients), at full speed.  This meant that the configurable queue limits would never be reached, so server memory could grow to excess.  This change implements a credit-based flow control so that the bulk of messages will remain on the message queue, where they can be properly managed by the queue limit handling (e.g. discard old messages if queue is too full).
+
+++ 1.2d3 - 2008/09/25 (STABLE)
+
+* Fixed rare server crash (BASE2-299)
+* Fixed failover logic in JMS client (JAMQ-125)
+
+++ 1.2d2 - 2008/09/16
+
+* Implemented Basic.Qos (http://www.openamq.org/issue:5)
+* Fixed use of C++ words in amq_queue.icl ('private') and amq_cml ('class') (http://www.openamq.org/issue:6)
+* Fixed error in topic routing key (foo.# matched fruit.bar) (http://www.openamq.org/issue:7)
+* Fixed setting of last routing key on binding (http://www.openamq.org/issue:12)
+* amq_queue reported bad client ip address on shared queues with no connections (http://www.openamq.org/issue:12)
+* Fixed amq_shell, which blocked when listing shared queues without consumers.
+* Improved internal assertion macros to provide more info in case of crashes (BASE2-296).
+* Fixed occasional server crashes caused by race condition on closing client connections (BASE2-298).
+* Fixed occasional server memory corruption in handling of Basic.Cancel-Nowait method (AMQ-589)
+* Added support for AMQP nowait methods in PAL scripting language.
+
+++ 1.2d1 - 2008/09/07
+
+* Session now accurately holds content exchange, routing-key, and consumer-tag.  (http://www.openamq.org/issue:2)
+* Fixed: on Windows the server crashed on startup if it could not resolve its own hostname.  (http://www.openamq.org/issue:3)
+* Fixed: High-availability would randomly break and fall into a split-brain mode where both nodes would accept application connections.  (http://www.openamq.org/issue:4)
+* Support for AMQP File, Stream, Tx, Dtx, Access, and Tunnel classes removed.
+* Fanout exchange did not properly accept bindings.  Fixed.
+
++++ Configuration file syntax changes
+
+* In wireapi config, renamed arrived_high_water/low_water to high_water/low_water.
+* In server config, /failover/failover_timeout changed to /failover/timeout.
+* In server config, removed /failover/monitor option, is now timeout divided by 2.
+* In server config, timeout defaults to 5 seconds instead of 1 second.
+* In server config, timeout verified to not exceed 60 seconds.
+
+++ 1.2d0 - 2008/06/05
+
+* The configuration syntax for failover functionality (formerly "cluster") has changed.  Please see http://wiki.openamq.org/user:3-advanced#toc28 for details.
+
+* New simplified semantics and automatic configuration for federation functionality.  The configuration syntax (formerly "cluster_mta") has changed.  Please see http://wiki.openamq.org/user:3-advanced#toc46 for details.
+
+* Stability and build fixes:
+ * JAMQ-116 - Assertion failure in C Client
+ * JAMQ-113 - Queue not deleted immediatly even when 'queue timeout' is set to zero
+ * JAMQ-109 - Intermitten latency as high as 30 seconds was observed in OpenAMQ
+ * JAMQ-67 - Fix some SMT errors
+ * FOR-19 - Cannot build on Mac OS/X
+ * BASE2-293 - Make client layer error reporting more controllable
+ * BASE2-292 - icl_smt.gsl does not expand variables in "async header" and "async footer" <private> blocks
+ * BASE2-290 - Add debugging support for config files
+ * BASE2-288 - Remove unused 'name' field from server connection properties
+ * BASE2-287 - Extend ASL contants class to include macros for soft/hard errors
+ * BASE2-286 - Change config file inheritence to allow entities without name attribute
+ * BASE2-284 - SMT gives warnings when compiled with G++
+ * BASE2-282 - ASL: Correct timeout handling during connection setup/teardown
+ * BASE2-207 - Implement native atomic operations for Linux/AMD64
+ * BASE-58 - OSX porting - smt dies horribly
+ * AMQ-584 - Improve logging/verbosity settings in amq_client_agent, amq_peer_agent
+ * AMQ-583 - unsafe initialisation in amq_failover can cause asserts or bad behaviour
+ * AMQ-582 - build.sh does not detect intermediate failures
+ * AMQ-579 - Change failover times to msec instead of sec
+ * AMQ-578 - Remove broker 'shake' command
+ * AMQ-577 - Remove the resources/max_memory_mb and resources/per_client options
+ * AMQ-576 - Clarify use of vhost identifier
+ * AMQ-575 - Simplify federation semantics
+ * AMQ-574 - ASL: server sends connection.open-ok before executing server_connection_open method
+ * AMQ-573 - HA timeout is hardcoded in code (10 seconds), should be configurable
+ * AMQ-571 - Apply queue limits systematically to all queues
+ * AMQ-570 - Delete queues immediately if queue-timeout is set to zero
+ * AMQ-569 - Topic exchange should route same message to same queue no more than one time
+ * AMQ-567 - Multiple instances of a single message delivered to the queue
+ * AMQ-564 - Reimplement MTA peering debugging
+ * AMQ-563 - Use 'exchange' in place of name for MTA configuration
+ * AMQ-562 - Use names instead of numbers for MTA modes
+ * AMQ-561 - Apply patch: --listen to set the address to listen on
+ * AMQ-560 - Routing key is lost when message passes MTA
+ * AMQ-559 - Headers exchange is not conformant with 0.9 spec for x-match
+ * AMQ-550 - Refactor server shutdown handling to close all connections cleanly
+ * AMQ-523 - Match blank routing key with the # binding key
+
+1.2c4 - 2007/09/04
+---------------------------------------------------------------------
+
+Summary of changes:
+
+Build and documentation fixes only, no changes to functionality.
+
+Full list of fixes:
+
+  BASE2-283    BASE2-277 changes break single threaded build
+
+    BASE-60    Boom: Enclose <set> values in quotes
+
+     FOR-18    PCRE: Inherit CCDEFINES from environment
+
+    AMQ-555    WireAPI: Documentation updates
+
+1.2c3 - 2007/08/24
+---------------------------------------------------------------------
+
+Summary of changes:
+
+The "packio" configuration option has been removed. This was a workaround to
+support systems without working scatter/gather socket I/O which is not
+necessary on any of our supported platforms (Linux, Solaris, Windows), and was
+causing other issues with the transport of large messages. 
+
+The "poll_frequency" configuration option has been replaced by an adaptive
+algorithm that provides optimal performance without the need for tuning by the
+user.
+
+Known issues:
+  BASE2-282    ASL: Correct timeout handling during connection setup/teardown
+
+               Does not affect normal operation, only corner cases with 
+               deliberately misbehaving clients.
+
+    AMQ-550    Refactor server shutdown handling to close all connections
+               cleanly
+
+               May cause the server to loop on shutdown in combination with
+               a misbehaving client (see BASE2-282), or cause issues with a
+               clean shutdown of peering connections. In either case, sending
+               the server a second SIGINT will cause it to shut down normally.
+
+    AMQ-553    Fanout exchange doesn't dispatch messages after binding
+               recreation
+
+    AMQ-554    Direct exchange doesn't work with empty routing key
+
+    JAMQ-78    Make heartbeat configurable for peering connections
+
+    JAMQ-97    The max_memory_mb broker setting is not functional when used
+               with the default direct allocator
+
+               Please do not rely on the max_memory_mb setting to limit the
+               total amount of memory used by the server, this is not currently
+               working correctly.
+
+None of the above should impact a normal production environment. We hope to
+release fixes for these with the "ultra-stable" OpenAMQ 1.2d0 release,
+tentatively scheduled for the 7th of September.
+
+Full list of fixes:
+  BASE2-279    Correctly set socket options (TCP_NDELAY, SO_SNDBUF, SO_RCVBUF)
+               in SMT/ASL
+
+  BASE2-280    ASL: remove packio
+
+    JAMQ-96    Kill command for certain connections doesnt work.
+               (Duplicate, already fixed in OpenAMQ 1.2c2 by JAMQ-87)
+
+  BASE2-277    Review SMT socket polling strategy (poll_frequency)
+
+  BASE2-281    SMT doesn't always trigger master thread when threads go idle
+
+    BASE-59    Add MT build support for AIX with xlc to 'c' script
+
+1.2c2 - 2007/07/19
+---------------------------------------------------------------------
+
+Internal prelease for testing before 1.2c3 public release.
+
+Summary of changes:
+
+JAMQ-87 is a refactoring of the ASL agent state machines, and either directly
+or indirectly fixes or obsoletes the fix for AMQ-542, AMQ-549, JAMQ-32,
+JAMQ-54, JAMQ-57, JAMQ-71, JAMQ-73, JAMQ-79, JAMQ-82 and JAMQ-83. 
+
+As part of this refactoring we have explicitly removed support for more than
+one protocol channel on a connection, since there is no direct requirement for
+this and the code was problematic and untested.
+
+WireAPI and broker error handling and reporting is now greatly improved and
+more robust.  The generic "unexpected disconnection" message has been removed,
+and the broker and client will report the specific cause of disconnection
+(protocol error, network error, etc.).
+
+JAMQ-94 fixes some non-critical bugs in the way SMT handles error conditions on
+sockets, which were discovered during the work on JAMQ-87.
+
+IMPORTANT NOTES:
+
+A major improvement has been made to the way large message contents (>1 frame)
+are processed in the broker and WireAPI layers, which will result in better
+connection stability under high broker or client load. 
+
+In order to take advantage of this, please ensure that you are running the
+broker with the "packio" setting turned *off*. The "packio" functionality is
+likely to be removed in the next release, since it interferes badly with
+multi-frame messages.
+
+The "read timeout" and "write timeout" broker and client configuration settings
+have been removed since they are no longer required.
+
+The WireAPI configuration file has been renamed from amq_wireapi.cfg to
+wireapi.cfg.
+
+The default "poll frequency" setting has been changed from 0 to 256, and the
+WireAPI configuration now also includes "poll frequency".  However, for correct
+behaviour, we encourage users to keep the default setting (256) and to *ensure*
+this setting is not manually set to 0.  We are testing a new polling algorithm
+which will completely replace "poll frequency" in the next release.
+
+Known issues:
+
+The broker shutdown process has been modified to initiate a clean shutdown of
+connections when the broker receives a SIGINT or SIGTERM. This has not yet been
+intergrated into the console shutdown code, and this change may have adverse
+impact on HA failover in situations where a failover is to be triggered by
+shutting down a running broker. We will evaluate the value of this change and
+provide a definite solution in the next release.
+
+Due to a programming error, the "tcp sndbuf" and "tcp rcvbuf" broker
+configuration settings have no effect.  This will be fixed in the next release.
+
+The documentation on www.openamq.org has not been updated to reflect the
+changes in this release.  
+
+Full list of fixes:
+    AMQ-542    Handle invalid protocol version in protocol header correctly
+
+    AMQ-547    Wrong operator precedence assumed in amq_queue_message_count can
+               lead to crash
+
+    AMQ-548    Set packio default to 0
+
+    AMQ-549    AMQ client API not able to support more than single connection
+
+    BASE-57    OSX porting - smt 'thread_create' function name clash
+
+  BASE2-266    "new style" iterator lists are inconsistent with the rest of iCL
+               and should be removed
+
+  BASE2-268    Ctrl+C leads to looping forever
+
+  BASE2-269    Clean up PAL and add read function
+
+  BASE2-270    smt_signal has allocation (link) issues
+
+  BASE2-271    Remove support for nested contents
+
+  BASE2-273    Multiple calls to _destroy on sync objects don't handle links
+               correctly
+
+  BASE2-274    PAL scripts need to be able to set config options
+
+  BASE2-276    Client uses 100% CPU on SIGINT while attempting to connect
+
+  BASE2-278    Automate sharing of thread context
+
+     FOR-16    c.bat and pal.bat do not accept file names with extensions
+
+     FOR-17    apr_socket_opt_get: Implement APR_SO_ERROR
+
+    JAMQ-32    E: Illegal sequence: Write request follows Close request
+
+    JAMQ-54    ASL: Design flaw in heartbeat algorithm
+
+    JAMQ-57    ASL client layer: Fix heartbeat design flaws
+
+    JAMQ-71    Assertion failure at amq_server:
+               smt_socket_request_by_socket.c:935: smt_socket_request_by_socket_first_:
+               Assertion `self' failed.
+
+    JAMQ-73    Assertion with debug build - amq_server: icl_mem_fat.c:695:
+               icl_mem_fat_possess_: Assertion `self->tag == 0xFABB' failed.
+
+    JAMQ-79    Design error in client/server agent state machine can block SMT
+               engine when sending large contents
+
+    JAMQ-80    PAL: Add support for testing failover
+
+    JAMQ-82    C API needs to report shutdown event properly
+
+    JAMQ-83    amq_client_agent aborts if there are still pending contents in
+               input thread and session has already been closed
+
+    JAMQ-84    Need PAL to support generated contents larger than 2MB (the
+               current limit)
+
+    JAMQ-85    PAL: <repeat> no longer works outside of <session>
+
+    JAMQ-86    SMT: smt_os_thread in ACTIVE status not polling for socket input
+
+    JAMQ-87    SMT not calling thread catcher in all cases/ASL client trying to
+               do socket operations on closed socket
+
+    JAMQ-88    ASL: Remove read_timeout and write_timeout from client agent
+
+    JAMQ-90    Verify OpenAMQ 1.2 HA clustering code meets agreed requirements
+               for delivery
+
+    JAMQ-91    SMT: <default> functionality for a <state> not implemented
+               correctly
+
+    JAMQ-92    SMT: Add priority attribute to method definition
+
+    JAMQ-93    SMT: Allow a thread to register more than one signal with
+               smt_signal_register
+
+    JAMQ-94    SMT not handling poll returning APR_POLLIN with a combination of
+               APR_POLLERR or APR_POLLHUP on a socket
+
+    JAMQ-95    amq_server aborts with (smt_socket_request.c 536) Could not find
+               specified socket in poll list.
+
+1.2c1 - 2007/03/26
+---------------------------------------------------------------------
+
+This release fixes some interoperability problems with other AMQP 0.9
+implementations, and removes the dependency on libuuid which was causing
+build problems for some people (BASE2-267).
+
+Bugfixes:
+    AMQ-546    AMQP 0.9 interoperability fixes for OpenAMQ 1.2c1
+
+Changes:
+  BASE2-267    Change channel id to use 64-bit atomic sequence
+
 1.2c0 - 2007/03/15
 ---------------------------------------------------------------------
 

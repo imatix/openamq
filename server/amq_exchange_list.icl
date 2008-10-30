@@ -23,11 +23,14 @@
     script    = "icl_gen"
     >
 
-<import class = "amq_exchange" />
-
-<inherit class = "icl_list_link_class">
-    <option name = "object_name" value = "amq_exchange" />
+<inherit class = "icl_iter_list_head" >
+    <option name = "prefix"     value = "list"/>
+    <option name = "childname"  value = "amq_exchange" />
+    <option name = "childtype"  value = "amq_exchange_t" />
 </inherit>
+<option name = "alloc"     value = "cache" />
+
+<import class = "amq_exchange" />
 
 <method name = "selftest">
 </method>

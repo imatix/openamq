@@ -1,0 +1,27 @@
+<?xml?>
+<!--
+    jamq_83_publish/jamq_83_subscribe
+
+    These PAL scripts can be used to test for several problems in the server
+    and client layers.  The publisher simply publishes a stream of 500 byte
+    messages to the broker for ever.  The subscriber will connect, wait for a 
+    single message to arrive and exit.
+
+    Example test scenario:
+
+        jamq_83_subscribe
+        (while [ 1 ]; do ./jamq_83_publish || exit; done)
+ -->
+
+<pal script = "amq_pal_gen">
+    <session>
+        <queue_declare exclusive = "1" />
+        <queue_bind queue = "$queue" exchange = "amq.topic" routing_key = "test" />
+        <basic_consume queue = "$queue" />
+        <wait/>
+        <basic_arrived>
+            <echo>Got a message</echo>
+        </basic_arrived>
+    </session>
+</pal>
+

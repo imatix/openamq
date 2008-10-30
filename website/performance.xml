@@ -19,6 +19,9 @@ sustained over ten seconds, in the following scenario:
  - server load around 60-70%, client load around 90%
  - systems connected via gigabit ethernet
 
+Please note that this figure is for aggregate performance of the broker, i.e. 
+a total of all incoming and outgoing messages passing through the broker.
+
 Publish-Subscribe Test
 **********************
 

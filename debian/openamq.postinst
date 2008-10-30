@@ -1,0 +1,24 @@
+#!/bin/sh
+case "$1" in
+    configure)
+        if ! getent passwd openamq>/dev/null; then
+            echo "Creating/updating openamq user/group account..."
+            adduser --home /var/lib/openamq \
+                --gecos "OpenAMQ system user" \
+                --system \
+                --quiet --group --disabled-password openamq
+        fi
+        chown -R openamq:openamq /var/lib/openamq
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+#DEBHELPER#

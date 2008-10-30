@@ -23,11 +23,15 @@
     script    = "icl_gen"
     >
 
-<import class = "amq_binding" />
-
-<inherit class = "icl_list_link_class">
-    <option name = "object_name" value = "amq_binding" />
+<inherit class = "icl_iter_list_head" >
+    <option name = "prefix"     value = "list"/>
+    <option name = "childname"  value = "amq_binding" />
+    <option name = "childtype"  value = "amq_binding_t" />
+    <option name = "count"      value = "1" />
 </inherit>
+<option name = "alloc"     value = "cache" />
+
+<import class = "amq_binding" />
 
 <inherit class = "icl_hash_item">
     <option name = "hash_type" value = "str" />

@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!--
-    Copyright (c) 2007 iMatix Corporation
+    Copyright (c) 2007-2008 iMatix Corporation
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 
 <pdl
     name      = "OpenAMQ"
-    version   = "1.2c0"
-    copyright = "Copyright (c) 2007 iMatix Corporation"
+    version   = "1.2d7"
+    copyright = "Copyright (c) 2007-2008 iMatix Corporation"
     workflow  = "product.pwl"
     >
 <inherit filename = "classes.pdl" />
@@ -27,13 +27,13 @@
 <file name = "project.pdl"  class = "private resource" >Project Definition</file>
 <file name = "readme.txt"   class = "private resource" >Top-level Read Me</file>
 <file name = "release.txt"  class = "private resource" >Release notes</file>
+<file name = "contrib.txt"  class = "private resource" >List of contributors</file>
 
 <distrib name = "OpenAMQ source" type = "source">
     <project directory = "common"  />
     <project directory = "clients" />
     <project directory = "server"  />
     <project directory = "operate" />
-    <project directory = "website" />
 </distrib>
 
 <distrib name = "OpenAMQ install" type = "install">
@@ -41,7 +41,6 @@
     <project directory = "clients" />
     <project directory = "server"  />
     <project directory = "operate" />
-    <project directory = "website" />
 </distrib>
 
 </pdl>

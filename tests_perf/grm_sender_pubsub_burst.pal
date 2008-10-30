@@ -16,10 +16,10 @@
         <exchange_declare exchange = "grm.p" type = "headers" />
         <!-- Individual bursts -->
         <repeat>
-            <set_random name = "delay" min = "1" max = "$delay_cmdline" />
+            <random name = "delay" min = "1" max = "$delay_cmdline" />
             <wait timeout = "$delay" />
 
-            <set_random name = "msg_nbr" max = "$msg_nbr_cmdline" />
+            <random name = "msg_nbr" max = "$msg_nbr_cmdline" />
             <repeat times = "$msg_nbr" counter = "counter_1" >
                 <!-- Publish 9 common messages -->
                 <repeat times = "9" counter = "counter_2" >

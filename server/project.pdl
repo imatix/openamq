@@ -1,6 +1,6 @@
 <?xml?>
 <!--
-    Copyright (c) 2007 iMatix Corporation
+    Copyright (c) 2007-2008 iMatix Corporation
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 
 <pdl
     name      = "OpenAMQ Server"
-    version   = "1.2c0"
-    copyright = "Copyright (c) 2007 iMatix Corporation"
+    version   = "1.2d7"
+    copyright = "Copyright (c) 2007-2008 iMatix Corporation"
     workflow  = "standard.pwl"
     library   = "libamq_server"
     >
@@ -114,18 +114,20 @@
 <file name = "amq_consumer_basic.icl"    class = "icl private class" >Basic consumer class</file>
 <file name = "amq_queue_connection.icl"  class = "icl public class"  >Queue-connection mgt class</file>
 <file name = "amq_queue_connection_agent.smt"
-                                         class = "smt public module"     generated = "1" >Queue-connection mgt agent</file>
+                                         class = "smt public module"     
+                                         generated = "1"             >Queue-connection mgt agent</file>
 <file name = "amq_connection_queue.icl"  class = "icl public class"  >Connection-queue mgt class</file>
 <file name = "amq_connection_queue_agent.smt"
-                                         class = "smt public module"     generated = "1" >Connection-queue mgt agent</file>
+                                         class = "smt public module"     
+                                         generated = "1"             >Connection-queue mgt agent</file>
 <file name = "amq_server_method.icl"     class = "icl private cont"  >Server method class</file>
 <file name = "amq_server_base.cfg"       class = "public resource"   >Server config file</file>
-<file name = "amq_cluster_mta.icl"       class = "icl private class" >MTA class</file>
-<file name = "amq_cluster_mta_agent.smt" class = "smt public module"
-                                         generated = "1"             >MTA agent</file>
-<file name = "amq_cluster_hac.icl"       class = "icl private class" >HAC class</file>
-<file name = "amq_cluster_hac_agent.smt" class = "smt public module"
-                                         generated = "1"             >HAC agent</file>
+<file name = "amq_federation.icl"        class = "icl private class" >Federation class</file>
+<file name = "amq_federation_agent.smt"  class = "smt public module"
+                                         generated = "1"             >Federation agent</file>
+<file name = "amq_failover.icl"          class = "icl private class" >Failover class</file>
+<file name = "amq_failover_agent.smt"    class = "smt public module"
+                                         generated = "1"             >Failover agent</file>
 
 <!-- OpenAMQ Management Console back-end -->
 <file name = "amq_console.icl"           class = "icl private class" >Server console class</file>

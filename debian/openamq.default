@@ -1,0 +1,10 @@
+# Defaults for openamq initscript
+# sourced by /etc/init.d/openamq
+# installed at /etc/default/openamq by the maintainer scripts
+
+#
+# This is a POSIX shell fragment
+#
+
+# Additional options that are passed to the Daemon.
+DAEMON_OPTS="--trace 1 -s /etc/openamq/amq_server_base.cfg"

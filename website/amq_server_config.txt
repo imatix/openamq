@@ -23,12 +23,10 @@ the specific instance of the running server:
     --debug_peering 0              Debug peering messages?
     --debug_console 0              Debug console I/O?
     --trace 0                      Protocol trace level
-    --packio 0                     Pack network writes?
     --heartbeat 2                  Heartbeat timer, seconds
     --polling_threads 4            Number of polling OS threads
     --working_threads 4            Number of working OS threads
-    --poll_frequency 0             Kernel polling frequency
-    --tcp_nodelay 1                TCP/IP NDELAY option
+    --tcp_nodelay 1                TCP/IP NODELAY option
     --tcp_rcvbuf 0                 TCP/IP receive buffer, in bytes
     --tcp_sndbuf 0                 TCP/IP send buffer, in bytes
     --frame_max 32768              Maximum size of AMQP content frames
@@ -86,11 +84,9 @@ and then:
             trace = "0"
         />
         <tuning
-            packio = "0"
             heartbeat = "2"
             polling_threads = "4"
             working_threads = "4"
-            poll_frequency = "0"
             tcp_nodelay = "1"
             tcp_rcvbuf = "0"
             tcp_sndbuf = "0"
@@ -217,12 +213,6 @@ trace = "0":
 Setting Tuning Options
 *************************
 
-packio = "0":
-    If set, data is packed into larger buffers before writing. This can   
-    improve performance significantly on some systems, especially Windows 
-    and Linux with 2.4 kernels. If you disable this setting, you should   
-    test the performance using a bulk message transfer test. Default value
-    is 0. This option can be changed at runtime.                          
 heartbeat = "2":
     Defines the timeout for connection heartbeating. Default value is 2.
     This option can be changed at runtime.                              
@@ -233,13 +223,6 @@ working_threads = "4":
     On multithreaded builds, defines the number of OS threads dedicated to
     processing, that is, tasks other than socket polling. Default value is
     4.                                                                    
-poll_frequency = "0":
-    To experiment with the effect of different socket polling strategies  
-    we allow the user to set the frequency of non-essential socket        
-    polling. Zero means no non-essential polling, one means maximal       
-    non-essential polling, and in general N means do non-essential polling
-    one time in N. The maximum valid value for this setting is 1024.      
-    Default value is 0. This option can be changed at runtime.            
 tcp_nodelay = "1":
     If this value is 1, socket data is written immediately, which is     
     usually good for latency. If this value is 0, data is buffered until 

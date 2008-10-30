@@ -1,0 +1,21 @@
+<?xml?>
+<!-- Example publisher
+     Sends random messages as rapidly as possible to amq.topic
+     Routing key is "test.nnn" where nnn is a random 3-digit number
+     Message size is 100, can be set by -S option
+     Message IDs are 1,2,3...
+     -->
+<pal script = "amq_pal_gen">
+    <set name = "msgsize" value = "100" cmdline = "S" />
+    <set name = "msgid" value = "0" />
+    <session>
+        <echo>Sending $msgsize byte messages to server...</echo>
+        <repeat>
+            <inc name = "msgid" />
+            <random name = "topic" max = "999" />
+            <basic_content message_id = "$msgid" size = "$msgsize" />
+            <basic_publish exchange = "amq.topic" routing_key = "test.$topic" />
+        </repeat>
+    </session>
+</pal>
+

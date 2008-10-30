@@ -56,7 +56,7 @@ class.  This is a lock-free asynchronous class.
         <field name = "durable" label = "Durable queue?" type = "bool">
           <get>icl_shortstr_fmt (field_value, "%d", self->durable);</get>
         </field>
-        <field name = "private" label = "Private queue?" type = "bool">
+        <field name = "exclusive" label = "Exclusive queue?" type = "bool">
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", self->exclusive);</get>
         </field>
@@ -73,6 +73,8 @@ class.  This is a lock-free asynchronous class.
                 icl_shortstr_cpy (field_value, connection->client_address);
                 amq_server_connection_unlink (&connection);
             }
+            else
+                icl_shortstr_cpy (field_value, "");
           </get>
         </field>
         <field name = "exchange_type" label = "Exchange type">
@@ -164,8 +166,7 @@ class.  This is a lock-free asynchronous class.
         durable,                        //  Is queue durable?
         exclusive,                      //  Is queue exclusive?
         auto_delete,                    //  Auto-delete unused queue?
-        locked,                         //  Queue for exclusive consumer?
-        dirty;                          //  Queue has to be dispatched?
+        locked;                         //  Queue for exclusive consumer?
     amq_queue_basic_t
         *queue_basic;                   //  Basic content queue
     int
@@ -228,14 +229,9 @@ class.  This is a lock-free asynchronous class.
     arg_list = asl_field_list_new (arguments);
     if (!arg_list) {
         //  Catch case where field list is malformed
-        smt_log_print (amq_broker->alert_log,
-            "E: client sent malformed 'arguments' in queue.declare (%s, %s, %s, %s)",
-            self->connection->client_address,
-            self->connection->client_product,
-            self->connection->client_version,
-            self->connection->client_instance);
         amq_server_connection_error (NULL, ASL_SYNTAX_ERROR,
-            "Malformed 'arguments' field");
+            "Malformed 'arguments' field in queue.declare",
+            AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_DECLARE);
         self_destroy (&self);
     }
     else {
@@ -251,12 +247,13 @@ class.  This is a lock-free asynchronous class.
             smt_log_print (amq_broker->alert_log,
                 "E: client requested unknown queue profile '%s' (%s, %s, %s, %s)", 
                 profile,
-		self->connection->client_address,
-		self->connection->client_product,
-		self->connection->client_version,
-		self->connection->client_instance);
+                self->connection->client_address,
+                self->connection->client_product,
+                self->connection->client_version,
+                self->connection->client_instance);
             amq_server_connection_error (connection, ASL_SYNTAX_ERROR,
-                "Unknown queue profile requested");
+                "Unknown queue profile requested",
+                AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_DECLARE);
             if (profile_field)
                 asl_field_destroy (&profile_field);
             asl_field_list_destroy (&arg_list);
@@ -328,7 +325,8 @@ class.  This is a lock-free asynchronous class.
                 method->payload.basic_publish.immediate);
     }
     else
-        amq_server_channel_error (channel, ASL_ACCESS_REFUSED, "Queue is disabled");
+        amq_server_channel_error (channel, ASL_ACCESS_REFUSED, "Queue is disabled",
+            method->class_id, method->method_id);
     </action>
 </method>
 
@@ -398,7 +396,8 @@ class.  This is a lock-free asynchronous class.
 
     if (error) {
         if (channel) {
-            amq_server_channel_error (channel, ASL_ACCESS_REFUSED, error);
+            amq_server_channel_error (channel, ASL_ACCESS_REFUSED, 
+                error, AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_CONSUME);
             amq_server_channel_cancel (channel, consumer->tag, FALSE, TRUE);
         }
     }
@@ -442,11 +441,11 @@ class.  This is a lock-free asynchronous class.
         *channel;
 
     if (consumer->class_id == AMQ_SERVER_BASIC) {
-        if (notify) {
+        if (notify && !nowait) {
             channel = amq_server_channel_link (consumer->channel);
             if (channel) {
                 connection = amq_server_connection_link (channel->connection);
-                if (connection && !nowait) {
+                if (connection) {
                     amq_server_agent_basic_cancel_ok (
                         connection->thread, channel->number, consumer->tag);
                     amq_server_connection_unlink (&connection);
@@ -459,11 +458,14 @@ class.  This is a lock-free asynchronous class.
     self->locked = FALSE;
     if (self->auto_delete && amq_queue_basic_consumer_count (self->queue_basic) == 0) {
         int
-            timeout = amq_server_config_queue_timeout (amq_server_config)
-                    * 1000 * 1000;
-        if (timeout == 0)
-            timeout = 1;                //  Send the event very rapidly
-        smt_timer_request_delay (self->thread, timeout, auto_delete_event);
+            timeout = amq_server_config_queue_timeout (amq_server_config);
+        if (timeout)
+            smt_timer_request_delay (self->thread, timeout * 1000 * 1000, auto_delete_event);
+        else {
+            if (amq_server_config_debug_queue (amq_server_config))
+                smt_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
+            amq_queue_self_destruct (self);
+        }
     }
     </action>
 </method>
@@ -545,7 +547,6 @@ class.  This is a lock-free asynchronous class.
     //
     <action>
     amq_queue_basic_dispatch (self->queue_basic);
-    self->dirty = FALSE;                //  Queue has been dispatched
     </action>
 </method>
 
@@ -554,11 +555,10 @@ class.  This is a lock-free asynchronous class.
     Return number of messages on queue.
     </doc>
     //
-    //  JAMQ-55
     rc = amq_queue_basic_message_count (self->queue_basic) +
-         self->connection ? 
+         (self->connection ? 
          smt_thread_reply_backlog (self->connection->thread) :
-         0;
+         0);
 </method>
 
 <method name = "consumer count" template = "function">
@@ -626,7 +626,6 @@ s_set_queue_limits ($(selftype) *self, char *profile)
         ipr_config_destroy (&config);
         return 1;
     }
-    
     if (config->located)
         ipr_config_locate (config, "limit", NULL);
 
@@ -659,6 +658,11 @@ s_set_queue_limits ($(selftype) *self, char *profile)
                 //  testing limits until the queue size has exceeded this.
                 if (self->limit_min > limit_value)
                     self->limit_min = limit_value;
+                    
+                if (amq_server_config_debug_queue (amq_server_config))
+                    smt_log_print (amq_broker->debug_log,
+                        "Q: setlimit queue=%s limit=%d action=%s",
+                        self->name, limit_value, action_text);
             }
             else {
                 smt_log_print (amq_broker->alert_log,
