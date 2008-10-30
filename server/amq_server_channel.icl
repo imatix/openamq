@@ -222,8 +222,7 @@ maximum number of consumers per channel is set at compile time.
     }
     else
     if (sync)
-        amq_server_channel_error (self, ASL_NOT_FOUND, "Not a valid consumer tag",
-            AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_CANCEL);
+        amq_server_agent_basic_cancel_ok (self->connection->thread, self->number, tag);
     </action>
 </method>
 
