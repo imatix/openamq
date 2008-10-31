@@ -56,6 +56,7 @@
 <import class = "amq_peer_agent" />
 <import class = "amq_peer_config" />
 <import class = "amq_peering" />
+<import class = "amq_resource" />
 <import class = "amq_server_channel" />
 <import class = "amq_server_config" />
 <import class = "amq_server_connection" />

@@ -120,6 +120,7 @@
 <file name = "amq_connection_queue_agent.smt"
                                          class = "smt public module"     
                                          generated = "1"             >Connection-queue mgt agent</file>
+<file name = "amq_resource.icl"          class = "icl public class"  >AMQP/Rest functionality</file>
 <file name = "amq_server_method.icl"     class = "icl private cont"  >Server method class</file>
 <file name = "amq_server_base.cfg"       class = "public resource"   >Server config file</file>
 <file name = "amq_federation.icl"        class = "icl private class" >Federation class</file>

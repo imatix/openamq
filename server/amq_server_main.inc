@@ -242,7 +242,6 @@ s_start (int argc, char *argv [])
 
             icl_shortstr_fmt (logfile_name, "amq_server_%s.log",
                 amq_server_config_port (amq_server_config));
-
             logfile = fopen (logfile_name, "a");
             icl_console_redirect (logfile);
             icl_console_print ("I: ************************   SERVER START   ************************");

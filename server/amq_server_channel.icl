@@ -123,20 +123,28 @@ maximum number of consumers per channel is set at compile time.
     amq_consumer_t
         *consumer = NULL;
 
-    //  Create and configure the consumer object
-    consumer = amq_consumer_new (self->connection, self, queue, method);
-    if (consumer) {
-        amq_consumer_by_channel_queue (self->consumer_list, consumer);
-        amq_queue_consume (queue, consumer, self->active, nowait);
-        if (queue->exclusive)
-            amq_server_channel_set_window (self, amq_server_config_private_credit (amq_server_config));
-        else
-            amq_server_channel_set_window (self, amq_server_config_shared_credit (amq_server_config));
+    //  If consumer tag specified, ignore re-consume of same tag
+    if (strused (method->payload.basic_consume.consumer_tag))
+        consumer = amq_consumer_table_search (
+            self->connection->consumer_table, method->payload.basic_consume.consumer_tag);
 
-        amq_consumer_unlink (&consumer);
+    if (consumer)
+        amq_server_agent_basic_consume_ok (
+            self->connection->thread, self->number, consumer->tag);
+    else {
+        consumer = amq_consumer_new (self->connection, self, queue, method);
+        if (consumer) {
+            amq_consumer_by_channel_queue (self->consumer_list, consumer);
+            amq_queue_consume (queue, consumer, self->active, nowait);
+            if (queue->exclusive)
+                amq_server_channel_set_window (self, amq_server_config_private_credit (amq_server_config));
+            else
+                amq_server_channel_set_window (self, amq_server_config_shared_credit (amq_server_config));
+        }
+        else
+            smt_log_print (amq_broker->alert_log, "W: cannot create consumer - too many consumers?");
     }
-    else
-        smt_log_print (amq_broker->alert_log, "W: cannot create consumer - too many consumers?");
+    amq_consumer_unlink (&consumer);
     </action>
 </method>
 
@@ -222,8 +230,7 @@ maximum number of consumers per channel is set at compile time.
     }
     else
     if (sync)
-        amq_server_channel_error (self, ASL_NOT_FOUND, "Not a valid consumer tag",
-            AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_CANCEL);
+        amq_server_agent_basic_cancel_ok (self->connection->thread, self->number, tag);
     </action>
 </method>
 
