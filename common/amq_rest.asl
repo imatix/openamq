@@ -20,17 +20,16 @@
     handler = "connection"
     index   = "61501"
   >
-  RESTful resource access class.
+  AMQP/Rest resource discovery and management class.
 
 <doc>
-    Provides methods to access server resources in a RESTful manner.  In the 
-    RESTful model, exchanges and queues share a single namespace - this is 
-    more limited than the normal AMQP model.  Private queues are invisible to
-    the RESTful interface, and cannot be created, queried, or deleted.
+    Provides methods to discover and work with server-side sinks and selectors
+    as defined by the AMQP/Rest specification.  
 </doc>
 
 <doc name = "grammar">
-    rest                = C:PUT S:PUT-OK
+    rest                = C:RESOLVE S:RESOLVE-OK
+                        / C:PUT S:PUT-OK
                         / C:GET S:GET-OK
                         / C:DELETE S:DELETE-OK
 </doc>
@@ -40,43 +39,105 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "put" synchronous = "1" index = "10">
-  create a resource
+<method name = "resolve" synchronous = "1" index = "10">
+  resolve a path
   <doc>
-    Creates an exchange or a shared queue specified as a resource path.  The 
-    resource may already exist, this is not considered to be an error (behaviour 
-    matches normal Declare method).
+    If the provided path can be resolved, returns the sink name, the sink 
+    type, and the selector.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <response name = "resolve-ok" />
+  <field name = "path" type = "shortstr" >
+    path to resolve
+    <doc>
+    Specifies the resource path to resolve.  As specifed by AMQP/Rest, a 
+    path consists of a sink name, optionally followed by a slash and a 
+    selector string.
+    </doc>
+    <assert check = "notnull" />
+  </field>
+</method>
+
+<method name = "resolve-ok" synchronous = "1" index = "11">
+  return resolved data
+  <doc>
+  </doc>
+  <chassis name = "client" implement = "MUST" />
+  <field name = "response" type = "bit">
+    Failure/success indicator
+    <doc>
+    If zero, the path was resolved and a sink name and type, and selector
+    are provided.  If 1, the path could not be resolved.
+    </doc>
+  </field>
+  <field name = "reply text" type = "shortstr">
+    Failure message
+    <doc>
+    Indicates the cause of failure, if the response indicator is 1.
+    </doc>
+  </field>
+  <field name = "sink name" type = "shortstr" >
+    Sink name
+    <doc>
+    Provides the resolved sink name, if the response indicator is zero.  
+    Will be either an exchange or a shared queue that exists on the server.
+    </doc>
+  </field>
+  <field name = "sink type" type = "shortstr" >
+    Sink type
+    <doc>
+    Provides the resolved sink type, if the response indicator is zero.  
+    Will be either an exchange type, or "rotator", or "service" for queues.
+    </doc>
+  </field>
+  <field name = "selector" type = "shortstr" >
+    Selector string
+    <doc>
+    Provides the resolved selector, if the response indicator is zero.  This
+    will be all the path following the sink name and the trailing slash.
+    </doc>
+  </field>
+</method>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+<method name = "put" synchronous = "1" index = "20">
+  create a sink
+  <doc>
+    Creates a sink (an exchange or a queue) of the specified type.  The sink
+    may already exist, this is not considered to be an error so long as the
+    specified type is identical to that of the existing sink.
   </doc>
   <chassis name = "server" implement = "MUST" />
   <response name = "put-ok" />
-  <field name = "path" type = "shortstr" >
-    Resource path
+  <field name = "sink name" type = "shortstr" >
+    Name of sink
     <doc>
-    Specifies the path of the resource to create.  Must match exactly the name of
-    the exchange or queue to create.
+    Specifies the name of the sink to create.  This is formatted as a path
+    string, and may contain embedded slashes (but not at the start nor end).
     </doc>
     <assert check = "notnull" />
   </field>
-  <field name = "type" type = "shortstr" >
-    Resource type
+  <field name = "sink type" type = "shortstr" >
+    Sink type to create
     <doc>
-    Specifies the type of the resource.  Must be either one of the standard exchange
-    types, or "queue".  If the exchange already exists with a different type, the 
-    put method will return an error.
+    Specifies the type of the sink to create.  Valid values are: fanout, 
+    direct, topic, headers, rotator, and service.  If the exchange already 
+    exists with a different type, this method returns an error.
     </doc>
   </field>
 </method>
 
-<method name = "put-ok" synchronous = "1" index = "11">
-  confirm resource creation
+<method name = "put-ok" synchronous = "1" index = "21">
+  confirm sink exists
   <doc>
   </doc>
   <chassis name = "client" implement = "MUST" />
   <field name = "response" type = "bit">
     Failure/success indicator
     <doc>
-    If zero, the request succeeded and the resource can now be used for work.  If 1, 
-    the request failed, and the reply-text indicates the nature of the error.
+    If zero, the request succeeded and the sink now exists.  If 1, the request
+    failed, and the reply-text indicates the nature of the error.
     </doc>
   </field>
   <field name = "reply text" type = "shortstr">
@@ -89,35 +150,33 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "get" synchronous = "1" index = "20">
-  query a resource
+<method name = "get" synchronous = "1" index = "30">
+  queries a sink
   <doc>
-    Queries a resource path to determine whether it maps to an exchange or
-    query, if any.  Returns the matching resource path and path-info (the
-    part of the path, if any, following the resource path).
+    Queries a sink (an exchange or a queue) of the specified type.
   </doc>
   <chassis name = "server" implement = "MUST" />
   <response name = "get-ok" />
-  <field name = "path" type = "shortstr" >
-    Resource path
+  <field name = "sink name" type = "shortstr" >
+    Name of sink
     <doc>
-    Specifies the path of the resource to query.
+    Specifies the name of the sink to query.  This is formatted as a path
+    string, and may contain embedded slashes (but not at the start nor end).
     </doc>
     <assert check = "notnull" />
   </field>
 </method>
 
-<method name = "get-ok" synchronous = "1" index = "21">
-  confirm resource query
+<method name = "get-ok" synchronous = "1" index = "31">
+  return sink information
   <doc>
   </doc>
   <chassis name = "client" implement = "MUST" />
   <field name = "response" type = "bit">
     Failure/success indicator
     <doc>
-    If zero, the resource exists and the request succeeded.  If 1, the request 
-    failed, and the reply-text indicates the nature of the error (usually, the
-    resource does not exist).
+    If zero, the request succeeded and the sink exists.  If 1, the request
+    failed, and the reply-text indicates the nature of the error.
     </doc>
   </field>
   <field name = "reply text" type = "shortstr">
@@ -126,57 +185,47 @@
     Indicates the cause of failure, if the response indicator is 1.
     </doc>
   </field>
-  <field name = "path" type = "shortstr" >
-    Resource path stripped of path info
+  <field name = "properties" type = "table">
+    Sink properties
     <doc>
-    Provides the leading part of the path, matching the queue or exchange
-    name if any was found.
-    </doc>
-  </field>
-  <field name = "path info" type = "shortstr" >
-    Resource path info
-    <doc>
-    Specifies the path info, if any and if the resource was found.
-    </doc>
-  </field>
-  <field name = "type" type = "shortstr" >
-    Resource type
-    <doc>
-    Provides the type of the resource, if found.
+      A set of named properties for the sink, which can be used for 
+      monitoring or reporting purposes (i.e. formatted and shown to the
+      user).
     </doc>
   </field>
 </method>
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "delete" synchronous = "1" index = "30">
-  delete a resource
+<method name = "delete" synchronous = "1" index = "40">
+  delete a sink
   <doc>
-    Deletes an exchange or a shared queue.  The resource need not exist.
+    Deletes a sink (an exchange or a queue) specified by name.  The sink does 
+    not need to exist: deleting a non-existent sink is not considered to be an
+    error.
   </doc>
   <chassis name = "server" implement = "MUST" />
   <response name = "delete-ok" />
-  <field name = "path" type = "shortstr" >
-    Resource path
+  <field name = "sink name" type = "shortstr" >
+    sink name
     <doc>
-    Specifies the path of the resource to delete.  Must match exactly the name
+    Specifies the name of the sink to delete.  Must match exactly the name
     of the exchange or queue to delete.
     </doc>
     <assert check = "notnull" />
   </field>
 </method>
 
-<method name = "delete-ok" synchronous = "1" index = "31">
-  confirm resource deletion
+<method name = "delete-ok" synchronous = "1" index = "41">
+  confirm sink deletion
   <doc>
   </doc>
   <chassis name = "client" implement = "MUST" />
   <field name = "response" type = "bit">
     Failure/success indicator
     <doc>
-    If zero, the request succeeded and the resource is now deleted.  If 1, 
+    If zero, the request succeeded and the sink is now deleted.  If 1, 
     the request failed, and the reply-text indicates the nature of the error.
-    Note that attempting to delete a non-existent resource is NOT an error.
     </doc>
   </field>
   <field name = "reply text" type = "shortstr">
