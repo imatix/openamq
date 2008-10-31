@@ -119,6 +119,19 @@ consumer object.
             }
           </exec>
         </method>
+        <method name = "push" label = "Dispatch queue messages">
+          <local>
+            amq_queue_t
+                *queue;
+          </local>
+          <exec>
+            queue = amq_queue_link (self->queue);
+            if (queue) {
+                amq_queue_dispatch (queue);
+                amq_queue_unlink (&queue);
+            }
+          </exec>
+        </method>
     </class>
 </data>
 

@@ -546,10 +546,7 @@ class.  This is a lock-free asynchronous class.
     Return number of messages on queue.
     </doc>
     //
-    rc = amq_queue_basic_message_count (self->queue_basic) +
-         (self->connection ? 
-         smt_thread_reply_backlog (self->connection->thread) :
-         0);
+    rc = amq_queue_basic_message_count (self->queue_basic);
 </method>
 
 <method name = "consumer count" template = "function">
