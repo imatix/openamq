@@ -1,0 +1,58 @@
+<?xml?>
+<!--
+    Copyright (c) 1996-2008 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<opf
+    name    = "restms_config"
+    comment = "RestMS configuration properties"
+    script  = "opf_gen"
+    root    = "config"
+    config  = "restms.cfg"
+    >
+
+<!--
+    This file inherits the configuration properties from the HTTP server config, 
+    so that RestMS users do not need to manage two config files.  Since we use 
+    the http library in RestMS, we load configuration data into http_config as 
+    that library expects.
+ -->
+
+<inherit filename = "http_config.opf" />
+
+<public>
+extern $\(selftype)
+    *restms_config;                     //  RestMS properties object
+</public>
+
+<private>
+$\(selftype)
+    *restms_config = NULL;
+</private>
+
+<path name = "server">
+    <property name = "port" type = "char *" default = "80">
+    Server port for HTTP requests
+    <doc>
+    Specifies the port on which the server will accept HTTP requests.
+    Note that this is the real TCP/IP port for the server.  To run the
+    server behind a router, you can define the request port to be
+    different from the external HTTP port onto which clients connect,
+    as defined by the 'client_port' option.
+    </doc>
+    </property>
+</path>
+
+</opf>

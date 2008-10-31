@@ -1,0 +1,78 @@
+config madness
+- new http with null filename
+- method to pick up from restms config
+    - without validation...
+- then method to grab from command line
+    - without validation either
+
+amq_rest_proxy
+
+- stateless -> all state on client
+- if-modified-since
+- cache-control
+- last-modified-time
+
+All REST interactions are stateless. That is, each request contains all of the information necessary for a connector to understand the request, independent of any requests that may have preceded it. This restriction accomplishes four functions: 1) it removes any need for the connectors to retain application state between requests, thus reducing consumption of physical resources and improving scalability; 2) it allows interactions to be processed in parallel without requiring that the processing mechanism understand the interaction semantics; 3) it allows an intermediary to view and understand a request in isolation, which may be necessary when services are dynamically rearranged; and, 4) it forces all of the information that might factor into the reusability of a cached response to be present in each request.
+
+
+- make amqp web server
+    - uses client library
+    - restms? what name? restmq amqweb ...
+    - 
+- add amqp extension for web server
+- produce dummy content + headers
+- check we can process each method
+- hook into amq_rest class by hand
+- abstract into real methods
+
+
+put path, type
+    if path = "."
+        message_nack
+        HTTP_REPLY_OK or HTTP_NOTFOUND
+    else
+    if type specified
+        sink_create
+        HTTP_REPLY_OK or HTTP_FORBIDDEN
+    else
+        selector_create
+        HTTP_REPLY_OK or HTTP_BADREQUEST
+
+get path
+    if path = "."
+        message_get
+        HTTP_REPLY_OK or HTTP_NOTFOUND
+            -> content body
+    else
+        resolve path
+        if unknown
+            HTTP_NOTFOUND
+        else
+        if selector empty
+            sink_query
+            HTTP_REPLY_OK or HTTP_NOTFOUND
+                -> formatted properties HTML
+        else
+            selector_create
+            message_get
+            HTTP_REPLY_OK or HTTP_NOTFOUND
+                -> content body
+
+delete path
+    if path = "."
+        message_ack
+        HTTP_REPLY_OK or HTTP_NOTFOUND
+    else
+        resolve_path
+        if unknown
+            do nothing
+            HTTP_REPLY_OK
+        else
+        if selector empty
+            sink_delete
+            HTTP_REPLY_OK or HTTP_FORBIDDEN
+        else
+            selector_delete
+            HTTP_REPLY_OK or HTTP_FORBIDDEN
+
+

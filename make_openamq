@@ -174,7 +174,7 @@ else
     carp "** preparing sources and configuring, no rebuild"
 fi
 if [ "$VERSION" = "" ]; then
-    carp "** no source kits will be produced"
+    carp "** version empty - no source kits will be produced!"
 else
     carp "** preparing source kits for OpenAMQ-$VERSION"
     if [ $CLEAN = 0 ]; then
