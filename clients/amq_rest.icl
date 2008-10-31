@@ -439,29 +439,23 @@ static int s_check_rest_reply ($(selftype) *self)
 
 <method name = "selftest">
     <local>
-#   if defined (STAND_ALONE)
     ipr_process_t
         *process;
-#   endif
     amq_rest_t
         *rest;
     ipr_bucket_t
         *bucket;
     </local>
-#   if defined (STAND_ALONE)
+    icl_console_print ("I: starting RestAPI tests...");
+
     //  Start an instance of amq_server
-    process = ipr_process_new ("amq_server --port 9000 --debug_queue 1 --debug_route 1", NULL, NULL, NULL);
+    process = ipr_process_new ("amq_server --port 9000", NULL, "amq_server.lst", "amq_server.err");
     ipr_process_start (process, ".");
     apr_sleep (1000000);                //  Give server time to settle
     assert (ipr_process_wait (process, FALSE));
     //  Open new RestAPI session
     rest = amq_rest_new ("localhost:9000", "guest", "guest");
     assert (rest);
-#else
-    //  Open new RestAPI session
-    rest = amq_rest_new ("localhost", "guest", "guest");
-    assert (rest);
-#endif
 
     //  Test a rotator sink
     assert (amq_rest_sink_create (rest, "test/rotator", "rotator") == 0);
@@ -581,11 +575,11 @@ static int s_check_rest_reply ($(selftype) *self)
     //  Close RestAPI session and clean up
     amq_rest_destroy (&rest);
 
-#   if defined (STAND_ALONE)
     ipr_process_destroy (&process);
+    ipr_file_delete ("amq_server.lst");
+    ipr_file_delete ("amq_server.err");
     ipr_dir_remove ("./archive");
     ipr_dir_remove ("./logs");
-#   endif
 </method>
 
 </class>
