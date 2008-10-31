@@ -53,5 +53,6 @@
 
 <!-- OpenAMQ RestAPI implementation -->
 <file name = "amq_rest.icl"          class = "icl public class"  >RestAPI class</file>
-
+<file name = "amq_rest_class.pal"    class = "private resource"  >Rest protocol class test</file>
 </pdl>
+
