@@ -43,14 +43,10 @@ $\(selftype)
 </private>
 
 <path name = "server">
-    <property name = "port" type = "char *" default = "80">
-    Server port for HTTP requests
+    <property name = "name" type = "char *" default = "www.restms.com" prefix = "server">
+    Announced server name
     <doc>
-    Specifies the port on which the server will accept HTTP requests.
-    Note that this is the real TCP/IP port for the server.  To run the
-    server behind a router, you can define the request port to be
-    different from the external HTTP port onto which clients connect,
-    as defined by the 'client_port' option.
+    Specifies the Server: header field name for HTTP responses.
     </doc>
     </property>
 </path>

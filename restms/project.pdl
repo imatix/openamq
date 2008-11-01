@@ -36,12 +36,15 @@
 <file name = "restms"                class = "public command"    >RestMS executable</file>
 <file name = "restms_main.inc"       class = "private resource"  >RestMS mainline</file>
 <file name = "restms_config.opf"     class = "gsl data"          >Configuration schema</file>
-<file name = "restms_config.icl"     generated = "1"
-                                     class = "icl private class" >Configuration class</file>
-<!--
-<file name = "amq_rest_plugin.icl"   class = "icl private class" >HTTP file plugin class</file>
-<file name = "amq_rest_plugin_agent.smt" generated = "1" 
-                                     class = "smt public module" >HTTP file plugin agent</file>
--->
+<file name = "restms_config.icl"     class = "icl private class" generated = "1"
+                                                                 >Configuration class</file>
+<file name = "restms_amqp.icl"       class = "icl private class" >AMQP plugin class</file>
+<file name = "restms_amqp_agent.smt" class = "smt public module" generated = "1" 
+                                                                  >AMQP plugin agent</file>
+<directory name = "webpages">
+    <file name = "http_base.css"     class = "public resource"   >Base style sheet for errors</file>
+    <file name = "index.html"        class = "public resource"   >Default empty index page</file>
+</directory>
+
 </pdl>
 

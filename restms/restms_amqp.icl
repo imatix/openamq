@@ -16,7 +16,7 @@
     iMatix Corporation.
  -->
 <class
-    name    = "rest_amqp"
+    name    = "restms_amqp"
     comment = "Rest/AMQP processing plugin"
     version = "1.0"
     script  = "smt_object_gen"

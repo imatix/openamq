@@ -4,6 +4,7 @@ Using command-line options
 You can set these options from the command-line; they affect only
 the specific instance of the running server:
 
+    --server_name www.restms.com   Announced server name
     --port 80                      Server port for HTTP requests
     --public_port value            Public port for HTTP requests
     --trace 0                      Trace network traffic?
@@ -57,6 +58,7 @@ and then:
     
     <config>
         <server
+            name = "www.restms.com"
             port = "80"
             public_port = "value"
             trace = "0"
@@ -105,12 +107,17 @@ and then:
 Setting server options
 ===========================
 
+name = "www.restms.com":
+    Specifies the Server: header field name for HTTP responses. Default
+    value is www.restms.com.                                           
 port = "80":
-    Specifies the port on which the server will accept HTTP requests. Note
-    that this is the real TCP/IP port for the server. To run the server   
-    behind a router, you can define the request port to be different from 
-    the external HTTP port onto which clients connect, as defined by the  
-    'client_port' option. Default value is 80.                            
+    Specifies the port that the server opens for HTTP requests. The       
+    standard port for HTTP is 80. If you want to run the server in        
+    parallel with other HTTP servers on the same server, choose a server  
+    port of 4096 or higher. If you are serving Internet clients, your     
+    network may map a public port to the server port number. In that case,
+    you may need to specify the public port number separately. Default    
+    value is 80.                                                          
 public_port = "value":
     Specifies the public port for client requests, if not the standard  
     port number for HTTP (80). The server needs to know this value in   

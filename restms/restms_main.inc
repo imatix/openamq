@@ -28,6 +28,7 @@
 #include "ipr.h"
 #include "smt.h"
 #include "http.h"
+#include "restms_amqp.h"
 #include "restms_config.h"
 #include "version.h"
 
@@ -43,7 +44,7 @@ static int
 static char
     **s_argv;
 static http_server_t
-    *s_restms_server;                     //  HTTP server instance
+    *s_http_server;                     //  HTTP server instance
 
 #define NOWARRANTY \
 "This is free software; see the source for copying conditions.  There is NO\n" \
@@ -51,6 +52,10 @@ static http_server_t
     "\n"
 
 #define USAGE                                                                \
+    "RestMS is the iMatix REST Messaging Service.  This speaks HTTP to Web\n"\
+    "clients on one side, and AMQP to an OpenAMQ broker at the other.  See\n"\
+    "www.openamq.org for full information on using RestMS.\n"                \
+    "\n"                                                                     \
     "Syntax: %s [options...]\n"                                              \
     "   Starts the RestMS server\n"                                          \
     "\n"                                                                     \
@@ -61,7 +66,6 @@ static http_server_t
     "  -q               Quiet mode: no messages (no)\n"                      \
     "  -b               Run as background server process (no)\n"             \
     "  -f               Run as foreground console process (yes)\n"           \
-    "  -i               Show program statistics when ending (no)\n"          \
     "  -v               Show version information\n"                          \
     "  -h               Show summary of command-line options\n"              \
     "  --help           Show detailed configuration help\n"                  \
@@ -201,11 +205,14 @@ s_restms_initialise (int argc, char *argv [])
     http_config = http_config_new (NULL, NULL, FALSE);
     http_config_shadow (http_config, "http_base.cfg", s_opt_config, s_argc, s_argv);
 
+    //  Poke RestMS config settings into http_config table
+    http_config_set_server_name (http_config, restms_config_server_name (restms_config));
+
     //  Set system options from HTTP server configuration
     smt_set_polling_threads (restms_config_polling_threads (restms_config));
     smt_set_working_threads (restms_config_working_threads (restms_config));
     smt_set_action_limit    (restms_config_kernel_limit    (restms_config));
-
+    
     //  Move into the background if so desired
     if (s_opt_bkground) {
         char
@@ -233,7 +240,7 @@ s_restms_initialise (int argc, char *argv [])
     ipr_uid_set_real_user ();
 
     //  Start a single server instance on the configured HTTP port
-    s_restms_server = http_server_new ();
+    s_http_server = http_server_new ();
 }
 
 static void
@@ -242,9 +249,15 @@ s_restms_execute (void)
     http_portal_t
         *portal;
 
-    //  Register standard plugins
+    //  Register standard plugins in path resolution order
+    //  The s_http_server is the portal client
+    //
+    portal = restms_amqp_http_portal_new (NULL, "/amqp");
+    http_server_http_portal_bind (s_http_server, portal);
+    http_portal_unlink (&portal);
+
     portal = http_file_http_portal_new (NULL, "/");
-    http_server_http_portal_bind (s_restms_server, portal);
+    http_server_http_portal_bind (s_http_server, portal);
     http_portal_unlink (&portal);
 
     //  Run SMT until finished
@@ -254,7 +267,7 @@ s_restms_execute (void)
 static void
 s_restms_terminate (void)
 {
-    http_server_destroy (&s_restms_server);
+    http_server_destroy (&s_http_server);
     http_config_destroy (&http_config);
     restms_config_destroy (&restms_config);
 
