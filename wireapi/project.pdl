@@ -1,4 +1,4 @@
-<?xml?>
+re<?xml?>
 <!--
     Copyright (c) 2007-2008 iMatix Corporation
 
@@ -50,9 +50,5 @@
                                      class = "icl public class"  >Client channel class</file>
 <file name = "amq_client_channel_table.icl"
                                      class = "icl public cont"   >Client channel table</file>
-
-<!-- OpenAMQ RestAPI implementation -->
-<file name = "amq_rest.icl"          class = "icl public class"  >RestAPI class</file>
-<file name = "amq_rest_class.pal"    class = "private resource"  >Rest protocol class test</file>
 </pdl>
 

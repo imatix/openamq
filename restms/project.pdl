@@ -31,6 +31,10 @@
 <file name = "version.h"             class = "c version"         >Project version file</file>
 <file name = "libamq_restms"         class = "public library"    >Object library</file>
 
+<!-- RestAPI implementation -->
+<file name = "amq_rest.icl"          class = "icl public class"  >RestAPI class</file>
+<file name = "amq_rest_class.pal"    class = "private resource"  >Rest protocol class test</file>
+
 <!-- RestMS server -->
 <file name = "restms.c"              class = "main program"      >RestMS main</file>
 <file name = "restms"                class = "public command"    >RestMS executable</file>
