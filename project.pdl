@@ -31,16 +31,18 @@
 
 <distrib name = "OpenAMQ source" type = "source">
     <project directory = "common"  />
-    <project directory = "clients" />
+    <project directory = "wireapi" />
     <project directory = "server"  />
-    <project directory = "operate" />
+    <project directory = "shell"   />
+    <project directory = "restms"  />
 </distrib>
 
 <distrib name = "OpenAMQ install" type = "install">
     <project directory = "common"  />
-    <project directory = "clients" />
+    <project directory = "wireapi" />
     <project directory = "server"  />
-    <project directory = "operate" />
+    <project directory = "shell"   />
+    <project directory = "restms"  />
 </distrib>
 
 </pdl>
