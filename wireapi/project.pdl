@@ -17,7 +17,7 @@
 -->
 
 <pdl
-    name      = "OpenAMQ Client"
+    name      = "OpenAMQ WireAPI"
     version   = "1.3b2"
     workflow  = "standard.pwl"
     library   = "libamq_wireapi"
