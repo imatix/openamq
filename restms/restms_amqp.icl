@@ -28,11 +28,55 @@
 
 <inherit class = "http_portal_back" />
 
-<method name = "new">
-    icl_console_print ("I: initializing AMQP/Rest plugin...");
+<method name = "announce">
+    icl_console_print ("I: initializing AMQP/Rest plugin on '%s'", path);
 </method>
 
-<method name = "process">
+<method name = "get">
+    <action>
+    icl_console_print ("AMQP GET: %s::%s", request->path, request->request_arguments);
+    </action>
+</method>
+
+<method name = "head">
+    <action>
+    http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED);
+    http_portal_response_reply (portal, caller, response);
+    </action>
+</method>
+
+<method name = "post">
+    <action>
+    icl_console_print ("AMQP POST: %s::%s", request->path, request->request_arguments);
+    http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED);
+    http_portal_response_reply (portal, caller, response);
+    </action>
+</method>
+
+<method name = "put">
+    <action>
+    icl_console_print ("AMQP PUT: %s::%s", request->path, request->request_arguments);
+    http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED);
+    http_portal_response_reply (portal, caller, response);
+    </action>
+</method>
+
+<method name = "delete">
+    <action>
+    icl_console_print ("AMQP DELETE: %s::%s", request->path, request->request_arguments);
+    http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED);
+    http_portal_response_reply (portal, caller, response);
+    </action>
+</method>
+
+<method name = "move">
+    <action>
+    http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED);
+    http_portal_response_reply (portal, caller, response);
+    </action>
+</method>
+
+<method name = "copy">
     <action>
     http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED);
     http_portal_response_reply (portal, caller, response);

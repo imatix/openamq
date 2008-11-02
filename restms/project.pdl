@@ -32,8 +32,8 @@
 <file name = "libamq_restms"         class = "public library"    >Object library</file>
 
 <!-- RestAPI implementation -->
-<file name = "amq_rest.icl"          class = "icl public class"  >RestAPI class</file>
-<file name = "amq_rest_class.pal"    class = "private resource"  >Rest protocol class test</file>
+<file name = "restapi.icl"           class = "icl public class"  >RestAPI class</file>
+<file name = "rest_class_test.pal"   class = "private resource"  >Rest protocol class test</file>
 
 <!-- RestMS server -->
 <file name = "restms.c"              class = "main program"      >RestMS main</file>

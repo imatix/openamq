@@ -8,7 +8,7 @@ the specific instance of the running server:
     --port 80                      Server port for HTTP requests
     --public_port value            Public port for HTTP requests
     --trace 0                      Trace network traffic?
-    --animation 0                  Animate HTTP agent?
+    --animate 0                    Animate HTTP agent?
     --verbose 0                    Verbose output?
     --listen *                     Address (local network interface) to listen on
     --webroot webpages             Path to web root directory
@@ -62,7 +62,7 @@ and then:
             port = "80"
             public_port = "value"
             trace = "0"
-            animation = "0"
+            animate = "0"
             verbose = "0"
             listen = "*"
         />
@@ -128,7 +128,7 @@ trace = "0":
     you need to verify what exactly web clients are sending and getting   
     back from the server. Do not enable this with high loads because you  
     will get enormous amounts of output. Default value is 0.              
-animation = "0":
+animate = "0":
     If set, the HTTP agent displays its activity, which can be useful if
     you need to verify how HTTP requests are being processed. Do not    
     enable this with high loads because you will get enormous amounts of

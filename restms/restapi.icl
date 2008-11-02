@@ -18,14 +18,14 @@
     iMatix Corporation.
  -->
 <class
-    name      = "amq_rest"
-    comment   = "amq REST-like API"
+    name      = "restapi"
+    comment   = "OpenAMQ RESTful API"
     version   = "1.0"
     script    = "icl_gen"
     license   = "gpl"
     >
 <doc>
-This class provides the RestAPI, a layer that sits on top of WireAPI and 
+This class provides the session, a layer that sits on top of WireAPI and 
 provides a REST-like interface to OpenAMQ wiring and messages.  In theory 
 will work with any interoperable AMQP server that implements the Rest 
 extension class. Documentation is on http://wiki.amqp.org/N:rest.
@@ -222,7 +222,7 @@ extension class. Documentation is on http://wiki.amqp.org/N:rest.
     <argument name = "path" type = "char *">Full path</argument>
     //
     assert (path && strused (path));
-    rc = amq_rest_resolve (self, path);
+    rc = restapi_resolve (self, path);
     if (rc == 0) {
         if (self->is_feed) {
             rc = -1;
@@ -262,7 +262,7 @@ extension class. Documentation is on http://wiki.amqp.org/N:rest.
     <argument name = "path" type = "char *">Full path</argument>
     //
     assert (path && strused (path));
-    rc = amq_rest_resolve (self, path);
+    rc = restapi_resolve (self, path);
     if (rc == 0) {
         if (self->is_feed) {
             rc = -1;
@@ -319,7 +319,7 @@ extension class. Documentation is on http://wiki.amqp.org/N:rest.
     //
     assert (path && strused (path));
     assert (bucket);
-    rc = amq_rest_resolve (self, path);
+    rc = restapi_resolve (self, path);
     if (rc == 0) {
         content = amq_content_basic_new ();
         amq_content_basic_record_body (content, bucket);
@@ -441,8 +441,8 @@ static int s_check_rest_reply ($(selftype) *self)
     <local>
     ipr_process_t
         *process;
-    amq_rest_t
-        *rest;
+    restapi_t
+        *session;
     ipr_bucket_t
         *bucket;
     </local>
@@ -454,126 +454,126 @@ static int s_check_rest_reply ($(selftype) *self)
     apr_sleep (1000000);                //  Give server time to settle
     assert (ipr_process_wait (process, FALSE));
     //  Open new RestAPI session
-    rest = amq_rest_new ("localhost:9000", "guest", "guest");
-    assert (rest);
+    session = restapi_new ("localhost:9000", "guest", "guest");
+    assert (session);
 
     //  Test a rotator sink
-    assert (amq_rest_sink_create (rest, "test/rotator", "rotator") == 0);
-    assert (amq_rest_sink_create (rest, "test/rotator", "rotator") == 0);
-    assert (amq_rest_selector_create (rest, "test/rotator/*") == 0);
-    assert (amq_rest_selector_create (rest, "test/rotator/*") == 0);
+    assert (restapi_sink_create (session, "test/rotator", "rotator") == 0);
+    assert (restapi_sink_create (session, "test/rotator", "rotator") == 0);
+    assert (restapi_selector_create (session, "test/rotator/*") == 0);
+    assert (restapi_selector_create (session, "test/rotator/*") == 0);
     bucket = ipr_bucket_new (1000);
     ipr_bucket_fill_random (bucket, 1000);
-    assert (amq_rest_message_post (rest, "test/rotator/id-001", bucket) == 0);
+    assert (restapi_message_post (session, "test/rotator/id-001", bucket) == 0);
     ipr_bucket_unlink (&bucket);
-    bucket = amq_rest_message_get (rest, 2000);
+    bucket = restapi_message_get (session, 2000);
     assert (bucket);
     ipr_bucket_unlink (&bucket);
-    bucket = amq_rest_message_get (rest, 100);
+    bucket = restapi_message_get (session, 100);
     assert (bucket == NULL);
-    assert (amq_rest_sink_query (rest, "test/rotator") == 0);
-    assert (amq_rest_selector_delete (rest, "test/rotator/*") == 0);
-    assert (amq_rest_selector_delete (rest, "test/rotator/*") == 0);
-    assert (amq_rest_sink_query (rest, "test/rotator") == 0);
-    assert (amq_rest_sink_delete (rest, "test/rotator") == 0);
-    assert (amq_rest_sink_query (rest, "test/rotator"));
-    assert (amq_rest_sink_delete (rest, "test/rotator") == 0);
+    assert (restapi_sink_query (session, "test/rotator") == 0);
+    assert (restapi_selector_delete (session, "test/rotator/*") == 0);
+    assert (restapi_selector_delete (session, "test/rotator/*") == 0);
+    assert (restapi_sink_query (session, "test/rotator") == 0);
+    assert (restapi_sink_delete (session, "test/rotator") == 0);
+    assert (restapi_sink_query (session, "test/rotator"));
+    assert (restapi_sink_delete (session, "test/rotator") == 0);
 
     //  Test a service sink
-    assert (amq_rest_sink_create (rest, "test/service", "service") == 0);
-    assert (amq_rest_sink_create (rest, "test/service", "service") == 0);
-    assert (amq_rest_selector_create (rest, "test/service/*") == 0);
-    assert (amq_rest_selector_create (rest, "test/service/*") == 0);
+    assert (restapi_sink_create (session, "test/service", "service") == 0);
+    assert (restapi_sink_create (session, "test/service", "service") == 0);
+    assert (restapi_selector_create (session, "test/service/*") == 0);
+    assert (restapi_selector_create (session, "test/service/*") == 0);
     bucket = ipr_bucket_new (1000);
     ipr_bucket_fill_random (bucket, 1000);
-    assert (amq_rest_message_post (rest, "test/service/id-001", bucket) == 0);
+    assert (restapi_message_post (session, "test/service/id-001", bucket) == 0);
     ipr_bucket_unlink (&bucket);
-    bucket = amq_rest_message_get (rest, 2000);
+    bucket = restapi_message_get (session, 2000);
     assert (bucket);
     ipr_bucket_unlink (&bucket);
-    bucket = amq_rest_message_get (rest, 100);
+    bucket = restapi_message_get (session, 100);
     assert (bucket == NULL);
-    assert (amq_rest_sink_query (rest, "test/service") == 0);
-    assert (amq_rest_selector_delete (rest, "test/service/*") == 0);
+    assert (restapi_sink_query (session, "test/service") == 0);
+    assert (restapi_selector_delete (session, "test/service/*") == 0);
     //  Sink is gone when selector is deleted
-    assert (amq_rest_sink_query (rest, "test/service"));
-    assert (amq_rest_sink_delete (rest, "test/service") == 0);
-    assert (amq_rest_selector_delete (rest, "test/service/*"));
+    assert (restapi_sink_query (session, "test/service"));
+    assert (restapi_sink_delete (session, "test/service") == 0);
+    assert (restapi_selector_delete (session, "test/service/*"));
 
     //  Test a direct sink
-    assert (amq_rest_sink_create (rest, "test/direct", "direct") == 0);
-    assert (amq_rest_sink_create (rest, "test/direct", "direct") == 0);
-    assert (amq_rest_selector_create (rest, "test/direct/good/address") == 0);
-    assert (amq_rest_selector_create (rest, "test/direct/good/address") == 0);
+    assert (restapi_sink_create (session, "test/direct", "direct") == 0);
+    assert (restapi_sink_create (session, "test/direct", "direct") == 0);
+    assert (restapi_selector_create (session, "test/direct/good/address") == 0);
+    assert (restapi_selector_create (session, "test/direct/good/address") == 0);
     bucket = ipr_bucket_new (1000);
     ipr_bucket_fill_random (bucket, 1000);
-    assert (amq_rest_message_post (rest, "test/direct/good/address", bucket) == 0);
-    assert (amq_rest_message_post (rest, "test/direct/wrong/address", bucket) == 0);
+    assert (restapi_message_post (session, "test/direct/good/address", bucket) == 0);
+    assert (restapi_message_post (session, "test/direct/wrong/address", bucket) == 0);
     ipr_bucket_unlink (&bucket);
-    bucket = amq_rest_message_get (rest, 2000);
+    bucket = restapi_message_get (session, 2000);
     assert (bucket);
     ipr_bucket_unlink (&bucket);
-    bucket = amq_rest_message_get (rest, 100);
+    bucket = restapi_message_get (session, 100);
     assert (bucket == NULL);
-    assert (amq_rest_sink_query (rest, "test/direct") == 0);
-    assert (amq_rest_selector_delete (rest, "test/direct/good/address") == 0);
-    assert (amq_rest_sink_query (rest, "test/direct") == 0);
-    assert (amq_rest_selector_delete (rest, "test/direct/good/address") == 0);
-    assert (amq_rest_sink_query (rest, "test/direct") == 0);
-    assert (amq_rest_sink_delete (rest, "test/direct") == 0);
-    assert (amq_rest_sink_delete (rest, "test/direct") == 0);
-    assert (amq_rest_sink_query (rest, "test/direct"));
-    assert (amq_rest_sink_delete (rest, "test/direct") == 0);
+    assert (restapi_sink_query (session, "test/direct") == 0);
+    assert (restapi_selector_delete (session, "test/direct/good/address") == 0);
+    assert (restapi_sink_query (session, "test/direct") == 0);
+    assert (restapi_selector_delete (session, "test/direct/good/address") == 0);
+    assert (restapi_sink_query (session, "test/direct") == 0);
+    assert (restapi_sink_delete (session, "test/direct") == 0);
+    assert (restapi_sink_delete (session, "test/direct") == 0);
+    assert (restapi_sink_query (session, "test/direct"));
+    assert (restapi_sink_delete (session, "test/direct") == 0);
 
     //  Test a topic sink
-    assert (amq_rest_sink_create (rest, "test/topic", "topic") == 0);
-    assert (amq_rest_sink_create (rest, "test/topic", "topic") == 0);
-    assert (amq_rest_selector_create (rest, "test/topic/a4/*") == 0);
-    assert (amq_rest_selector_create (rest, "test/topic/*/color") == 0);
+    assert (restapi_sink_create (session, "test/topic", "topic") == 0);
+    assert (restapi_sink_create (session, "test/topic", "topic") == 0);
+    assert (restapi_selector_create (session, "test/topic/a4/*") == 0);
+    assert (restapi_selector_create (session, "test/topic/*/color") == 0);
     bucket = ipr_bucket_new (1000);
     ipr_bucket_fill_random (bucket, 1000);
-    assert (amq_rest_message_post (rest, "test/topic/a4/bw", bucket) == 0);
-    assert (amq_rest_message_post (rest, "test/topic/a5/bw", bucket) == 0);
-    assert (amq_rest_message_post (rest, "test/topic/a5/color", bucket) == 0);
+    assert (restapi_message_post (session, "test/topic/a4/bw", bucket) == 0);
+    assert (restapi_message_post (session, "test/topic/a5/bw", bucket) == 0);
+    assert (restapi_message_post (session, "test/topic/a5/color", bucket) == 0);
     ipr_bucket_unlink (&bucket);
-    bucket = amq_rest_message_get (rest, 2000);
+    bucket = restapi_message_get (session, 2000);
     assert (bucket);
     ipr_bucket_unlink (&bucket);
-    bucket = amq_rest_message_get (rest, 2000);
+    bucket = restapi_message_get (session, 2000);
     assert (bucket);
     ipr_bucket_unlink (&bucket);
-    bucket = amq_rest_message_get (rest, 100);
+    bucket = restapi_message_get (session, 100);
     assert (bucket == NULL);
-    assert (amq_rest_sink_query (rest, "test/topic") == 0);
-    assert (amq_rest_selector_delete (rest, "test/topic/a4/*") == 0);
-    assert (amq_rest_sink_query (rest, "test/topic") == 0);
-    assert (amq_rest_selector_delete (rest, "test/topic/a4/*") == 0);
-    assert (amq_rest_sink_query (rest, "test/topic") == 0);
-    assert (amq_rest_selector_delete (rest, "test/topic/*/color") == 0);
-    assert (amq_rest_sink_query (rest, "test/topic") == 0);
-    assert (amq_rest_selector_delete (rest, "test/topic/*/color") == 0);
-    assert (amq_rest_sink_query (rest, "test/topic") == 0);
-    assert (amq_rest_sink_delete (rest, "test/topic") == 0);
-    assert (amq_rest_sink_delete (rest, "test/topic") == 0);
-    assert (amq_rest_sink_query (rest, "test/topic"));
-    assert (amq_rest_sink_delete (rest, "test/topic") == 0);
+    assert (restapi_sink_query (session, "test/topic") == 0);
+    assert (restapi_selector_delete (session, "test/topic/a4/*") == 0);
+    assert (restapi_sink_query (session, "test/topic") == 0);
+    assert (restapi_selector_delete (session, "test/topic/a4/*") == 0);
+    assert (restapi_sink_query (session, "test/topic") == 0);
+    assert (restapi_selector_delete (session, "test/topic/*/color") == 0);
+    assert (restapi_sink_query (session, "test/topic") == 0);
+    assert (restapi_selector_delete (session, "test/topic/*/color") == 0);
+    assert (restapi_sink_query (session, "test/topic") == 0);
+    assert (restapi_sink_delete (session, "test/topic") == 0);
+    assert (restapi_sink_delete (session, "test/topic") == 0);
+    assert (restapi_sink_query (session, "test/topic"));
+    assert (restapi_sink_delete (session, "test/topic") == 0);
 
     //  Test pedantic messaging
-    assert (amq_rest_sink_create (rest, "test/pedantic", "rotator") == 0);
-    assert (amq_rest_selector_create (rest, "test/pedantic/*") == 0);
+    assert (restapi_sink_create (session, "test/pedantic", "rotator") == 0);
+    assert (restapi_selector_create (session, "test/pedantic/*") == 0);
     bucket = ipr_bucket_new (1000);
     ipr_bucket_fill_random (bucket, 1000);
-    assert (amq_rest_message_post (rest, "test/pedantic/id-001", bucket) == 0);
+    assert (restapi_message_post (session, "test/pedantic/id-001", bucket) == 0);
     ipr_bucket_unlink (&bucket);
-    bucket = amq_rest_message_get (rest, 2000);
+    bucket = restapi_message_get (session, 2000);
     assert (bucket);
     ipr_bucket_unlink (&bucket);
-    assert (amq_rest_message_nack (rest));
-    assert (amq_rest_message_ack (rest));
-    assert (amq_rest_sink_delete (rest, "test/pedantic") == 0);
+    assert (restapi_message_nack (session));
+    assert (restapi_message_ack (session));
+    assert (restapi_sink_delete (session, "test/pedantic") == 0);
     
     //  Close RestAPI session and clean up
-    amq_rest_destroy (&rest);
+    restapi_destroy (&session);
 
     ipr_process_destroy (&process);
     ipr_file_delete ("amq_server.lst");

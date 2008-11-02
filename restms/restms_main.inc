@@ -254,10 +254,12 @@ s_restms_execute (void)
     //
     portal = restms_amqp_http_portal_new (NULL, "/amqp");
     http_server_http_portal_bind (s_http_server, portal);
+    http_portal_request_announce (portal, "/amqp");
     http_portal_unlink (&portal);
 
     portal = http_file_http_portal_new (NULL, "/");
     http_server_http_portal_bind (s_http_server, portal);
+    http_portal_request_announce (portal, "/");
     http_portal_unlink (&portal);
 
     //  Run SMT until finished
