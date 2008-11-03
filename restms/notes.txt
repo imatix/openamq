@@ -1,69 +1,255 @@
-- stateless -> all state on client
+++ Feeds
+
+We manage "feeds" in the RestAPI layer.  A feed is a queue of messages.  Feeds are numbered by the server.  Feeds are containers for messages.  Feeds are not tied to AMQP sessions, they survive server failure / restart.  Feeds die if the restms server is killed.  Messages on feeds are numbered incrementally.
+
+Manipulating feed resources
+
+PUT /amqp/feed
+    put "feed"
+    creates a new feed, returns the feed URI in the body, text/plain
+    => /amqp/feed/feednbr
+    implementation:
+        feed = restapi_feed_new (restapi)
+        we create a restapi instance per server
+        restapi_feed.icl
+        context
+            number
+            content queue
+            date/time created
+            date/time accessed
+            contents pending
+            contents served
+            octets pending
+            octets served
+            last message id
+        create new feed object
+        create new private queue on server
+        store feed in restapi structure
+            - indexed by number (in an array)
+            - reuse array slots when creating new feeds
+        rc = restapi_purge_feeds (restapi)
+            - purges old feeds
+            - timeout is configurable
+            - max feeds is configurable
+        
+DELETE /amqp/feed/feednbr
+    delete "feed/feednbr"
+    deletes the feed if possible
+    implementation:
+        feed = restapi_feed_lookup (restapi, number)
+        rc = restapi_feed_destroy (feed)
+            - cancels private queue for feed
+            - cancels consumers on shared queues
+            - we need to track all consumers created
+
+GET /amqp/feed/feednbr
+    get "feed/feednbr"
+    gets information about the feed
+    gets a list of all waiting messages
+    implementation:
+        feed = restapi_feed_lookup (restapi, number)
+        bucket = restapi_feed_query (feed)
+        -> XML data on feed
+
+PUT /amqp/feed/feednbr
+    put "feed/feednbr"
+    => not allowed
+
+Manipulating messages in feeds
+
+Messages received from the server are sorted into feed queues.  This is done as a side effect of any access to the feed.  Messages are sorted using their consumer-tags, which are their feed number.
+
+In Rest style, we get the container information which would list all waiting messages and then we would get those messages one by one, delete them, etc.:
+
+GET /amqp/feed/feednbr/msgid
+    get "feed/nbr/msgid"
+    gets the message specified
+    implementation:
+        - must be next message on feed
+        - waits
+
+DELETE /amqp/feed/feednbr/msgid
+    delete "feed/nbr/msgid"
+    deletes the message and all prior messages (gone off the feed), (ack)
+PUT /amqp/feed/feednbr/msgid
+    put "feed/feednbr/msgid"
+    rejects the message (nack)
+POST /amqp/feed/feednbr/msgid
+    post "feed/feednbr/msgid"
+    => not allowed
+
+msgid's are incremental, so the application can guess them if it is the only one using the feed.  It must still do DELETE to remove from feed.  We allow deleting a range by specifying the highest message id to delete.
+
+++ Sinks
+
+Sinks are where we post messages.  Sinks are also containers for selectors, which is how we get messages into our feeds. All visible exchanges and shared queues are exposed as sinks.
+
+Manipulating sink resources
+
+PUT /amqp/sink/sink-name?type=sinktype
+    put "sink/sink-name", sinktype
+    creates sink, idempotent
+    implementation:
+        - restapi_sink_create ()
+
+GET /amqp/sink/sink-name
+    get "sink/sink-name"
+    queries sink
+    returns information on sink
+DELETE /amqp/sink/sink-name
+    delete "sink/sink-name"
+    deletes sink, idempotent
+POST /amqp/sink/sink-name
+    post "sink/sink-name"
+POST /amqp/sink/sink-name/address
+    post "sink/sink-name/address"
+    posts a message to the sink
+    address is routing key for exchanges
+    address is message-id for queues
+    address may be empty
+    expects body data, content-type
+
+Manipulating selectors in sinks:
+
+PUT /amqp/sink/sink-name/selector?feed=nbr
+    put sink/sink-name/selector
+    for queues, selector must be "*"
+    for exchanges, selector is routing key
+    pulls matching messages into specified feed
+    idempotent    
+GET /amqp/sink/sink-name/selector
+    get sink/sink-name/selector
+    returns information on selector
+
+DELETE /amqp/sink/sink-name/selector
+    delete sink/sink-name/selector
+    deletes the selector
+
+++ Scenarios
+
+
+POST /amqp/sink/amqp.topic/nasdaq.imatix + content
+
+PUT /amqp/sink/stocks/?type=topic
+POST /amqp/sink/stocks/nasdaq.imatix + content
+ 
+PUT /amqp/feed
+S: /amqp/feed/1
+GET /amqp/feed/1/1
+S: message
+
+
+config
+    amqp server name
+    amqp server login and password
+    client logins
+        - basic auths
+        - not same as openamq credentials
+
 - if-modified-since
 - cache-control
 - last-modified-time
 
+
 All REST interactions are stateless. That is, each request contains all of the information necessary for a connector to understand the request, independent of any requests that may have preceded it. This restriction accomplishes four functions: 1) it removes any need for the connectors to retain application state between requests, thus reducing consumption of physical resources and improving scalability; 2) it allows interactions to be processed in parallel without requiring that the processing mechanism understand the interaction semantics; 3) it allows an intermediary to view and understand a request in isolation, which may be necessary when services are dynamically rearranged; and, 4) it forces all of the information that might factor into the reusability of a cached response to be present in each request.
 
+**** REST METHODS ****
 
-- add amqp extension for web server
-- produce dummy content + headers
-- check we can process each method
-- hook into amq_rest class by hand
-- abstract into real methods
+Resolve - resolve path into sink, selector, type
+Put - declare a sink of specified type, or selector on existing sink
+Get - query a sink and get back type, or get selector information
+Delete - delete a sink or selector
+
+Resources are sinks or selectors:
+
+    /
+    /sink-name
+    /sink-name/selector-string
+    /sink-name/*
+    
+Sinks are exchanges or queues.  These share the same namespace.  Selectors are, for queues, patterns that match the message-id field.  For exchanges, selectors are binding keys.  All selectors have the same effect: pull messages into own private message queue.  Application can define selectors in advance, using Put method, or dynamically, using Get method.
+
+****  NEW  ****
+
+amq_rest_new (hostname, login, password)
+
+Connects to the specified host.  If successful, creates a private queue for own messages.
+
+****  RESOLVE  ****
+
+rc = amq_rest_resolve (path, sink, info, type)
+
+Resolves a path and returns the sink, info, and type if any.  If the path cannot be resolved, returns -1, else returns 0.  Uses a local cache to reduce the number of exchanges with the server.  Uses the Rest.Resolve method.
+
+****  PUT  ****
+
+rc = amq_rest_put (path, [type])
+
+    put /exchange-name?type="exchange-type"
+    put /queue-name?type="queue"
+    put /exchange-name/binding-key
+    put /queue-name/*
+
+Assert-creates a resource specified by path.  The path is a sink name + optional selector.  To specify a selector, the sink must already exist.  The type is mandatory when creating a sink, and must be a valid exchange type, or  "queue".  Returns 0 if the resource could be assert-created, -1 if not.  Attempting to create an existing resource is not an error.
+
+Implementation:
+
+* Resolve path via amq_rest_resolve()
+* If sinkname is unknown, use Rest.Put to declare sink (type is mandatory).
+* If selector is not empty, create binding:
+ * If sink is exchange, do Queue.Bind to exchange using selector
+ * If sink is queue, consume from queue (selector must be "*")
+
+****  GET  ****
+
+message = amq_rest_get (path, timeout)
+
+    get /
+    get /exchange-name
+    get /queue-name
+    get /exchange-name/binding-key
+    get /queue-name/*
+
+Attempts to fetch a message from a specified path.  The path is one of: "/", meaning the private queue for the client or a sink name followed by a selector.  Valid selectors are "*" for queue sinks, and binding keys for exchange sinks.  The sink must exist.  If the path refers to a sink name with no selector, acts as a passive assertion that the sink exists, but does not return a message.
+
+Implementation:
+
+* If path is /, wait on message from private queue 
+* Else
+ * Resolve path via amq_rest_resolve()
+ * If sinkname is unknown, print error and end
+ * If selector is empty, do Rest.Get on resource (assertion), and end
+ * If sinktype is exchange, re-bind to specified selector and wait for message
+ * If sinktype is queue, get message from queue (selector must be "*")
+
+****  DELETE  ****
+
+rc = amq_rest_delete (path)
+
+    delete /exchange-name
+    delete /queue-name
+    delete /exchange-name/binding-key
+    delete /queue-name/*
+
+Assert-deletes a resource specified by path.  The path is a sink name + optional selector.  To specify a selector, the sink must exist.  Deletes the selector by doing an unbind if the sinktype is exchange, otherwise stops consuming from the queue.  Deletes a sink (if only a sink name is specified) by deleting the exchange or queue as specified.  Attempting to delete a non-existing resource is not an error.
+
+****  POST  ****
+
+rc = amq_rest_post (path, message)
+
+Posts a message to a resource specified by path.  The path is a sink name + optional address.  The sink must exist.  If the sink is an exchange, the address is used as a routing-key.  If the sink is a queue, the address is used as a message-id.
 
 
-put path, type
-    if path = "."
-        message_nack
-        HTTP_REPLY_OK or HTTP_NOTFOUND
-    else
-    if type specified
-        sink_create
-        HTTP_REPLY_OK or HTTP_FORBIDDEN
-    else
-        selector_create
-        HTTP_REPLY_OK or HTTP_BADREQUEST
+=====
 
-get path
-    if path = "."
-        message_get
-        HTTP_REPLY_OK or HTTP_NOTFOUND
-            -> content body
-    else
-        resolve path
-        if unknown
-            HTTP_NOTFOUND
-        else
-        if selector empty
-            sink_query
-            HTTP_REPLY_OK or HTTP_NOTFOUND
-                -> formatted properties HTML
-        else
-            selector_create
-            message_get
-            HTTP_REPLY_OK or HTTP_NOTFOUND
-                -> content body
+Not supported:
 
-delete path
-    if path = "."
-        message_ack
-        HTTP_REPLY_OK or HTTP_NOTFOUND
-    else
-        resolve_path
-        if unknown
-            do nothing
-            HTTP_REPLY_OK
-        else
-        if selector empty
-            sink_delete
-            HTTP_REPLY_OK or HTTP_FORBIDDEN
-        else
-            selector_delete
-            HTTP_REPLY_OK or HTTP_FORBIDDEN
+* Does not allow binding arguments (headers) yet.
 
-post path
-    if path = "."
-        HTTP_FORBIDDEN
-    else
-        ...
+RESTful extensions to AMQP
+    - Rest protocol class
+    - / in topics equivalent to ., both in bind and publish
+    - * in topics matches empty routing-key
+    - empty topic segments are allowed (.value or /value)
+
+

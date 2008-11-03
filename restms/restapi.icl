@@ -357,6 +357,7 @@ extension class. Documentation is on http://wiki.amqp.org/N:rest.
 
 <method name = "message get" return = "bucket">
     <doc>
+    [[TODO: this needs to be fixed]]
     Gets the next message, if any, from the feed.  Returns a bucket with the 
     message content, or NULL.  Stores the following message properties in the
     Rest object: content_type, content_encoding, reply_to.

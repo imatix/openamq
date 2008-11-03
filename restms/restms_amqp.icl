@@ -34,7 +34,28 @@
 
 <method name = "get">
     <action>
+    /*
+    if path = "."
+        message_get
+        HTTP_REPLY_OK or HTTP_NOTFOUND
+            -> content body
+    else
+        resolve path
+        if unknown
+            HTTP_NOTFOUND
+        else
+        if selector empty
+            sink_query
+            HTTP_REPLY_OK or HTTP_NOTFOUND
+                -> formatted properties HTML
+        else
+            selector_create
+            message_get
+            HTTP_REPLY_OK or HTTP_NOTFOUND
+                -> content body
+    */
     icl_console_print ("AMQP GET: %s::%s", request->path, request->request_arguments);
+    http_portal_response_reply (portal, caller, response);
     </action>
 </method>
 
@@ -47,6 +68,12 @@
 
 <method name = "post">
     <action>
+    /*
+    if path = "."
+        HTTP_FORBIDDEN
+    else
+        ...
+    */
     icl_console_print ("AMQP POST: %s::%s", request->path, request->request_arguments);
     http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED);
     http_portal_response_reply (portal, caller, response);
@@ -55,6 +82,18 @@
 
 <method name = "put">
     <action>
+    /*
+    if path = "."
+        message_nack
+        HTTP_REPLY_OK or HTTP_NOTFOUND
+    else
+    if type specified
+        sink_create
+        HTTP_REPLY_OK or HTTP_FORBIDDEN
+    else
+        selector_create
+        HTTP_REPLY_OK or HTTP_BADREQUEST
+    */
     icl_console_print ("AMQP PUT: %s::%s", request->path, request->request_arguments);
     http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED);
     http_portal_response_reply (portal, caller, response);
@@ -63,6 +102,23 @@
 
 <method name = "delete">
     <action>
+    /*
+    if path = "."
+        message_ack
+        HTTP_REPLY_OK or HTTP_NOTFOUND
+    else
+        resolve_path
+        if unknown
+            do nothing
+            HTTP_REPLY_OK
+        else
+        if selector empty
+            sink_delete
+            HTTP_REPLY_OK or HTTP_FORBIDDEN
+        else
+            selector_delete
+            HTTP_REPLY_OK or HTTP_FORBIDDEN
+    */
     icl_console_print ("AMQP DELETE: %s::%s", request->path, request->request_arguments);
     http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED);
     http_portal_response_reply (portal, caller, response);

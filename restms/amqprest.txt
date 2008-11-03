@@ -122,10 +122,12 @@ The third form of resource path is the application feed, represented by the path
 
 Once we have defined our resource hierarchy, and our methods, we can look at the patterns we intend to support.  This is the full set of patterns:
 
+[[not accurate, needs fixing]]
+
 * "PUT sink-name?type=sink-type" - create sink
 * "GET sink-name" - query sink
 * "DELETE sink-name" - delete sink
-* "POST sink-name/selector[?arguments]" - publish to sink
+* "POST sink-name/address[?arguments]" - publish to sink
 * "PUT sink-name/selector" - create selector and activate feed
 * "GET sink-name/selector" - create selector and fetch message from feed
 * "DELETE sink-name/selector" - delete selector
@@ -196,7 +198,7 @@ Note that it is safe to attempt to delete a sink does not exist (either never ex
 
 To publish a message to a sink, we use the POST method, which carries a content body.  If the sink is an exchange, the selector is used as the routing key and the message is published to the exchange.  If the sink is a queue, the selector is used as the message id, the message reply-to is set to the sender's feed name, and the message is published to the default exchange.  In both cases the selector may be empty.  The message will take the MIME content type and encoding of the message.  An optional arguments string carries message properties.
 
-* "POST sink-name/selector[?arguments]" - publish to sink
+* "POST sink-name/address[?arguments]" - publish to sink
 
 Thus, to publish a set of messages to our example news exchange:
 
