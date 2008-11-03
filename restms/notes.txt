@@ -1,3 +1,6 @@
+PUT "feed"
+    -
+    
 ++ Feeds
 
 We manage "feeds" in the RestAPI layer.  A feed is a queue of messages.  Feeds are numbered by the server.  Feeds are containers for messages.  Feeds are not tied to AMQP sessions, they survive server failure / restart.  Feeds die if the restms server is killed.  Messages on feeds are numbered incrementally.
@@ -12,16 +15,7 @@ PUT /amqp/feed
         feed = restapi_feed_new (restapi)
         we create a restapi instance per server
         restapi_feed.icl
-        context
-            number
-            content queue
-            date/time created
-            date/time accessed
-            contents pending
-            contents served
-            octets pending
-            octets served
-            last message id
+
         create new feed object
         create new private queue on server
         store feed in restapi structure

@@ -33,6 +33,7 @@
 
 <!-- RestAPI implementation -->
 <file name = "restapi.icl"           class = "icl public class"  >RestAPI class</file>
+<file name = "restapi_feed.icl"      class = "icl public class"  >RestAPI feeds class</file>
 <file name = "rest_class_test.pal"   class = "private resource"  >Rest protocol class test</file>
 
 <!-- RestMS server -->

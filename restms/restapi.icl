@@ -25,24 +25,28 @@
     license   = "gpl"
     >
 <doc>
-This class provides the session, a layer that sits on top of WireAPI and 
-provides a REST-like interface to OpenAMQ wiring and messages.  In theory 
-will work with any interoperable AMQP server that implements the Rest 
-extension class. Documentation is on http://wiki.amqp.org/N:rest.
+This class implements the RestAPI layer for AMQP-over-HTTP access to OpenAMQ
+networks.
 </doc>
 
 <inherit class = "icl_object">
     <option name = "alloc" value = "cache" />
+    <option name = "links" value = "1" />
 </inherit>
 
-<import class = "amq_client_classes" />
-<import class = "amq_content_basic_list" />
+<import class = "wireapi" />
+<import class = "restapi_feed" />
+<import class = "restms_config" />
 
 <context>
     amq_client_connection_t
         *connection;
     amq_client_session_t
         *session;
+    icl_shortstr_t
+        hostname;                       //  AMQP server hostname
+    icl_longstr_t
+        *auth_data;                     //  Authorisation data
     icl_shortstr_t
         feed_queue;                     //  Our private queue
     icl_shortstr_t
@@ -74,43 +78,59 @@ extension class. Documentation is on http://wiki.amqp.org/N:rest.
     <argument name = "hostname" type = "char *" />
     <argument name = "username" type = "char *" />
     <argument name = "password" type = "char *" />
-    <local>
-    icl_longstr_t
-        *auth_data;                     //  Authorisation data
-    </local>
     //
-    auth_data = amq_client_connection_auth_plain (username, password);
-    self->connection = amq_client_connection_new (
-        hostname, "/", auth_data, "RestAPI", 0, 5000);
-    if (self->connection) {
-        self->connection->direct = TRUE;
-        self->session = amq_client_session_new (self->connection);
-    }
-    if (self->session) {
-        //  Create private queue for feed
-        amq_client_session_queue_declare (
-            self->session, 0, NULL, FALSE, FALSE, TRUE, TRUE, NULL);
-        icl_shortstr_cpy (self->feed_queue, self->session->queue);
-        amq_client_session_basic_consume (
-            self->session, 0, 
-            self->feed_queue, 
-            self->feed_queue, 
-            FALSE, TRUE, FALSE, NULL);
-    }
-    else {
+    self->auth_data = amq_client_connection_auth_plain (username, password);
+    icl_shortstr_cpy (self->hostname, hostname);
+    if (restapi_assert_alive (self)) {
         icl_console_print ("E: could not connect to %s", hostname);
         self_destroy (&self);
     }
-    icl_longstr_destroy (&auth_data);
 </method>
 
 <method name = "destroy">
+    icl_longstr_destroy (&self->auth_data);
     asl_field_list_destroy (&self->properties);
     if (self->session) {
         amq_client_session_queue_delete (
             self->session, 0, self->feed_queue, FALSE, FALSE);
         amq_client_session_destroy (&self->session);
         amq_client_connection_destroy (&self->connection);
+    }
+</method>
+
+<method name = "assert alive" template = "function">
+    <doc>
+    If the WireAPI session broke (server died), re-opens it using the original
+    credentials.  If the session was never opened, opens it equally.
+    TODO: WireAPI needs to hold declarations and bindings, and replay them if 
+    the connection fails.
+    </doc>
+    //
+    if (self->connection && !self->connection->alive) {
+        amq_client_session_destroy (&self->session);
+        amq_client_connection_destroy (&self->connection);
+    }
+    if (!self->connection) {
+        self->connection = amq_client_connection_new (
+            self->hostname, "/", self->auth_data, "RestAPI", 0, 5000);
+        if (self->connection) {
+            self->connection->direct = TRUE;
+            self->session = amq_client_session_new (self->connection);
+        }
+        if (self->session) {
+            //  Create private queue for feed
+            amq_client_session_queue_declare (
+                self->session, 0, NULL, FALSE, FALSE, TRUE, TRUE, NULL);
+            //  TODO:FEED
+            icl_shortstr_cpy (self->feed_queue, self->session->queue);
+            amq_client_session_basic_consume (
+                self->session, 0,
+                self->feed_queue,
+                self->feed_queue,
+                FALSE, TRUE, FALSE, NULL);
+        }
+        else
+            rc = -1;
     }
 </method>
 
@@ -398,36 +418,36 @@ extension class. Documentation is on http://wiki.amqp.org/N:rest.
     rc = -1;                            //  Not implemented
 </method>
 
-<method name = "http put" template = "function">
+<method name = "openamq start">
     <doc>
-    Implements the AMQP/Rest PUT method.
+    Starts an instance of the OpenAMQ server, for tests.
     </doc>
-    <argument name = "path" type = "char *">Resource path</argument>
-    <argument name = "type" type = "char *">Type argument if any</argument>
+    //  Start an instance of amq_server
+    s_openamq_process = ipr_process_new (
+        "amq_server --port 9000", NULL, "amq_server.lst", "amq_server.err");
+    ipr_process_start (s_openamq_process, ".");
+    apr_sleep (1000000);                //  Give server time to settle
+    assert (ipr_process_wait (s_openamq_process, FALSE));
 </method>
 
-<method name = "http get" template = "function">
+<method name = "openamq stop">
     <doc>
-    Implements the AMQP/Rest GET method.
-    - return bucket of data
-    - return dict of headers
+    Stops the instance of the OpenAMQ server started by the 
+    openamq_start() method.
     </doc>
-</method>
-
-<method name = "http post" template = "function">
-    <doc>
-    Implements the AMQP/Rest POST method.
-    </doc>
-</method>
-
-<method name = "http delete" template = "function">
-    <doc>
-    Implements the AMQP/Rest DELETE method.
-    </doc>
+    if (s_openamq_process) {
+        ipr_process_destroy (&s_openamq_process);
+        ipr_file_delete ("amq_server.lst");
+        ipr_file_delete ("amq_server.err");
+        ipr_dir_remove ("./archive");
+        ipr_dir_remove ("./logs");
+    }
 </method>
 
 <private name = "header">
 static int s_check_rest_reply ($(selftype) *self);
+static ipr_process_t
+    *s_openamq_process = NULL;
 </private>
 <private name = "footer">
 static int s_check_rest_reply ($(selftype) *self)
@@ -440,8 +460,6 @@ static int s_check_rest_reply ($(selftype) *self)
 
 <method name = "selftest">
     <local>
-    ipr_process_t
-        *process;
     restapi_t
         *session;
     ipr_bucket_t
@@ -449,16 +467,13 @@ static int s_check_rest_reply ($(selftype) *self)
     </local>
     icl_console_print ("I: starting RestAPI tests...");
 
-    //  Start an instance of amq_server
-    process = ipr_process_new ("amq_server --port 9000", NULL, "amq_server.lst", "amq_server.err");
-    ipr_process_start (process, ".");
-    apr_sleep (1000000);                //  Give server time to settle
-    assert (ipr_process_wait (process, FALSE));
     //  Open new RestAPI session
+    restapi_openamq_start ();
     session = restapi_new ("localhost:9000", "guest", "guest");
     assert (session);
 
     //  Test a rotator sink
+    icl_console_print ("I: test rotator sink");
     assert (restapi_sink_create (session, "test/rotator", "rotator") == 0);
     assert (restapi_sink_create (session, "test/rotator", "rotator") == 0);
     assert (restapi_selector_create (session, "test/rotator/*") == 0);
@@ -481,6 +496,7 @@ static int s_check_rest_reply ($(selftype) *self)
     assert (restapi_sink_delete (session, "test/rotator") == 0);
 
     //  Test a service sink
+    icl_console_print ("I: test service sink");
     assert (restapi_sink_create (session, "test/service", "service") == 0);
     assert (restapi_sink_create (session, "test/service", "service") == 0);
     assert (restapi_selector_create (session, "test/service/*") == 0);
@@ -502,6 +518,7 @@ static int s_check_rest_reply ($(selftype) *self)
     assert (restapi_selector_delete (session, "test/service/*"));
 
     //  Test a direct sink
+    icl_console_print ("I: test direct sink");
     assert (restapi_sink_create (session, "test/direct", "direct") == 0);
     assert (restapi_sink_create (session, "test/direct", "direct") == 0);
     assert (restapi_selector_create (session, "test/direct/good/address") == 0);
@@ -527,6 +544,7 @@ static int s_check_rest_reply ($(selftype) *self)
     assert (restapi_sink_delete (session, "test/direct") == 0);
 
     //  Test a topic sink
+    icl_console_print ("I: test topic sink");
     assert (restapi_sink_create (session, "test/topic", "topic") == 0);
     assert (restapi_sink_create (session, "test/topic", "topic") == 0);
     assert (restapi_selector_create (session, "test/topic/a4/*") == 0);
@@ -560,6 +578,7 @@ static int s_check_rest_reply ($(selftype) *self)
     assert (restapi_sink_delete (session, "test/topic") == 0);
 
     //  Test pedantic messaging
+    icl_console_print ("I: test pedantic messaging");
     assert (restapi_sink_create (session, "test/pedantic", "rotator") == 0);
     assert (restapi_selector_create (session, "test/pedantic/*") == 0);
     bucket = ipr_bucket_new (1000);
@@ -575,12 +594,7 @@ static int s_check_rest_reply ($(selftype) *self)
     
     //  Close RestAPI session and clean up
     restapi_destroy (&session);
-
-    ipr_process_destroy (&process);
-    ipr_file_delete ("amq_server.lst");
-    ipr_file_delete ("amq_server.err");
-    ipr_dir_remove ("./archive");
-    ipr_dir_remove ("./logs");
+    restapi_openamq_stop ();
 </method>
 
 </class>

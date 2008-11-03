@@ -51,4 +51,28 @@ $\(selftype)
     </property>
 </path>
 
+<path name = "amqp">
+    <property name = "hostname" type = "char *" default = "localhost" prefix = "amqp">
+    AMQP server to connect to
+    <doc>
+    Specifies the hostname and optionally port number to connect to.
+    </doc>
+    </property>
+
+    <property name = "username" type = "char *" default = "guest" prefix = "amqp">
+    AMQP user name
+    <doc>
+    Specifies the user name to use for AMQP connections.
+    </doc>
+    </property>
+
+    <property name = "password" type = "char *" default = "guest" prefix = "amqp">
+    AMQP password
+    <doc>
+    Specifies the password to use for AMQP connections.  Credentials are
+    always passed using the SASL BASIC mechanism.
+    </doc>
+    </property>
+</path>
+
 </opf>

@@ -28,12 +28,30 @@
 
 <inherit class = "http_portal_back" />
 
+<import class = "restapi" />
+
+<context>
+    restapi_t
+        *restapi;                        //  RestAPI connection to AMQP
+</context>
+
 <method name = "announce">
     icl_console_print ("I: initializing AMQP/Rest plugin on '%s'", path);
+    icl_console_print ("I: connecting to AMQP server at %s", 
+        restms_config_amqp_hostname (restms_config));
+    self->restapi = restapi_new (
+        restms_config_amqp_hostname (restms_config),
+        restms_config_amqp_username (restms_config),
+        restms_config_amqp_password (restms_config));
 </method>
 
 <method name = "get">
     <action>
+    if (restapi_assert_alive (self->restapi)) {
+        icl_console_print ("E: could not reconnect to %s",
+            restms_config_amqp_hostname (restms_config));
+        exit (1);
+    }
     /*
     if path = "."
         message_get
@@ -82,6 +100,44 @@
 
 <method name = "put">
     <action>
+    restapi_feed_t
+        *feed;
+    ipr_bucket_t
+        *bucket;                        //  Bucket we will
+    icl_longstr_t
+        *string;
+        
+    if (restapi_assert_alive (self->restapi)) {
+        icl_console_print ("E: could not reconnect to %s",
+            restms_config_amqp_hostname (restms_config));
+        exit (1);
+    }
+    if (streq (request->path, "feed")) {
+        feed = restapi_feed_new (self->restapi);
+
+        //  Allocated working buffers, arbitrary sizes
+        bucket = ipr_bucket_new (1024);   
+        string = icl_longstr_new (NULL, 1024);
+        icl_longstr_fmt (string, 
+            "[?xml version=\\"1.0\\"?][amqp][feed href=\\"%s\\"/][/amqp]",
+            "some-feed-uri");
+        ipr_bucket_cat (bucket, string->data, string->cur_size);
+
+        //  Store bucket in response bucket list
+        bucket->data [bucket->cur_size++] = 0;
+        ipr_str_subch ((char *) bucket->data, '[', '<');
+        ipr_str_subch ((char *) bucket->data, ']', '>');
+
+        http_response_set_dynamic (response, bucket, "text/html");
+        ipr_bucket_destroy (&bucket);
+        icl_longstr_destroy (&string);
+        restapi_feed_unlink (&feed);
+    }
+    else
+        http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED);
+
+    http_portal_response_reply (portal, caller, response);
+    
     /*
     if path = "."
         message_nack
@@ -94,9 +150,6 @@
         selector_create
         HTTP_REPLY_OK or HTTP_BADREQUEST
     */
-    icl_console_print ("AMQP PUT: %s::%s", request->path, request->request_arguments);
-    http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED);
-    http_portal_response_reply (portal, caller, response);
     </action>
 </method>
 

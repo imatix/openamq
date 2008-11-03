@@ -11,6 +11,9 @@ the specific instance of the running server:
     --animate 0                    Animate HTTP agent?
     --verbose 0                    Verbose output?
     --listen *                     Address (local network interface) to listen on
+    --amqp_hostname localhost      AMQP server to connect to
+    --amqp_username guest          AMQP user name
+    --amqp_password guest          AMQP password
     --webroot webpages             Path to web root directory
     --index index.html             Index file name
     --default_types .pdf .html     Default document types
@@ -65,6 +68,11 @@ and then:
             animate = "0"
             verbose = "0"
             listen = "*"
+        />
+        <amqp
+            hostname = "localhost"
+            username = "guest"
+            password = "guest"
         />
         <host
             webroot = "webpages"
@@ -142,6 +150,19 @@ listen = "*":
     choose to set an address when you use this application on a box with 
     multiple network interfaces, e.g. routing between two networks.      
     Default value is *.                                                  
+
+Setting amqp options
+===========================
+
+hostname = "localhost":
+    Specifies the hostname and optionally port number to connect to.
+    Default value is localhost.                                     
+username = "guest":
+    Specifies the user name to use for AMQP connections. Default value is
+    guest.                                                               
+password = "guest":
+    Specifies the password to use for AMQP connections. Credentials are  
+    always passed using the SASL BASIC mechanism. Default value is guest.
 
 Setting host options
 ===========================
