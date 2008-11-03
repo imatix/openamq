@@ -19,9 +19,7 @@
  *
  *===========================================================================*/
 
-#include "asl.h"
-#include "amq_client_connection.h"
-#include "amq_client_session.h"
+#include "wireapi.h"
 #include "version.h"
 
 #define CLIENT_NAME "amqp_client/1.0"
