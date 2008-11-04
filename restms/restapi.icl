@@ -1,19 +1,19 @@
 <?xml?>
 <!--
     Copyright (c) 1996-2007 iMatix Corporation
-    
+
     This file is licensed under the GPL as follows:
-    
+
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 2 of the License, or (at
     your option) any later version.
-    
+
     This program is distributed in the hope that it will be useful, but
     WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
     General Public License for more details.
-    
+
     For information on alternative licensing for OEMs, please contact
     iMatix Corporation.
  -->
@@ -65,13 +65,13 @@ networks.
         *properties;                    //  Sink properties
     icl_shortstr_t
         content_type,                   //  Last message properties
-        content_encoding, 
+        content_encoding,
         reply_to;
 </context>
 
 <method name = "new">
     <doc>
-    Creates a new session to the specified hostname:port.  Authenticates using 
+    Creates a new session to the specified hostname:port.  Authenticates using
     the supplied user name and password.  If the connection failed, prints the
     error to stderr and returns a null object.
     </doc>
@@ -81,10 +81,8 @@ networks.
     //
     self->auth_data = amq_client_connection_auth_plain (username, password);
     icl_shortstr_cpy (self->hostname, hostname);
-    if (restapi_assert_alive (self)) {
+    if (restapi_assert_alive (self))
         icl_console_print ("E: could not connect to %s", hostname);
-        self_destroy (&self);
-    }
 </method>
 
 <method name = "destroy">
@@ -102,7 +100,7 @@ networks.
     <doc>
     If the WireAPI session broke (server died), re-opens it using the original
     credentials.  If the session was never opened, opens it equally.
-    TODO: WireAPI needs to hold declarations and bindings, and replay them if 
+    TODO: WireAPI needs to hold declarations and bindings, and replay them if
     the connection fails.
     </doc>
     //
@@ -253,30 +251,30 @@ networks.
             if (streq (self->selector, "*"))
                 //  Consume from queue, consumer tag is queue name
                 //  Requires assertive patch for Basic.Consume
-                amq_client_session_basic_consume (self->session, 0, 
+                amq_client_session_basic_consume (self->session, 0,
                     self->sink_name,
                     self->sink_name,
                     FALSE, FALSE, FALSE, NULL);
             else {
                 rc = -1;
-                icl_shortstr_fmt (self->strerror, 
+                icl_shortstr_fmt (self->strerror,
                     "E: invalid queue selector '%s'", self->selector);
             }
         }
         else
             //  Bind to exchange using specified routing key
             amq_client_session_queue_bind (
-                self->session, 0, 
-                self->feed_queue, 
-                self->sink_name, 
-                self->selector, 
+                self->session, 0,
+                self->feed_queue,
+                self->sink_name,
+                self->selector,
                 NULL);
     }
 </method>
 
 <method name = "selector delete" template = "function">
     <doc>
-    Deletes the selector as specified, and stops receiving messages from 
+    Deletes the selector as specified, and stops receiving messages from
     the specified sink/selector. Returns 0 if OK, -1 if the method failed.
     </doc>
     <argument name = "path" type = "char *">Full path</argument>
@@ -295,16 +293,16 @@ networks.
                 amq_client_session_basic_cancel (self->session, self->sink_name);
             else {
                 rc = -1;
-                icl_shortstr_fmt (self->strerror, 
+                icl_shortstr_fmt (self->strerror,
                     "E: invalid queue selector '%s'", self->selector);
             }
         }
         else
             amq_client_session_queue_unbind (
-                self->session, 0, 
-                self->feed_queue, 
-                self->sink_name, 
-                self->selector, 
+                self->session, 0,
+                self->feed_queue,
+                self->sink_name,
+                self->selector,
                 NULL);
     }
 </method>
@@ -322,12 +320,12 @@ networks.
 
 <method name = "message post" template = "function">
     <doc>
-    Sends a content body to the specified sink.  If the sink is an exchange, 
-    the selector is used as the routing key and the message is published to 
-    the exchange. If the sink is a queue, the selector is used as the message 
-    id, the feed as the reply-to, and the message is published to the default 
-    exchange. In both cases the selector may be empty.  You should unlink the 
-    message bucket after doing this call. Returns 0 on success, or -1 if the 
+    Sends a content body to the specified sink.  If the sink is an exchange,
+    the selector is used as the routing key and the message is published to
+    the exchange. If the sink is a queue, the selector is used as the message
+    id, the feed as the reply-to, and the message is published to the default
+    exchange. In both cases the selector may be empty.  You should unlink the
+    message bucket after doing this call. Returns 0 on success, or -1 if the
     call failed.
     </doc>
     <argument name = "path" type = "char *">Resource path</argument>
@@ -378,7 +376,7 @@ networks.
 <method name = "message get" return = "bucket">
     <doc>
     [[TODO: this needs to be fixed]]
-    Gets the next message, if any, from the feed.  Returns a bucket with the 
+    Gets the next message, if any, from the feed.  Returns a bucket with the
     message content, or NULL.  Stores the following message properties in the
     Rest object: content_type, content_encoding, reply_to.
     </doc>
@@ -432,7 +430,7 @@ networks.
 
 <method name = "openamq stop">
     <doc>
-    Stops the instance of the OpenAMQ server started by the 
+    Stops the instance of the OpenAMQ server started by the
     openamq_start() method.
     </doc>
     if (s_openamq_process) {
@@ -591,7 +589,7 @@ static int s_check_rest_reply ($(selftype) *self)
     assert (restapi_message_nack (session));
     assert (restapi_message_ack (session));
     assert (restapi_sink_delete (session, "test/pedantic") == 0);
-    
+
     //  Close RestAPI session and clean up
     restapi_destroy (&session);
     restapi_openamq_stop ();

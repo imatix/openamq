@@ -37,7 +37,7 @@
 
 <method name = "announce">
     icl_console_print ("I: initializing AMQP/Rest plugin on '%s'", path);
-    icl_console_print ("I: connecting to AMQP server at %s", 
+    icl_console_print ("I: connecting to AMQP server at %s",
         restms_config_amqp_hostname (restms_config));
     self->restapi = restapi_new (
         restms_config_amqp_hostname (restms_config),
@@ -47,11 +47,42 @@
 
 <method name = "get">
     <action>
-    if (restapi_assert_alive (self->restapi)) {
-        icl_console_print ("E: could not reconnect to %s",
-            restms_config_amqp_hostname (restms_config));
-        exit (1);
+    ipr_bucket_t
+        *bucket;                        //  Bucket we will
+    icl_longstr_t
+        *string;
+
+    restapi_assert_alive (self->restapi);
+
+    //  Get root path returns resource map
+    if (streq (request->pathinfo, "/")) {
+        //  This can be put into class
+        //  http_response_xml (response, format, values);
+        //  Allocated working buffers, arbitrary sizes
+        bucket = ipr_bucket_new (1024);
+        string = icl_longstr_new (NULL, 1024);
+        icl_longstr_fmt (string,
+            "[?xml version=\\"1.0\\"?]"
+            "[amqp]"
+                "[resource type=\\"feed\\" href=\\"%s\\"/]"
+                "[resource type=\\"sink\\" href=\\"%s\\"/]"
+            "[/amqp]",
+            "some-feed-uri", "some_sink_uri");
+        ipr_bucket_cat (bucket, string->data, string->cur_size);
+
+        //  Store bucket in response bucket list
+        bucket->data [bucket->cur_size++] = 0;
+        ipr_str_subch ((char *) bucket->data, '[', '<');
+        ipr_str_subch ((char *) bucket->data, ']', '>');
+        http_response_set_dynamic (response, bucket, "text/xml");
+        ipr_bucket_destroy (&bucket);
+        icl_longstr_destroy (&string);
     }
+    else
+        http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED);
+
+    http_portal_response_reply (portal, caller, response);
+
     /*
     if path = "."
         message_get
@@ -72,8 +103,6 @@
             HTTP_REPLY_OK or HTTP_NOTFOUND
                 -> content body
     */
-    icl_console_print ("AMQP GET: %s::%s", request->path, request->request_arguments);
-    http_portal_response_reply (portal, caller, response);
     </action>
 </method>
 
@@ -106,7 +135,7 @@
         *bucket;                        //  Bucket we will
     icl_longstr_t
         *string;
-        
+
     if (restapi_assert_alive (self->restapi)) {
         icl_console_print ("E: could not reconnect to %s",
             restms_config_amqp_hostname (restms_config));
@@ -116,9 +145,9 @@
         feed = restapi_feed_new (self->restapi);
 
         //  Allocated working buffers, arbitrary sizes
-        bucket = ipr_bucket_new (1024);   
+        bucket = ipr_bucket_new (1024);
         string = icl_longstr_new (NULL, 1024);
-        icl_longstr_fmt (string, 
+        icl_longstr_fmt (string,
             "[?xml version=\\"1.0\\"?][amqp][feed href=\\"%s\\"/][/amqp]",
             "some-feed-uri");
         ipr_bucket_cat (bucket, string->data, string->cur_size);
@@ -137,7 +166,7 @@
         http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED);
 
     http_portal_response_reply (portal, caller, response);
-    
+
     /*
     if path = "."
         message_nack

@@ -18,7 +18,7 @@
 
 <pdl
     name      = "RestMS"
-    version   = "1.3b2"
+    version   = "1.4a0"
     workflow  = "standard.pwl"
     library   = "libamq_restms"
     copyright = "Copyright (c) 2007-2008 iMatix Corporation"

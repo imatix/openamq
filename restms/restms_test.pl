@@ -31,6 +31,35 @@ my $ua = new LWP::UserAgent;
 $ua->agent ('RestMS/Tests');
 $ua->credentials ($hostname, "AMQP", "guest", "guest");
 
+test_method ("GET", "", $REPLY_OK);
+
+sub test_method {
+    my ($method, $URL, $expect) = @_;
+    my $request = HTTP::Request->new ($method => "http://$hostname/amqp/$URL");
+    my $response = $ua->request ($request);
+    if ($response->code != $expect) {
+        print "Failed: $method http://$hostname/amqp/$URL (". $response->status_line .")\n";
+        exit (1);
+    }
+    print $response->content_type."\n";
+    print $response->content."\n";
+}
+
+sub test_post {
+    my ($URL, $content) = @_;
+    my $request = HTTP::Request->new (POST => "http://$hostname/amqp/$URL");
+    $request->content_type('text/plain');
+    $request->content($content);
+    my $response = $ua->request ($request);
+    if ($response->code != $REPLY_OK) {
+        print "Failed: $method http://$hostname/amqp/$URL (". $response->status_line .")\n";
+        exit (1);
+    }
+}
+
+
+
+sub deprecated {
 #   Test a rotator sink
 
 test_method ("PUT", "test/rotator?type=rotator", $REPLY_OK);
@@ -96,16 +125,16 @@ test_method ("GET", ".?timeout=2000",            $REPLY_OK);
 test_method ("GET", ".?timeout=2000",            $REPLY_OK);
 test_method ("GET", ".?timeout=100",             $REPLY_NOTFOUND);
 test_method ("GET", "test/topic",                $REPLY_OK);
-test_method ("DELETE", "test/topic/a4/*",        $REPLY_OK); 
+test_method ("DELETE", "test/topic/a4/*",        $REPLY_OK);
 test_method ("GET", "test/topic",                $REPLY_OK);
 test_method ("DELETE", "test/topic/a4/*",        $REPLY_OK);
 test_method ("GET", "test/topic",                $REPLY_OK);
 test_method ("DELETE", "test/topic/*/color",     $REPLY_OK);
-test_method ("GET", "test/topic",                $REPLY_OK); 
+test_method ("GET", "test/topic",                $REPLY_OK);
 test_method ("DELETE", "test/topic/*/color",     $REPLY_OK);
 test_method ("GET", "test/topic",                $REPLY_OK);
 test_method ("DELETE", "test/topic",             $REPLY_OK);
-test_method ("DELETE", "test/topic",             $REPLY_OK); 
+test_method ("DELETE", "test/topic",             $REPLY_OK);
 test_method ("GET", "test/topic",                $REPLY_NOTFOUND);
 test_method ("DELETE", "test/topic",             $REPLY_OK);
 
@@ -139,26 +168,4 @@ test_method ("DELETE", "test/nosuch",            $REPLY_OK);
 test_method ("DELETE", "amq.topic",              $REPLY_FORBIDDEN);
 test_method ("DELETE", "test/newsink",           $REPLY_OK);
 test_method ("DELETE", "amq.topic/*.*.*",        $REPLY_OK);
-
-sub test_method {
-    my ($method, $URL, $expect) = @_;
-    my $request = HTTP::Request->new ($method => "http://$hostname/amqp/$URL");
-    my $response = $ua->request ($request);
-    if ($response->code != $expect) {
-        print "Failed: $method http://$hostname/amqp/$URL (". $response->status_line .")\n";
-        exit (1);
-    }
 }
-
-sub test_post {
-    my ($URL, $content) = @_;
-    my $request = HTTP::Request->new (POST => "http://$hostname/amqp/$URL");
-    $request->content_type('text/plain');
-    $request->content($content);
-    my $response = $ua->request ($request);
-    if ($response->code != $REPLY_OK) {
-        print "Failed: $method http://$hostname/amqp/$URL (". $response->status_line .")\n";
-        exit (1);
-    }
-}
-
