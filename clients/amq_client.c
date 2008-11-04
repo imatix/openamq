@@ -24,7 +24,7 @@
 #include "amq_client_session.h"
 #include "version.h"
 
-#define CLIENT_NAME "amqp_client/1.0"
+#define CLIENT_NAME "amqp_client/" VERSION
 #define NOWARRANTY \
 "This is free software; see the source for copying conditions.  There is NO\n" \
 "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n" \
