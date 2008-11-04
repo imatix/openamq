@@ -19,12 +19,10 @@
  *
  *===========================================================================*/
 
-#include "asl.h"
-#include "amq_client_connection.h"
-#include "amq_client_session.h"
+#include "wireapi.h"
 #include "version.h"
 
-#define CLIENT_NAME "amqp_client/1.0"
+#define CLIENT_NAME "amqp_client/" VERSION
 #define NOWARRANTY \
 "This is free software; see the source for copying conditions.  There is NO\n" \
 "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n" \
@@ -179,8 +177,8 @@ main (int argc, char *argv [])
     memset (test_data, 0xAB, msgsize);
     
     if (atoi (opt_trace) > 2) {
-        amq_client_connection_animate (TRUE);
-        amq_client_session_animate (TRUE);
+        amq_client_connection_show_animation (TRUE);
+        amq_client_session_show_animation (TRUE);
     }
     //  Open the connection
     auth_data = amq_client_connection_auth_plain ("guest", "guest");
