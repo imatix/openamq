@@ -1,0 +1,13 @@
+<?xml?>
+<!-- Waits for one incoming message -->
+<pal script = "amq_pal_gen" >
+    <session>
+    	<queue_declare queue = "test-queue" />
+        <basic_consume queue = "test-queue" />
+        <wait timeout = "0" />
+        <basic_arrived>
+            <echo>Message $message_id arrived</echo>
+    	</basic_arrived>
+    </session>
+</pal>
+

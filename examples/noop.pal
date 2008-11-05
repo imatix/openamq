@@ -1,0 +1,5 @@
+<?xml?>
+<pal script = "amq_pal_gen">
+    <session exchange = "amq.direct">
+    </session>
+</pal>

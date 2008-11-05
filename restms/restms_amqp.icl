@@ -52,6 +52,7 @@
     icl_longstr_t
         *string;
 
+
     restapi_assert_alive (self->restapi);
 
     //  Get root path returns resource map

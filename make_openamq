@@ -8,17 +8,17 @@
 #   it under the terms of the GNU General Public License as published by
 #   the Free Software Foundation; either version 2 of the License, or (at
 #   your option) any later version.
-# 
+#
 #   This program is distributed in the hope that it will be useful, but
 #   WITHOUT ANY WARRANTY; without even the implied warranty of
 #   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #   General Public License for more details.
-# 
+#
 #   For information on alternative licensing for OEMs, please contact
 #   iMatix Corporation.
 #
 #   make_openamq [-r revision] [-b branch] [-v version] [-m model] [-c] [-s] [-a]
-#   
+#
 #       * revision = svn revision number, default = head
 #       * branch = "trunk" or "xxx" where branch name is "/branches/prod_openamq_xxx", e.g. "1.2d"
 #       * version = "x.yRn", default is same as current
@@ -26,7 +26,8 @@
 #       * -c means do clean checkout and build
 #       * -s means just report status and exit
 #       * -a means automatically do svn commits
-#   
+#       * -p means update local project files
+#
 #   Working directories
 #    ~/build-$BRANCH-$REVISION-$MODEL       BUILD directory for this version
 #    ~/ibase-$BRANCH-$REVISION-$MODEL       IBASE for build from svn sources
@@ -43,7 +44,7 @@
 #   * If -s (status) option specified, reports status and then exits
 #
 #   Part 1: done always
-#   
+#
 #   * Prepare ibase-boot directory
 #       - if it does not exist, create from IBASE/bin after user confirms
 #   * Prepare the IBASE directory
@@ -57,9 +58,9 @@
 #   * Does boom on each product
 #       - if -c (clean) is specified does "boom all"
 #       - else does "boom configure"
-#   
+#
 #   Part 2: done if a version is specified
-#   
+#
 #   * Builds source kit for each product
 #   * Generates a manifest.xml file in the openamq directory // should be pkgroot!
 #   * Updates project.pdl of openamq projects with version number
@@ -117,6 +118,8 @@ while [ ! -z "$1" ]; do
         STATUS=1                        #   Report status and then exit
     elif [ "$1" = "-a" ]; then
         COMMIT=1                        #   Automatically do svn commits
+    elif [ "$1" = "-p" ]; then
+        UPDATE=1                        #   Update project files
     elif [ "$1" = "-r" ]; then
         shift
         if [ ! -z "$1" ]; then
@@ -145,7 +148,7 @@ while [ ! -z "$1" ]; do
         else
             croak "use '-m model'"
         fi
-    else 
+    else
         croak "invalid option '$1' - use -h to see available options"
     fi
     shift
@@ -165,6 +168,25 @@ elif [ $MODEL = "str" ]; then
     BOOM_MODEL=release,st
 else
     croak "invalid model '$MODEL' - use mtd, mtr, std, or str"
+fi
+
+#   If -p specified, update local project.pdl files & exit
+if [ ! -z "$UPDATE" ]; then
+    if [ -z "$VERSION" ]; then
+        croak "Specify a version number: make_openamq -p -v X.xnx"
+    fi
+    if [ -d clients ]; then
+        PROJECTS="common clients server operate"
+    else
+        PROJECTS="common wireapi server shell restms"
+    fi
+    for PROJECT in . $PROJECTS; do
+        perl -n -p -e 's/version   = "....."/version   = "'$VERSION'"/' < $PROJECT/project.pdl > _tmp
+        mv _tmp $PROJECT/project.pdl
+    done
+    PRODVER=`perl -n -e '/version .*= "(.*)"/ && print $1' project.pdl`
+    carp "in `pwd`: project.pdl patched to $PRODVER"
+    exit 0
 fi
 
 #   Report where we'll work & what we'll do
@@ -189,7 +211,7 @@ carp "svn path root:   $SVN_ROOT"
 
 if [ $STATUS = 1 ]; then
     if [ -f ~/ibase-boot/gsl ]; then
-        carp "found: $HOME/ibase-boot contains bootstrap binaries" 
+        carp "found: $HOME/ibase-boot contains bootstrap binaries"
     else
         carp "empty: $HOME/ibase-boot is empty"
     fi
@@ -203,7 +225,7 @@ if [ $STATUS = 1 ]; then
     else
         carp "empty: $BUILD not yet built"
     fi
-    if [ -f $IBASE/lib/libamq_server.a ]; then 
+    if [ -f $IBASE/lib/libamq_server.a ]; then
         carp "found: $IBASE contains installation"
     else
         carp "empty: $IBASE is empty"
@@ -287,7 +309,12 @@ done
 #   If version specified, update OpenAMQ project.pdl files
 if [ ! -z "$VERSION" ]; then
     cd $BUILD/openamq || croak
-    for PROJECT in . common clients server operate; do
+    if [ -d clients ]; then
+        PROJECTS="common clients server operate"
+    else
+        PROJECTS="common wireapi server shell restms"
+    fi
+    for PROJECT in . $PROJECTS; do
         perl -n -p -e 's/version   = "....."/version   = "'$VERSION'"/' < $PROJECT/project.pdl > _tmp
         mv _tmp $PROJECT/project.pdl
     done
@@ -307,8 +334,8 @@ for PRODUCT in $PRODUCTS; do
             croak
         fi
     else
-        carp "in `pwd` boom configure..."
-        boom configure > $RUNLOG 2>&1
+        carp "in `pwd` boom configure regen..."
+        boom configure regen > $RUNLOG 2>&1
         if [ $? -ne 0 ]; then
             cat $RUNLOG
             croak
@@ -366,7 +393,7 @@ for PRODUCT in $PRODUCTS; do
     rm -f *.tar.gz *.zip
 
     carp "in `pwd`: boom distsrc..."
-    boom configure distsrc > $RUNLOG 2>&1 
+    boom configure distsrc > $RUNLOG 2>&1
     if [ $? -ne 0 ]; then
         cat $RUNLOG
         croak
@@ -402,7 +429,7 @@ rm -rf ~/ibase-$MYNAME-kit || croak
 IBASE=~/ibase-$MYNAME-kit
 PATH=$IBASE/bin:/usr/local/bin:/usr/bin:/bin
 carp "in `pwd`: testing build from source kit"
-sh build.sh > $RUNLOG 2>&1 
+sh build.sh > $RUNLOG 2>&1
 if [ $? -ne 0 ]; then
     cat $RUNLOG
     croak

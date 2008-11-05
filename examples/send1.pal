@@ -1,0 +1,9 @@
+<?xml?>
+<!-- Sends one message to test-queue -->
+<pal script = "amq_pal_gen" >
+    <session>
+        <basic_content message_id = "test message" />
+        <basic_publish routing_key = "test-queue" />
+    </session>
+</pal>
+
