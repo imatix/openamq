@@ -31,23 +31,61 @@ my $ua = new LWP::UserAgent;
 $ua->agent ('RestMS/Tests');
 $ua->credentials ($hostname, "AMQP", "guest", "guest");
 
-test_method ("GET", "", $REPLY_OK);
+#   Get container map
+my $response = test_method ("GET", "/", $REPLY_OK);
+
+#   Create a feed and get the feed URI
+my $response = test_method ("PUT", "/feed", $REPLY_OK);
+if ($response->content =~ /uri\s*=\s*"http:\/\/[^\/]+(\/feed\/[0-9A-Z]+)"/) {
+    $feed_uri = $1;
+}
+else {
+    print "Failed: no URI defined for feed\n";
+    exit (1);
+}
+#   GET feed information
+my $response = test_method ("GET", $feed_uri, $REPLY_OK);
+
+#   POST and PUT don't work on feeds
+my $response = test_method ("POST", $feed_uri, $REPLY_BADREQUEST);
+my $response = test_method ("PUT", $feed_uri, $REPLY_BADREQUEST);
+#   Delete the feed
+my $response = test_method ("DELETE", $feed_uri, $REPLY_OK);
+#   Method is idempotent, so we can do it again
+my $response = test_method ("DELETE", $feed_uri, $REPLY_OK);
+
+#   Method should be resistant against invalid indices
+my $response = test_method ("DELETE", "/feed/BOO", $REPLY_BADREQUEST);
+my $response = test_method ("DELETE", "/feed/12345671234567123456712345671234567", $REPLY_BADREQUEST);
+
+
+print "------------------------------------------------------------\n";
+print ("OK - Tests successful\n");
 
 sub test_method {
     my ($method, $URL, $expect) = @_;
-    my $request = HTTP::Request->new ($method => "http://$hostname/amqp/$URL");
+    my $uri = "http://$hostname/amqp$URL";
+    print "------------------------------------------------------------\n";
+    print "Test: $method $uri\n";
+    my $request = HTTP::Request->new ($method => $uri);
     my $response = $ua->request ($request);
     if ($response->code != $expect) {
-        print "Failed: $method http://$hostname/amqp/$URL (". $response->status_line .")\n";
+        print "Fail: " . $response->status_line . ", expected $expect\n";
         exit (1);
     }
-    print $response->content_type."\n";
-    print $response->content."\n";
+    if ($response->code == 200) {
+        print "Pass: response=" . $response->code . " Content-type=" . $response->content_type . "\n";
+        print $response->content . "\n";
+    }
+    else {
+        print "Pass: response=" . $response->code . "\n";
+    }
+    return ($response);
 }
 
 sub test_post {
     my ($URL, $content) = @_;
-    my $request = HTTP::Request->new (POST => "http://$hostname/amqp/$URL");
+    my $request = HTTP::Request->new (POST => "http://$hostname/amqp$URL");
     $request->content_type('text/plain');
     $request->content($content);
     my $response = $ua->request ($request);

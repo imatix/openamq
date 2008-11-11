@@ -1,6 +1,60 @@
-PUT "feed"
-    -
-    
+- split off restapi_resource.icl
+-
+
+GET /
+    returns set of containers defined
+    returns XML content
+        <amqprest version="1.0" status="ok">
+          <container type="feed" uri="http://localhost/feed" />
+          <container type="sink" uri="http://localhost/sink" />
+        </amqprest>
+
+PUT /feed
+    creates a new feed resource
+    returns XML content
+        <amqprest version="1.0" status="ok">
+          <feed uri="http://localhost/feed/[ident]" />
+        </amqprest>
+    => OVERLOADED if cannot create feed
+
+DELETE /feed/[id]
+    deletes feed resource
+    returns XML content
+        <amqprest version="1.0" status="ok" />
+    idempotent, ignores invalid IDs
+
+GET /feed/[id]
+    gets information about the feed
+    gets a list of all waiting messages
+        <amqprest version="1.0" status="ok">
+          <feed uri="http://localhost/feed/[ident]">
+            <message uri="http://localhost/feed/[ident]/[ident]" />...
+          </feed>
+        </amqprest>
+    => NOTFOUND if not known
+
+POST /feed/[id]
+    => BADREQUEST
+
+PUT /feed/[id]
+    => BADREQUEST
+
+
+^^^^^ IMPLEMENTED ^^^^^
+
+GET /feed
+    gets information about container ?
+        <amqprest version="1.0" status="ok">
+          <container type="feed">
+            <feed uri="http://localhost/feed/[id]" />...
+          </container>
+        </amqprest>
+    security?
+
+security: unguessable URI for each feed, random hash...
+
+^^^^^ NEXT ^^^^^
+
 ++ Feeds
 
 We manage "feeds" in the RestAPI layer.  A feed is a queue of messages.  Feeds are numbered by the server.  Feeds are containers for messages.  Feeds are not tied to AMQP sessions, they survive server failure / restart.  Feeds die if the restms server is killed.  Messages on feeds are numbered incrementally.
@@ -17,7 +71,6 @@ PUT /amqp/feed
         restapi_feed.icl
 
         create new feed object
-        create new private queue on server
         store feed in restapi structure
             - indexed by number (in an array)
             - reuse array slots when creating new feeds
@@ -25,15 +78,15 @@ PUT /amqp/feed
             - purges old feeds
             - timeout is configurable
             - max feeds is configurable
-        
+
 DELETE /amqp/feed/feednbr
     delete "feed/feednbr"
     deletes the feed if possible
     implementation:
         feed = restapi_feed_lookup (restapi, number)
         rc = restapi_feed_destroy (feed)
-            - cancels private queue for feed
             - cancels consumers on shared queues
+            - cancels consumer on session feed queue
             - we need to track all consumers created
 
 GET /amqp/feed/feednbr
@@ -110,7 +163,7 @@ PUT /amqp/sink/sink-name/selector?feed=nbr
     for queues, selector must be "*"
     for exchanges, selector is routing key
     pulls matching messages into specified feed
-    idempotent    
+    idempotent
 GET /amqp/sink/sink-name/selector
     get sink/sink-name/selector
     returns information on selector
@@ -126,7 +179,7 @@ POST /amqp/sink/amqp.topic/nasdaq.imatix + content
 
 PUT /amqp/sink/stocks/?type=topic
 POST /amqp/sink/stocks/nasdaq.imatix + content
- 
+
 PUT /amqp/feed
 S: /amqp/feed/1
 GET /amqp/feed/1/1
@@ -160,7 +213,7 @@ Resources are sinks or selectors:
     /sink-name
     /sink-name/selector-string
     /sink-name/*
-    
+
 Sinks are exchanges or queues.  These share the same namespace.  Selectors are, for queues, patterns that match the message-id field.  For exchanges, selectors are binding keys.  All selectors have the same effect: pull messages into own private message queue.  Application can define selectors in advance, using Put method, or dynamically, using Get method.
 
 ****  NEW  ****
@@ -208,7 +261,7 @@ Attempts to fetch a message from a specified path.  The path is one of: "/", mea
 
 Implementation:
 
-* If path is /, wait on message from private queue 
+* If path is /, wait on message from private queue
 * Else
  * Resolve path via amq_rest_resolve()
  * If sinkname is unknown, print error and end
@@ -247,3 +300,433 @@ RESTful extensions to AMQP
     - empty topic segments are allowed (.value or /value)
 
 
+
+
+
+=\==============================================================
+
+
+
+
+<!--
+<method name = "resolve" template = "function">
+    <doc>
+    Resolves a resource path and sets the following properties:
+
+    self->is_feed           TRUE if the path refers to the feed
+    self->sink_name         Name of sink, if not the feed
+    self->sink_type         Type of sink as a string
+    self->selector          Selector string if not empty
+    self->is_queue          TRUE if the sink is a queue
+
+    If path could not be resolved, returns -1 and sets self->strerror to
+    the error cause.  An unresolved path refers to a non-existent sink.
+    </doc>
+    <argument name = "path" type = "char *">Resource path</argument>
+    <local>
+    char
+        *path_delim;
+    </local>
+    //
+    assert (path && strused (path));
+    self->is_feed = FALSE;
+    self->is_queue = FALSE;
+    path_delim = path + strlen (self->sink_name);
+    if (streq (path, "."))
+        self->is_feed = TRUE;           //  Don't touch cached sink
+    else
+    //  If path starts with cached sink name, cleanly ending in
+    //    slash or null, then use cache
+    if (strused (self->sink_name)
+    &&  ipr_str_prefixed (path, self->sink_name)
+    &&  (*path_delim == 0 || *path_delim == '/')) {
+        if (*path_delim == 0)
+            strclr (self->selector);
+        else
+        if (*path_delim == '/')
+            icl_shortstr_cpy (self->selector, path_delim + 1);
+        if (streq (self->sink_type, "rotator")
+        ||  streq (self->sink_type, "service"))
+            self->is_queue = TRUE;
+    }
+    else {
+        amq_client_session_rest_resolve (self->session, path);
+        rc = s_check_rest_reply (self);
+        if (rc == 0) {
+            icl_shortstr_cpy (self->sink_name, self->session->sink_name);
+            icl_shortstr_cpy (self->sink_type, self->session->sink_type);
+            icl_shortstr_cpy (self->selector,  self->session->selector);
+        }
+        if (streq (self->sink_type, "rotator")
+        ||  streq (self->sink_type, "service"))
+            self->is_queue = TRUE;
+    }
+</method>
+
+<method name = "sink create" template = "function">
+    <doc>
+    Creates the sink as specified, or checks that the sink exists.
+    Returns 0 if OK, -1 if the method failed.
+    </doc>
+    <argument name = "sink name" type = "char *">Full sink name</argument>
+    <argument name = "sink type" type = "char *">A valid sink type</argument>
+    //
+    assert (sink_name && strused (sink_name));
+    assert (sink_type && strused (sink_type));
+    amq_client_session_rest_put (self->session, sink_name, sink_type);
+    rc = s_check_rest_reply (self);
+</method>
+
+<method name = "sink query" template = "function">
+    <doc>
+    Queries the sink as specified.  Returns 0 if the sink exists, or -1
+    if the sink does not exist.  If the sink exists, returns a set of sink
+    properties in self->properties.
+    </doc>
+    <argument name = "sink name" type = "char *">Full sink name</argument>
+    //
+    assert (sink_name && strused (sink_name));
+    amq_client_session_rest_get (self->session, sink_name);
+    rc = s_check_rest_reply (self);
+    if (rc == 0) {
+        asl_field_list_destroy (&self->properties);
+        self->properties = asl_field_list_new (self->session->properties);
+    }
+</method>
+
+<method name = "sink delete" template = "function">
+    <doc>
+    Deletes the sink as specified.  Returns 0 if the sink was deleted or
+    was already absent.  Returns -1 if the delete request was not allowed.
+    </doc>
+    <argument name = "sink name" type = "char *">Full sink name</argument>
+    //
+    assert (sink_name && strused (sink_name));
+    amq_client_session_rest_delete (self->session, sink_name);
+    rc = s_check_rest_reply (self);
+    //  Empty sink cache if successful
+    if (!rc)
+        strclr (self->sink_name);
+</method>
+
+<method name = "selector create" template = "function">
+    <doc>
+    Creates the selector as specified, and starts to receive messages from
+    the specified sink. Returns 0 if OK, -1 if the method failed.
+    </doc>
+    <argument name = "path" type = "char *">Full path</argument>
+    //
+    assert (path && strused (path));
+    rc = restapi_resolve (self, path);
+    if (rc == 0) {
+        if (self->is_feed) {
+            rc = -1;
+            icl_shortstr_fmt (self->strerror, "E: cannot create feed");
+        }
+        else
+        if (self->is_queue) {
+            if (streq (self->selector, "*"))
+                //  Consume from queue, consumer tag is queue name
+                //  Requires assertive patch for Basic.Consume
+                amq_client_session_basic_consume (self->session, 0,
+                    self->sink_name,
+                    self->sink_name,
+                    FALSE, FALSE, FALSE, NULL);
+            else {
+                rc = -1;
+                icl_shortstr_fmt (self->strerror,
+                    "E: invalid queue selector '%s'", self->selector);
+            }
+        }
+        else
+            //  Bind to exchange using specified routing key
+            amq_client_session_queue_bind (
+                self->session, 0,
+                "myqueue", //self->feed_queue,
+                self->sink_name,
+                self->selector,
+                NULL);
+    }
+</method>
+
+<method name = "selector delete" template = "function">
+    <doc>
+    Deletes the selector as specified, and stops receiving messages from
+    the specified sink/selector. Returns 0 if OK, -1 if the method failed.
+    </doc>
+    <argument name = "path" type = "char *">Full path</argument>
+    //
+    assert (path && strused (path));
+    rc = restapi_resolve (self, path);
+    if (rc == 0) {
+        if (self->is_feed) {
+            rc = -1;
+            icl_shortstr_fmt (self->strerror, "E: cannot delete feed");
+        }
+        else
+        if (self->is_queue) {
+            if (streq (self->selector, "*"))
+                //  Cancel consumer, consumer tag is queue name
+                amq_client_session_basic_cancel (self->session, self->sink_name);
+            else {
+                rc = -1;
+                icl_shortstr_fmt (self->strerror,
+                    "E: invalid queue selector '%s'", self->selector);
+            }
+        }
+        else
+            amq_client_session_queue_unbind (
+                self->session, 0,
+                "myqueue", //self->feed_queue,
+                self->sink_name,
+                self->selector,
+                NULL);
+    }
+</method>
+
+<method name = "message set type" template = "function">
+    <doc>
+    Sets the content encoding and type for outgoing messages.
+    </doc>
+    <argument name = "content type" type = "char *">Message MIME type</argument>
+    <argument name = "content encoding" type = "char *">Message MIME encoding</argument>
+    //
+    icl_shortstr_cpy (self->out_content_type, content_type);
+    icl_shortstr_cpy (self->out_content_encoding, content_encoding);
+</method>
+
+<method name = "message post" template = "function">
+    <doc>
+    Sends a content body to the specified sink.  If the sink is an exchange,
+    the selector is used as the routing key and the message is published to
+    the exchange. If the sink is a queue, the selector is used as the message
+    id, the feed as the reply-to, and the message is published to the default
+    exchange. In both cases the selector may be empty.  You should unlink the
+    message bucket after doing this call. Returns 0 on success, or -1 if the
+    call failed.
+    </doc>
+    <argument name = "path" type = "char *">Resource path</argument>
+    <argument name = "bucket" type = "ipr_bucket_t *">Message to send</argument>
+    <local>
+    amq_content_basic_t
+        *content = NULL;
+    </local>
+    //
+    assert (path && strused (path));
+    assert (bucket);
+    rc = restapi_resolve (self, path);
+    if (rc == 0) {
+        content = amq_content_basic_new ();
+        amq_content_basic_record_body (content, bucket);
+        amq_content_basic_set_content_type (content, self->out_content_type);
+        amq_content_basic_set_content_encoding (content, self->out_content_encoding);
+        if (self->is_feed) {
+            rc = -1;
+            icl_shortstr_fmt (self->strerror, "E: cannot post to feed");
+        }
+        else
+        if (self->is_queue) {
+            //  Set reply-to to own feed name
+            amq_content_basic_set_reply_to (content, "myqueue"); //self->feed_queue);
+            //  Set message-id to selector string
+            amq_content_basic_set_message_id (content, self->selector);
+            //  Publish to default exchange using sink name as routing key
+            amq_client_session_basic_publish (
+                self->session, content, 0,
+                NULL,                   //  Exchange = default exchange
+                self->sink_name,        //  Routing key
+                TRUE,                   //  Mandatory routing to queue
+                FALSE);                 //  Immediate to consumer
+        }
+        else {
+            amq_client_session_basic_publish (
+                self->session, content, 0,
+                self->sink_name,        //  Exchange name
+                self->selector,         //  Routing key = selector
+                FALSE,                  //  Mandatory routing to queue
+                FALSE);                 //  Immediate to consumer
+        }
+        amq_content_basic_unlink (&content);
+    }
+</method>
+
+<method name = "message get" return = "bucket">
+    <doc>
+    [[TODO: this needs to be fixed]]
+    Gets the next message, if any, from the feed.  Returns a bucket with the
+    message content, or NULL.  Stores the following message properties in the
+    Rest object: content_type, content_encoding, reply_to.
+    </doc>
+    <argument name = "self" type = "$(selftype) *">Object reference</argument>
+    <argument name = "timeout" type = "size_t">msecs to wait for message</argument>
+    <declare name = "bucket" type = "ipr_bucket_t *" default = "NULL">Returned message</declare>
+    <local>
+    amq_content_basic_t
+        *content;
+    asl_reader_t
+        reader;                         //  Body reader
+    </local>
+    //
+    amq_client_session_wait (self->session, timeout? timeout: 1);
+    content = amq_client_session_basic_arrived (self->session);
+    if (content) {
+        amq_content_basic_set_reader (content, &reader, IPR_BUCKET_MAX_SIZE);
+        bucket = amq_content_basic_replay_body (content, &reader);
+        icl_shortstr_cpy (self->content_type, content->content_type);
+        icl_shortstr_cpy (self->content_encoding, content->content_encoding);
+        icl_shortstr_cpy (self->reply_to, content->reply_to);
+        amq_content_basic_unlink (&content);
+    }
+</method>
+
+<method name = "message ack" template = "function">
+    <doc>
+    Acknowledges the previous pedantic message received.
+    </doc>
+    rc = -1;                            //  Not implemented
+</method>
+
+<method name = "message nack" template = "function">
+    <doc>
+    Rejects the previous pedantic message received.
+    </doc>
+    rc = -1;                            //  Not implemented
+</method>
+
+<private name = "header">
+static int s_check_rest_reply ($(selftype) *self);
+</private>
+<private name = "footer">
+static int s_check_rest_reply ($(selftype) *self)
+{
+    if (self->session->response)
+        icl_shortstr_fmt (self->strerror, "E: %s", self->session->reply_text);
+    return (self->session->response);
+}
+</private>
+
+
+    ipr_bucket_t
+        *bucket;
+
+   //  Test a rotator sink
+    icl_console_print ("I: test rotator sink");
+    assert (restapi_sink_create (session, "test/rotator", "rotator") == 0);
+    assert (restapi_sink_create (session, "test/rotator", "rotator") == 0);
+    assert (restapi_selector_create (session, "test/rotator/*") == 0);
+    assert (restapi_selector_create (session, "test/rotator/*") == 0);
+    bucket = ipr_bucket_new (1000);
+    ipr_bucket_fill_random (bucket, 1000);
+    assert (restapi_message_post (session, "test/rotator/id-001", bucket) == 0);
+    ipr_bucket_unlink (&bucket);
+//    bucket = restapi_message_get (session, 2000);
+//    assert (bucket);
+//    ipr_bucket_unlink (&bucket);
+//    bucket = restapi_message_get (session, 100);
+//    assert (bucket == NULL);
+    assert (restapi_sink_query (session, "test/rotator") == 0);
+    assert (restapi_selector_delete (session, "test/rotator/*") == 0);
+    assert (restapi_selector_delete (session, "test/rotator/*") == 0);
+    assert (restapi_sink_query (session, "test/rotator") == 0);
+    assert (restapi_sink_delete (session, "test/rotator") == 0);
+    assert (restapi_sink_query (session, "test/rotator"));
+    assert (restapi_sink_delete (session, "test/rotator") == 0);
+
+    //  Test a service sink
+    icl_console_print ("I: test service sink");
+    assert (restapi_sink_create (session, "test/service", "service") == 0);
+    assert (restapi_sink_create (session, "test/service", "service") == 0);
+    assert (restapi_selector_create (session, "test/service/*") == 0);
+    assert (restapi_selector_create (session, "test/service/*") == 0);
+    bucket = ipr_bucket_new (1000);
+    ipr_bucket_fill_random (bucket, 1000);
+    assert (restapi_message_post (session, "test/service/id-001", bucket) == 0);
+    ipr_bucket_unlink (&bucket);
+//    bucket = restapi_message_get (session, 2000);
+//    assert (bucket);
+ //   ipr_bucket_unlink (&bucket);
+ //   bucket = restapi_message_get (session, 100);
+ //   assert (bucket == NULL);
+    assert (restapi_sink_query (session, "test/service") == 0);
+    assert (restapi_selector_delete (session, "test/service/*") == 0);
+    //  Sink is gone when selector is deleted
+    assert (restapi_sink_query (session, "test/service"));
+    assert (restapi_sink_delete (session, "test/service") == 0);
+    assert (restapi_selector_delete (session, "test/service/*"));
+
+    //  Test a direct sink
+    icl_console_print ("I: test direct sink");
+    assert (restapi_sink_create (session, "test/direct", "direct") == 0);
+    assert (restapi_sink_create (session, "test/direct", "direct") == 0);
+    assert (restapi_selector_create (session, "test/direct/good/address") == 0);
+    assert (restapi_selector_create (session, "test/direct/good/address") == 0);
+    bucket = ipr_bucket_new (1000);
+    ipr_bucket_fill_random (bucket, 1000);
+    assert (restapi_message_post (session, "test/direct/good/address", bucket) == 0);
+    assert (restapi_message_post (session, "test/direct/wrong/address", bucket) == 0);
+    ipr_bucket_unlink (&bucket);
+ //   bucket = restapi_message_get (session, 2000);
+ //   assert (bucket);
+ //   ipr_bucket_unlink (&bucket);
+ //   bucket = restapi_message_get (session, 100);
+ //   assert (bucket == NULL);
+    assert (restapi_sink_query (session, "test/direct") == 0);
+    assert (restapi_selector_delete (session, "test/direct/good/address") == 0);
+    assert (restapi_sink_query (session, "test/direct") == 0);
+    assert (restapi_selector_delete (session, "test/direct/good/address") == 0);
+    assert (restapi_sink_query (session, "test/direct") == 0);
+    assert (restapi_sink_delete (session, "test/direct") == 0);
+    assert (restapi_sink_delete (session, "test/direct") == 0);
+    assert (restapi_sink_query (session, "test/direct"));
+    assert (restapi_sink_delete (session, "test/direct") == 0);
+
+    //  Test a topic sink
+    icl_console_print ("I: test topic sink");
+    assert (restapi_sink_create (session, "test/topic", "topic") == 0);
+    assert (restapi_sink_create (session, "test/topic", "topic") == 0);
+    assert (restapi_selector_create (session, "test/topic/a4/*") == 0);
+    assert (restapi_selector_create (session, "test/topic/*/color") == 0);
+    bucket = ipr_bucket_new (1000);
+    ipr_bucket_fill_random (bucket, 1000);
+    assert (restapi_message_post (session, "test/topic/a4/bw", bucket) == 0);
+    assert (restapi_message_post (session, "test/topic/a5/bw", bucket) == 0);
+    assert (restapi_message_post (session, "test/topic/a5/color", bucket) == 0);
+    ipr_bucket_unlink (&bucket);
+//    bucket = restapi_message_get (session, 2000);
+//    assert (bucket);
+//    ipr_bucket_unlink (&bucket);
+//    bucket = restapi_message_get (session, 2000);
+//    assert (bucket);
+//    ipr_bucket_unlink (&bucket);
+//    bucket = restapi_message_get (session, 100);
+//    assert (bucket == NULL);
+    assert (restapi_sink_query (session, "test/topic") == 0);
+    assert (restapi_selector_delete (session, "test/topic/a4/*") == 0);
+    assert (restapi_sink_query (session, "test/topic") == 0);
+    assert (restapi_selector_delete (session, "test/topic/a4/*") == 0);
+    assert (restapi_sink_query (session, "test/topic") == 0);
+    assert (restapi_selector_delete (session, "test/topic/*/color") == 0);
+    assert (restapi_sink_query (session, "test/topic") == 0);
+    assert (restapi_selector_delete (session, "test/topic/*/color") == 0);
+    assert (restapi_sink_query (session, "test/topic") == 0);
+    assert (restapi_sink_delete (session, "test/topic") == 0);
+    assert (restapi_sink_delete (session, "test/topic") == 0);
+    assert (restapi_sink_query (session, "test/topic"));
+    assert (restapi_sink_delete (session, "test/topic") == 0);
+
+    //  Test pedantic messaging
+    icl_console_print ("I: test pedantic messaging");
+    assert (restapi_sink_create (session, "test/pedantic", "rotator") == 0);
+    assert (restapi_selector_create (session, "test/pedantic/*") == 0);
+    bucket = ipr_bucket_new (1000);
+    ipr_bucket_fill_random (bucket, 1000);
+    assert (restapi_message_post (session, "test/pedantic/id-001", bucket) == 0);
+    ipr_bucket_unlink (&bucket);
+//    bucket = restapi_message_get (session, 2000);
+//    assert (bucket);
+//    ipr_bucket_unlink (&bucket);
+    assert (restapi_message_nack (session));
+    assert (restapi_message_ack (session));
+    assert (restapi_sink_delete (session, "test/pedantic") == 0);
+
+-->

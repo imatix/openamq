@@ -38,6 +38,12 @@ networks.
 <import class = "restapi_feed" />
 <import class = "restms_config" />
 
+<public name = "header">
+//  TODO: configurable properties
+#define RESTAPI_MAX_RESOURCES   1000    //  Max resources we can manage
+#define RESTAPI_TIMEOUT         5000    //  Timeout for WireAPI connections
+</public>
+
 <context>
     amq_client_connection_t
         *connection;
@@ -53,6 +59,9 @@ networks.
         strerror,                       //  Last error string
         out_content_type,               //  Outgoing message properties
         out_content_encoding;
+    ipr_hash_table_t
+        *resources;                     //  Resource dictionary
+
     //  Resolved information
     icl_shortstr_t
         sink_name,
@@ -80,6 +89,7 @@ networks.
     <argument name = "password" type = "char *" />
     //
     self->auth_data = amq_client_connection_auth_plain (username, password);
+    self->resources = ipr_hash_table_new ();
     icl_shortstr_cpy (self->hostname, hostname);
     if (restapi_assert_alive (self))
         icl_console_print ("E: could not connect to %s", hostname);
@@ -87,6 +97,7 @@ networks.
 
 <method name = "destroy">
     icl_longstr_destroy (&self->auth_data);
+    ipr_hash_table_destroy (&self->resources);
     asl_field_list_destroy (&self->properties);
     if (self->session) {
         amq_client_session_queue_delete (
@@ -102,6 +113,9 @@ networks.
     credentials.  If the session was never opened, opens it equally.
     TODO: WireAPI needs to hold declarations and bindings, and replay them if
     the connection fails.
+    TODO: WireAPI needs to intercept automatic queue names and force them to
+    generated values so that we can recreate them identically.
+    TODO: WireAPI needs to handle failover in same way as PAL programs do.
     </doc>
     //
     if (self->connection && !self->connection->alive) {
@@ -110,7 +124,7 @@ networks.
     }
     if (!self->connection) {
         self->connection = amq_client_connection_new (
-            self->hostname, "/", self->auth_data, "RestAPI", 0, 5000);
+            self->hostname, "/", self->auth_data, "RestAPI", 0, RESTAPI_TIMEOUT);
         if (self->connection) {
             self->connection->direct = TRUE;
             self->session = amq_client_session_new (self->connection);
@@ -131,6 +145,70 @@ networks.
             rc = -1;
     }
 </method>
+
+<method name = "resource register" template = "function">
+    <doc>
+    Registers a new resource and returns the resource key, which is a
+    unique randomized string.  Method is not idempotent, and should not
+    be called multiple times with the same resource.  The resource key
+    is stored in the key argument, which must be an icl_shortstr_t.
+    </doc>
+    <argument name = "key" type = "char *">Resource key</argument>
+    <argument name = "resource" type = "void *">Resource reference</argument>
+    <local>
+    ipr_hash_t
+        *hash_item;
+    </local>
+    //
+    //  Generate a new random key, we use 16 alphanumeric characters
+    //  which is sufficiently unguessable.
+    FOREVER {
+        ipr_str_random (key, "Ax16");
+        hash_item = ipr_hash_table_search (self->resources, key);
+        if (!hash_item)
+            break;                      //  Loop if key exists
+    }
+    hash_item = ipr_hash_new (self->resources, key, resource);
+    ipr_hash_unlink (&hash_item);
+</method>
+
+<method name = "resource lookup" return = "resource">
+    <doc>
+    Looks up a resource registration from a key.  Returns the resource
+    reference, or NULL if not found.
+    </doc>
+    <argument name = "self" type = "$(selftype) *">Reference to self</argument>
+    <argument name = "key" type = "char *">Resource key</argument>
+    <declare name = "resource" type = "void *" default = "NULL" />
+    <local>
+    ipr_hash_t
+        *hash_item;
+    </local>
+    //
+    hash_item = ipr_hash_table_search (self->resources, key);
+    if (hash_item) {
+        resource = hash_item->data;
+        ipr_hash_unlink (&hash_item);
+    }
+</method>
+
+<method name = "resource cancel" template = "function">
+    <doc>
+    Cancels a resource registration.  The resource is specified by its
+    key.  Method is idempotent, can be called multiple times with same
+    arguments.
+    </doc>
+    <argument name = "key" type = "char *">Resource key</argument>
+    <local>
+    ipr_hash_t
+        *hash_item;
+    </local>
+    //
+    hash_item = ipr_hash_table_search (self->resources, key);
+    ipr_hash_destroy (&hash_item);
+</method>
+
+<!-- All the following methods are to be reviewed -->
 
 <method name = "resolve" template = "function">
     <doc>
@@ -459,139 +537,154 @@ static int s_check_rest_reply ($(selftype) *self)
 <method name = "selftest">
     <local>
     restapi_t
-        *session;
+        *restapi;
     ipr_bucket_t
         *bucket;
+    char
+        *one = "one",
+        *two = "two";
+    icl_shortstr_t
+        one_key,
+        two_key;
     </local>
     icl_console_print ("I: starting RestAPI tests...");
 
     //  Open new RestAPI session
     restapi_openamq_start ();
-    session = restapi_new ("localhost:9000", "guest", "guest");
-    assert (session);
+    restapi = restapi_new ("localhost:9000", "guest", "guest");
+    assert (restapi);
 
-    //  Test a rotator sink
-    icl_console_print ("I: test rotator sink");
-    assert (restapi_sink_create (session, "test/rotator", "rotator") == 0);
-    assert (restapi_sink_create (session, "test/rotator", "rotator") == 0);
-    assert (restapi_selector_create (session, "test/rotator/*") == 0);
-    assert (restapi_selector_create (session, "test/rotator/*") == 0);
+    icl_console_print ("I: Test resource registration");
+    restapi_resource_register (restapi, one_key, one);
+    restapi_resource_register (restapi, two_key, two);
+    assert (strlen (one_key) == 16);
+    assert (strlen (two_key) == 16);
+    assert (restapi_resource_lookup (restapi, one_key) == one);
+    assert (restapi_resource_lookup (restapi, two_key) == two);
+    restapi_resource_cancel (restapi, one_key);
+    restapi_resource_cancel (restapi, one_key);
+    restapi_resource_cancel (restapi, two_key);
+    restapi_resource_cancel (restapi, "no such key");
+    assert (restapi_resource_lookup (restapi, one_key) == NULL);
+    assert (restapi_resource_lookup (restapi, two_key) == NULL);
+
+    icl_console_print ("I: Test rotator sink");
+    assert (restapi_sink_create (restapi, "test/rotator", "rotator") == 0);
+    assert (restapi_sink_create (restapi, "test/rotator", "rotator") == 0);
+    assert (restapi_selector_create (restapi, "test/rotator/*") == 0);
+    assert (restapi_selector_create (restapi, "test/rotator/*") == 0);
     bucket = ipr_bucket_new (1000);
     ipr_bucket_fill_random (bucket, 1000);
-    assert (restapi_message_post (session, "test/rotator/id-001", bucket) == 0);
+    assert (restapi_message_post (restapi, "test/rotator/id-001", bucket) == 0);
     ipr_bucket_unlink (&bucket);
-    bucket = restapi_message_get (session, 2000);
+    bucket = restapi_message_get (restapi, 2000);
     assert (bucket);
     ipr_bucket_unlink (&bucket);
-    bucket = restapi_message_get (session, 100);
+    bucket = restapi_message_get (restapi, 100);
     assert (bucket == NULL);
-    assert (restapi_sink_query (session, "test/rotator") == 0);
-    assert (restapi_selector_delete (session, "test/rotator/*") == 0);
-    assert (restapi_selector_delete (session, "test/rotator/*") == 0);
-    assert (restapi_sink_query (session, "test/rotator") == 0);
-    assert (restapi_sink_delete (session, "test/rotator") == 0);
-    assert (restapi_sink_query (session, "test/rotator"));
-    assert (restapi_sink_delete (session, "test/rotator") == 0);
+    assert (restapi_sink_query (restapi, "test/rotator") == 0);
+    assert (restapi_selector_delete (restapi, "test/rotator/*") == 0);
+    assert (restapi_selector_delete (restapi, "test/rotator/*") == 0);
+    assert (restapi_sink_query (restapi, "test/rotator") == 0);
+    assert (restapi_sink_delete (restapi, "test/rotator") == 0);
+    assert (restapi_sink_query (restapi, "test/rotator"));
+    assert (restapi_sink_delete (restapi, "test/rotator") == 0);
 
-    //  Test a service sink
-    icl_console_print ("I: test service sink");
-    assert (restapi_sink_create (session, "test/service", "service") == 0);
-    assert (restapi_sink_create (session, "test/service", "service") == 0);
-    assert (restapi_selector_create (session, "test/service/*") == 0);
-    assert (restapi_selector_create (session, "test/service/*") == 0);
+    icl_console_print ("I: Test service sink");
+    assert (restapi_sink_create (restapi, "test/service", "service") == 0);
+    assert (restapi_sink_create (restapi, "test/service", "service") == 0);
+    assert (restapi_selector_create (restapi, "test/service/*") == 0);
+    assert (restapi_selector_create (restapi, "test/service/*") == 0);
     bucket = ipr_bucket_new (1000);
     ipr_bucket_fill_random (bucket, 1000);
-    assert (restapi_message_post (session, "test/service/id-001", bucket) == 0);
+    assert (restapi_message_post (restapi, "test/service/id-001", bucket) == 0);
     ipr_bucket_unlink (&bucket);
-    bucket = restapi_message_get (session, 2000);
+    bucket = restapi_message_get (restapi, 2000);
     assert (bucket);
     ipr_bucket_unlink (&bucket);
-    bucket = restapi_message_get (session, 100);
+    bucket = restapi_message_get (restapi, 100);
     assert (bucket == NULL);
-    assert (restapi_sink_query (session, "test/service") == 0);
-    assert (restapi_selector_delete (session, "test/service/*") == 0);
+    assert (restapi_sink_query (restapi, "test/service") == 0);
+    assert (restapi_selector_delete (restapi, "test/service/*") == 0);
     //  Sink is gone when selector is deleted
-    assert (restapi_sink_query (session, "test/service"));
-    assert (restapi_sink_delete (session, "test/service") == 0);
-    assert (restapi_selector_delete (session, "test/service/*"));
+    assert (restapi_sink_query (restapi, "test/service"));
+    assert (restapi_sink_delete (restapi, "test/service") == 0);
+    assert (restapi_selector_delete (restapi, "test/service/*"));
 
-    //  Test a direct sink
-    icl_console_print ("I: test direct sink");
-    assert (restapi_sink_create (session, "test/direct", "direct") == 0);
-    assert (restapi_sink_create (session, "test/direct", "direct") == 0);
-    assert (restapi_selector_create (session, "test/direct/good/address") == 0);
-    assert (restapi_selector_create (session, "test/direct/good/address") == 0);
+    icl_console_print ("I: Test direct sink");
+    assert (restapi_sink_create (restapi, "test/direct", "direct") == 0);
+    assert (restapi_sink_create (restapi, "test/direct", "direct") == 0);
+    assert (restapi_selector_create (restapi, "test/direct/good/address") == 0);
+    assert (restapi_selector_create (restapi, "test/direct/good/address") == 0);
     bucket = ipr_bucket_new (1000);
     ipr_bucket_fill_random (bucket, 1000);
-    assert (restapi_message_post (session, "test/direct/good/address", bucket) == 0);
-    assert (restapi_message_post (session, "test/direct/wrong/address", bucket) == 0);
+    assert (restapi_message_post (restapi, "test/direct/good/address", bucket) == 0);
+    assert (restapi_message_post (restapi, "test/direct/wrong/address", bucket) == 0);
     ipr_bucket_unlink (&bucket);
-    bucket = restapi_message_get (session, 2000);
+    bucket = restapi_message_get (restapi, 2000);
     assert (bucket);
     ipr_bucket_unlink (&bucket);
-    bucket = restapi_message_get (session, 100);
+    bucket = restapi_message_get (restapi, 100);
     assert (bucket == NULL);
-    assert (restapi_sink_query (session, "test/direct") == 0);
-    assert (restapi_selector_delete (session, "test/direct/good/address") == 0);
-    assert (restapi_sink_query (session, "test/direct") == 0);
-    assert (restapi_selector_delete (session, "test/direct/good/address") == 0);
-    assert (restapi_sink_query (session, "test/direct") == 0);
-    assert (restapi_sink_delete (session, "test/direct") == 0);
-    assert (restapi_sink_delete (session, "test/direct") == 0);
-    assert (restapi_sink_query (session, "test/direct"));
-    assert (restapi_sink_delete (session, "test/direct") == 0);
+    assert (restapi_sink_query (restapi, "test/direct") == 0);
+    assert (restapi_selector_delete (restapi, "test/direct/good/address") == 0);
+    assert (restapi_sink_query (restapi, "test/direct") == 0);
+    assert (restapi_selector_delete (restapi, "test/direct/good/address") == 0);
+    assert (restapi_sink_query (restapi, "test/direct") == 0);
+    assert (restapi_sink_delete (restapi, "test/direct") == 0);
+    assert (restapi_sink_delete (restapi, "test/direct") == 0);
+    assert (restapi_sink_query (restapi, "test/direct"));
+    assert (restapi_sink_delete (restapi, "test/direct") == 0);
 
-    //  Test a topic sink
-    icl_console_print ("I: test topic sink");
-    assert (restapi_sink_create (session, "test/topic", "topic") == 0);
-    assert (restapi_sink_create (session, "test/topic", "topic") == 0);
-    assert (restapi_selector_create (session, "test/topic/a4/*") == 0);
-    assert (restapi_selector_create (session, "test/topic/*/color") == 0);
+    icl_console_print ("I: Test topic sink");
+    assert (restapi_sink_create (restapi, "test/topic", "topic") == 0);
+    assert (restapi_sink_create (restapi, "test/topic", "topic") == 0);
+    assert (restapi_selector_create (restapi, "test/topic/a4/*") == 0);
+    assert (restapi_selector_create (restapi, "test/topic/*/color") == 0);
     bucket = ipr_bucket_new (1000);
     ipr_bucket_fill_random (bucket, 1000);
-    assert (restapi_message_post (session, "test/topic/a4/bw", bucket) == 0);
-    assert (restapi_message_post (session, "test/topic/a5/bw", bucket) == 0);
-    assert (restapi_message_post (session, "test/topic/a5/color", bucket) == 0);
+    assert (restapi_message_post (restapi, "test/topic/a4/bw", bucket) == 0);
+    assert (restapi_message_post (restapi, "test/topic/a5/bw", bucket) == 0);
+    assert (restapi_message_post (restapi, "test/topic/a5/color", bucket) == 0);
     ipr_bucket_unlink (&bucket);
-    bucket = restapi_message_get (session, 2000);
+    bucket = restapi_message_get (restapi, 2000);
     assert (bucket);
     ipr_bucket_unlink (&bucket);
-    bucket = restapi_message_get (session, 2000);
+    bucket = restapi_message_get (restapi, 2000);
     assert (bucket);
     ipr_bucket_unlink (&bucket);
-    bucket = restapi_message_get (session, 100);
+    bucket = restapi_message_get (restapi, 100);
     assert (bucket == NULL);
-    assert (restapi_sink_query (session, "test/topic") == 0);
-    assert (restapi_selector_delete (session, "test/topic/a4/*") == 0);
-    assert (restapi_sink_query (session, "test/topic") == 0);
-    assert (restapi_selector_delete (session, "test/topic/a4/*") == 0);
-    assert (restapi_sink_query (session, "test/topic") == 0);
-    assert (restapi_selector_delete (session, "test/topic/*/color") == 0);
-    assert (restapi_sink_query (session, "test/topic") == 0);
-    assert (restapi_selector_delete (session, "test/topic/*/color") == 0);
-    assert (restapi_sink_query (session, "test/topic") == 0);
-    assert (restapi_sink_delete (session, "test/topic") == 0);
-    assert (restapi_sink_delete (session, "test/topic") == 0);
-    assert (restapi_sink_query (session, "test/topic"));
-    assert (restapi_sink_delete (session, "test/topic") == 0);
+    assert (restapi_sink_query (restapi, "test/topic") == 0);
+    assert (restapi_selector_delete (restapi, "test/topic/a4/*") == 0);
+    assert (restapi_sink_query (restapi, "test/topic") == 0);
+    assert (restapi_selector_delete (restapi, "test/topic/a4/*") == 0);
+    assert (restapi_sink_query (restapi, "test/topic") == 0);
+    assert (restapi_selector_delete (restapi, "test/topic/*/color") == 0);
+    assert (restapi_sink_query (restapi, "test/topic") == 0);
+    assert (restapi_selector_delete (restapi, "test/topic/*/color") == 0);
+    assert (restapi_sink_query (restapi, "test/topic") == 0);
+    assert (restapi_sink_delete (restapi, "test/topic") == 0);
+    assert (restapi_sink_delete (restapi, "test/topic") == 0);
+    assert (restapi_sink_query (restapi, "test/topic"));
+    assert (restapi_sink_delete (restapi, "test/topic") == 0);
 
-    //  Test pedantic messaging
-    icl_console_print ("I: test pedantic messaging");
-    assert (restapi_sink_create (session, "test/pedantic", "rotator") == 0);
-    assert (restapi_selector_create (session, "test/pedantic/*") == 0);
+    icl_console_print ("I: Test pedantic messaging");
+    assert (restapi_sink_create (restapi, "test/pedantic", "rotator") == 0);
+    assert (restapi_selector_create (restapi, "test/pedantic/*") == 0);
     bucket = ipr_bucket_new (1000);
     ipr_bucket_fill_random (bucket, 1000);
-    assert (restapi_message_post (session, "test/pedantic/id-001", bucket) == 0);
+    assert (restapi_message_post (restapi, "test/pedantic/id-001", bucket) == 0);
     ipr_bucket_unlink (&bucket);
-    bucket = restapi_message_get (session, 2000);
+    bucket = restapi_message_get (restapi, 2000);
     assert (bucket);
     ipr_bucket_unlink (&bucket);
-    assert (restapi_message_nack (session));
-    assert (restapi_message_ack (session));
-    assert (restapi_sink_delete (session, "test/pedantic") == 0);
+    assert (restapi_message_nack (restapi));
+    assert (restapi_message_ack (restapi));
+    assert (restapi_sink_delete (restapi, "test/pedantic") == 0);
 
-    //  Close RestAPI session and clean up
-    restapi_destroy (&session);
+    //  Close RestAPI restapi and clean up
+    restapi_destroy (&restapi);
     restapi_openamq_stop ();
 </method>
 
