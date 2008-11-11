@@ -1,5 +1,7 @@
-- split off restapi_resource.icl
--
+/restms
+<restms>
+restms = a standard
+OpenAMQ-Zyre = implementation
 
 GET /
     returns set of containers defined
@@ -13,132 +15,53 @@ PUT /feed
     creates a new feed resource
     returns XML content
         <amqprest version="1.0" status="ok">
-          <feed uri="http://localhost/feed/[ident]" />
+          <feed uri="http://localhost/feed/name" />
         </amqprest>
-    => OVERLOADED if cannot create feed
 
-DELETE /feed/[id]
-    deletes feed resource
+GET /feed
+    gets information about container
     returns XML content
-        <amqprest version="1.0" status="ok" />
-    idempotent, ignores invalid IDs
+        <amqprest version="1.0" status="ok">
+          <container type="feed" size="[size]" />
+        </amqprest>
 
-GET /feed/[id]
+PUT /feed/name
+    creates a new feed resource
+    returns XML content
+        <amqprest version="1.0" status="ok">
+          <feed uri="http://localhost/feed/name" />
+        </amqprest>
+
+GET /feed/name
     gets information about the feed
     gets a list of all waiting messages
         <amqprest version="1.0" status="ok">
-          <feed uri="http://localhost/feed/[ident]">
-            <message uri="http://localhost/feed/[ident]/[ident]" />...
+          <feed uri="http://localhost/feed/name">
+            <message uri="http://localhost/feed/name/[nbr]" />...
           </feed>
         </amqprest>
     => NOTFOUND if not known
 
-POST /feed/[id]
-    => BADREQUEST
+DELETE /feed/name
+    deletes feed resource
+    returns XML content
+        <amqprest version="1.0" status="ok" />
+    idempotent, feed does not need to exist
 
-PUT /feed/[id]
+POST /feed/name
     => BADREQUEST
-
 
 ^^^^^ IMPLEMENTED ^^^^^
 
-GET /feed
-    gets information about container ?
-        <amqprest version="1.0" status="ok">
-          <container type="feed">
-            <feed uri="http://localhost/feed/[id]" />...
-          </container>
-        </amqprest>
-    security?
-
-security: unguessable URI for each feed, random hash...
-
-^^^^^ NEXT ^^^^^
-
-++ Feeds
-
-We manage "feeds" in the RestAPI layer.  A feed is a queue of messages.  Feeds are numbered by the server.  Feeds are containers for messages.  Feeds are not tied to AMQP sessions, they survive server failure / restart.  Feeds die if the restms server is killed.  Messages on feeds are numbered incrementally.
-
-Manipulating feed resources
-
-PUT /amqp/feed
-    put "feed"
-    creates a new feed, returns the feed URI in the body, text/plain
-    => /amqp/feed/feednbr
-    implementation:
-        feed = restapi_feed_new (restapi)
-        we create a restapi instance per server
-        restapi_feed.icl
-
-        create new feed object
-        store feed in restapi structure
-            - indexed by number (in an array)
-            - reuse array slots when creating new feeds
-        rc = restapi_purge_feeds (restapi)
-            - purges old feeds
-            - timeout is configurable
-            - max feeds is configurable
-
-DELETE /amqp/feed/feednbr
-    delete "feed/feednbr"
-    deletes the feed if possible
-    implementation:
-        feed = restapi_feed_lookup (restapi, number)
-        rc = restapi_feed_destroy (feed)
-            - cancels consumers on shared queues
-            - cancels consumer on session feed queue
-            - we need to track all consumers created
-
-GET /amqp/feed/feednbr
-    get "feed/feednbr"
-    gets information about the feed
-    gets a list of all waiting messages
-    implementation:
-        feed = restapi_feed_lookup (restapi, number)
-        bucket = restapi_feed_query (feed)
-        -> XML data on feed
-
-PUT /amqp/feed/feednbr
-    put "feed/feednbr"
-    => not allowed
-
-Manipulating messages in feeds
-
-Messages received from the server are sorted into feed queues.  This is done as a side effect of any access to the feed.  Messages are sorted using their consumer-tags, which are their feed number.
-
-In Rest style, we get the container information which would list all waiting messages and then we would get those messages one by one, delete them, etc.:
-
-GET /amqp/feed/feednbr/msgid
-    get "feed/nbr/msgid"
-    gets the message specified
-    implementation:
-        - must be next message on feed
-        - waits
-
-DELETE /amqp/feed/feednbr/msgid
-    delete "feed/nbr/msgid"
-    deletes the message and all prior messages (gone off the feed), (ack)
-PUT /amqp/feed/feednbr/msgid
-    put "feed/feednbr/msgid"
-    rejects the message (nack)
-POST /amqp/feed/feednbr/msgid
-    post "feed/feednbr/msgid"
-    => not allowed
-
-msgid's are incremental, so the application can guess them if it is the only one using the feed.  It must still do DELETE to remove from feed.  We allow deleting a range by specifying the highest message id to delete.
-
-++ Sinks
-
-Sinks are where we post messages.  Sinks are also containers for selectors, which is how we get messages into our feeds. All visible exchanges and shared queues are exposed as sinks.
-
 Manipulating sink resources
+
+PUT /sink/sink-path
 
 PUT /amqp/sink/sink-name?type=sinktype
     put "sink/sink-name", sinktype
     creates sink, idempotent
     implementation:
         - restapi_sink_create ()
-
 GET /amqp/sink/sink-name
     get "sink/sink-name"
     queries sink
@@ -172,6 +95,69 @@ DELETE /amqp/sink/sink-name/selector
     delete sink/sink-name/selector
     deletes the selector
 
+^^^^^ NEXT ^^^^^
+
+Zyre - an open source RestMS implementation
+
+++ The RESTful Messaging Service (RestMS)
+
+"All REST interactions are stateless. That is, each request contains all of the information necessary for a connector to understand the request, independent of any requests that may have preceded it."
+
+++ Summary
+
+RestMS provides applications with the ability to manage and access a set of resources that provide a RESTful HTTP interface to AMQP messaging networks.  These resources are:
+
+# "Feeds", which are private collections of incoming messages.
+# "Sinks", which are public recipient routing points for outgoing messages.
+# "Selectors", which sinks are containers for.  Selectors direct messages from sinks to feeds.
+# "Messages", which feeds are containers for.
+
+While the primary goal of RestMS is to provide a simpler, more accessible set of semantics than those packaged in AMQP/0-9-1 implementations, many aspects of the design (such as the unification of queues and exchanges as a single concept) are also meant to drive the design of AMQP/1.0.
+
+The RestMS model maps to AMQP as follows:
+
+* Sinks map to exchanges or named queues, according to the sink type.
+* Selectors map to bindings or consumers, according to the sink type.
+* Feeds map to consumers.
+
+The AMQP concept of private queue is not visible to the RESTful Messaging Service.
+
+RestMS could also be mapped to other messaging services, the concepts of sink, feed, and selector are generic.  AMQP-specific aspects of RestMS are defined in a separate layer, "the RestMS-AMQP Mapping".
+
+++ Feeds
+
+We manage "feeds" in the RestAPI layer.  A feed is a queue of messages.  Feeds are numbered by the server.  Feeds are containers for messages.  Feeds are not tied to AMQP sessions, they survive server failure / restart.  Feeds die if the restms server is killed.  Messages on feeds are numbered incrementally.
+
+Manipulating messages in feeds
+
+Messages received from the server are sorted into feed queues.  This is done as a side effect of any access to the feed.  Messages are sorted using their consumer-tags, which are their feed number.
+
+In Rest style, we get the container information which would list all waiting messages and then we would get those messages one by one, delete them, etc.:
+
+GET /amqp/feed/feednbr/msgid
+    get "feed/nbr/msgid"
+    gets the message specified
+    implementation:
+        - must be next message on feed
+        - waits
+
+DELETE /amqp/feed/feednbr/msgid
+    delete "feed/nbr/msgid"
+    deletes the message and all prior messages (gone off the feed), (ack)
+PUT /amqp/feed/feednbr/msgid
+    put "feed/feednbr/msgid"
+    rejects the message (nack)
+POST /amqp/feed/feednbr/msgid
+    post "feed/feednbr/msgid"
+    => not allowed
+
+msgid's are incremental, so the application can guess them if it is the only one using the feed.  It must still do DELETE to remove from feed.  We allow deleting a range by specifying the highest message id to delete.
+
+++ Sinks
+
+Sinks are where we post messages.  Sinks are also containers for selectors, which is how we get messages into our feeds. All visible exchanges and shared queues are exposed as sinks.
+
+
 ++ Scenarios
 
 
@@ -185,7 +171,6 @@ S: /amqp/feed/1
 GET /amqp/feed/1/1
 S: message
 
-
 config
     amqp server name
     amqp server login and password
@@ -198,7 +183,7 @@ config
 - last-modified-time
 
 
-All REST interactions are stateless. That is, each request contains all of the information necessary for a connector to understand the request, independent of any requests that may have preceded it. This restriction accomplishes four functions: 1) it removes any need for the connectors to retain application state between requests, thus reducing consumption of physical resources and improving scalability; 2) it allows interactions to be processed in parallel without requiring that the processing mechanism understand the interaction semantics; 3) it allows an intermediary to view and understand a request in isolation, which may be necessary when services are dynamically rearranged; and, 4) it forces all of the information that might factor into the reusability of a cached response to be present in each request.
+This restriction accomplishes four functions: 1) it removes any need for the connectors to retain application state between requests, thus reducing consumption of physical resources and improving scalability; 2) it allows interactions to be processed in parallel without requiring that the processing mechanism understand the interaction semantics; 3) it allows an intermediary to view and understand a request in isolation, which may be necessary when services are dynamically rearranged; and, 4) it forces all of the information that might factor into the reusability of a cached response to be present in each request.
 
 **** REST METHODS ****
 

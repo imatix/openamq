@@ -2,27 +2,7 @@
 #   Functional test cases for RestMS
 
 use LWP::UserAgent;
-
-my $REPLY_OK             = 200;
-my $REPLY_CREATED        = 201;
-my $REPLY_ACCEPTED       = 202;
-my $REPLY_NOCONTENT      = 204;
-my $REPLY_PARTIAL        = 206;
-my $REPLY_MOVED          = 301;
-my $REPLY_FOUND          = 302;
-my $REPLY_METHOD         = 303;
-my $REPLY_NOTMODIFIED    = 304;
-my $REPLY_BADREQUEST     = 400;
-my $REPLY_UNAUTHORIZED   = 401;
-my $REPLY_PAYEMENT       = 402;
-my $REPLY_FORBIDDEN      = 403;
-my $REPLY_NOTFOUND       = 404;
-my $REPLY_PRECONDITION   = 412;
-my $REPLY_TOOLARGE       = 413;
-my $REPLY_INTERNALERROR  = 500;
-my $REPLY_NOTIMPLEMENTED = 501;
-my $REPLY_OVERLOADED     = 503;
-my $REPLY_VERSIONUNSUP   = 505;
+define_constants ();
 
 my $hostname = $ARGV[0];
 $hostname = "localhost" unless $hostname;
@@ -43,20 +23,30 @@ else {
     print "Failed: no URI defined for feed\n";
     exit (1);
 }
+#   GET feed container information
+my $response = test_method ("GET", "/feed", $REPLY_OK);
 #   GET feed information
 my $response = test_method ("GET", $feed_uri, $REPLY_OK);
-
-#   POST and PUT don't work on feeds
+#   PUT is idempotent
+my $response = test_method ("PUT", $feed_uri, $REPLY_OK);
+#   POST does not work on feeds
 my $response = test_method ("POST", $feed_uri, $REPLY_BADREQUEST);
-my $response = test_method ("PUT", $feed_uri, $REPLY_BADREQUEST);
 #   Delete the feed
 my $response = test_method ("DELETE", $feed_uri, $REPLY_OK);
 #   Method is idempotent, so we can do it again
 my $response = test_method ("DELETE", $feed_uri, $REPLY_OK);
 
-#   Method should be resistant against invalid indices
-my $response = test_method ("DELETE", "/feed/BOO", $REPLY_BADREQUEST);
-my $response = test_method ("DELETE", "/feed/12345671234567123456712345671234567", $REPLY_BADREQUEST);
+#   Create a feed explicitly and check we can access it
+my $feed_uri = "/feed/myfeed";
+my $response = test_method ("PUT", $feed_uri, $REPLY_OK);
+my $response = test_method ("PUT", $feed_uri, $REPLY_OK);
+my $response = test_method ("GET", $feed_uri, $REPLY_OK);
+my $response = test_method ("POST", $feed_uri, $REPLY_BADREQUEST);
+my $response = test_method ("DELETE", $feed_uri, $REPLY_OK);
+my $response = test_method ("DELETE", $feed_uri, $REPLY_OK);
+
+#   Method should be resistant against invalid feed names
+my $response = test_method ("DELETE", "/feed/BOO/BAH/HUMBUG", $REPLY_BADREQUEST);
 
 
 print "------------------------------------------------------------\n";
@@ -64,7 +54,7 @@ print ("OK - Tests successful\n");
 
 sub test_method {
     my ($method, $URL, $expect) = @_;
-    my $uri = "http://$hostname/amqp$URL";
+    my $uri = "http://$hostname/restms$URL";
     print "------------------------------------------------------------\n";
     print "Test: $method $uri\n";
     my $request = HTTP::Request->new ($method => $uri);
@@ -85,16 +75,38 @@ sub test_method {
 
 sub test_post {
     my ($URL, $content) = @_;
-    my $request = HTTP::Request->new (POST => "http://$hostname/amqp$URL");
+    my $request = HTTP::Request->new (POST => "http://$hostname/restms$URL");
     $request->content_type('text/plain');
     $request->content($content);
     my $response = $ua->request ($request);
     if ($response->code != $REPLY_OK) {
-        print "Failed: $method http://$hostname/amqp/$URL (". $response->status_line .")\n";
+        print "Failed: $method http://$hostname/restms/$URL (". $response->status_line .")\n";
         exit (1);
     }
 }
 
+sub define_constants {
+    $REPLY_OK             = 200;
+    $REPLY_CREATED        = 201;
+    $REPLY_ACCEPTED       = 202;
+    $REPLY_NOCONTENT      = 204;
+    $REPLY_PARTIAL        = 206;
+    $REPLY_MOVED          = 301;
+    $REPLY_FOUND          = 302;
+    $REPLY_METHOD         = 303;
+    $REPLY_NOTMODIFIED    = 304;
+    $REPLY_BADREQUEST     = 400;
+    $REPLY_UNAUTHORIZED   = 401;
+    $REPLY_PAYEMENT       = 402;
+    $REPLY_FORBIDDEN      = 403;
+    $REPLY_NOTFOUND       = 404;
+    $REPLY_PRECONDITION   = 412;
+    $REPLY_TOOLARGE       = 413;
+    $REPLY_INTERNALERROR  = 500;
+    $REPLY_NOTIMPLEMENTED = 501;
+    $REPLY_OVERLOADED     = 503;
+    $REPLY_VERSIONUNSUP   = 505;
+}
 
 
 sub deprecated {

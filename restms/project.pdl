@@ -17,7 +17,7 @@
 -->
 
 <pdl
-    name      = "RestMS"
+    name      = "OpenAMQ RestMS"
     version   = "1.4a0"
     workflow  = "standard.pwl"
     library   = "libamq_restms"
@@ -28,27 +28,29 @@
 <inherit filename = "icl_classes.pdl" />
 <inherit filename = "smt_classes.pdl" />
 
-<file name = "version.h"             class = "c version"         >Project version file</file>
-<file name = "libamq_restms"         class = "public library"    >Object library</file>
+<file name = "version.h"              class = "c version"         >Project version file</file>
+<file name = "libamq_restms"          class = "public library"    >Object library</file>
 
 <!-- RestAPI implementation -->
-<file name = "restapi.icl"           class = "icl public class"  >RestAPI class</file>
-<file name = "restapi_feed.icl"      class = "icl public class"  >RestAPI feeds class</file>
-<file name = "rest_class_test.pal"   class = "private resource"  >Rest protocol class test</file>
+<file name = "restapi.icl"            class = "icl public class"  >RestAPI class</file>
+<file name = "restapi_feed.icl"       class = "icl public class"  >RestAPI feeds class</file>
+<file name = "restapi_feed_table.icl" class = "icl private cont"
+                                      generated = "1"             >RestAPI feed container</file>
+<file name = "rest_class_test.pal"    class = "private resource"  >Rest protocol class test</file>
 
 <!-- RestMS server -->
-<file name = "restms.c"              class = "main program"      >RestMS main</file>
-<file name = "restms"                class = "public command"    >RestMS executable</file>
-<file name = "restms_main.inc"       class = "private resource"  >RestMS mainline</file>
-<file name = "restms_config.opf"     class = "gsl data"          >Configuration schema</file>
-<file name = "restms_config.icl"     class = "icl private class" generated = "1"
+<file name = "restms.c"               class = "main program"      >RestMS main</file>
+<file name = "restms"                 class = "public command"    >RestMS executable</file>
+<file name = "restms_main.inc"        class = "private resource"  >RestMS mainline</file>
+<file name = "restms_config.opf"      class = "gsl data"          >Configuration schema</file>
+<file name = "restms_config.icl"      class = "icl private class" generated = "1"
                                                                  >Configuration class</file>
-<file name = "restms_amqp.icl"       class = "icl private class" >AMQP plugin class</file>
-<file name = "restms_amqp_agent.smt" class = "smt public module" generated = "1" 
+<file name = "restms_amqp.icl"        class = "icl private class" >AMQP plugin class</file>
+<file name = "restms_amqp_agent.smt"  class = "smt public module" generated = "1" 
                                                                   >AMQP plugin agent</file>
 <directory name = "webpages">
-    <file name = "http_base.css"     class = "public resource"   >Base style sheet for errors</file>
-    <file name = "index.html"        class = "public resource"   >Default empty index page</file>
+    <file name = "http_base.css"      class = "public resource"   >Base style sheet for errors</file>
+    <file name = "index.html"         class = "public resource"   >Default empty index page</file>
 </directory>
 
 </pdl>

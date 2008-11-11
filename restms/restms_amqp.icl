@@ -17,13 +17,13 @@
  -->
 <class
     name    = "restms_amqp"
-    comment = "Rest/AMQP processing plugin"
+    comment = "HTTP plugin that maps RestMS to AMQP"
     version = "1.0"
     script  = "smt_object_gen"
     target  = "smt"
     >
 <doc>
-    This class implements a web server plugin to handle Rest/AMQP requests.
+    This class implements a http plugin that maps RestMS requests to AMQP.
 </doc>
 
 <inherit class = "http_portal_back" />
@@ -31,7 +31,7 @@
 <import class = "restapi" />
 
 <public name = "header">
-#define RESTMS_XML_ROOT     "amqprest"
+#define RESTMS_XML_ROOT     "restms"
 </public>
 
 <context>
@@ -40,7 +40,7 @@
 </context>
 
 <method name = "announce">
-    icl_console_print ("I: initializing AMQP/Rest plugin on '%s'", path);
+    icl_console_print ("I: initializing AMQP plugin on '%s'", path);
     icl_console_print ("I: connecting to AMQP server at %s",
         restms_config_amqp_hostname (restms_config));
     self->restapi = restapi_new (
@@ -57,6 +57,9 @@
     switch (s_identify_uri (request->pathinfo, resource)) {
         case RESTMS_URI_ROOT:
             s_get_root (self, request, response);
+            break;
+        case RESTMS_URI_FEEDS:
+            s_get_feeds (self, request, response);
             break;
         case RESTMS_URI_FEED:
             s_get_feed (self, request, response, resource);
@@ -76,6 +79,9 @@
     switch (s_identify_uri (request->pathinfo, resource)) {
         case RESTMS_URI_FEEDS:
             s_put_feeds (self, request, response);
+            break;
+        case RESTMS_URI_FEED:
+            s_put_feed (self, request, response, resource);
             break;
         default:
             http_response_set_error (response, HTTP_REPLY_BADREQUEST);
@@ -152,11 +158,17 @@ static void
     s_get_root (restms_amqp_t *self,
         http_request_t *request, http_response_t *response);
 static void
-    s_get_feed (restms_amqp_t *self,
-        http_request_t *request, http_response_t *response, char *resource);
-static void
     s_put_feeds (restms_amqp_t *self,
         http_request_t *request, http_response_t *response);
+static void
+    s_get_feeds (restms_amqp_t *self,
+        http_request_t *request, http_response_t *response);
+static void
+    s_put_feed (restms_amqp_t *self,
+        http_request_t *request, http_response_t *response, char *resource);
+static void
+    s_get_feed (restms_amqp_t *self,
+        http_request_t *request, http_response_t *response, char *resource);
 static void
     s_delete_feed (restms_amqp_t *self,
         http_request_t *request, http_response_t *response, char *resource);
@@ -187,9 +199,11 @@ s_identify_uri (char *pathinfo, char *resource)
     else
     if (ipr_str_prefixed (pathinfo, "/feed/")) {
         trailing = ipr_str_defix (pathinfo, "/feed/");
-        //  A valid feed ID is a string of upper-case alphanum characters
-        //  The restapi class generates IDs of 16 alphanumeric characters
-        if (ipr_regexp_eq ("^[0-9A-Z]{16}$", trailing)) {
+        //  Feeds are identified by a non-null string that does not include
+        //  any of '/', '?', '#', or whitespace.  User-specified feed URIs
+        //  are not validated in any way except for length (limited to 128
+        //  chars).
+        if (ipr_regexp_eq ("^[^/?#`s]{1,128}$", trailing)) {
             rc = RESTMS_URI_FEED;
             if (resource)
                 icl_shortstr_cpy (resource, trailing);
@@ -208,19 +222,17 @@ s_get_root (
 {
     ipr_xml_tree_t
         *tree;
-    icl_shortstr_t
-        location;
 
     tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
     ipr_xml_tree_leaf (tree, "version", "1.0");
     ipr_xml_tree_leaf (tree, "status", "ok");
       ipr_xml_tree_open (tree, "container");
         ipr_xml_tree_leaf (tree, "type", "feed");
-        ipr_xml_tree_leaf (tree, "uri", http_response_uri (request, location, "/feed"));
+        ipr_xml_tree_leaf (tree, "uri", "%sfeed", response->root_uri);
       ipr_xml_tree_shut (tree);
       ipr_xml_tree_open (tree, "container");
         ipr_xml_tree_leaf (tree, "type", "sink");
-        ipr_xml_tree_leaf (tree, "uri", http_response_uri (request, location, "/sink"));
+        ipr_xml_tree_leaf (tree, "uri", "%ssink", response->root_uri);
       ipr_xml_tree_shut (tree);
     http_response_set_from_xml (response, tree);
     ipr_xml_tree_destroy (&tree);
@@ -237,26 +249,52 @@ s_put_feeds (
 {
     restapi_feed_t
         *feed;
+
+    feed = restapi_feed_new (self->restapi, response->root_uri, NULL);
+    assert (feed);
+    s_get_feed (self, request, response, feed->name);
+}
+
+//  Return description of feed container
+//
+static void
+s_get_feeds (
+    restms_amqp_t *self,
+    http_request_t *request,
+    http_response_t *response)
+{
     ipr_xml_tree_t
         *tree;
 
-    feed = restapi_feed_new (self->restapi);
-    if (feed) {
-        //  Format URI to feed
-        http_response_uri (request, feed->uri, "/feed/");
-        icl_shortstr_cat (feed->uri, feed->ident);
+    tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
+    ipr_xml_tree_leaf (tree, "version", "1.0");
+    ipr_xml_tree_leaf (tree, "status", "ok");
+      ipr_xml_tree_open (tree, "container");
+        ipr_xml_tree_leaf (tree, "type", "feed");
+        ipr_xml_tree_leaf (tree, "size", "%d", self->restapi->feed_count);
+      ipr_xml_tree_shut (tree);
+    http_response_set_from_xml (response, tree);
+    ipr_xml_tree_destroy (&tree);
+}
 
-        tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
-        ipr_xml_tree_leaf (tree, "version", "1.0");
-        ipr_xml_tree_leaf (tree, "status", "ok");
-          ipr_xml_tree_open (tree, "feed");
-            ipr_xml_tree_leaf (tree, "uri", feed->uri);
-          ipr_xml_tree_shut (tree);
-        http_response_set_from_xml (response, tree);
-        ipr_xml_tree_destroy (&tree);
+//  Create the specified feed, if it does not already exist
+//
+static void
+s_put_feed (
+    restms_amqp_t *self,
+    http_request_t *request,
+    http_response_t *response,
+    char *resource)
+{
+    restapi_feed_t
+        *feed;
+
+    feed = restapi_feed_table_search (self->restapi->feed_table, resource);
+    if (feed == NULL) {
+        feed = restapi_feed_new (self->restapi, response->root_uri, resource);
+        assert (feed);
     }
-    else
-        http_response_set_error (response, HTTP_REPLY_OVERLOADED);
+    s_get_feed (self, request, response, feed->name);
 }
 
 //  Return information about the specified feed resource
@@ -273,7 +311,7 @@ s_get_feed (
     ipr_xml_tree_t
         *tree;
 
-    feed = (restapi_feed_t *) restapi_resource_lookup (self->restapi, resource);
+    feed = restapi_feed_table_search (self->restapi->feed_table, resource);
     if (feed) {
         tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
         ipr_xml_tree_leaf (tree, "version", "1.0");
@@ -289,8 +327,7 @@ s_get_feed (
 }
 
 //  Delete the specified feed resource, if exists.  This method
-//  is idempotent and the feed does not need to exist, but it
-//  must be an accurate feed identifier.
+//  is idempotent and the feed does not need to exist.
 //
 static void
 s_delete_feed (
@@ -303,8 +340,8 @@ s_delete_feed (
         *feed;
     ipr_xml_tree_t
         *tree;
-
-    feed = (restapi_feed_t *) restapi_resource_lookup (self->restapi, resource);
+    //
+    feed = restapi_feed_table_search (self->restapi->feed_table, resource);
     if (feed)
         restapi_feed_destroy (&feed);
 

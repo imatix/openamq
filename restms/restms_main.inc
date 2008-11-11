@@ -252,9 +252,9 @@ s_restms_execute (void)
     //  Register standard plugins in path resolution order
     //  The s_http_server is the portal client
     //
-    portal = restms_amqp_http_portal_new (NULL, "/amqp");
+    portal = restms_amqp_http_portal_new (NULL, "/restms");
     http_server_http_portal_bind (s_http_server, portal);
-    http_portal_request_announce (portal, "/amqp");
+    http_portal_request_announce (portal, "/restms");
     http_portal_unlink (&portal);
 
     portal = http_file_http_portal_new (NULL, "/");

@@ -40,7 +40,6 @@ networks.
 
 <public name = "header">
 //  TODO: configurable properties
-#define RESTAPI_MAX_RESOURCES   1000    //  Max resources we can manage
 #define RESTAPI_TIMEOUT         5000    //  Timeout for WireAPI connections
 </public>
 
@@ -59,8 +58,10 @@ networks.
         strerror,                       //  Last error string
         out_content_type,               //  Outgoing message properties
         out_content_encoding;
-    ipr_hash_table_t
-        *resources;                     //  Resource dictionary
+    restapi_feed_table_t
+        *feed_table;                    //  Hashed table of feeds
+    size_t
+        feed_count;                     //  Number of feeds
 
     //  Resolved information
     icl_shortstr_t
@@ -89,16 +90,16 @@ networks.
     <argument name = "password" type = "char *" />
     //
     self->auth_data = amq_client_connection_auth_plain (username, password);
-    self->resources = ipr_hash_table_new ();
     icl_shortstr_cpy (self->hostname, hostname);
     if (restapi_assert_alive (self))
         icl_console_print ("E: could not connect to %s", hostname);
+    self->feed_table = restapi_feed_table_new ();
 </method>
 
 <method name = "destroy">
     icl_longstr_destroy (&self->auth_data);
-    ipr_hash_table_destroy (&self->resources);
     asl_field_list_destroy (&self->properties);
+    restapi_feed_table_destroy (&self->feed_table);
     if (self->session) {
         amq_client_session_queue_delete (
             self->session, 0, self->feed_queue, FALSE, FALSE);
@@ -144,68 +145,6 @@ networks.
         else
             rc = -1;
     }
-</method>
-
-<method name = "resource register" template = "function">
-    <doc>
-    Registers a new resource and returns the resource key, which is a
-    unique randomized string.  Method is not idempotent, and should not
-    be called multiple times with the same resource.  The resource key
-    is stored in the key argument, which must be an icl_shortstr_t.
-    </doc>
-    <argument name = "key" type = "char *">Resource key</argument>
-    <argument name = "resource" type = "void *">Resource reference</argument>
-    <local>
-    ipr_hash_t
-        *hash_item;
-    </local>
-    //
-    //  Generate a new random key, we use 16 alphanumeric characters
-    //  which is sufficiently unguessable.
-    FOREVER {
-        ipr_str_random (key, "Ax16");
-        hash_item = ipr_hash_table_search (self->resources, key);
-        if (!hash_item)
-            break;                      //  Loop if key exists
-    }
-    hash_item = ipr_hash_new (self->resources, key, resource);
-    ipr_hash_unlink (&hash_item);
-</method>
-
-<method name = "resource lookup" return = "resource">
-    <doc>
-    Looks up a resource registration from a key.  Returns the resource
-    reference, or NULL if not found.
-    </doc>
-    <argument name = "self" type = "$(selftype) *">Reference to self</argument>
-    <argument name = "key" type = "char *">Resource key</argument>
-    <declare name = "resource" type = "void *" default = "NULL" />
-    <local>
-    ipr_hash_t
-        *hash_item;
-    </local>
-    //
-    hash_item = ipr_hash_table_search (self->resources, key);
-    if (hash_item) {
-        resource = hash_item->data;
-        ipr_hash_unlink (&hash_item);
-    }
-</method>
-
-<method name = "resource cancel" template = "function">
-    <doc>
-    Cancels a resource registration.  The resource is specified by its
-    key.  Method is idempotent, can be called multiple times with same
-    arguments.
-    </doc>
-    <argument name = "key" type = "char *">Resource key</argument>
-    <local>
-    ipr_hash_t
-        *hash_item;
-    </local>
-    //
-    hash_item = ipr_hash_table_search (self->resources, key);
-    ipr_hash_destroy (&hash_item);
 </method>
 
 <!-- All the following methods are to be reviewed -->
@@ -540,12 +479,6 @@ static int s_check_rest_reply ($(selftype) *self)
         *restapi;
     ipr_bucket_t
         *bucket;
-    char
-        *one = "one",
-        *two = "two";
-    icl_shortstr_t
-        one_key,
-        two_key;
     </local>
     icl_console_print ("I: starting RestAPI tests...");
 
@@ -553,20 +486,6 @@ static int s_check_rest_reply ($(selftype) *self)
     restapi_openamq_start ();
     restapi = restapi_new ("localhost:9000", "guest", "guest");
     assert (restapi);
-
-    icl_console_print ("I: Test resource registration");
-    restapi_resource_register (restapi, one_key, one);
-    restapi_resource_register (restapi, two_key, two);
-    assert (strlen (one_key) == 16);
-    assert (strlen (two_key) == 16);
-    assert (restapi_resource_lookup (restapi, one_key) == one);
-    assert (restapi_resource_lookup (restapi, two_key) == two);
-    restapi_resource_cancel (restapi, one_key);
-    restapi_resource_cancel (restapi, one_key);
-    restapi_resource_cancel (restapi, two_key);
-    restapi_resource_cancel (restapi, "no such key");
-    assert (restapi_resource_lookup (restapi, one_key) == NULL);
-    assert (restapi_resource_lookup (restapi, two_key) == NULL);
 
     icl_console_print ("I: Test rotator sink");
     assert (restapi_sink_create (restapi, "test/rotator", "rotator") == 0);
