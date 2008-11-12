@@ -113,7 +113,7 @@ reference counting.
         *feed;
     </local>
     icl_console_print ("Starting amq_server...");
-    restapi_openamq_start ();
+    restapi_openamq_start ("amq_server --port 9000");
     restapi = restapi_new ("localhost:9000", "guest", "guest");
     assert (restapi);
     feed = restapi_feed_new (restapi, "http://localhost/", NULL);

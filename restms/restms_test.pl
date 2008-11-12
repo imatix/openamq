@@ -11,9 +11,11 @@ my $ua = new LWP::UserAgent;
 $ua->agent ('RestMS/Tests');
 $ua->credentials ($hostname, "AMQP", "guest", "guest");
 
+#   --------------------------------------------------------------------------
 #   Get container map
 my $response = test_method ("GET", "/", $REPLY_OK);
 
+#   --------------------------------------------------------------------------
 #   Create a feed and get the feed URI
 my $response = test_method ("PUT", "/feed", $REPLY_OK);
 if ($response->content =~ /uri\s*=\s*"http:\/\/[^\/]+(\/feed\/[0-9A-Z]+)"/) {
@@ -48,6 +50,12 @@ my $response = test_method ("DELETE", $feed_uri, $REPLY_OK);
 #   Method should be resistant against invalid feed names
 my $response = test_method ("DELETE", "/feed/BOO/BAH/HUMBUG", $REPLY_BADREQUEST);
 
+#   --------------------------------------------------------------------------
+#   Test a rotator sink
+my $response = test_method ("PUT", "/sink/test/rotator?type=rotator", $REPLY_OK);
+#   Test some invalid sink creation requests
+my $response = test_method ("PUT", "/sink/test/junky?type=somejunk", $REPLY_BADREQUEST);
+my $response = test_method ("PUT", "/sink/test/notype", $REPLY_BADREQUEST);
 
 print "------------------------------------------------------------\n";
 print ("OK - Tests successful\n");

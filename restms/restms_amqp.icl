@@ -39,6 +39,17 @@
         *restapi;                        //  RestAPI connection to AMQP
 </context>
 
+<method name = "initialise">
+    if (strused (restms_config_amqp_autorun (restms_config))) {
+        icl_console_print ("Starting AMQP server: %s", restms_config_amqp_autorun (restms_config));
+        restapi_openamq_start (restms_config_amqp_autorun (restms_config));
+    }
+</method>
+
+<method name = "terminate">
+    restapi_openamq_stop ();
+</method>
+
 <method name = "announce">
     icl_console_print ("I: initializing AMQP plugin on '%s'", path);
     icl_console_print ("I: connecting to AMQP server at %s",
@@ -82,6 +93,9 @@
             break;
         case RESTMS_URI_FEED:
             s_put_feed (self, request, response, resource);
+            break;
+        case RESTMS_URI_SINK:
+            s_put_sink (self, request, response, resource);
             break;
         default:
             http_response_set_error (response, HTTP_REPLY_BADREQUEST);
@@ -148,8 +162,8 @@
 //  These are the types of URI we recognize for processing
 #define RESTMS_URI_ROOT                1
 #define RESTMS_URI_FEEDS               2
-#define RESTMS_URI_SINKS               3
-#define RESTMS_URI_FEED                4
+#define RESTMS_URI_FEED                3
+#define RESTMS_URI_SINK                4
 #define RESTMS_URI_UNKNOWN             5
 
 static int
@@ -165,13 +179,16 @@ static void
         http_request_t *request, http_response_t *response);
 static void
     s_put_feed (restms_amqp_t *self,
-        http_request_t *request, http_response_t *response, char *resource);
+        http_request_t *request, http_response_t *response, char *feed_name);
 static void
     s_get_feed (restms_amqp_t *self,
-        http_request_t *request, http_response_t *response, char *resource);
+        http_request_t *request, http_response_t *response, char *feed_name);
 static void
     s_delete_feed (restms_amqp_t *self,
-        http_request_t *request, http_response_t *response, char *resource);
+        http_request_t *request, http_response_t *response, char *feed_name);
+static void
+    s_put_sink (restms_amqp_t *self,
+        http_request_t *request, http_response_t *response, char *sink_name);
 </private>
 
 <private name = "async footer">
@@ -194,9 +211,6 @@ s_identify_uri (char *pathinfo, char *resource)
     if (streq (pathinfo, "/feed"))
         rc = RESTMS_URI_FEEDS;
     else
-    if (streq (pathinfo, "/sink"))
-        rc = RESTMS_URI_SINKS;
-    else
     if (ipr_str_prefixed (pathinfo, "/feed/")) {
         trailing = ipr_str_defix (pathinfo, "/feed/");
         //  Feeds are identified by a non-null string that does not include
@@ -208,6 +222,12 @@ s_identify_uri (char *pathinfo, char *resource)
             if (resource)
                 icl_shortstr_cpy (resource, trailing);
         }
+    }
+    else
+    if (ipr_str_prefixed (pathinfo, "/sink/")) {
+        rc = RESTMS_URI_SINK;
+        if (resource)
+            icl_shortstr_cpy (resource, ipr_str_defix (pathinfo, "/sink/"));
     }
     return (rc);
 }
@@ -233,13 +253,13 @@ s_get_root (
       ipr_xml_tree_open (tree, "container");
         ipr_xml_tree_leaf (tree, "type", "sink");
         ipr_xml_tree_leaf (tree, "uri", "%ssink", response->root_uri);
+        ipr_xml_tree_leaf (tree, "types", "fanout direct topic headers rotator service");
       ipr_xml_tree_shut (tree);
     http_response_set_from_xml (response, tree);
     ipr_xml_tree_destroy (&tree);
 }
 
-//  Create a new feed and return the URI for that new
-//  feed resource
+//  Create a new feed and return the URI for that new feed
 //
 static void
 s_put_feeds (
@@ -284,34 +304,34 @@ s_put_feed (
     restms_amqp_t *self,
     http_request_t *request,
     http_response_t *response,
-    char *resource)
+    char *feed_name)
 {
     restapi_feed_t
         *feed;
 
-    feed = restapi_feed_table_search (self->restapi->feed_table, resource);
+    feed = restapi_feed_table_search (self->restapi->feed_table, feed_name);
     if (feed == NULL) {
-        feed = restapi_feed_new (self->restapi, response->root_uri, resource);
+        feed = restapi_feed_new (self->restapi, response->root_uri, feed_name);
         assert (feed);
     }
     s_get_feed (self, request, response, feed->name);
 }
 
-//  Return information about the specified feed resource
+//  Return information about the specified feed 
 //
 static void
 s_get_feed (
     restms_amqp_t *self,
     http_request_t *request,
     http_response_t *response,
-    char *resource)
+    char *feed_name)
 {
     restapi_feed_t
         *feed;
     ipr_xml_tree_t
         *tree;
 
-    feed = restapi_feed_table_search (self->restapi->feed_table, resource);
+    feed = restapi_feed_table_search (self->restapi->feed_table, feed_name);
     if (feed) {
         tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
         ipr_xml_tree_leaf (tree, "version", "1.0");
@@ -326,7 +346,7 @@ s_get_feed (
         http_response_set_error (response, HTTP_REPLY_NOTFOUND);
 }
 
-//  Delete the specified feed resource, if exists.  This method
+//  Delete the specified feed, if exists.  This method
 //  is idempotent and the feed does not need to exist.
 //
 static void
@@ -334,14 +354,14 @@ s_delete_feed (
     restms_amqp_t *self,
     http_request_t *request,
     http_response_t *response,
-    char *resource)
+    char *feed_name)
 {
     restapi_feed_t
         *feed;
     ipr_xml_tree_t
         *tree;
     //
-    feed = restapi_feed_table_search (self->restapi->feed_table, resource);
+    feed = restapi_feed_table_search (self->restapi->feed_table, feed_name);
     if (feed)
         restapi_feed_destroy (&feed);
 
@@ -350,6 +370,40 @@ s_delete_feed (
     ipr_xml_tree_leaf (tree, "status", "ok");
     http_response_set_from_xml (response, tree);
     ipr_xml_tree_destroy (&tree);
+}
+
+//  Create or assert specified sink.  This method is idempotent.
+//
+static void
+s_put_sink (
+    restms_amqp_t *self,
+    http_request_t *request,
+    http_response_t *response,
+    char *sink_name)
+{
+    int
+        rc;
+    ipr_xml_tree_t
+        *tree;
+    char
+        *type;
+
+    type = ipr_dict_table_headers_search (request->args, "type");
+    if (strused (type)) {
+        rc = restapi_sink_create (self->restapi, sink_name, type);
+        tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
+        ipr_xml_tree_leaf (tree, "version", "1.0");
+        if (rc == 0)
+            ipr_xml_tree_leaf (tree, "status", "ok");
+        else {
+            ipr_xml_tree_leaf (tree, "status", "error");
+            ipr_xml_tree_leaf (tree, "reason", self->restapi->strerror);
+        }
+        http_response_set_from_xml (response, tree);
+        ipr_xml_tree_destroy (&tree);
+    }
+    else
+        http_response_set_error (response, HTTP_REPLY_BADREQUEST);
 }
 </private>
 

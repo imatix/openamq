@@ -111,12 +111,8 @@ networks.
 <method name = "assert alive" template = "function">
     <doc>
     If the WireAPI session broke (server died), re-opens it using the original
-    credentials.  If the session was never opened, opens it equally.
-    TODO: WireAPI needs to hold declarations and bindings, and replay them if
-    the connection fails.
-    TODO: WireAPI needs to intercept automatic queue names and force them to
-    generated values so that we can recreate them identically.
-    TODO: WireAPI needs to handle failover in same way as PAL programs do.
+    credentials.  If the session was never opened, opens it equally.  WireAPI
+    is responsible for all server-side state recreation.
     </doc>
     //
     if (self->connection && !self->connection->alive) {
@@ -146,8 +142,6 @@ networks.
             rc = -1;
     }
 </method>
-
-<!-- All the following methods are to be reviewed -->
 
 <method name = "resolve" template = "function">
     <doc>
@@ -324,6 +318,12 @@ networks.
     }
 </method>
 
+<!--
+    **************************************************************************
+                    The following methods are to be reviewed
+    **************************************************************************
+-->
+
 <method name = "message set type" template = "function">
     <doc>
     Sets the content encoding and type for outgoing messages.
@@ -437,9 +437,10 @@ networks.
     <doc>
     Starts an instance of the OpenAMQ server, for tests.
     </doc>
+    <argument name = "command" type = "char *">Command to start</argument>
     //  Start an instance of amq_server
     s_openamq_process = ipr_process_new (
-        "amq_server --port 9000", NULL, "amq_server.lst", "amq_server.err");
+        command, NULL, "amq_server.lst", "amq_server.err");
     ipr_process_start (s_openamq_process, ".");
     apr_sleep (1000000);                //  Give server time to settle
     assert (ipr_process_wait (s_openamq_process, FALSE));
@@ -483,7 +484,7 @@ static int s_check_rest_reply ($(selftype) *self)
     icl_console_print ("I: starting RestAPI tests...");
 
     //  Open new RestAPI session
-    restapi_openamq_start ();
+    restapi_openamq_start ("amq_server --port 9000");
     restapi = restapi_new ("localhost:9000", "guest", "guest");
     assert (restapi);
 

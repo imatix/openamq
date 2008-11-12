@@ -1,36 +1,32 @@
-/restms
-<restms>
-restms = a standard
-OpenAMQ-Zyre = implementation
-
 GET /
     returns set of containers defined
     returns XML content
         <amqprest version="1.0" status="ok">
           <container type="feed" uri="http://localhost/feed" />
-          <container type="sink" uri="http://localhost/sink" />
-        </amqprest>
+          <container type="sink" uri="http://localhost/sink"
+            types = "fanout direct topics header service selector" />
+        <rest>
 
 PUT /feed
     creates a new feed resource
     returns XML content
         <amqprest version="1.0" status="ok">
           <feed uri="http://localhost/feed/name" />
-        </amqprest>
+        <rest>
 
 GET /feed
     gets information about container
     returns XML content
         <amqprest version="1.0" status="ok">
           <container type="feed" size="[size]" />
-        </amqprest>
+        <rest>
 
 PUT /feed/name
     creates a new feed resource
     returns XML content
         <amqprest version="1.0" status="ok">
           <feed uri="http://localhost/feed/name" />
-        </amqprest>
+        <rest>
 
 GET /feed/name
     gets information about the feed
@@ -39,7 +35,7 @@ GET /feed/name
           <feed uri="http://localhost/feed/name">
             <message uri="http://localhost/feed/name/[nbr]" />...
           </feed>
-        </amqprest>
+        <rest>
     => NOTFOUND if not known
 
 DELETE /feed/name
@@ -51,27 +47,23 @@ DELETE /feed/name
 POST /feed/name
     => BADREQUEST
 
+PUT /sink/sink-path?type=sinktype
+    creates sink, idempotent
+
 ^^^^^ IMPLEMENTED ^^^^^
 
 Manipulating sink resources
 
-PUT /sink/sink-path
-
-PUT /amqp/sink/sink-name?type=sinktype
-    put "sink/sink-name", sinktype
-    creates sink, idempotent
-    implementation:
-        - restapi_sink_create ()
-GET /amqp/sink/sink-name
+GET /sink/sink-name
     get "sink/sink-name"
     queries sink
     returns information on sink
-DELETE /amqp/sink/sink-name
+DELETE /sink/sink-name
     delete "sink/sink-name"
     deletes sink, idempotent
-POST /amqp/sink/sink-name
+POST /sink/sink-name
     post "sink/sink-name"
-POST /amqp/sink/sink-name/address
+POST /sink/sink-name/address
     post "sink/sink-name/address"
     posts a message to the sink
     address is routing key for exchanges
@@ -81,17 +73,17 @@ POST /amqp/sink/sink-name/address
 
 Manipulating selectors in sinks:
 
-PUT /amqp/sink/sink-name/selector?feed=nbr
+PUT /sink/sink-name/selector?feed=nbr
     put sink/sink-name/selector
     for queues, selector must be "*"
     for exchanges, selector is routing key
     pulls matching messages into specified feed
     idempotent
-GET /amqp/sink/sink-name/selector
+GET /sink/sink-name/selector
     get sink/sink-name/selector
     returns information on selector
 
-DELETE /amqp/sink/sink-name/selector
+DELETE /sink/sink-name/selector
     delete sink/sink-name/selector
     deletes the selector
 
@@ -126,7 +118,12 @@ RestMS could also be mapped to other messaging services, the concepts of sink, f
 
 ++ Feeds
 
-We manage "feeds" in the RestAPI layer.  A feed is a queue of messages.  Feeds are numbered by the server.  Feeds are containers for messages.  Feeds are not tied to AMQP sessions, they survive server failure / restart.  Feeds die if the restms server is killed.  Messages on feeds are numbered incrementally.
+A feed is a collection of messages, organized as a queue.  Feeds are usually private for applications but can be shared.  Feeds are created by applications and destroyed either after a period of inactivity, or explicitly by applications.
+
+++ Sinks
+
+A sink is an intermediate recipient for messages, which routes the message according to one or more algorithms.
+
 
 Manipulating messages in feeds
 
@@ -134,20 +131,20 @@ Messages received from the server are sorted into feed queues.  This is done as 
 
 In Rest style, we get the container information which would list all waiting messages and then we would get those messages one by one, delete them, etc.:
 
-GET /amqp/feed/feednbr/msgid
+GET /feed/feednbr/msgid
     get "feed/nbr/msgid"
     gets the message specified
     implementation:
         - must be next message on feed
         - waits
 
-DELETE /amqp/feed/feednbr/msgid
+DELETE /feed/feednbr/msgid
     delete "feed/nbr/msgid"
     deletes the message and all prior messages (gone off the feed), (ack)
-PUT /amqp/feed/feednbr/msgid
+PUT /feed/feednbr/msgid
     put "feed/feednbr/msgid"
     rejects the message (nack)
-POST /amqp/feed/feednbr/msgid
+POST /feed/feednbr/msgid
     post "feed/feednbr/msgid"
     => not allowed
 
@@ -160,15 +157,14 @@ Sinks are where we post messages.  Sinks are also containers for selectors, whic
 
 ++ Scenarios
 
+POST /sink.topic/nasdaq.imatix + content
 
-POST /amqp/sink/amqp.topic/nasdaq.imatix + content
+PUT /sink/stocks/?type=topic
+POST /sink/stocks/nasdaq.imatix + content
 
-PUT /amqp/sink/stocks/?type=topic
-POST /amqp/sink/stocks/nasdaq.imatix + content
-
-PUT /amqp/feed
-S: /amqp/feed/1
-GET /amqp/feed/1/1
+PUT /feed
+S: /feed/1
+GET /feed/1/1
 S: message
 
 config

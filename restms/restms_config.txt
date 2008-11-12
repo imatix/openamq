@@ -11,6 +11,7 @@ the specific instance of the running server:
     --animate 0                    Animate HTTP agent?
     --verbose 0                    Verbose output?
     --listen *                     Address (local network interface) to listen on
+    --amqp_autorun amq_server      AMQP server to start
     --amqp_hostname localhost      AMQP server to connect to
     --amqp_username guest          AMQP user name
     --amqp_password guest          AMQP password
@@ -70,6 +71,7 @@ and then:
             listen = "*"
         />
         <amqp
+            autorun = "amq_server"
             hostname = "localhost"
             username = "guest"
             password = "guest"
@@ -154,6 +156,9 @@ listen = "*":
 Setting amqp options
 ===========================
 
+autorun = "amq_server":
+    Specifies the broker to start, when RestMS starts. Default value is
+    amq_server.                                                        
 hostname = "localhost":
     Specifies the hostname and optionally port number to connect to.
     Default value is localhost.                                     

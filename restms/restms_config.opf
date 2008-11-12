@@ -52,6 +52,13 @@ $\(selftype)
 </path>
 
 <path name = "amqp">
+    <property name = "autorun" type = "char *" default = "amq_server" prefix = "amqp">
+    AMQP server to start
+    <doc>
+    Specifies the broker to start, when RestMS starts.
+    </doc>
+    </property>
+
     <property name = "hostname" type = "char *" default = "localhost" prefix = "amqp">
     AMQP server to connect to
     <doc>
