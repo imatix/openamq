@@ -1,0 +1,11 @@
+<?xml?>
+<pal script = "amq_pal_gen" >
+    <session>
+        <queue_declare queue="queue1" auto_delete="1" />
+        <basic_consume queue="queue1" consumer_tag="test-tag" />
+        <!-- Should not be allowed -->
+        <queue_declare queue="queue2" auto_delete="1" />
+        <basic_consume queue="queue2" consumer_tag="test-tag" />
+    </session>
+</pal>
+
