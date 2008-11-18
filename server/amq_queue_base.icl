@@ -58,9 +58,7 @@ independent of the queue content type.
 </method>
 
 <method name = "destroy">
-    <action>
     s_free_consumer_queue (self->consumer_list);
-    </action>
 </method>
 
 <method name = "free">
