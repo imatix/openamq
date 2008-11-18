@@ -58,9 +58,7 @@ independent of the queue content type.
 </method>
 
 <method name = "destroy">
-    <action>
     s_free_consumer_queue (self->consumer_list);
-    </action>
 </method>
 
 <method name = "free">
@@ -160,7 +158,7 @@ s_get_next_consumer (
         }
         else
             connection = NULL;
-            
+
         if (channel_active) {
             if (!channel->solvent)
                 rc = CONSUMER_BUSY;     //  Skip this consumer if busy
@@ -184,7 +182,7 @@ s_get_next_consumer (
         else
             consumer = amq_consumer_by_queue_next (&consumer);
     }
-    *consumer_p = consumer; 
+    *consumer_p = consumer;
     return (rc);
 }
 
