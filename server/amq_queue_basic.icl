@@ -74,25 +74,28 @@ runs lock-free as a child of the asynchronous queue class.
 
     queue->contents_in++;
     queue->traffic_in += content->body_size;
+    connection = amq_server_connection_link (queue->connection);
 
     //  Check warning limit
     queue_size = ipr_looseref_list_count (self->content_list);
     if (queue->warn_limit && queue_size >= queue->warn_limit && !queue->warned) {
         smt_log_print (amq_broker->alert_log,
-            "I: queue=%s hit %d (client at %s): no action", 
-            queue->name, queue_size, queue->connection->client_address);
+            "I: queue=%s hit %d (client at %s): no action",
+            queue->name, queue_size,
+            connection? connection->client_address: "-");
         queue->warned = TRUE;
     }
     //  Check just one of drop/trim/kill
     if (queue->drop_limit && queue_size >= queue->drop_limit) {
         if (!queue->dropped) {
             smt_log_print (amq_broker->alert_log,
-                "W: queue=%s hit %d (client at %s): dropping new messages", 
-                queue->name, queue_size, queue->connection->client_address);
+                "W: queue=%s hit %d (client at %s): dropping new messages",
+                queue->name, queue_size,
+                connection? connection->client_address: "-");
             queue->dropped = TRUE;
         }
         queue->drop_count++;
-        content = NULL;         
+        content = NULL;
     }
     else
     if (queue->trim_limit && queue_size >= queue->trim_limit) {
@@ -101,7 +104,8 @@ runs lock-free as a child of the asynchronous queue class.
         if (!queue->trimmed) {
             smt_log_print (amq_broker->alert_log,
                 "W: queue=%s hit %d (client at %s): trimming old messages",
-                queue->name, queue_size, queue->connection->client_address);
+                queue->name, queue_size,
+                connection? connection->client_address: "-");
             queue->trimmed = TRUE;
         }
         oldest = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
@@ -111,22 +115,25 @@ runs lock-free as a child of the asynchronous queue class.
     else
     if (queue->kill_limit && queue_size >= queue->kill_limit) {
         smt_log_print (amq_broker->alert_log,
-                "E: queue=%s hit %d (client at %s): KILLING QUEUE", 
-                queue->name, queue_size, queue->connection->client_address);
-        if (queue->exclusive)
-            amq_server_connection_error (queue->connection,
+                "E: queue=%s hit %d (client at %s): KILLING QUEUE",
+                queue->name, queue_size,
+                connection? connection->client_address: "-");
+        if (queue->exclusive && connection)
+            amq_server_connection_error (connection,
                 ASL_RESOURCE_ERROR, "Queue overflow, connection killed",
                 AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_PUBLISH);
         else
             amq_queue_self_destruct (queue);
     }
-    else 
+    else
     if (queue_size == 0) {
         //  Reset warning flags if queue becomes empty
         queue->warned  = FALSE;
         queue->dropped = FALSE;
         queue->trimmed = FALSE;
     }
+    amq_server_connection_unlink (&connection);
+
     if (content) {
         //  If immediate, and no consumers, return the message
         rejected = FALSE;
@@ -221,7 +228,7 @@ runs lock-free as a child of the asynchronous queue class.
         }
         consumer = amq_consumer_by_queue_next (&consumer);
     }
-    if (amq_server_config_debug_queue (amq_server_config) 
+    if (amq_server_config_debug_queue (amq_server_config)
     && !have_active_consumers)
         smt_log_print (amq_broker->debug_log,
             "Q: paused   queue=%s nbr_messages=%d nbr_consumers=%d",
@@ -229,7 +236,7 @@ runs lock-free as a child of the asynchronous queue class.
             ipr_looseref_list_count (self->content_list),
             amq_consumer_by_queue_count (self->consumer_list));
 
-    while (have_active_consumers 
+    while (have_active_consumers
     && ipr_looseref_list_count (self->content_list)) {
         //  Look for a valid consumer for this content
         content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
@@ -290,7 +297,7 @@ runs lock-free as a child of the asynchronous queue class.
 
             //  No consumers right now, push content back onto list
             ipr_looseref_push (self->content_list, content);
-            break; 
+            break;
         }
         else
         if (rc == CONSUMER_NONE) {
