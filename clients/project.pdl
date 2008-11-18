@@ -52,6 +52,9 @@
 <file name = "amq_client_channel_table.icl"
                                      class = "icl public cont"  >Client channel table</file>
 
+<!-- Chronometer -->
+<file name = "amq_client_chrono.pal" class = "private resource" >Simple chronometer</file>
+
 <actions when = "after">
   <generate>
     <collect into = "wireapi.h" class = "public header">

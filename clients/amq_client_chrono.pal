@@ -1,0 +1,15 @@
+<?xml?>
+<pal script = "amq_pal_gen" >
+    <session>
+    	<queue_declare exclusive = "1" />
+        <queue_bind exchange = "amq.status" routing_key = "chrono" />
+        <basic_consume queue = "$queue" />
+        <repeat>
+            <wait />
+            <basic_arrived>
+                <echo>$body_text</echo>
+            </basic_arrived>
+    	</repeat>
+    </session>
+</pal>
+
