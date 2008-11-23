@@ -158,9 +158,9 @@ s_get_next_consumer (
         }
         else
             connection = NULL;
-            
+
         if (channel_active) {
-            if (!channel->solvent)
+            if (icl_atomic_get32 ((volatile qbyte *) &channel->credit) < 1)
                 rc = CONSUMER_BUSY;     //  Skip this consumer if busy
             else
             if (consumer->no_local) {
@@ -182,7 +182,7 @@ s_get_next_consumer (
         else
             consumer = amq_consumer_by_queue_next (&consumer);
     }
-    *consumer_p = consumer; 
+    *consumer_p = consumer;
     return (rc);
 }
 
