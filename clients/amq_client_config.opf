@@ -127,12 +127,12 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "floor" type = "int" default = "100" prefix = "chrono">
+    <property name = "floor" type = "int" default = "1" prefix = "chrono">
     Floor for chrono pingbacks
     <doc>
-    Specifies the floor for pingbacks.  Only pingbacks that show an
-    end-to-end latency greater or equal to the floor will be reported. If
-    you set this to zero, all pingbacks will be reported.
+    Specifies the floor for pingbacks, in milliseconds.  Only pingbacks that
+    show an end-to-end latency greater or equal to the floor will be reported.
+    If you set this to zero, all pingbacks will be reported.
     </doc>
     </property>
 
@@ -148,13 +148,10 @@ $\(selftype)
     <property name = "batch" type = "int" default = "150" prefix = "chrono">
     Batch size for chrono pingbacks
     <doc>
-    Specifies the batching size for chrono pingback messages.  These track
-    the latency of contents passing through the architecture.  A chrono
-    pingback is about 15 characters long, so the default batch and promille
-    settings will result in one pingback message every 10,000 received
-    messages.  If you set the batch size too low, you may get excessive back
-    chatter on the network and if you make it too high, you may get latency
-    spikes.
+    Specifies the batching size for chrono pingback messages.  If you change
+    the floor, density, or batch size, test carefully to ensure you do not
+    create too much chatter due to many small pingbacks.  A single pingback
+    is about 15 bytes.
     </doc>
     </property>
 </path>
