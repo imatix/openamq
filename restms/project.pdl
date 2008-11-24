@@ -33,9 +33,9 @@
 
 <!-- RestAPI implementation -->
 <file name = "restapi.icl"            class = "icl public class"  >RestAPI class</file>
-<file name = "restapi_feed.icl"       class = "icl public class"  >RestAPI feeds class</file>
-<file name = "restapi_feed_table.icl" class = "icl private cont"
-                                      generated = "1"             >RestAPI feed container</file>
+<file name = "restapi_pipe.icl"       class = "icl public class"  >RestAPI pipes class</file>
+<file name = "restapi_pipe_table.icl" class = "icl private cont"
+                                      generated = "1"             >RestAPI pipe container</file>
 <file name = "rest_class_test.pal"    class = "private resource"  >Rest protocol class test</file>
 
 <!-- RestMS server -->
@@ -46,7 +46,7 @@
 <file name = "restms_config.icl"      class = "icl private class" generated = "1"
                                                                  >Configuration class</file>
 <file name = "restms_amqp.icl"        class = "icl private class" >AMQP plugin class</file>
-<file name = "restms_amqp_agent.smt"  class = "smt public module" generated = "1" 
+<file name = "restms_amqp_agent.smt"  class = "smt public module" generated = "1"
                                                                   >AMQP plugin agent</file>
 <directory name = "webpages">
     <file name = "http_base.css"      class = "public resource"   >Base style sheet for errors</file>

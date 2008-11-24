@@ -9,53 +9,70 @@ $hostname = "localhost" unless $hostname;
 
 my $ua = new LWP::UserAgent;
 $ua->agent ('RestMS/Tests');
-$ua->credentials ($hostname, "AMQP", "guest", "guest");
+$ua->credentials ($hostname, "RestMS", "guest", "guest");
 
 #   --------------------------------------------------------------------------
 #   Get container map
 my $response = test_method ("GET", "/", $REPLY_OK);
 
 #   --------------------------------------------------------------------------
-#   Create a feed and get the feed URI
-my $response = test_method ("PUT", "/feed", $REPLY_OK);
-if ($response->content =~ /uri\s*=\s*"http:\/\/[^\/]+(\/feed\/[0-9A-Z]+)"/) {
-    $feed_uri = $1;
-}
-else {
-    print "Failed: no URI defined for feed\n";
-    exit (1);
-}
-#   GET feed container information
-my $response = test_method ("GET", "/feed", $REPLY_OK);
-#   GET feed information
-my $response = test_method ("GET", $feed_uri, $REPLY_OK);
+#   Create a pipe and get the pipe URI
+my $response = test_method ("PUT", "/pipe", $REPLY_OK);
+$response->content =~ /name\s*=\s*"([^"]+)"/;
+$pipe_name = $1 || die "Failed: malformed response for pipe\n";
+
+#   GET pipe container information
+my $response = test_method ("GET",    "/pipe", $REPLY_OK);
+#   GET pipe information
+my $response = test_method ("GET",    "/pipe/$pipe_name", $REPLY_OK);
 #   PUT is idempotent
-my $response = test_method ("PUT", $feed_uri, $REPLY_OK);
-#   POST does not work on feeds
-my $response = test_method ("POST", $feed_uri, $REPLY_BADREQUEST);
-#   Delete the feed
-my $response = test_method ("DELETE", $feed_uri, $REPLY_OK);
+my $response = test_method ("PUT",    "/pipe/$pipe_name", $REPLY_OK);
+#   POST does not work on pipes
+my $response = test_method ("POST",   "/pipe/$pipe_name", $REPLY_BADREQUEST);
+#   Delete the pipe
+my $response = test_method ("DELETE", "/pipe/$pipe_name", $REPLY_OK);
 #   Method is idempotent, so we can do it again
-my $response = test_method ("DELETE", $feed_uri, $REPLY_OK);
+my $response = test_method ("DELETE", "/pipe/$pipe_name", $REPLY_OK);
 
-#   Create a feed explicitly and check we can access it
-my $feed_uri = "/feed/myfeed";
-my $response = test_method ("PUT", $feed_uri, $REPLY_OK);
-my $response = test_method ("PUT", $feed_uri, $REPLY_OK);
-my $response = test_method ("GET", $feed_uri, $REPLY_OK);
-my $response = test_method ("POST", $feed_uri, $REPLY_BADREQUEST);
-my $response = test_method ("DELETE", $feed_uri, $REPLY_OK);
-my $response = test_method ("DELETE", $feed_uri, $REPLY_OK);
+#   Create a pipe explicitly and check we can access it
+my $pipe_name = "mypipe";
+my $response = test_method ("PUT",    "/pipe/$pipe_name", $REPLY_OK);
+my $response = test_method ("PUT",    "/pipe/$pipe_name", $REPLY_OK);
+my $response = test_method ("GET",    "/pipe/$pipe_name", $REPLY_OK);
+my $response = test_method ("POST",   "/pipe/$pipe_name", $REPLY_BADREQUEST);
+my $response = test_method ("DELETE", "/pipe/$pipe_name", $REPLY_OK);
+my $response = test_method ("DELETE", "/pipe/$pipe_name", $REPLY_OK);
 
-#   Method should be resistant against invalid feed names
-my $response = test_method ("DELETE", "/feed/BOO/BAH/HUMBUG", $REPLY_BADREQUEST);
+#   Check that pipe names are validated to be single path segment
+my $response = test_method ("DELETE", "/pipe/BOO/BAH/HUMBUG", $REPLY_BADREQUEST);
 
 #   --------------------------------------------------------------------------
-#   Test a rotator sink
-my $response = test_method ("PUT", "/sink/test/rotator?type=rotator", $REPLY_OK);
+#   Test basic sink management
+my $response = test_method ("PUT",    "/sink/test/rotator?type=rotator", $REPLY_OK);
+my $response = test_method ("GET",    "/sink/test/rotator", $REPLY_OK);
+my $response = test_method ("DELETE", "/sink/test/rotator", $REPLY_OK);
+my $response = test_method ("DELETE", "/sink/test/rotator", $REPLY_OK);
+
 #   Test some invalid sink creation requests
-my $response = test_method ("PUT", "/sink/test/junky?type=somejunk", $REPLY_BADREQUEST);
-my $response = test_method ("PUT", "/sink/test/notype", $REPLY_BADREQUEST);
+my $response = test_method ("PUT",    "/sink/test/junky?type=somejunk", $REPLY_BADREQUEST);
+my $response = test_method ("PUT",    "/sink/test/notype", $REPLY_BADREQUEST);
+
+#   Tests on non-existent sinks
+my $response = test_method ("GET",    "/sink/test/not/defined", $REPLY_NOTFOUND);
+my $response = test_method ("DELETE", "/sink/test/not/defined", $REPLY_OK);
+
+#   --------------------------------------------------------------------------
+#   Test basic selector management
+#   - create a pipe, a sink, and a selector
+#   - delete the selector, sink, and pipe
+my $response = test_method ("PUT",    "/pipe/mypipe", $REPLY_OK);
+my $response = test_method ("PUT",    "/sink/mysink?type=rotator", $REPLY_OK);
+my $response = test_method ("PUT",    "/sink/mysink/?pipe=mypipe", $REPLY_OK);
+my $response = test_method ("GET",    "/sink/mysink/?pipe=mypipe", $REPLY_OK);
+my $response = test_method ("DELETE", "/sink/mysink/?pipe=mypipe", $REPLY_OK);
+my $response = test_method ("GET",    "/sink/mysink/?pipe=mypipe", $REPLY_NOTFOUND);
+my $response = test_method ("DELETE", "/sink/mysink", $REPLY_OK);
+my $response = test_method ("DELETE", "/pipe/mypipe", $REPLY_OK);
 
 print "------------------------------------------------------------\n";
 print ("OK - Tests successful\n");
@@ -69,6 +86,8 @@ sub test_method {
     my $response = $ua->request ($request);
     if ($response->code != $expect) {
         print "Fail: " . $response->status_line . ", expected $expect\n";
+        print "Content-type=" . $response->content_type . "\n";
+        print $response->content . "\n";
         exit (1);
     }
     if ($response->code == 200) {

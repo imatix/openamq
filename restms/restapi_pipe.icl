@@ -18,15 +18,15 @@
     iMatix Corporation.
  -->
 <class
-    name      = "restapi_feed"
-    comment   = "OpenAMQ RESTful API - feeds"
+    name      = "restapi_pipe"
+    comment   = "OpenAMQ RESTful API - pipes"
     version   = "1.0"
     script    = "icl_gen"
     license   = "gpl"
     >
 <doc>
-This class implements the RestAPI feed object.  A feed is a container for
-a stream of messages arriving from the server.  Feeds do not support
+This class implements the RestAPI pipe object.  A pipe is a container for
+a stream of messages arriving from the server.  Pipes do not support
 reference counting.
 </doc>
 
@@ -44,11 +44,9 @@ reference counting.
     restapi_t
         *restapi;                       //  Parent RestAPI instance
     icl_shortstr_t
-        name;                           //  Our feed name
-    icl_shortstr_t
-        uri;                            //  Full URI to feed
+        name;                           //  Our pipe name
     amq_content_basic_list_t
-        *contents;                      //  Messages for this feed
+        *contents;                      //  Messages for this pipe
     apr_time_t
         time_created,
         time_accessed,
@@ -64,43 +62,54 @@ reference counting.
 </context>
 
 <!--
-        rc = restapi_purge_feeds (restapi)
-            - purges old feeds
+        rc = restapi_purge_pipes (restapi)
+            - purges old pipes
             - timeout is configurable
-            - max feeds is configurable
+            - max pipes is configurable
         rc = restapi_ distribute messages
             - take all arrived messages
-            - send to feed queues according to consumer tag
+            - send to pipe queues according to consumer tag
 -->
 
 <method name = "new">
     <doc>
-    Creates a new feed, within an existing RestAPI session.  If the feed
+    Creates a new pipe, within an existing RestAPI session.  If the pipe
     could not be created, returns NULL.
     </doc>
     <argument name = "restapi" type = "restapi_t *">Parent RestAPI session</argument>
-    <argument name = "root uri" type = "char *">Root URI</argument>
-    <argument name = "name" type = "char *">Feed name</argument>
+    <argument name = "name" type = "char *">Pipe name</argument>
     <dismiss argument = "key" value = "self->name">Key is lease name</dismiss>
-    <dismiss argument = "table" value = "self->restapi->feed_table">Use table in parent</dismiss>
     <local>
     size_t
         index = 0;
     </local>
     //
     self->restapi = restapi_link (restapi);
-    self->restapi->feed_count++;
     if (name)
         icl_shortstr_cpy (self->name, name);
     else {
         ipr_str_random (self->name, "Ax16");
         icl_shortstr_fmt (self->name + strlen (self->name), "%d", ++index);
     }
-    icl_shortstr_fmt (self->uri, "%sfeed/%s", root_uri, self->name);
+    //  Create private queue for this pipe
+    amq_client_session_queue_declare (
+        self->restapi->session, 0, self->name, FALSE, FALSE, TRUE, TRUE, NULL);
+    amq_client_session_basic_consume (
+        self->restapi->session, 0,
+        self->name,             //  Queue to consume from
+        self->name,             //  Consumer tag, if any
+        FALSE,                  //  No-local option
+        TRUE,                   //  No-ack option
+        TRUE,                   //  Exclusive option
+        NULL);                  //  Arguments
 </method>
 
 <method name = "destroy">
-    self->restapi->feed_count--;
+    amq_client_session_queue_delete (
+        self->restapi->session, 0,
+        self->name,             //  Queue to delete
+        FALSE,                  //  If-empty option
+        FALSE);                 //  If-unused option
     amq_content_basic_list_destroy (&self->contents);
     restapi_unlink (&self->restapi);
 </method>
@@ -109,17 +118,21 @@ reference counting.
     <local>
     restapi_t
         *restapi;
-    restapi_feed_t
-        *feed;
+    restapi_pipe_t
+        *pipe;
+    restapi_pipe_table_t
+        *pipe_table;                    //  Hashed table of pipes
     </local>
+    //
     icl_console_print ("Starting amq_server...");
     restapi_openamq_start ("amq_server --port 9000");
     restapi = restapi_new ("localhost:9000", "guest", "guest");
     assert (restapi);
-    feed = restapi_feed_new (restapi, "http://localhost/", NULL);
-    icl_console_print ("Feed URI is %s", feed->uri);
-    assert (feed);
-    restapi_feed_destroy (&feed);
+    pipe_table = restapi_pipe_table_new ();
+    pipe = restapi_pipe_new (pipe_table, restapi, NULL);
+    assert (pipe);
+    restapi_pipe_destroy (&pipe);
+    restapi_pipe_table_destroy (&pipe_table);
     restapi_destroy (&restapi);
     icl_console_print ("Stopping amq_server...");
     restapi_openamq_stop ();

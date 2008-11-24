@@ -36,8 +36,25 @@
 
 <context>
     restapi_t
-        *restapi;                        //  RestAPI connection to AMQP
+        *restapi;                       //  RestAPI connection to AMQP
+    size_t
+        pipe_count;                     //  Number of pipes
+    restapi_pipe_table_t
+        *pipe_table;                    //  Hashed table of pipes
 </context>
+
+<method name = "new">
+    self->restapi = restapi_new (
+        restms_config_amqp_hostname (restms_config),
+        restms_config_amqp_username (restms_config),
+        restms_config_amqp_password (restms_config));
+    self->pipe_table = restapi_pipe_table_new ();
+</method>
+
+<method name = "destroy">
+    restapi_destroy (&self->restapi);
+    restapi_pipe_table_destroy (&self->pipe_table);
+</method>
 
 <method name = "initialise">
     if (strused (restms_config_amqp_autorun (restms_config))) {
@@ -54,10 +71,6 @@
     icl_console_print ("I: initializing AMQP plugin on '%s'", path);
     icl_console_print ("I: connecting to AMQP server at %s",
         restms_config_amqp_hostname (restms_config));
-    self->restapi = restapi_new (
-        restms_config_amqp_hostname (restms_config),
-        restms_config_amqp_username (restms_config),
-        restms_config_amqp_password (restms_config));
 </method>
 
 <method name = "get">
@@ -65,18 +78,25 @@
     icl_shortstr_t
         resource;
 
-    switch (s_identify_uri (request->pathinfo, resource)) {
+    switch (s_identify_uri (request, resource)) {
         case RESTMS_URI_ROOT:
             s_get_root (self, request, response);
             break;
-        case RESTMS_URI_FEEDS:
-            s_get_feeds (self, request, response);
+        case RESTMS_URI_PIPES:
+            s_get_pipes (self, request, response);
             break;
-        case RESTMS_URI_FEED:
-            s_get_feed (self, request, response, resource);
+        case RESTMS_URI_PIPE:
+            s_get_pipe (self, request, response, resource);
+            break;
+        case RESTMS_URI_SINK:
+            s_get_sink (self, request, response, resource);
+            break;
+        case RESTMS_URI_SELECTOR:
+            s_get_selector (self, request, response, resource);
             break;
         default:
-            http_response_set_error (response, HTTP_REPLY_BADREQUEST);
+            http_response_set_error (response, HTTP_REPLY_BADREQUEST,
+                "The GET method is not allowed on this resource");
     }
     http_portal_response_reply (portal, caller, response);
     </action>
@@ -87,18 +107,22 @@
     icl_shortstr_t
         resource;
 
-    switch (s_identify_uri (request->pathinfo, resource)) {
-        case RESTMS_URI_FEEDS:
-            s_put_feeds (self, request, response);
+    switch (s_identify_uri (request, resource)) {
+        case RESTMS_URI_PIPES:
+            s_put_pipes (self, request, response);
             break;
-        case RESTMS_URI_FEED:
-            s_put_feed (self, request, response, resource);
+        case RESTMS_URI_PIPE:
+            s_put_pipe (self, request, response, resource);
             break;
         case RESTMS_URI_SINK:
             s_put_sink (self, request, response, resource);
             break;
+        case RESTMS_URI_SELECTOR:
+            s_put_selector (self, request, response, resource);
+            break;
         default:
-            http_response_set_error (response, HTTP_REPLY_BADREQUEST);
+            http_response_set_error (response, HTTP_REPLY_BADREQUEST,
+                "The PUT method is not allowed on this resource");
     }
     http_portal_response_reply (portal, caller, response);
     </action>
@@ -109,9 +133,10 @@
     icl_shortstr_t
         resource;
 
-    switch (s_identify_uri (request->pathinfo, resource)) {
+    switch (s_identify_uri (request, resource)) {
         default:
-            http_response_set_error (response, HTTP_REPLY_BADREQUEST);
+            http_response_set_error (response, HTTP_REPLY_BADREQUEST,
+                "The POST method is not allowed on this resource");
     }
     http_portal_response_reply (portal, caller, response);
     </action>
@@ -122,12 +147,19 @@
     icl_shortstr_t
         resource;
 
-    switch (s_identify_uri (request->pathinfo, resource)) {
-        case RESTMS_URI_FEED:
-            s_delete_feed (self, request, response, resource);
+    switch (s_identify_uri (request, resource)) {
+        case RESTMS_URI_PIPE:
+            s_delete_pipe (self, request, response, resource);
+            break;
+        case RESTMS_URI_SINK:
+            s_delete_sink (self, request, response, resource);
+            break;
+        case RESTMS_URI_SELECTOR:
+            s_delete_selector (self, request, response, resource);
             break;
         default:
-            http_response_set_error (response, HTTP_REPLY_BADREQUEST);
+            http_response_set_error (response, HTTP_REPLY_BADREQUEST,
+                "The DELETE method is not allowed on this resource");
     }
     http_portal_response_reply (portal, caller, response);
     </action>
@@ -137,7 +169,8 @@
     <action>
     //   restapi_assert_alive (self->restapi);
     //  The AMQP plugin does not implement the HEAD method at all
-    http_response_set_error (response, HTTP_REPLY_BADREQUEST);
+    http_response_set_error (response, HTTP_REPLY_BADREQUEST,
+        "The HEAD method is not allowed on this resource");
     http_portal_response_reply (portal, caller, response);
     </action>
 </method>
@@ -145,7 +178,8 @@
 <method name = "move">
     <action>
     //  The AMQP plugin does not implement the MOVE method at all
-    http_response_set_error (response, HTTP_REPLY_BADREQUEST);
+    http_response_set_error (response, HTTP_REPLY_BADREQUEST,
+        "The MOVE method is not allowed on this resource");
     http_portal_response_reply (portal, caller, response);
     </action>
 </method>
@@ -153,7 +187,8 @@
 <method name = "copy">
     <action>
     //  The AMQP plugin does not implement the COPY method at all
-    http_response_set_error (response, HTTP_REPLY_BADREQUEST);
+    http_response_set_error (response, HTTP_REPLY_BADREQUEST,
+        "The COPY method is not allowed on this resource");
     http_portal_response_reply (portal, caller, response);
     </action>
 </method>
@@ -161,73 +196,103 @@
 <private name = "async header">
 //  These are the types of URI we recognize for processing
 #define RESTMS_URI_ROOT                1
-#define RESTMS_URI_FEEDS               2
-#define RESTMS_URI_FEED                3
+#define RESTMS_URI_PIPES               2
+#define RESTMS_URI_PIPE                3
 #define RESTMS_URI_SINK                4
-#define RESTMS_URI_UNKNOWN             5
+#define RESTMS_URI_SELECTOR            5
+#define RESTMS_URI_UNKNOWN             6
 
 static int
-    s_identify_uri (char *pathinfo, char *resource);
+    s_identify_uri (http_request_t *request, char *resource);
 static void
     s_get_root (restms_amqp_t *self,
         http_request_t *request, http_response_t *response);
 static void
-    s_put_feeds (restms_amqp_t *self,
+    s_put_pipes (restms_amqp_t *self,
         http_request_t *request, http_response_t *response);
 static void
-    s_get_feeds (restms_amqp_t *self,
+    s_get_pipes (restms_amqp_t *self,
         http_request_t *request, http_response_t *response);
+
 static void
-    s_put_feed (restms_amqp_t *self,
-        http_request_t *request, http_response_t *response, char *feed_name);
+    s_put_pipe (restms_amqp_t *self,
+        http_request_t *request, http_response_t *response, char *pipe_name);
 static void
-    s_get_feed (restms_amqp_t *self,
-        http_request_t *request, http_response_t *response, char *feed_name);
+    s_get_pipe (restms_amqp_t *self,
+        http_request_t *request, http_response_t *response, char *pipe_name);
 static void
-    s_delete_feed (restms_amqp_t *self,
-        http_request_t *request, http_response_t *response, char *feed_name);
+    s_delete_pipe (restms_amqp_t *self,
+        http_request_t *request, http_response_t *response, char *pipe_name);
+
 static void
     s_put_sink (restms_amqp_t *self,
-        http_request_t *request, http_response_t *response, char *sink_name);
+        http_request_t *request, http_response_t *response, char *path);
+static void
+    s_get_sink (restms_amqp_t *self,
+        http_request_t *request, http_response_t *response, char *path);
+static void
+    s_delete_sink (restms_amqp_t *self,
+        http_request_t *request, http_response_t *response, char *path);
+
+static void
+    s_put_selector (restms_amqp_t *self,
+        http_request_t *request, http_response_t *response, char *path);
+static void
+    s_get_selector (restms_amqp_t *self,
+        http_request_t *request, http_response_t *response, char *path);
+static void
+    s_delete_selector (restms_amqp_t *self,
+        http_request_t *request, http_response_t *response, char *path);
 </private>
 
 <private name = "async footer">
-//  Identify a URI type from a supplied pathinfo and return the
+//  Identify a URI type from the supplied request and return the
 //  type of the uri and the resource, which is the variable string
 //  after the identified part of the path info.  Resource string
 //  must be an icl_shortstr_t, or NULL.
 //
+//  /                                            root
+//  /pipe                                        pipe container
+//  /pipe/{pipename}                             pipe resource
+//  /sink/{sinkpath}                             sink resource
+//  /sink/{sinkpath}/{selector}?pipe={pipename}  selector resource
+
 static int
-s_identify_uri (char *pathinfo, char *resource)
+s_identify_uri (
+    http_request_t *request,
+    char *resource)
 {
     int
         rc = RESTMS_URI_UNKNOWN;
     char
         *trailing = NULL;               //  URI following matched part
 
-    if (streq (pathinfo, "/"))
+    if (streq (request->pathinfo, "/"))
         rc = RESTMS_URI_ROOT;
     else
-    if (streq (pathinfo, "/feed"))
-        rc = RESTMS_URI_FEEDS;
+    if (streq (request->pathinfo, "/pipe"))
+        rc = RESTMS_URI_PIPES;
     else
-    if (ipr_str_prefixed (pathinfo, "/feed/")) {
-        trailing = ipr_str_defix (pathinfo, "/feed/");
-        //  Feeds are identified by a non-null string that does not include
-        //  any of '/', '?', '#', or whitespace.  User-specified feed URIs
+    if (ipr_str_prefixed (request->pathinfo, "/pipe/")) {
+        trailing = ipr_str_defix (request->pathinfo, "/pipe/");
+        //  Pipes are identified by a non-null string that does not include
+        //  any of '/', '?', '#', or whitespace.  User-specified pipe URIs
         //  are not validated in any way except for length (limited to 128
         //  chars).
         if (ipr_regexp_eq ("^[^/?#`s]{1,128}$", trailing)) {
-            rc = RESTMS_URI_FEED;
+            rc = RESTMS_URI_PIPE;
             if (resource)
                 icl_shortstr_cpy (resource, trailing);
         }
     }
     else
-    if (ipr_str_prefixed (pathinfo, "/sink/")) {
-        rc = RESTMS_URI_SINK;
+    if (ipr_str_prefixed (request->pathinfo, "/sink/")) {
         if (resource)
-            icl_shortstr_cpy (resource, ipr_str_defix (pathinfo, "/sink/"));
+            icl_shortstr_cpy (resource, ipr_str_defix (request->pathinfo, "/sink/"));
+        if (strused (ipr_dict_table_headers_search (request->args, "pipe")))
+            rc = RESTMS_URI_SELECTOR;
+        else
+            rc = RESTMS_URI_SINK;
     }
     return (rc);
 }
@@ -247,8 +312,8 @@ s_get_root (
     ipr_xml_tree_leaf (tree, "version", "1.0");
     ipr_xml_tree_leaf (tree, "status", "ok");
       ipr_xml_tree_open (tree, "container");
-        ipr_xml_tree_leaf (tree, "type", "feed");
-        ipr_xml_tree_leaf (tree, "uri", "%sfeed", response->root_uri);
+        ipr_xml_tree_leaf (tree, "type", "pipe");
+        ipr_xml_tree_leaf (tree, "uri", "%spipe", response->root_uri);
       ipr_xml_tree_shut (tree);
       ipr_xml_tree_open (tree, "container");
         ipr_xml_tree_leaf (tree, "type", "sink");
@@ -259,26 +324,27 @@ s_get_root (
     ipr_xml_tree_destroy (&tree);
 }
 
-//  Create a new feed and return the URI for that new feed
+//  Create a new pipe and return the URI for that new pipe
 //
 static void
-s_put_feeds (
+s_put_pipes (
     restms_amqp_t *self,
     http_request_t *request,
     http_response_t *response)
 {
-    restapi_feed_t
-        *feed;
+    restapi_pipe_t
+        *pipe;
 
-    feed = restapi_feed_new (self->restapi, response->root_uri, NULL);
-    assert (feed);
-    s_get_feed (self, request, response, feed->name);
+    pipe = restapi_pipe_new (self->pipe_table, self->restapi, NULL);
+    self->pipe_count++;
+    assert (pipe);
+    s_get_pipe (self, request, response, pipe->name);
 }
 
-//  Return description of feed container
+//  Return description of pipe container
 //
 static void
-s_get_feeds (
+s_get_pipes (
     restms_amqp_t *self,
     http_request_t *request,
     http_response_t *response)
@@ -290,81 +356,85 @@ s_get_feeds (
     ipr_xml_tree_leaf (tree, "version", "1.0");
     ipr_xml_tree_leaf (tree, "status", "ok");
       ipr_xml_tree_open (tree, "container");
-        ipr_xml_tree_leaf (tree, "type", "feed");
-        ipr_xml_tree_leaf (tree, "size", "%d", self->restapi->feed_count);
+        ipr_xml_tree_leaf (tree, "type", "pipe");
+        ipr_xml_tree_leaf (tree, "size", "%d", self->pipe_count);
       ipr_xml_tree_shut (tree);
     http_response_set_from_xml (response, tree);
     ipr_xml_tree_destroy (&tree);
 }
 
-//  Create the specified feed, if it does not already exist
+//  Create the specified pipe, if it does not already exist
 //
 static void
-s_put_feed (
+s_put_pipe (
     restms_amqp_t *self,
     http_request_t *request,
     http_response_t *response,
-    char *feed_name)
+    char *pipe_name)
 {
-    restapi_feed_t
-        *feed;
+    restapi_pipe_t
+        *pipe;
 
-    feed = restapi_feed_table_search (self->restapi->feed_table, feed_name);
-    if (feed == NULL) {
-        feed = restapi_feed_new (self->restapi, response->root_uri, feed_name);
-        assert (feed);
+    pipe = restapi_pipe_table_search (self->pipe_table, pipe_name);
+    if (pipe == NULL) {
+        pipe = restapi_pipe_new (self->pipe_table, self->restapi, NULL);
+        self->pipe_count++;
+        assert (pipe);
     }
-    s_get_feed (self, request, response, feed->name);
+    s_get_pipe (self, request, response, pipe->name);
 }
 
-//  Return information about the specified feed 
+//  Return information about the specified pipe
 //
 static void
-s_get_feed (
+s_get_pipe (
     restms_amqp_t *self,
     http_request_t *request,
     http_response_t *response,
-    char *feed_name)
+    char *pipe_name)
 {
-    restapi_feed_t
-        *feed;
+    restapi_pipe_t
+        *pipe;
     ipr_xml_tree_t
         *tree;
 
-    feed = restapi_feed_table_search (self->restapi->feed_table, feed_name);
-    if (feed) {
+    pipe = restapi_pipe_table_search (self->pipe_table, pipe_name);
+    if (pipe) {
         tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
         ipr_xml_tree_leaf (tree, "version", "1.0");
         ipr_xml_tree_leaf (tree, "status", "ok");
-          ipr_xml_tree_open (tree, "feed");
-            ipr_xml_tree_leaf (tree, "uri", feed->uri);
+          ipr_xml_tree_open (tree, "pipe");
+            ipr_xml_tree_leaf (tree, "name", pipe_name);
+            ipr_xml_tree_leaf (tree, "uri", "%spipe/%s", response->root_uri, pipe_name);
           ipr_xml_tree_shut (tree);
         http_response_set_from_xml (response, tree);
         ipr_xml_tree_destroy (&tree);
     }
     else
-        http_response_set_error (response, HTTP_REPLY_NOTFOUND);
+        http_response_set_error (response, HTTP_REPLY_NOTFOUND,
+            "The requested pipe does not exist");
 }
 
-//  Delete the specified feed, if exists.  This method
-//  is idempotent and the feed does not need to exist.
+//  Delete the specified pipe, if exists.  This method is idempotent and the
+//  pipe does not need to exist.
 //
 static void
-s_delete_feed (
+s_delete_pipe (
     restms_amqp_t *self,
     http_request_t *request,
     http_response_t *response,
-    char *feed_name)
+    char *pipe_name)
 {
-    restapi_feed_t
-        *feed;
+    restapi_pipe_t
+        *pipe;
     ipr_xml_tree_t
         *tree;
     //
-    feed = restapi_feed_table_search (self->restapi->feed_table, feed_name);
-    if (feed)
-        restapi_feed_destroy (&feed);
-
+    pipe = restapi_pipe_table_search (self->pipe_table, pipe_name);
+    if (pipe) {
+        self->pipe_count--;
+        restapi_pipe_destroy (&pipe);
+    }
     tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
     ipr_xml_tree_leaf (tree, "version", "1.0");
     ipr_xml_tree_leaf (tree, "status", "ok");
@@ -379,31 +449,172 @@ s_put_sink (
     restms_amqp_t *self,
     http_request_t *request,
     http_response_t *response,
-    char *sink_name)
+    char *path)
 {
-    int
-        rc;
-    ipr_xml_tree_t
-        *tree;
     char
         *type;
+    ipr_xml_tree_t
+        *tree;
 
     type = ipr_dict_table_headers_search (request->args, "type");
     if (strused (type)) {
-        rc = restapi_sink_create (self->restapi, sink_name, type);
+        if (restapi_sink_create (self->restapi, path, type) == 0) {
+            tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
+            ipr_xml_tree_leaf (tree, "version", "1.0");
+            ipr_xml_tree_leaf (tree, "status", "ok");
+            http_response_set_from_xml (response, tree);
+            ipr_xml_tree_destroy (&tree);
+        }
+        else
+            http_response_set_error (response, HTTP_REPLY_BADREQUEST,
+                self->restapi->strerror);
+    }
+    else
+        http_response_set_error (response, HTTP_REPLY_BADREQUEST,
+            "A type argument is mandatory for sink creation");
+}
+
+//  Return information about the specified sink
+//
+static void
+s_get_sink (
+    restms_amqp_t *self,
+    http_request_t *request,
+    http_response_t *response,
+    char *path)
+{
+    ipr_xml_tree_t
+        *tree;
+
+    if (restapi_sink_query (self->restapi, path) == 0) {
         tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
         ipr_xml_tree_leaf (tree, "version", "1.0");
-        if (rc == 0)
-            ipr_xml_tree_leaf (tree, "status", "ok");
-        else {
-            ipr_xml_tree_leaf (tree, "status", "error");
-            ipr_xml_tree_leaf (tree, "reason", self->restapi->strerror);
-        }
+        ipr_xml_tree_leaf (tree, "status", "ok");
+          ipr_xml_tree_open (tree, "sink");
+            ipr_xml_tree_leaf (tree, "name", path);
+            ipr_xml_tree_leaf (tree, "uri", "%ssink/%s", response->root_uri, path);
+            asl_field_list_to_xml (self->restapi->properties, tree);
+          ipr_xml_tree_shut (tree);
         http_response_set_from_xml (response, tree);
         ipr_xml_tree_destroy (&tree);
     }
     else
-        http_response_set_error (response, HTTP_REPLY_BADREQUEST);
+        http_response_set_error (response, HTTP_REPLY_NOTFOUND,
+            self->restapi->strerror);
+}
+
+//  Delete the specified sink, if exists.  This method
+//  is idempotent and the sink does not need to exist.
+//
+static void
+s_delete_sink (
+    restms_amqp_t *self,
+    http_request_t *request,
+    http_response_t *response,
+    char *path)
+{
+    ipr_xml_tree_t
+        *tree;
+
+    if (restapi_sink_delete (self->restapi, path) == 0) {
+        tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
+        ipr_xml_tree_leaf (tree, "version", "1.0");
+        ipr_xml_tree_leaf (tree, "status", "ok");
+        http_response_set_from_xml (response, tree);
+        ipr_xml_tree_destroy (&tree);
+    }
+    else
+        http_response_set_error (response, HTTP_REPLY_INTERNALERROR,
+            self->restapi->strerror);
+}
+
+//  Create or assert specified selector.  This method is idempotent.
+//
+static void
+s_put_selector (
+    restms_amqp_t *self,
+    http_request_t *request,
+    http_response_t *response,
+    char *path)
+{
+    char
+        *pipe;
+    ipr_xml_tree_t
+        *tree;
+
+    pipe = ipr_dict_table_headers_search (request->args, "pipe");
+    assert (strused (pipe));
+    if (restapi_selector_create (self->restapi, path, pipe) == 0) {
+        tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
+        ipr_xml_tree_leaf (tree, "version", "1.0");
+        ipr_xml_tree_leaf (tree, "status", "ok");
+        http_response_set_from_xml (response, tree);
+        ipr_xml_tree_destroy (&tree);
+    }
+    else
+        http_response_set_error (response, HTTP_REPLY_BADREQUEST,
+            self->restapi->strerror);
+}
+
+//  Return information about the specified selector
+//
+static void
+s_get_selector (
+    restms_amqp_t *self,
+    http_request_t *request,
+    http_response_t *response,
+    char *path)
+{
+    char
+        *pipe;
+    ipr_xml_tree_t
+        *tree;
+
+    pipe = ipr_dict_table_headers_search (request->args, "pipe");
+    assert (strused (pipe));
+    if (restapi_selector_query (self->restapi, path, pipe) == 0) {
+        tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
+        ipr_xml_tree_leaf (tree, "version", "1.0");
+        ipr_xml_tree_leaf (tree, "status", "ok");
+          ipr_xml_tree_open (tree, "selector");
+            ipr_xml_tree_leaf (tree, "uri", "%ssink/%s", response->root_uri, path);
+            asl_field_list_to_xml (self->restapi->properties, tree);
+          ipr_xml_tree_shut (tree);
+        http_response_set_from_xml (response, tree);
+        ipr_xml_tree_destroy (&tree);
+    }
+    else
+        http_response_set_error (response, HTTP_REPLY_NOTFOUND,
+            self->restapi->strerror);
+}
+
+//  Delete the specified selector, if exists.  This method
+//  is idempotent and the selector does not need to exist.
+//
+static void
+s_delete_selector (
+    restms_amqp_t *self,
+    http_request_t *request,
+    http_response_t *response,
+    char *path)
+{
+    char
+        *pipe;
+    ipr_xml_tree_t
+        *tree;
+
+    pipe = ipr_dict_table_headers_search (request->args, "pipe");
+    assert (strused (pipe));
+    if (restapi_selector_delete (self->restapi, path, pipe) == 0) {
+        tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
+        ipr_xml_tree_leaf (tree, "version", "1.0");
+        ipr_xml_tree_leaf (tree, "status", "ok");
+        http_response_set_from_xml (response, tree);
+        ipr_xml_tree_destroy (&tree);
+    }
+    else
+        http_response_set_error (response, HTTP_REPLY_INTERNALERROR,
+            self->restapi->strerror);
 }
 </private>
 
