@@ -17,16 +17,17 @@
 #   For information on alternative licensing for OEMs, please contact
 #   iMatix Corporation.
 #
-#   make_openamq [-r revision] [-b branch] [-v version] [-m model] [-c] [-s] [-a]
+#   make_openamq [-r revision] [-b branch] [-v version] [-m model] [-c] [-s] [-a] [-p]
 #
 #       * revision = svn revision number, default = head
 #       * branch = "trunk" or "xxx" where branch name is "/branches/prod_openamq_xxx", e.g. "1.2d"
 #       * version = "x.yRn", default is same as current
 #       * model = "mtr", "mtd", "str", or "std", default is mtd
-#       * -c means do clean checkout and build
+#       * -c means checkout sources from SVN
 #       * -s means just report status and exit
 #       * -a means automatically do svn commits
-#       * -p means update local project files
+#       * -p means update local project.pdl files
+#       *
 #
 #   Working directories
 #    ~/build-$BRANCH-$REVISION-$MODEL       BUILD directory for this version
@@ -50,14 +51,11 @@
 #   * Prepare the IBASE directory
 #       - empty it if -c (clean) option was specified
 #   * Prepare the BUILD directory
-#       - if directory has been checked out then update
-#       - if directory does not exist then checkout
-#       - if clean option used, then delete and checkout
+#       - if clean option used, delete directory
 #   * Checks out products (foreign, base, gsl4, base2, openamq) into BUILD
-#       - if products already present and clean not specified, does update
+#       - if clean not specified, leave old sources
 #   * Does boom on each product
-#       - if -c (clean) is specified does "boom all"
-#       - else does "boom configure"
+#       - does "boom all", no shortcuts when making a package
 #
 #   Part 2: done if a version is specified
 #
@@ -103,7 +101,7 @@ COMMIT=0
 #   Parse command line
 while [ ! -z "$1" ]; do
     if [ "$1" = "-h" ]; then
-        carp 'make_openamq [-r revision] [-b branch] [-v version] [-m model] [-c] [-s] [-a]'
+        carp 'make_openamq [-r revision] [-b branch] [-v version] [-m model] [-c] [-s] [-a] [-p]'
         carp '   revision = svn revision number, default = head'
         carp '   branch = "trunk" or "xxx" where branch name is "/branches/prod_openamq_xxx", e.g. "1.2d"'
         carp '   version = "x.yRn", default is same as current'
@@ -111,6 +109,7 @@ while [ ! -z "$1" ]; do
         carp '   -c means do clean checkout and build'
         carp '   -s means just report status and exit'
         carp '   -a means automatically do svn commits'
+        carp '   -p means patch local project.pdl files'
         exit 1;
     elif [ "$1" = "-c" ]; then
         CLEAN=1                         #   Clean checkout and rebuild
@@ -191,17 +190,14 @@ fi
 
 #   Report where we'll work & what we'll do
 if [ $CLEAN = 1 ]; then
-    carp "** doing full rebuild and installation"
+    carp "** doing full rebuild and installation from SVN"
 else
-    carp "** preparing sources and configuring, no rebuild"
+    carp "** WARNING: doing quick & dirty rebuild"
 fi
 if [ "$VERSION" = "" ]; then
     carp "** version empty - no source kits will be produced!"
 else
     carp "** preparing source kits for OpenAMQ-$VERSION"
-    if [ $CLEAN = 0 ]; then
-        carp "** WARNING: doing dirty rebuild, binary versions may be old"
-    fi
 fi
 carp "IBASE directory: $IBASE"
 carp "build directory: $BUILD"
@@ -295,16 +291,18 @@ else
 fi
 cd $BUILD || croak
 
-#   Checkout/update all products into build directory
-for PRODUCT in $PRODUCTS; do
-    if [ "$BRANCH" = "trunk" ]; then
-        SVN_URI=$SVN_ROOT/$PRODUCT/trunk
-    else
-        SVN_URI=$SVN_ROOT/$PRODUCT/branches/prod_openamq_$BRANCH
-    fi
-    carp "in `pwd`: get '$SVN_URI' into $PRODUCT..."
-    svn checkout -q -r $REVISION $SVN_URI $PRODUCT || croak
-done
+#   Checkout all products into build directory, if needed
+if [ $CLEAN = 1 ]; then
+    for PRODUCT in $PRODUCTS; do
+        if [ "$BRANCH" = "trunk" ]; then
+            SVN_URI=$SVN_ROOT/$PRODUCT/trunk
+        else
+            SVN_URI=$SVN_ROOT/$PRODUCT/branches/prod_openamq_$BRANCH
+        fi
+        carp "in `pwd`: get '$SVN_URI' into $PRODUCT..."
+        svn checkout -q -r $REVISION $SVN_URI $PRODUCT || croak
+    done
+fi
 
 #   If version specified, update OpenAMQ project.pdl files
 if [ ! -z "$VERSION" ]; then
@@ -322,24 +320,14 @@ if [ ! -z "$VERSION" ]; then
     carp "in `pwd`: project.pdl patched to $PRODVER"
 fi
 
-#   If clean option used, do full rebuild
-#   Else configure only
+#   Do full rebuild for each product
 for PRODUCT in $PRODUCTS; do
     cd $BUILD/$PRODUCT || croak
-    if [ $CLEAN = 1 ]; then
-        carp "in `pwd`: boom all..."
-        boom all > $RUNLOG 2>&1
-        if [ $? -ne 0 ]; then
-            cat $RUNLOG
-            croak
-        fi
-    else
-        carp "in `pwd` boom configure regen..."
-        boom configure regen > $RUNLOG 2>&1
-        if [ $? -ne 0 ]; then
-            cat $RUNLOG
-            croak
-        fi
+    carp "in `pwd`: boom all..."
+    boom all > $RUNLOG 2>&1
+    if [ $? -ne 0 ]; then
+        cat $RUNLOG
+        croak
     fi
 done
 
@@ -437,4 +425,3 @@ fi
 rm -rf ~/ibase-$MYNAME-kit || croak
 
 carp "****  Finished making & testing source kits ****"
-

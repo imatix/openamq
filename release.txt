@@ -2,14 +2,28 @@
 
 ++ 1.4a0 - 2008/
 
-* added portals and made http server work with current base2
-* when server takes action on queue overflow, displays client IP address in logs
-* removed rwlock from wireapi connection & session (need to profile difference)
-* --debug_route prints exchange creation and destruction (like queues)
-* added amq_rest.asl class for RESTful access to server resources
+All changes in 1.3c3 plus:
+
+* added: IPR portals and made http server work with current base2
+* changed: removed rwlock from wireapi connection & session
+* added: --debug_route prints exchange creation and destruction (like queues)
+* added: amq_rest.asl class for RESTful access to server resources
 * fixed: PAL assert did not work with symbolic variables
+* changed: auto-named queues are now called "auto.nnn" instead of "#nnn"
 
 + High-performance release
+
+++ 1.3c3 - unreleased
+
+* fixed: queue overflow code crashed on shared queues (DAMQ-18)
+* fixed: on slow networks, broker sometimes asserted on setup_timer destroy (DAMQ-19)
+* fixed: PAL crashed when receiving contents greated than 1024 large
+* added: session->timestamp property indicating when session was opened
+* added: session includes tables returned by AMQP methods
+* added: latency measurement framework, see http://www.openamq.org/doc:user-3-advanced#toc36
+* fixed: Direct Mode lease management had thread safety issues
+* fixed: credit-based flow control in normal mode was not robust
+* added: when server takes action on queue overflow, displays client IP address in logs
 
 ++ 1.3c2 - 2008/11/04
 
@@ -78,6 +92,9 @@ This update includes all fixes in 1.2d2 as well as:
 * In PAL, added <session direct = "1"> option to enable Direct Mode
 
 + Stable branch
+
+++ 1.2e0 - unreleased
+
 
 ++ 1.2d8 - 2008/11/04
 
