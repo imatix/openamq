@@ -65,6 +65,8 @@ runs lock-free as a child of the asynchronous queue class.
         *looseref;                      //  Queued message
     amq_server_connection_t
         *connection;
+    icl_shortstr_t
+        client_identifier;
     amq_consumer_t
         *consumer;
     Bool
@@ -79,6 +81,19 @@ runs lock-free as a child of the asynchronous queue class.
     self->queue->contents_in++;
     self->queue->traffic_in += content->body_size;
 
+    //  Grab a link to the queue's parent connection (if any) and client
+    //  identification so that we can log it or kill the client if needed
+    icl_shortstr_cpy (client_identifier, "");
+    connection = amq_server_connection_link (self->queue->connection);
+    if (connection) {
+        icl_shortstr_fmt (client_identifier, "(%s, %s, %s, %s)",
+            connection->client_address,
+            connection->client_product,
+            connection->client_version,
+            connection->client_instance);
+        amq_server_connection_unlink (&connection);
+    }
+
     //  Check queue limits
     queue_size = ipr_looseref_list_count (self->content_list);
     if (queue_size > self->queue->limit_min) {
@@ -88,6 +103,7 @@ runs lock-free as a child of the asynchronous queue class.
         amq_content_basic_t
             *oldest;
 
+
         for (limit_nbr = 0; limit_nbr < self->queue->limits; limit_nbr++)
             if (queue_size &gt;= self->queue->limit_value [limit_nbr])
                 limit_action = self->queue->limit_action [limit_nbr];
@@ -96,16 +112,16 @@ runs lock-free as a child of the asynchronous queue class.
             case AMQ_QUEUE_LIMIT_WARN:
                 if (!self->warned) {
                     smt_log_print (amq_broker->alert_log,
-                        "I: yellow alert on queue=%s, reached %d messages",
-                        self->queue->name, queue_size);
+                        "I: yellow alert on queue=%s, reached %d messages %s",
+                        self->queue->name, queue_size, client_identifier);
                     self->warned = TRUE;
                 }
                 break;
             case AMQ_QUEUE_LIMIT_DROP:
                 if (!self->dropped) {
                     smt_log_print (amq_broker->alert_log,
-                        "W: orange alert on queue=%s, reached %d, dropping new messages", 
-                        self->queue->name, queue_size);
+                        "W: orange alert on queue=%s, reached %d, dropping new messages %s", 
+                        self->queue->name, queue_size, client_identifier);
                     self->dropped = TRUE;
                 }
                 self->queue->dropped++;
@@ -114,8 +130,8 @@ runs lock-free as a child of the asynchronous queue class.
             case AMQ_QUEUE_LIMIT_TRIM:
                 if (!self->trimmed) {
                     smt_log_print (amq_broker->alert_log,
-                        "W: orange alert on queue=%s, reached %d, trimming old messages",
-                        self->queue->name, queue_size);
+                        "W: orange alert on queue=%s, reached %d, trimming old messages %s",
+                        self->queue->name, queue_size, client_identifier);
                     self->trimmed = TRUE;
                 }
                 oldest = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
@@ -124,10 +140,10 @@ runs lock-free as a child of the asynchronous queue class.
                 break;
             case AMQ_QUEUE_LIMIT_KILL:
                 smt_log_print (amq_broker->alert_log,
-                        "E: red alert on queue=%s, reached %d, killing queue", 
-                        self->queue->name, queue_size);
-                if (self->queue->exclusive)
-                    amq_server_connection_error (self->queue->connection,
+                        "E: red alert on queue=%s, reached %d, killing queue %s", 
+                        self->queue->name, queue_size, client_identifier);
+                if (self->queue->exclusive && connection)
+                    amq_server_connection_error (connection,
                         ASL_RESOURCE_ERROR, "Queue overflow, connection killed",
                         AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_PUBLISH);
                 else
@@ -142,6 +158,8 @@ runs lock-free as a child of the asynchronous queue class.
         self->dropped = FALSE;
         self->trimmed = FALSE;
     }
+    amq_server_connection_unlink (&connection);
+
     if (content) {
         //  If immediate, and no consumers, return the message
         rejected = FALSE;
