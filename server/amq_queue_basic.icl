@@ -58,6 +58,8 @@ runs lock-free as a child of the asynchronous queue class.
         *looseref;                      //  Queued message
     amq_server_connection_t
         *connection;
+    icl_shortstr_t
+        client_identifier;
     amq_consumer_t
         *consumer;
     Bool
@@ -74,24 +76,34 @@ runs lock-free as a child of the asynchronous queue class.
 
     queue->contents_in++;
     queue->traffic_in += content->body_size;
+
+    //  Grab a link to the queue's parent connection (if any) and client
+    //  identification so that we can log it or kill the client if needed
+    icl_shortstr_cpy (client_identifier, "");
     connection = amq_server_connection_link (queue->connection);
+    if (connection) {
+        icl_shortstr_fmt (client_identifier, "(%s, %s, %s, %s)",
+            connection->client_address,
+            connection->client_product,
+            connection->client_version,
+            connection->client_instance);
+        amq_server_connection_unlink (&connection);
+    }
 
     //  Check warning limit
     queue_size = ipr_looseref_list_count (self->content_list);
     if (queue->warn_limit && queue_size >= queue->warn_limit && !queue->warned) {
         smt_log_print (amq_broker->alert_log,
-            "I: queue=%s hit %d (client at %s): no action",
-            queue->name, queue_size,
-            connection? connection->client_address: "-");
+            "I: queue=%s hit %d messages: no action %s",
+            queue->name, queue_size, client_identifier);
         queue->warned = TRUE;
     }
     //  Check just one of drop/trim/kill
     if (queue->drop_limit && queue_size >= queue->drop_limit) {
         if (!queue->dropped) {
             smt_log_print (amq_broker->alert_log,
-                "W: queue=%s hit %d (client at %s): dropping new messages",
-                queue->name, queue_size,
-                connection? connection->client_address: "-");
+                "W: queue=%s hit %d messages: dropping new messages %s",
+                queue->name, queue_size, client_identifier);
             queue->dropped = TRUE;
         }
         queue->drop_count++;
@@ -103,9 +115,8 @@ runs lock-free as a child of the asynchronous queue class.
             *oldest;                    //  Oldest content to trim
         if (!queue->trimmed) {
             smt_log_print (amq_broker->alert_log,
-                "W: queue=%s hit %d (client at %s): trimming old messages",
-                queue->name, queue_size,
-                connection? connection->client_address: "-");
+                "W: queue=%s hit %d messages: trimming old messages %s",
+                queue->name, queue_size, client_identifier);
             queue->trimmed = TRUE;
         }
         oldest = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
@@ -115,9 +126,8 @@ runs lock-free as a child of the asynchronous queue class.
     else
     if (queue->kill_limit && queue_size >= queue->kill_limit) {
         smt_log_print (amq_broker->alert_log,
-                "E: queue=%s hit %d (client at %s): KILLING QUEUE",
-                queue->name, queue_size,
-                connection? connection->client_address: "-");
+                "E: queue=%s hit %d messages: KILLING QUEUE %s",
+                queue->name, queue_size, client_identifier);
         if (queue->exclusive && connection)
             amq_server_connection_error (connection,
                 ASL_RESOURCE_ERROR, "Queue overflow, connection killed",
