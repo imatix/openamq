@@ -196,8 +196,12 @@ s_direct_deliver (amq_queue_t *queue, amq_content_basic_t *content, amq_lease_t 
     //  Check warning limit
     if (queue->warn_limit && queue_size >= queue->warn_limit && !queue->warned) {
         smt_log_print (amq_broker->alert_log,
-            "I: queue=%s hit %d (client at %s): no action",
-            queue->name, queue_size, queue->connection->client_address);
+            "I: queue=%s hit %d messages: no action (%s, %s, %s %s)",
+            queue->name, queue_size, 
+            queue->connection->client_address,
+            queue->connection->client_product,
+            queue->connection->client_version,
+            queue->connection->client_instance);
         queue->warned = TRUE;
     }
     //  Check just one of drop/trim (trim processed like drop, kill ignored)
@@ -205,8 +209,12 @@ s_direct_deliver (amq_queue_t *queue, amq_content_basic_t *content, amq_lease_t 
     ||  (queue->trim_limit && queue_size >= queue->trim_limit)) {
         if (!queue->dropped) {
             smt_log_print (amq_broker->alert_log,
-                "W: queue=%s hit %d (client at %s): dropping messages",
-                queue->name, queue_size, queue->connection->client_address);
+                "W: queue=%s hit %d messages: dropping messages (%s, %s, %s, %s)",
+                queue->name, queue_size,
+                queue->connection->client_address,
+                queue->connection->client_product,
+                queue->connection->client_version,
+                queue->connection->client_instance);
             queue->dropped = TRUE;
         }
         icl_atomic_dec32 ((volatile qbyte *) &(lease->pending));
