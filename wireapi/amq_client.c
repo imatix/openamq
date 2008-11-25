@@ -37,7 +37,7 @@
     "  -t level         Set trace level (default = 0)\n"                    \
     "  -e exchange      Exchange name (amq.direct)\n"                       \
     "                   0=none, 1=low, 2=medium, 3=high\n"                  \
-    "  -a               Asynchronous mode; for testing direct protocol\n"   \
+    "  -d               Use Direct Mode\n"                                  \
     "  -v               Show version information\n"                         \
     "  -h               Show summary of command-line options\n"             \
     "\nThe order of arguments is not important. Switches and filenames\n"   \
@@ -50,7 +50,7 @@ main (int argc, char *argv [])
     int
         argn;                           //  Argument number
     Bool
-        async_mode = FALSE,             //  -a means asynchronous mode
+        direct_mode = FALSE,            //  -d means asynchronous mode
         args_ok = TRUE;                 //  Were the arguments okay?
     char
         *opt_server,                    //  Host to connect to
@@ -129,8 +129,11 @@ main (int argc, char *argv [])
                     break;
 
                 //  These switches have an immediate effect
+                //  These switches have an immediate effect
                 case 'a':
-                    async_mode = TRUE;
+                    icl_console_print ("-a is deprecated, please use -d for direct mode");
+                case 'd':
+                    direct_mode = TRUE;
                     break;
                 case 'v':
                     printf (CLIENT_NAME " - revision " SVN_REVISION "\n\n");
@@ -171,11 +174,11 @@ main (int argc, char *argv [])
     repeats    = atoi (opt_repeats);
     if (repeats < 1)
         repeats = -1;                   //  Loop forever
-    
+
     //  Allocate a test message for publishing
     test_data = icl_mem_alloc (msgsize);
     memset (test_data, 0xAB, msgsize);
-    
+
     if (atoi (opt_trace) > 2) {
         amq_client_connection_show_animation (TRUE);
         amq_client_session_show_animation (TRUE);
@@ -189,15 +192,15 @@ main (int argc, char *argv [])
         icl_console_print ("E: could not connect to %s", opt_server);
         goto finished;
     }
-    icl_console_print ("I: opened connection to %s/%s", 
+    icl_console_print ("I: opened connection to %s/%s",
         connection->server_product, connection->server_version);
-    if (async_mode)
+    if (direct_mode)
         connection->direct = TRUE;
 
     if (amq_client_session_exchange_declare (
         session, ticket, opt_exchange, "direct", 0, 0, 1, 0, NULL))
         goto finished;
-    
+
     //  Declare exclusive private queue
     if (amq_client_session_queue_declare (
         session, ticket, NULL, FALSE, FALSE, TRUE, TRUE, NULL))
@@ -221,14 +224,14 @@ main (int argc, char *argv [])
         //  Send messages to server
         icl_console_print ("I: (%d) sending %d messages to server...",
             repeats, messages);
-            
+
         for (out_count = 0; out_count < messages; out_count++) {
             content = amq_content_basic_new ();
             amq_content_basic_set_body (content, test_data, msgsize, NULL);
 
             icl_shortstr_fmt (message_id, "ID%09d", out_count);
             amq_content_basic_set_message_id (content, message_id);
-    
+
             if (amq_client_session_basic_publish (
                 session, content, ticket, opt_exchange, session->queue, FALSE, FALSE)) {
                 icl_console_print ("E: [%s] could not send message to server - %s",

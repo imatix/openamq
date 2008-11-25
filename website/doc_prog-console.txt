@@ -586,9 +586,7 @@ int main (int argc, char *argv[])
 
 +++ Overview
 
-OpenAMQ relies very heavily on code generation, which turns slow and clumsy C development into something much more modern. The console API is a good example
-
-* it is 100% generated from the CML schema.  This can be done at runtime in
+OpenAMQ relies very heavily on code generation, which turns slow and clumsy C development into something much more modern. The console API is a good example: it is 100% generated from the CML schema.
 
 Our code generation relies on GSL, the language developed by iMatix to generate code from XML models. GSL is a minimalist code generation language and lets us produce high-quality code with modest effort.
 

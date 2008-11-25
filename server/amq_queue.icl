@@ -38,7 +38,7 @@ class.  This is a lock-free asynchronous class.
     <option name = "hash_type" value = "str" />
 </inherit>
 <inherit class = "icl_list_item">
-    <option name = "prefix" value = "by_vhost" />
+    <option name = "prefix" value = "global" />
 </inherit>
 <inherit class = "amq_console_object" />
 <inherit class = "smt_object_tracker" />
@@ -143,10 +143,6 @@ class.  This is a lock-free asynchronous class.
 <import class = "amq_server_classes" />
 
 <context>
-    amq_broker_t
-        *broker;                        //  Parent broker
-    amq_vhost_t
-        *vhost;                         //  Parent virtual host
     amq_server_connection_t
         *connection;                    //  Parent connection, if any
     icl_shortstr_t
@@ -190,7 +186,6 @@ class.  This is a lock-free asynchronous class.
 </context>
 
 <method name = "new">
-    <argument name = "vhost"       type = "amq_vhost_t *">Parent vhost</argument>
     <argument name = "connection"  type = "amq_server_connection_t *">Owner connection</argument>
     <argument name = "name"        type = "char *">Queue name</argument>
     <argument name = "durable"     type = "Bool">Is queue durable?</argument>
@@ -198,11 +193,9 @@ class.  This is a lock-free asynchronous class.
     <argument name = "auto delete" type = "Bool">Auto-delete unused queue?</argument>
     <argument name = "arguments"   type = "icl_longstr_t*">Queue arguments</argument>
 
-    <dismiss argument = "table" value = "vhost->queue_table" />
+    <dismiss argument = "table" value = "amq_broker->queue_table" />
     <dismiss argument = "key" value = "name" />
     <local>
-    amq_broker_t
-        *broker = amq_broker;
     asl_field_list_t
         *arg_list;
     asl_field_t
@@ -211,8 +204,6 @@ class.  This is a lock-free asynchronous class.
         *profile;
     </local>
     //
-    self->broker      = broker;
-    self->vhost       = vhost;
     self->connection  = amq_server_connection_link (connection);
     self->enabled     = TRUE;
     self->durable     = durable;
@@ -220,7 +211,7 @@ class.  This is a lock-free asynchronous class.
     self->auto_delete = auto_delete;
     self->queue_basic = amq_queue_basic_new (self);
     icl_shortstr_cpy (self->name, name);
-    amq_queue_by_vhost_queue (self->vhost->queue_list, self);
+    amq_queue_global_queue (amq_broker->queue_list, self);
     if (amq_server_config_debug_queue (amq_server_config))
         smt_log_print (amq_broker->debug_log,
             "Q: create   queue=%s auto_delete=%d", self->name, self->auto_delete);
@@ -234,8 +225,8 @@ class.  This is a lock-free asynchronous class.
         self_destroy (&self);
     }
     else {
-        //  If unspecified, queue profile defaults to 'private' for exclusive 
-        //  queues, 'shared' for shared queues 
+        //  If unspecified, queue profile defaults to 'private' for exclusive
+        //  queues, 'shared' for shared queues
         profile_field = asl_field_list_search (arg_list, "profile");
         if (!profile_field)
             profile = self->exclusive? "private": "shared";
@@ -244,7 +235,7 @@ class.  This is a lock-free asynchronous class.
         //  Reject unknown queue profiles
         if (s_set_queue_limits (self, profile)) {
             smt_log_print (amq_broker->alert_log,
-                "E: client requested unknown queue profile '%s' (%s, %s, %s, %s)", 
+                "E: client requested unknown queue profile '%s' (%s, %s, %s, %s)",
                 profile,
                 self->connection->client_address,
                 self->connection->client_product,
@@ -286,7 +277,7 @@ class.  This is a lock-free asynchronous class.
             smt_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
 
         queue_ref = amq_queue_link (self);
-        amq_vhost_delete_queue (self->vhost, queue_ref);
+        amq_broker_delete_queue (amq_broker, queue_ref);
         //  Ask broker to ask connections to drop link to queue
         if (self->exclusive)
             amq_broker_unbind_queue (amq_broker, queue_ref);
@@ -387,7 +378,7 @@ class.  This is a lock-free asynchronous class.
 
     if (error) {
         if (channel) {
-            amq_server_channel_error (channel, ASL_ACCESS_REFUSED, 
+            amq_server_channel_error (channel, ASL_ACCESS_REFUSED,
                 error, AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_CONSUME);
             amq_server_channel_cancel (channel, consumer->tag, FALSE, TRUE);
         }
@@ -485,7 +476,7 @@ class.  This is a lock-free asynchronous class.
         *queue_ref;                     //  Need a reference to call destroy
 
     queue_ref = amq_queue_link (self);
-    amq_vhost_delete_queue (self->vhost, queue_ref);
+    amq_broker_delete_queue (amq_broker, queue_ref);
     //  Ask broker to ask connections to drop link to queue
     if (self->exclusive)
         amq_broker_unbind_queue (amq_broker, queue_ref);

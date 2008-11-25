@@ -74,7 +74,7 @@
 <file name = "amq_vhost_config.icl"      class = "icl private cont"  >Vhost configuration class</file>
 <file name = "amq_exchange.icl"          class = "icl public class"  >Server exchange class</file>
 <file name = "amq_exchange_table.icl"    class = "icl private cont"  >Container for server exchange class</file>
-<file name = "amq_exchange_by_vhost.icl" class = "icl private cont"  >List of exchanges per vhost</file>
+<file name = "amq_exchange_global.icl"   class = "icl private cont"  >List of exchanges by broker</file>
 <file name = "amq_exchange_agent.smt"    class = "smt public module"
                                          generated = "1"             >Server exchange agent</file>
 <file name = "amq_exchange_base.icl"     class = "private resource"  >Server exchange base class</file>
@@ -95,7 +95,7 @@
 <file name = "amq_index_array.icl"       class = "icl private cont"  >Message matching index array</file>
 <file name = "amq_queue.icl"             class = "icl public class"  >Server queue envelope class</file>
 <file name = "amq_queue_table.icl"       class = "icl private cont"  >Hash of queues per vhost</file>
-<file name = "amq_queue_by_vhost.icl"    class = "icl private cont"  >List of queues per vhost</file>
+<file name = "amq_queue_global.icl"     class = "icl private cont"   >List of queues by broker</file>
 <file name = "amq_queue_list.icl"        class = "icl private class" >List of queues</file>
 <file name = "amq_queue_agent.smt"       class = "smt public module"
                                          generated = "1"             >Server queue agent</file>
@@ -114,11 +114,11 @@
 <file name = "amq_consumer_basic.icl"    class = "icl private class" >Basic consumer class</file>
 <file name = "amq_queue_connection.icl"  class = "icl public class"  >Queue-connection mgt class</file>
 <file name = "amq_queue_connection_agent.smt"
-                                         class = "smt public module"     
+                                         class = "smt public module"
                                          generated = "1"             >Queue-connection mgt agent</file>
 <file name = "amq_connection_queue.icl"  class = "icl public class"  >Connection-queue mgt class</file>
 <file name = "amq_connection_queue_agent.smt"
-                                         class = "smt public module"     
+                                         class = "smt public module"
                                          generated = "1"             >Connection-queue mgt agent</file>
 <file name = "amq_resource.icl"          class = "icl public class"  >AMQP/Rest functionality</file>
 <file name = "amq_server_method.icl"     class = "icl private cont"  >Server method class</file>
@@ -130,7 +130,7 @@
 <file name = "amq_failover_agent.smt"    class = "smt public module"
                                          generated = "1"             >Failover agent</file>
 <file name = "amq_lease.icl"             class = "icl private class" >Server direct lease class</file>
-<file name = "amq_lease_table.icl"       class = "icl private cont"  
+<file name = "amq_lease_table.icl"       class = "icl private cont"
                                          generated = "1"             >Server lease container</file>
 
 <!-- OpenAMQ Management Console back-end -->

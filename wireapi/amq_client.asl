@@ -47,6 +47,11 @@
     smt_thread_t
         *thread;
     </local>
+    //
+    if (amq_client_config_chrono_enabled (amq_client_config)
+    &&  amq_client_config_chrono_density (amq_client_config) > randomof (1000))
+        amq_content_basic_chrono_set (content);
+
     if (self->connection->direct) {
         if (exchange == NULL)
             exchange = "";                     //  Default exchange

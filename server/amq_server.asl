@@ -44,26 +44,11 @@
     int
         exchange_type;
     </local>
-    <local>
-    amq_vhost_t
-        *vhost;
-    </local>
-    <header>
-    vhost = amq_vhost_link (amq_broker->vhost);
-    if (vhost) {
-    </header>
-    <footer>
-        amq_vhost_unlink (&vhost);
-    }
-    else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
-            AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DECLARE);
-    </footer>
     //
     exchange_type = amq_exchange_type_lookup (method->type);
     if (exchange_type != -1) {
         //  Find exchange and create if necessary
-        exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
+        exchange = amq_exchange_table_search (amq_broker->exchange_table, method->exchange);
         if (!exchange) {
             if (method->passive)
                 amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined",
@@ -75,7 +60,6 @@
                         AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DECLARE);
                 else {
                     exchange = amq_exchange_new (
-                        vhost,
                         exchange_type,
                         method->exchange,
                         method->internal,
@@ -84,7 +68,8 @@
                     //  This can fail if two threads create the same exchange at the
                     //  same time... so let's go find the actual exchange object
                     if (!exchange)
-                        exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
+                        exchange = amq_exchange_table_search (
+                            amq_broker->exchange_table, method->exchange);
                 }
             }
         }
@@ -112,21 +97,6 @@
     amq_exchange_t
         *exchange;
     </local>
-    <local>
-    amq_vhost_t
-        *vhost;
-    </local>
-    <header>
-    vhost = amq_vhost_link (amq_broker->vhost);
-    if (vhost) {
-    </header>
-    <footer>
-        amq_vhost_unlink (&vhost);
-    }
-    else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
-            AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DELETE);
-    </footer>
     //
     //  Use current channel exchange if method has a blank name
     if (strnull (method->exchange))
@@ -137,7 +107,8 @@
             ASL_ACCESS_REFUSED, "Exchange name not allowed",
             AMQ_SERVER_EXCHANGE, AMQ_SERVER_EXCHANGE_DECLARE);
     else {
-        exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
+        exchange = amq_exchange_table_search (
+            amq_broker->exchange_table, method->exchange);
         if (exchange) {
             //  Tell client delete was successful
             if (!method->nowait)
@@ -163,26 +134,11 @@
     static qbyte
         queue_index = 0;
     </local>
-    <local>
-    amq_vhost_t
-        *vhost;
-    </local>
-    <header>
-    vhost = amq_vhost_link (amq_broker->vhost);
-    if (vhost) {
-    </header>
-    <footer>
-        amq_vhost_unlink (&vhost);
-    }
-    else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
-            AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_DECLARE);
-    </footer>
     //
     //  Find queue and create if necessary
     if (strnull (method->queue))
-        icl_shortstr_fmt (method->queue, "#%d", icl_atomic_inc32 (&queue_index));
-    queue = amq_queue_table_search (vhost->queue_table, method->queue);
+        icl_shortstr_fmt (method->queue, "auto.%d", icl_atomic_inc32 (&queue_index));
+    queue = amq_queue_table_search (amq_broker->queue_table, method->queue);
     if (!queue) {
         if (method->passive)
             amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined",
@@ -190,7 +146,6 @@
         else {
             //  The queue->connection specifies owner connection, for exclusive queues
             queue = amq_queue_new (
-                vhost,
                 method->exclusive? connection: NULL,
                 method->queue,
                 method->durable,
@@ -202,12 +157,13 @@
             //  This can fail if two threads create the same queue at the
             //  same time... so let's go find the actual queue object
             if (!queue)
-                queue = amq_queue_table_search (vhost->queue_table, method->queue);
+                queue = amq_queue_table_search (
+                    amq_broker->queue_table, method->queue);
 
             if (queue) {
                 //  Make automatic binding to default exchange
                 amq_exchange_bind_queue (
-                    vhost->default_exchange, NULL, queue, queue->name, NULL);
+                    amq_broker->default_exchange, NULL, queue, queue->name, NULL);
 
                 //  Add to connection's exclusive queue list
                 if (method->exclusive)
@@ -251,21 +207,6 @@
     amq_queue_t
         *queue;
     </local>
-    <local>
-    amq_vhost_t
-        *vhost;
-    </local>
-    <header>
-    vhost = amq_vhost_link (amq_broker->vhost);
-    if (vhost) {
-    </header>
-    <footer>
-        amq_vhost_unlink (&vhost);
-    }
-    else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
-            AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_BIND);
-    </footer>
     //
     //  Use current channel queue if method uses a blank queue
     if (strnull (method->queue)) {
@@ -273,9 +214,10 @@
         if (strnull (method->routing_key))
             icl_shortstr_cpy (method->routing_key, channel->current_queue);
     }
-    exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
+    exchange = amq_exchange_table_search (
+        amq_broker->exchange_table, method->exchange);
     if (exchange) {
-        queue = amq_queue_table_search (vhost->queue_table, method->queue);
+        queue = amq_queue_table_search (amq_broker->queue_table, method->queue);
         if (queue) {
             amq_exchange_bind_queue (
                 exchange, channel, queue, method->routing_key, method->arguments);
@@ -296,25 +238,10 @@
   <action name = "unbind">
     <local>
     amq_exchange_t
-        *exchange;                      //  Exchange to unbind from 
+        *exchange;                      //  Exchange to unbind from
     amq_queue_t
         *queue;
     </local>
-    <local>
-    amq_vhost_t
-        *vhost;
-    </local>
-    <header>
-    vhost = amq_vhost_link (amq_broker->vhost);
-    if (vhost) {
-    </header>
-    <footer>
-        amq_vhost_unlink (&vhost);
-    }
-    else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
-            AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_UNBIND);
-    </footer>
     //
     //  Use current channel queue if method uses a blank queue
     if (strnull (method->queue)) {
@@ -322,9 +249,9 @@
         if (strnull (method->routing_key))
             icl_shortstr_cpy (method->routing_key, channel->current_queue);
     }
-    exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
+    exchange = amq_exchange_table_search (amq_broker->exchange_table, method->exchange);
     if (exchange) {
-        queue = amq_queue_table_search (vhost->queue_table, method->queue);
+        queue = amq_queue_table_search (amq_broker->queue_table, method->queue);
         if (queue) {
             amq_exchange_protocol_unbind_queue (
                 exchange, channel, queue, method->routing_key, method->arguments);
@@ -347,27 +274,12 @@
     amq_queue_t
         *queue;
     </local>
-    <local>
-    amq_vhost_t
-        *vhost;
-    </local>
-    <header>
-    vhost = amq_vhost_link (amq_broker->vhost);
-    if (vhost) {
-    </header>
-    <footer>
-        amq_vhost_unlink (&vhost);
-    }
-    else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
-            AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_DELETE);
-    </footer>
     //
     //  Use current channel queue if method uses a blank queue
     if (strnull (method->queue))
         icl_shortstr_cpy (method->queue, channel->current_queue);
 
-    queue = amq_queue_table_search (vhost->queue_table, method->queue);
+    queue = amq_queue_table_search (amq_broker->queue_table, method->queue);
     if (queue) {
         //  Tell client we deleted the queue ok
         if (!method->nowait)
@@ -375,7 +287,7 @@
                 connection->thread, channel->number, amq_queue_message_count (queue));
 
         //  Destroy the queue on this peer
-        amq_vhost_delete_queue (vhost, queue);
+        amq_broker_delete_queue (amq_broker, queue);
         amq_queue_destroy (&queue);
     }
     else
@@ -388,27 +300,12 @@
     amq_queue_t
         *queue;
     </local>
-    <local>
-    amq_vhost_t
-        *vhost;
-    </local>
-    <header>
-    vhost = amq_vhost_link (amq_broker->vhost);
-    if (vhost) {
-    </header>
-    <footer>
-        amq_vhost_unlink (&vhost);
-    }
-    else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready", 
-            AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_PURGE);
-    </footer>
     //
     //  Use current channel queue if method uses a blank queue
     if (strnull (method->queue))
         icl_shortstr_cpy (method->queue, channel->current_queue);
 
-    queue = amq_queue_table_search (vhost->queue_table, method->queue);
+    queue = amq_queue_table_search (amq_broker->queue_table, method->queue);
     if (queue) {
         amq_queue_purge (queue, channel, method->nowait);
         amq_queue_unlink (&queue);
@@ -432,29 +329,14 @@
     amq_queue_t
         *queue;
     </local>
-    <local>
-    amq_vhost_t
-        *vhost;
-    </local>
-    <header>
-    vhost = amq_vhost_link (amq_broker->vhost);
-    if (vhost) {
-    </header>
-    <footer>
-        amq_vhost_unlink (&vhost);
-    }
-    else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
-            AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_CONSUME);
-    </footer>
     //
     //  Use current channel queue if method uses a blank queue
     if (strnull (method->queue))
         icl_shortstr_cpy (method->queue, channel->current_queue);
 
-    queue = amq_queue_table_search (vhost->queue_table, method->queue);
+    queue = amq_queue_table_search (amq_broker->queue_table, method->queue);
     if (queue) {
-        //  The channel is responsible for creating/cancelling consumers
+        //  The channel is responsible for creating/canceling consumers
         amq_server_channel_consume (channel, queue, self, method->nowait);
         amq_queue_unlink (&queue);
     }
@@ -470,28 +352,14 @@
     icl_shortstr_t
         sender_id;
     </local>
-    <local>
-    amq_vhost_t
-        *vhost;
-    </local>
-    <header>
-    vhost = amq_vhost_link (amq_broker->vhost);
-    if (vhost) {
-    </header>
-    <footer>
-        amq_vhost_unlink (&vhost);
-    }
-    else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
-            AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_PUBLISH);
-    </footer>
     //
     if (*method->exchange)
         //  Lookup exchange specified in method
-        exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
+        exchange = amq_exchange_table_search (
+            amq_broker->exchange_table, method->exchange);
     else
         //  Get default exchange for virtual host
-        exchange = amq_exchange_link (vhost->default_exchange);
+        exchange = amq_exchange_link (amq_broker->default_exchange);
 
     if (exchange) {
         if (!exchange->internal || strnull (method->exchange)) {
@@ -503,16 +371,16 @@
                 method->routing_key,
                 connection->id);
             if (exchange->federation) {
-                icl_shortstr_fmt (sender_id, "%s|%d", connection->key, 
+                icl_shortstr_fmt (sender_id, "%s|%d", connection->key,
                     channel->number);
                 amq_content_basic_set_sender_id (content, sender_id);
             }
             amq_exchange_publish (
-                exchange, 
-                channel, 
-                content, 
-                method->mandatory, 
-                method->immediate, 
+                exchange,
+                channel,
+                content,
+                method->mandatory,
+                method->immediate,
                 connection->group);
         }
         else
@@ -532,27 +400,12 @@
     amq_queue_t
         *queue;
     </local>
-    <local>
-    amq_vhost_t
-        *vhost;
-    </local>
-    <header>
-    vhost = amq_vhost_link (amq_broker->vhost);
-    if (vhost) {
-    </header>
-    <footer>
-        amq_vhost_unlink (&vhost);
-    }
-    else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
-            AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_GET);
-    </footer>
     //
     //  Use current channel queue if method uses a blank queue
     if (strnull (method->queue))
         icl_shortstr_cpy (method->queue, channel->current_queue);
 
-    queue = amq_queue_table_search (vhost->queue_table, method->queue);
+    queue = amq_queue_table_search (amq_broker->queue_table, method->queue);
     if (queue) {
         amq_queue_get (queue, channel, self->class_id);
         amq_queue_unlink (&queue);
@@ -573,30 +426,15 @@
     amq_lease_t
         *lease;
     </local>
-    <local>
-    amq_vhost_t
-        *vhost;
-    </local>
-    <header>
-    vhost = amq_vhost_link (amq_broker->vhost);
-    if (vhost) {
-    </header>
-    <footer>
-        amq_vhost_unlink (&vhost);
-    }
-    else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
-            AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_PUT);
-    </footer>
     //
-    lease = amq_lease_new (vhost, method->sink, DP_SINK, connection);
+    lease = amq_lease_new (method->sink, DP_SINK, connection);
     if (lease) {
         amq_server_agent_direct_put_ok (channel->connection->thread, channel->number, lease->name);
         amq_lease_unlink (&lease);
     }
     else
-        amq_server_channel_error (channel, ASL_NOT_FOUND, 
-            "No such sink", 
+        amq_server_channel_error (channel, ASL_NOT_FOUND,
+            "No such sink",
             AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_PUT);
   </action>
 
@@ -605,97 +443,36 @@
     amq_lease_t
         *lease;
     </local>
-    <local>
-    amq_vhost_t
-        *vhost;
-    </local>
-    <header>
-    vhost = amq_vhost_link (amq_broker->vhost);
-    if (vhost) {
-    </header>
-    <footer>
-        amq_vhost_unlink (&vhost);
-    }
-    else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
-            AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_GET);
-    </footer>
     //
-    lease = amq_lease_new (vhost, method->feed, DP_FEED, connection);
+    lease = amq_lease_new (method->feed, DP_FEED, connection);
     if (lease) {
         amq_server_agent_direct_get_ok (channel->connection->thread, channel->number, lease->name);
         amq_lease_unlink (&lease);
     }
     else
-        amq_server_channel_error (channel, ASL_NOT_FOUND, 
-            "No such feed", 
+        amq_server_channel_error (channel, ASL_NOT_FOUND,
+            "No such feed",
             AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_GET);
   </action>
 </class>
 
-<class name = "rest">
-  <action name = "resolve">
-    <local>
-    int
-        response;
-    icl_shortstr_t
-        sink_name,                      //  Resolved sink name
-        sink_type,  
-        selector,                       //  Remaining selector
-        reply_text;
-    </local>
-    <local>
-    amq_vhost_t
-        *vhost;
-    </local>
-    <header>
-    vhost = amq_vhost_link (amq_broker->vhost);
-    if (vhost) {
-    </header>
-    <footer>
-        amq_vhost_unlink (&vhost);
-    }
-    else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
-            AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_GET);
-    </footer>
-    //
-    response = amq_resource_resolve (vhost, method->path, sink_name, sink_type, selector, reply_text);
-    amq_server_agent_rest_resolve_ok (
-        channel->connection->thread, channel->number, 
-        response, reply_text, sink_name, sink_type, selector);
-  </action>
-
-  <action name = "put">
+<class name = "restms">
+  <action name = "feed-create">
     <local>
     int
         response;
     icl_shortstr_t
         reply_text;
     </local>
-    <local>
-    amq_vhost_t
-        *vhost;
-    </local>
-    <header>
-    vhost = amq_vhost_link (amq_broker->vhost);
-    if (vhost) {
-    </header>
-    <footer>
-        amq_vhost_unlink (&vhost);
-    }
-    else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
-            AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_PUT);
-    </footer>
     //
-    response = amq_resource_put (vhost, method->sink_name, method->sink_type, reply_text);
-    amq_server_agent_rest_put_ok (
-        channel->connection->thread, channel->number, 
+    response = amq_resource_feed_create (
+        method->feed_name, method->class_name, reply_text);
+    amq_server_agent_restms_feed_create_ok (
+        channel->connection->thread, channel->number,
         response, reply_text);
   </action>
 
-  <action name = "get">
+  <action name = "feed-query">
     <local>
     int
         response;
@@ -704,60 +481,39 @@
     asl_field_list_t
         *field_list;
     icl_longstr_t
-        *properties; 
+        *properties;
     </local>
-    <local>
-    amq_vhost_t
-        *vhost;
-    </local>
-    <header>
-    vhost = amq_vhost_link (amq_broker->vhost);
-    if (vhost) {
-    </header>
-    <footer>
-        amq_vhost_unlink (&vhost);
-    }
-    else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
-            AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_PUT);
-    </footer>
+    //
     field_list = asl_field_list_new (NULL);
-    response = amq_resource_get (vhost, method->sink_name, field_list, reply_text);
+    response = amq_resource_feed_query (
+        method->feed_name, field_list, reply_text);
     properties = asl_field_list_flatten (field_list);
     asl_field_list_destroy (&field_list);
-    amq_server_agent_rest_get_ok (
-        channel->connection->thread, channel->number, 
+    amq_server_agent_restms_feed_query_ok (
+        channel->connection->thread, channel->number,
         response, reply_text, properties);
     icl_longstr_destroy (&properties);
   </action>
 
-  <action name = "delete">
+  <action name = "feed-delete">
+  </action>
+
+  <action name = "feed-class-query">
     <local>
     int
         response;
     icl_shortstr_t
         reply_text;
+    icl_longstr_t
+        *feed_list;
     </local>
-    <local>
-    amq_vhost_t
-        *vhost;
-    </local>
-    <header>
-    vhost = amq_vhost_link (amq_broker->vhost);
-    if (vhost) {
-    </header>
-    <footer>
-        amq_vhost_unlink (&vhost);
-    }
-    else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
-            AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_GET);
-    </footer>
     //
-    response = amq_resource_delete (vhost, method->sink_name, reply_text);
-    amq_server_agent_rest_delete_ok (
-        channel->connection->thread, channel->number, 
-        response, reply_text);
+    response = amq_resource_feed_query_class (
+        method->feed_name, feed_list, reply_text);
+    amq_server_agent_restms_feed_query_class_ok (
+        channel->connection->thread, channel->number,
+        response, reply_text, feed_list);
+    icl_longstr_destroy (&feed_list);
   </action>
 </class>
 

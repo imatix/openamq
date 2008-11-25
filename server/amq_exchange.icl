@@ -37,7 +37,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     <option name = "initial_size" value = "15" />
 </inherit>
 <inherit class = "icl_list_item">
-    <option name = "prefix" value = "by_vhost" />
+    <option name = "prefix" value = "global" />
 </inherit>
 <inherit class = "amq_console_object" />
 <inherit class = "smt_object_tracker" />
@@ -76,10 +76,6 @@ for each type of exchange. This is a lock-free asynchronous class.
 <import class = "amq_queue_bindings_list_table" />
 
 <context>
-    amq_broker_t
-        *broker;                        //  Parent broker
-    amq_vhost_t
-        *vhost;                         //  Parent vhost
     int
         type;                           //  Exchange type
     icl_shortstr_t
@@ -142,16 +138,13 @@ for each type of exchange. This is a lock-free asynchronous class.
 </public>
 
 <method name = "new">
-    <argument name = "vhost" type = "amq_vhost_t *">Parent vhost</argument>
     <argument name = "type" type = "int">Exchange type</argument>
     <argument name = "name" type = "char *">Exchange name</argument>
     <argument name = "internal" type = "Bool">Internal exchange?</argument>
     <argument name = "auto federate" type = "Bool">Auto-federate exchange?</argument>
-    <dismiss argument = "table" value = "vhost->exchange_table" />
+    <dismiss argument = "table" value = "amq_broker->exchange_table" />
     <dismiss argument = "key" value = "name" />
     <local>
-    amq_broker_t
-        *broker = amq_broker;
     ipr_config_t
         *config;
     char
@@ -166,8 +159,6 @@ for each type of exchange. This is a lock-free asynchronous class.
         federation_valid;               //  Is federation configured?
     </local>
     //
-    self->broker         = broker;
-    self->vhost          = vhost;
     self->type           = type;
     self->internal       = internal;
     self->binding_list   = amq_binding_list_new ();
@@ -219,10 +210,10 @@ for each type of exchange. This is a lock-free asynchronous class.
         smt_log_print (amq_broker->alert_log,
             "E: invalid type '%d' in exchange_new", self->type);
 
-    amq_exchange_by_vhost_queue (self->vhost->exchange_list, self);
+    amq_exchange_global_queue (amq_broker->exchange_list, self);
 
     //  EXCHANGE FEDERATION ===================================================
-    //  
+    //
     //  Option 1: auto-federation using --attach, federates ESB exchanges
     //  (amq.service, amq.data, amq.dataex).  Fine tune using --attach-vhost
     //  and --attach-login.  Expand to more exchanges using --attach-all.
@@ -236,7 +227,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     //    [ vhost = "path" ]        Default is --attach-path ("/")
     //    [ login = "userid" ]      Default is --attach-login ("peering")
     //    [ type = "service | data | subscriber | publisher | locator" ]
-    //                              Default is 'service' for direct exchanges 
+    //                              Default is 'service' for direct exchanges
     //                              and 'fanout' for all others.
     //
     //  Internal, default, and system exchanges cannot be federated.
@@ -249,7 +240,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     federation_login  = amq_server_config_attach_login (amq_server_config);
     federation_type   = (self->type == AMQ_EXCHANGE_HEADERS)?
                         AMQ_FEDERATION_SERVICE: AMQ_FEDERATION_FANOUT;
-    
+
     //  First take settings from configuration file if possible
     config = ipr_config_dup (amq_server_config->config);
     ipr_config_locate (config, "/config/federate", "");
@@ -275,7 +266,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         federation_attach = ipr_config_get (config, "attach", federation_attach);
         federation_vhost  = ipr_config_get (config, "vhost",  federation_vhost);
         federation_login  = ipr_config_get (config, "login",  federation_login);
-        
+
         //  Override default type if explicit federation type set
         type_name = ipr_config_get (config, "type", NULL);
         if (type_name) {
@@ -294,21 +285,21 @@ for each type of exchange. This is a lock-free asynchronous class.
     if (*federation_attach) {
         //  Federate if exchange created with auto-federation
         //  or if the name matches the --attach-all pattern
-        if (auto_federate 
+        if (auto_federate
         ||  ipr_str_matches (name, amq_server_config_attach_all (amq_server_config)))
             federation_valid = TRUE;
     }
     //  We don't federate system, internal, or the default exchange
     if (self->type == AMQ_EXCHANGE_SYSTEM || internal || streq (name, "$default$"))
         federation_valid = FALSE;
-    
+
     if (federation_valid) {
         self->federation = amq_federation_new (
             self,
             federation_type,
-            federation_attach, 
-            federation_vhost, 
-            federation_login); 
+            federation_attach,
+            federation_vhost,
+            federation_login);
         self->federation_type = federation_type;
     }
     ipr_config_destroy (&config);
@@ -474,13 +465,13 @@ for each type of exchange. This is a lock-free asynchronous class.
                 amq_binding_list_queue (self->binding_list, binding);
         }
     }
-    //  In a service federation we forward exclusive bindings only and we 
+    //  In a service federation we forward exclusive bindings only and we
     //  prohibit a mix of exclusive/non-exclusive queues on the same binding.
     else
     if (self->federation_type == AMQ_FEDERATION_SERVICE) {
         if (channel && (binding->exclusive != queue->exclusive))
-            amq_server_channel_error (channel, ASL_NOT_ALLOWED, 
-                "Invalid bind mix for service federation", 
+            amq_server_channel_error (channel, ASL_NOT_ALLOWED,
+                "Invalid bind mix for service federation",
                 AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_BIND);
     }
 
@@ -492,7 +483,7 @@ for each type of exchange. This is a lock-free asynchronous class.
             bindings_list = amq_queue_bindings_list_new (
                 self->queue_bindings, queue->name);
         //  Search per-queue bindings_list for a matching binding
-        for (iterator = amq_queue_bindings_list_first (bindings_list); 
+        for (iterator = amq_queue_bindings_list_first (bindings_list);
              iterator != NULL;
              iterator = amq_queue_bindings_list_next (&iterator)) {
             if (iterator->item == binding)
@@ -550,7 +541,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         delivered = self->publish (self->object, channel, content, group);
 
     //  Publish message to federation if necessary. We don't have the problem
-    //  of message loops with fanout federations because we only push back to 
+    //  of message loops with fanout federations because we only push back to
     //  the parent messages that came from a client app (channel != 0).
     //
     if (self->federation_type == AMQ_FEDERATION_PUBLISHER ||
@@ -640,7 +631,7 @@ for each type of exchange. This is a lock-free asynchronous class.
 
 <method name = "protocol unbind queue" template = "async function" async = "1">
     <doc>
-    Unbind a queue from the exchange.  This method implements the queue.unbind 
+    Unbind a queue from the exchange.  This method implements the queue.unbind
     protocol command.  We search for the specific binding to unbind, as opposed
     to the "unbind queue" method which destroys all the bindings from a
     specified queue.
@@ -696,7 +687,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         if (amq_queue_bindings_list_count (queue_bindings) == 0)
             amq_queue_bindings_list_destroy (&queue_bindings);
         else
-            amq_queue_bindings_list_unlink (&queue_bindings); 
+            amq_queue_bindings_list_unlink (&queue_bindings);
     }
     </action>
 </method>

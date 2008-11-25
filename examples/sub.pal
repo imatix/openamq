@@ -1,13 +1,12 @@
 <?xml?>
 <pal script = "amq_pal_gen" >
     <session>
-    	<queue_declare exclusive = "1" />
-        <queue_bind exchange = "amq.direct" routing_key = "test" />
+        <queue_declare exclusive = "0" />
+        <queue_bind exchange = "amq.topic" routing_key = "*.*" />
         <basic_consume queue = "$queue" />
         <repeat>
             <wait />
             <basic_arrived />
-    	</repeat>
+        </repeat>
     </session>
 </pal>
-

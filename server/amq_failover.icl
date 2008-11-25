@@ -55,7 +55,7 @@ typedef enum
     amq_peering_t
         *peering;                       //  The peering to the other HA peer
     Bool
-        enabled,                        //  If FALSE, broker is standalone 
+        enabled,                        //  If FALSE, broker is standalone
         primary;                        //  TRUE = primary, FALSE = backup
     long
         timeout;                        //  Failover timeout in usec
@@ -73,7 +73,7 @@ typedef enum
     <argument name = "broker" type = "amq_broker_t *">Parent broker</argument>
     <local>
     char
-        *backup,                        //  Backup to connect to 
+        *backup,                        //  Backup to connect to
         *primary;                       //  Primary to connect to
     </local>
     //
@@ -102,9 +102,9 @@ typedef enum
         self->enabled = TRUE;
     //  Enable failover if requested
     if (self->enabled) {
-        smt_log_print (amq_broker->alert_log, "I: failover enabled, acting as %s", 
+        smt_log_print (amq_broker->alert_log, "I: failover enabled, acting as %s",
             self->primary? "master": "slave");
-        smt_log_print (amq_broker->alert_log, "I: failover: waiting for %s...", 
+        smt_log_print (amq_broker->alert_log, "I: failover: waiting for %s...",
             self->primary? "backup (slave)": "primary (master)");
 
         self->state = amq_ha_state_pending;
@@ -115,7 +115,7 @@ typedef enum
             *primary? primary: backup,
             amq_server_config_vhost (amq_server_config),
             amq_server_config_trace (amq_server_config),
-            "amq.status",               //  Exchange name to peer with 
+            "amq.status",               //  Exchange name to peer with
             "direct");                  //  Exchange type to create
 
         amq_peering_set_login (self->peering, "peering");
@@ -157,12 +157,15 @@ typedef enum
         *content;
     </local>
     //
-    icl_shortstr_fmt (state, "%d", self->state);
     content = amq_content_basic_new ();
-    amq_content_basic_set_routing_key (content, "amq.status", self->primary? "p" : "b", 0);
-    amq_content_basic_set_body (content, 
+    amq_content_basic_set_routing_key (content, "amq.status",
+        self->primary? "failover.primary" : "failover.backup", 0);
+    icl_shortstr_fmt (state, "%d", self->state);
+    amq_content_basic_set_body (content,
         icl_mem_strdup (state), strlen (state) + 1, icl_mem_free);
-    amq_exchange_publish (self->status_exchange, NULL, content, FALSE, FALSE, AMQ_CONNECTION_GROUP_SUPER);
+    amq_exchange_publish (
+        self->status_exchange, NULL, content,
+        FALSE, FALSE, AMQ_CONNECTION_GROUP_SUPER);
     amq_content_basic_unlink (&content);
 </method>
 
@@ -196,7 +199,7 @@ typedef enum
             assert (0);
         }
         break;
-  
+
       case amq_ha_state_active:
         switch (event) {
           case amq_ha_event_peer_pending:
@@ -219,7 +222,7 @@ typedef enum
             assert (0);
         }
         break;
-    
+
       case amq_ha_state_passive:
         switch (event) {
           case amq_ha_event_peer_pending:
@@ -255,7 +258,7 @@ typedef enum
             assert (0);
         }
         break;
-      
+
       default:
         assert (0);
     }

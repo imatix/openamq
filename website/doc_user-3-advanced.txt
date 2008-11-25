@@ -212,12 +212,12 @@ The daily log:
 2006-05-14 18:30:04: I: amq_server binding to 127.0.0.1:5672
 2006-05-14 18:30:05: I: server ready for incoming AMQ connections
 2006-05-14 18:30:07: I: start login from=127.0.0.1:40441 -
-                        product=OpenAMQ Kernel Client version=1.0c0
+                        product=OpenAMQ Kernel Client version=1.4d1
 2006-05-14 18:30:07: I: valid login from=127.0.0.1:40441 user=console -
                         group=console
 2006-05-14 18:30:10: I: cnn=1 msg=2 mem=2K/10439K exc=7 que=1 csm=1 bnd=2
 2006-05-14 18:30:12: I: start login from=127.0.0.1:40442 -
-                        product=OpenAMQ Kernel Client version=1.0c0
+                        product=OpenAMQ Kernel Client version=1.4d1
 [[/code]]
 
 The debug log:
@@ -236,7 +236,7 @@ The debug log:
 2006-05-14 18:30:04: per_client=0
 2006-05-14 18:30:04: ...
 2006-05-14 18:30:07: I: start login from=127.0.0.1:40441 -
-                     product=OpenAMQ Kernel Client version=1.0c0
+                     product=OpenAMQ Kernel Client version=1.4d1
 2006-05-14 18:30:07: I: valid login from=127.0.0.1:40441 user=console -
                      group=console
 2006-05-14 18:30:07: X: bind     $default$: queue=#0
@@ -258,7 +258,7 @@ The debug log:
 2006-05-14 18:30:08: I: incoming rate=10 mean=10 peak=10
 2006-05-14 18:30:08: I: outgoing rate=5 mean=5 peak=5 iomean=15
 2006-05-14 18:30:12: I: start login from=127.0.0.1:40442 -
-                     product=OpenAMQ Kernel Client version=1.0c0
+                     product=OpenAMQ Kernel Client version=1.4d1
 [[/code]]
 
 +++ Custom log file names
@@ -487,14 +487,14 @@ OpenAMQ provides a wide set of tuning options. Before you start tuning your serv
 * When tuning, make sure you have a good test platform so that you can measure the impact of each choice.  It is quite easy to make the performance of a server worse by making the wrong kind of tuning.
 * Test each option independently on the command-line before adding it to a configuration file.
 
-+++ Process Tuning
++++ Process tuning
 
 These are the options that affect the server process, each can be specified on the command line or in a configuration file:
 
 : **/config/tuning/polling_threads** : On multithreaded builds, defines the number of OS threads dedicated to socket polling. Default value is 4.
 : **/config/tuning/working_threads** : On multithreaded builds, defines the number of OS threads dedicated to processing, that is, tasks other than socket polling. Default value is 4.
 
-+++ Performance Tuning
++++ Performance tuning
 
 These are the options that can directly affect performance:
 
@@ -592,7 +592,7 @@ The memory subsystem selects an 'allocator' depending on the value of the ALLOCA
 
 We recommend that in a high-performance scenario (over 20k messages per second) you use ALLOCATOR=direct, while in normal scenarios you leave the default setting. As with all tuning options, test before and after using throughput and latency tests.
 
-The choice of memory allocator, as well as build model (release vs debug) can also have a significant impact on the performance of client applications that do over 20k messages in or out per second. The fastest configuration in most cases is ALLOCATOR=direct and BOOM_MODEL=mt,release.
+The choice of memory allocator, as well as build model (release vs debug) can also have a significant impact on the performance of client applications that do over 20k messages in or out per second. The fastest configuration on recent Linux is ALLOCATOR=direct and BOOM_MODEL=mt,release.  On other platforms with less efficient memory management subsystems, ALLOCATOR=thin may be faster.
 
 +++ Testing throughput
 
@@ -675,7 +675,7 @@ You can tune the batching size used in Direct Mode connections.  For the server,
 
 You can tune the batching size using this option, on the command line or in the amq_server.cfg or wireapi.cfg configuration file:
 
-: **/config/direct/batching** : Defines the maximum batch size for Direct Mode opportunistic batching on message sends. Setting this higher will improve throughput, and usually with lower latency, but will cause higher memory consumption. Setting this to zero will switch off batching. Any value less than 2048 is treated as zero. Default value is 32768. Maximum value is 2097152.                                                             
+: **/config/direct/batching** : Defines the maximum batch size for Direct Mode opportunistic batching on message sends. Setting this higher will improve throughput, and usually with lower latency, but will cause higher memory consumption. Setting this to zero will switch off batching. Any value less than 2048 is treated as zero. Default value is 32768. Maximum value is 2097152.
 
 +++ Server-side backlogs
 
@@ -707,6 +707,66 @@ You can freely mix applications using Direct Mode and applications using normal 
 For technical details of on the Direct Messaging Protocol, please refer to http://wiki.amqp.org/spec:4.
 
 Direct Mode allows up to six unique exchanges or unique private queues per connection and limits a message to 2Mb.  Applications that try to use Direct Mode with a higher number of exchanges or private queues will fall back to using normal AMQP message transfer.
+
+++ The latency-measurement Chronometer
+
+OpenAMQ/1.3c3 and later include a latency-measurement feature called the "Chronometer".  The Chronometer calculates the cost of each layer a message passes through from sender to recipient:
+
+* The time it waits in WireAPI before being sent.
+* The time it spends on the network from sender to server.
+* The time it spends inside the server.
+* The time it spends on the network from server to recipient.
+* The time it spends in WireAPI before being placed in the recipient's arrived queue.
+
+The Chronometer works as follows.  Outgoing messages are stamped with an initial timestamp.  This is placed into the //Correlation-Id// property of messages.  Each of the layers that wishes to measure latency adds a time delta, if the message has a timestamp.  The final receipient calculates the real deltas for each layer and sends a //pingback// to an exchange on the AMQP server. We'll explain how to collect pingbacks, but first we explain how to get the Chronometer working.
+
++++ Enabling and configuring the Chronometer
+
+To enable and configure the Chronometer you must set configuration options in the sender's wireapi.cfg configuration file:
+
+: **/config/chrono/enabled** : Specifies whether chrono pingbacks are enabled or not. If not, then any any chrono information in contents will be ignored. By default chrono pingbacks are disabled. Default value is 0.
+: **/config/chrono/floor** : Specifies the floor for pingbacks, in milliseconds. Only pingbacks that show an end-to-end latency greater or equal to the floor will be reported. If you set this to zero, all pingbacks will be reported. Default value is 1.
+: **/config/chrono/density** : Specifies the sampling density, as a permille. Valid values are 1 to 1000. By default 1/1000th of messages will be sampled. The sampling is randomized if the density is less than 1000 permille. Default value is 1.
+: **/config/chrono/batch** : Specifies the batching size for chrono pingback messages.  If you change the floor, density, or batch size, test carefully to ensure you do not  create too much chatter due to many small pingbacks.  A single pingback is about 15 bytes.
+
+You should set the density so that the Chronometer measures about 10 messages per second.  This will detect spikes of a fraction of a second without creating excessive chatter.  The default settings are appropriate for high volume scenarios of 10k messages per second and upwards.
+
+Notes:
+
+* The resolution of the Chronometer is 1msec.  Its accuracy depends on accurately synchronized clocks across all systems - sender, server, and recipient.  Any latency that exceeds 60 seconds is not tracked.
+* The cost of the Chronometer in terms of message size is about 20 bytes.
+* Applications that already use the Correlation-Id property //cannot// use the Chronometer.
+
++++ Collecting Chronometer Pingbacks
+
+The Chronometer publishes pingbacks to the amq.status exchange with the routing key "chrono".  You can collect pingbacks using a simple AMQP application.  We provide an example in wireapi/amq_client_chrono.pal:
+
+[[code]]
+<?xml?>
+<pal script = "amq_pal_gen" >
+    <session>
+        <queue_declare exclusive = "1" />
+        <queue_bind exchange = "amq.status" routing_key = "chrono" />
+        <basic_consume queue = "$queue" />
+        <repeat>
+            <wait />
+            <basic_arrived>
+                <echo>$body_text</echo>
+            </basic_arrived>
+        </repeat>
+    </session>
+</pal>
+[[/code]]
+
+A Chronometer pingback message is a string containing five numbers, which represent the cost of processing in each of these layers:
+
+# The time it waits in WireAPI before being sent.
+# The time it spends on the network from sender to server.
+# The time it spends inside the server.
+# The time it spends on the network from server to recipient.
+# The time it spends in WireAPI before being placed in the recipient's arrived queue.
+
+You can process pingbacks using a spreadsheet, Perl script, or other number crunching tool.
 
 ++ High-availability failover
 
@@ -769,7 +829,7 @@ Stopping the active and then the passive server with any intervening delay will 
 
 However it is possible to (mis)design a network to fool this algorithm. A typical scenario would a failover pair distributed between two buildings, where each building also had a set of applications, and there was a single network link between both buildings. Breaking this link would create two sets of client applications, each with half of the failover pair, and each failover server would become active.
 
-To prevent split-brain situations, we must connect failover peers using a dedicated network link, which can be as simple as plugging them both into the same switch or better, using a cross-over cable directly between two machines. 
+To prevent split-brain situations, we must connect failover peers using a dedicated network link, which can be as simple as plugging them both into the same switch or better, using a cross-over cable directly between two machines.
 
 We must not split a failover pair into two islands, each with a set of applications. While this may be a common type of network architecture, we use federation (see later), not high-availability failover, in such cases.
 
@@ -1344,9 +1404,9 @@ amq_server.cfg:
 
 You can define as many <federate> entries as you like. The properties for each one work as follows:
 
-* The exchange pattern is an exchange name or a wild card, following the same rules as the --attach_all option. 
-* The hostname is the server to attach to. This is an optional property - if you do not specify it, the --attach value is used.  If neither are set, you'll get an error message and the server won't start. 
-* The vhost is the virtual host path to use.  This is an optional property - if you do not specify it, the --attach_vhost value is used.  If neither are set, the default "/" path will be used. 
+* The exchange pattern is an exchange name or a wild card, following the same rules as the --attach_all option.
+* The hostname is the server to attach to. This is an optional property - if you do not specify it, the --attach value is used.  If neither are set, you'll get an error message and the server won't start.
+* The vhost is the virtual host path to use.  This is an optional property - if you do not specify it, the --attach_vhost value is used.  If neither are set, the default "/" path will be used.
 * The login is the userid to use to login on the parent server.  This is an optional property - if you do not specify it, the --attach_login value is used.  If neither are set, the default "peering" user id will be used.
 * The type is the federation type, one of "service", "data", "subscriber", "publisher", or "locator.  This is an optional property, it defaults to "service" for direct exchanges and "fanout" for all others.
 

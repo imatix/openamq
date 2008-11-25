@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
     Please see AMQP specification for copyrights.
- 
+
     Links to full AMQP specification:
     =================================
     http://www.amqp.org/
@@ -21,9 +21,9 @@
 
 <!-- Non standard extension classes -->
 <include filename = "asl_direct.asl" />
-<include filename = "amq_rest.asl" />
+<include filename = "amq_restms.asl" />
 
-<!-- not supported by OpenAMQ, will be removed in AMQP/0.91
+<!-- not supported by OpenAMQ, will be removed in AMQP/0.9.1
 <include filename = "amq_access.asl" />
 <include filename = "amq_file.asl" />
 <include filename = "amq_stream.asl" />
@@ -38,6 +38,13 @@
 <option name = "protocol_instance" value = "1"  />
 <option name = "protocol_major"    value = "0"  />
 <option name = "protocol_minor"    value = "9"  />
+
+<!-- 0.9.1
+<option name = "protocol_class"    value = "1"  />
+<option name = "protocol_major"    value = "0"  />
+<option name = "protocol_minor"    value = "9"  />
+<option name = "protocol_revision" value = "1"  />
+-->
 
 <!-- Standard field domains -->
   <domain name = "access ticket" type = "short">

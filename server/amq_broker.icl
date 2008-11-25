@@ -62,11 +62,11 @@
                 *exchange;
           </local>
           <get>
-            exchange = amq_exchange_by_vhost_first (self->vhost->exchange_list);
+            exchange = amq_exchange_global_first (self->exchange_list);
             icl_shortstr_fmt (field_value, "%d", exchange->object_id);
           </get>
           <next>
-            exchange = amq_exchange_by_vhost_next (&exchange);
+            exchange = amq_exchange_global_next (&exchange);
             if (exchange)
                 icl_shortstr_fmt (field_value, "%d", exchange->object_id);
           </next>
@@ -79,17 +79,17 @@
           </local>
           <get>
             //  Get first queue and then skip private queues
-            queue = amq_queue_by_vhost_first (self->vhost->queue_list);
+            queue = amq_queue_global_first (self->queue_list);
             while (queue && queue->exclusive)
-                queue = amq_queue_by_vhost_next (&queue);
+                queue = amq_queue_global_next (&queue);
             if (queue)
                 icl_shortstr_fmt (field_value, "%d", queue->object_id);
           </get>
           <next>
             //  Get next queue and then skip private queues
-            queue = amq_queue_by_vhost_next (&queue);
+            queue = amq_queue_global_next (&queue);
             while (queue && queue->exclusive)
-                queue = amq_queue_by_vhost_next (&queue);
+                queue = amq_queue_global_next (&queue);
             if (queue)
                 icl_shortstr_fmt (field_value, "%d", queue->object_id);
           </next>
@@ -161,6 +161,18 @@
 </private>
 
 <context>
+    amq_exchange_table_t
+        *exchange_table;                //  Table of exchanges
+    amq_exchange_global_t
+        *exchange_list;                 //  List of exchanges
+    amq_queue_table_t
+        *queue_table;                   //  Table of queues
+    amq_queue_global_t
+        *queue_list;                    //  List of queues
+    amq_exchange_t
+        *default_exchange;              //  Default exchange
+    ipr_symbol_table_t
+        *shared_queues;                 //  Cluster shared queues
     Bool
         locked,                         //  Is broker locked?
         restart;                        //  Restart broker after exit?
@@ -169,7 +181,7 @@
         auto_crash_timer,               //  Automatic failure
         auto_block_timer;               //  Automatic blockage
     amq_vhost_t
-        *vhost;                         //  Single vhost (for now)
+        *vhost;                         //  Single vhost
     amq_connection_by_broker_t
         *mgt_connection_list;           //  Connection mgt objects list
     amq_failover_t
@@ -182,13 +194,36 @@
 </context>
 
 <method name = "new">
-    //  We use a single global vhost for now
+    //  We use a single vhost
     self->vhost = amq_vhost_new (self, "/");
     self->dump_state_timer = amq_server_config_dump_state (amq_server_config);
     self->auto_crash_timer = amq_server_config_auto_crash (amq_server_config);
     self->auto_block_timer = amq_server_config_auto_block (amq_server_config);
     self->mgt_connection_list = amq_connection_by_broker_new ();
     amq_console_config = amq_console_config_new (self);
+
+    self->exchange_table = amq_exchange_table_new ();
+    self->exchange_list  = amq_exchange_global_new ();
+    self->queue_table    = amq_queue_table_new ();
+    self->queue_list     = amq_queue_global_new ();
+    self->shared_queues  = ipr_symbol_table_new ();
+
+    //  Automatic wiring schemes
+    s_exchange_declare (self, "$default$",   AMQ_EXCHANGE_DIRECT,  TRUE,  FALSE);
+    s_exchange_declare (self, "amq.fanout",  AMQ_EXCHANGE_FANOUT,  FALSE, FALSE);
+    s_exchange_declare (self, "amq.direct",  AMQ_EXCHANGE_DIRECT,  FALSE, FALSE);
+    s_exchange_declare (self, "amq.topic",   AMQ_EXCHANGE_TOPIC,   FALSE, FALSE);
+    s_exchange_declare (self, "amq.headers", AMQ_EXCHANGE_HEADERS, FALSE, FALSE);
+    s_exchange_declare (self, "amq.system",  AMQ_EXCHANGE_SYSTEM,  FALSE, FALSE);
+    s_exchange_declare (self, "amq.status",  AMQ_EXCHANGE_DIRECT,  FALSE, FALSE);
+
+    //  These exchanges are deprecated
+    s_exchange_declare (self, "amq.notify",  AMQ_EXCHANGE_TOPIC,   FALSE, FALSE);
+
+    //  These exchanges are automatically federated if --attach is specified
+    s_exchange_declare (self, "amq.service", AMQ_EXCHANGE_DIRECT,  FALSE, TRUE);
+    s_exchange_declare (self, "amq.data",    AMQ_EXCHANGE_TOPIC,   FALSE, TRUE);
+    s_exchange_declare (self, "amq.dataex",  AMQ_EXCHANGE_HEADERS, FALSE, TRUE);
 
     randomize ();
     if (self->auto_crash_timer)
@@ -202,10 +237,25 @@
 
 <method name = "destroy">
     <action>
+    amq_exchange_t
+        *exchange;
+
     amq_failover_destroy (&self->failover);
     amq_console_config_destroy (&amq_console_config);
     amq_vhost_destroy (&self->vhost);
     amq_connection_by_broker_destroy (&self->mgt_connection_list);
+
+    amq_exchange_unlink (&self->default_exchange);
+    amq_exchange_table_destroy (&self->exchange_table);
+    exchange = amq_exchange_global_pop (self->exchange_list);
+    while (exchange) {
+        amq_exchange_destroy (&exchange);
+        exchange = amq_exchange_global_pop (self->exchange_list);
+    }
+    amq_exchange_global_destroy (&self->exchange_list);
+    amq_queue_table_destroy (&self->queue_table);
+    amq_queue_global_destroy (&self->queue_list);
+    ipr_symbol_table_destroy (&self->shared_queues);
     </action>
 </method>
 
@@ -232,6 +282,35 @@
         amq_server_connection_unbind_queue (connection, queue);
         connection = amq_server_connection_list_next (&connection);
     }
+    </action>
+</method>
+
+<method name = "delete queue" template = "async function" async = "1">
+    <doc>
+    Unbind and delete a queue from the broker.
+    </doc>
+    <argument name = "queue" type = "amq_queue_t *">The queue to unbind</argument>
+    //
+    <possess>
+    queue = amq_queue_link (queue);
+    </possess>
+    <release>
+    amq_queue_unlink (&queue);
+    </release>
+    //
+    <action>
+    amq_exchange_t
+        *exchange;
+
+    //  Go through all exchanges & bindings, remove link to queue
+    exchange = amq_exchange_global_first (self->exchange_list);
+    while (exchange) {
+        amq_exchange_unbind_queue (exchange, queue);
+        exchange = amq_exchange_global_next (&exchange);
+    }
+    //  Remove the queue from queue list and queue table
+    amq_queue_global_remove (queue);
+    amq_queue_table_remove (queue);
     </action>
 </method>
 
@@ -286,6 +365,40 @@
     }
     </action>
 </event>
+
+<private name = "header">
+//  Prototypes for local functions
+static void
+s_exchange_declare (
+    amq_broker_t *self, char *name, int type, Bool default_exchange, Bool auto_federate);
+</private>
+
+<private name = "footer">
+static void
+s_exchange_declare (
+    amq_broker_t *self,
+    char *name,
+    int   type,
+    Bool  default_exchange,
+    Bool  auto_federate)
+{
+    amq_exchange_t
+        *exchange;                      //  Predeclared exchange
+    exchange = amq_exchange_new (
+        self,                           //  Parent broker
+        type,                           //  Exchange type
+        name,                           //  Exchange name
+        default_exchange,               //  Internal?
+        auto_federate);                 //  Federate automatically?
+    assert (exchange);
+
+    //  If this is the default exchange grab hold of it in self
+    if (default_exchange)
+        self->default_exchange = exchange;
+    else
+        amq_exchange_unlink (&exchange);
+}
+</private>
 
 <method name = "selftest" />
 

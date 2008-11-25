@@ -3,17 +3,26 @@ OpenAMQ change log
 AMQP changes for 0.92
     - exchange.declare-ok - add properties result
     - queue.declare-ok - add properties result
-    - basic.consume - make assertive, accept existing consumer tags
     - basic.cancel - explicitly document as assertive
     - exchange.delete - explicitly document as assertive
     - queue.delete - explicitly document as assertive
     - queue.unbind - explicitly document as assertive, queue may be gone
     - basic.ack - make synchronous, reply is ack-ok
     - basic.reject - make synchronous, reply is reject-ok
-    - rest class
+    - restms class
+        (replaces) - basic.consume - make assertive, accept existing consumer tags
     - direct class
+    - content class properties:
+        - remove unused properties
+        - add timestamping for latency tracking
+        - add/clarify routing and addressing properties
 
 TODO
+    - make PAL arrived processing faster when possible
+    - remove all content class variability in asl scripts
+    - show broker HA status via amq_shell
+    - show connection direct status via amq_shell
+    - show last exchange as well as type on amq_shell queue page
     - implement persistent queues
         - only for get/ack
         - mainly for RESTful access
@@ -25,6 +34,7 @@ TODO
     - remove C++ templates
     - reorganize openamq archive to be clean
     - merge amq_queue_basic & amq_queue_base into amq_queue
+    - make web-based amq_shell tool using http server
     - fix/remove settle time in server (before/after socket? federation?)
     - solve DoS - create too many queues, exchanges, bindings
         - quotas per connection
@@ -38,30 +48,61 @@ TODO
             - perhaps using group name in item name
         - need concept of arbitrary user groups
         - document as new security model proposal
-    - add latency measurement to messages
-       - random sampling 1 in 1,000
-       - also measure time for smt write
-       - show frequency spread over N slots
-       - option to log to a file...
     - allow primary in failover to come up alone
     - make federation work with failover
     - consider how to make federation work asynchronously (queue to queue?)
     - consider how to implement reliable req-resp and pub-sub
         - using persistent exchange to back the data
     - rename base to base1 and reversion base2
+    - direct mode: allow unlimited connections from client (not 6)
+        - test cost of looking up via hash table
+    - remove vhost from broker, use only in cluster identification
+    - return unroutable/unqueuable messages published in direct mode
 
-idea: OpenAMQ running somewhere, accepts RESTful accesses via Internet.  Web page shows up time and statistics of usage.  Prize for being able to crash the server... (Send us script, get your name on the web page)
+2008-11-19
 
+* fixed: Direct Mode lease management had thread safety issues (1.3, 1.4).
+    amq_exchange_base.icl
+    amq_lease.icl
+* fixed: credit-based flow control in normal mode was not robust (1.3, 1.4).
+    amq_queue_base.icl
+    amq_server_channel.icl
 
-2008-10-03
+2008-11-17
+
+* fixed: PAL crashed when receiving contents greated than 1024 large - fixed (1.3, 1.4)
+* added: session->timestamp property (1.3, 1.4)
+* added: session includes tables returned by AMQP methods (1.3, 1.4)
+* added: latency measurement framework (1.3, 1.4)
+    FIX DOC advanced
+    FIX DOC: wireapi config
+* fixed: failover used weak keys for amq.status (1.4)
+    amq_failover.icl
+
+2008-11-16
+
+* fixed: queue overflow code crashed on shared queues (DAMQ-18) (1.3, 1.4)
+* fixed: on slow networks, broker sometimes asserted on setup_timer destroy (DAMQ-19) (1.3, 1.4)
+
+2008-11-15
+
+* changed: auto-named queues now called "auto.nnn" instead of "#nnn" for compatibility with topic routing. (1.4)
+    amq_server.asl
+
+2008-11-14
+
+* fixed: consumers not properly destroyed on queue_delete (unlogged issue) (1.2, 1.3, 1.4)
+    - s_destroy_consumers was inside <action> block, in synchronous basic queue agent
+
+2008-11-03
 
 * added wireapi.h for WireAPI programs (1.3, 1.4)
     FIX DOC wireapi
 
-2008-10-01
+2008-11-01
 
-* added: WireAPI postmortem facility for debugging lost/dropped messages (1.4, 11442->7).
-    FIX DOC wireapi
+* added: WireAPI postmortem facility for debugging lost/dropped messages (1.3, 1.4).
+    FIX DOC wireapi, check 'postmortem' in asl_client_agent.gsl.
 
 2008-10-31
 
@@ -113,7 +154,7 @@ idea: OpenAMQ running somewhere, accepts RESTful accesses via Internet.  Web pag
 2008-10-08
 
 * added WIREAPI_FAKESLOW environment variable to simulate slow network at client end (http://www.openamq.org/issue:22)
-    
+
 2008-10-07
 
 * fixed loss of messages caused by Direct Mode heartbeating (http://www.openamq.org/issue:20)
@@ -179,7 +220,7 @@ idea: OpenAMQ running somewhere, accepts RESTful accesses via Internet.  Web pag
 
 * JAMQ-120: fixed rare crash on read from closing socket
 
-2008-09-04 
+2008-09-04
 
 * Renamed arrived_high_water/low_water to high_water/low_water in wireapi.cfg
 * Added direct option to wireapi.cfg
@@ -213,4 +254,3 @@ Changes to failover functionality
 2008-07-28
 
 * Fixed crash at server startup if could not resolve own hostname (win32) (http://www.openamq.org/issue:3)
-

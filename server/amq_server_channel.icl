@@ -26,6 +26,13 @@
 This class implements the AMQ server channel class.  The channel holds
 a set of consumers managed both as a list and as a lookup table.  The
 maximum number of consumers per channel is set at compile time.
+
+Channel flow control: each channel gets a credit window when it gets a
+consumer.  This window defines the maximum size of its flow queue, the
+number of contents it has received from a queue but not yet handed to
+SMT.  When the channel receives a content from a queue, it spends a
+credit.  When it passes a content to SMT it earns a credit.  Queues
+check the credit to decide whether or not to use the channel's consumers.
 </doc>
 
 <inherit class = "asl_server_channel" />
@@ -39,19 +46,12 @@ maximum number of consumers per channel is set at compile time.
     icl_shortstr_t
         current_exchange,               //  Last exchange declared on channel
         current_queue;                  //  Last queue declared on channel
-    int                          
-        credit,                         //  Current credit remaining
-        gained,                         //  Credit gained through work
-        window;                         //  Maximum credit window
-    qbyte
-        solvent;                        //  When we have credit left
 </context>
 
 <method name = "new">
     self->consumer_list = amq_consumer_by_channel_new ();
     if (amq_broker)                     //  Null during self-testing
         self->mgt_connection = amq_connection_new (amq_broker, self);
-    amq_server_channel_set_window (self, 0);
 </method>
 
 <method name = "destroy">
@@ -101,10 +101,9 @@ maximum number of consumers per channel is set at compile time.
 
 <method name = "consume" template = "async function" async = "1">
     <doc>
-    Creates a new channel consumer as specified.  Mechanism is as
-    follows: server_channel creates consumer, then attaches it to
-    own consumer list and sends to queue so that queue can add
-    consumer to its consumer list.
+    Creates a new channel consumer as specified.  Mechanism is as follows:
+    server_channel creates consumer, then attaches it to own consumer list
+    and sends to queue so that queue can add consumer to its consumer list.
     </doc>
     <argument name = "queue"  type = "amq_queue_t *">Queue to consume from</argument>
     <argument name = "method" type = "amq_server_method_t *">Consume method</argument>
@@ -123,65 +122,48 @@ maximum number of consumers per channel is set at compile time.
     amq_consumer_t
         *consumer = NULL;
 
-    //  If consumer tag specified, ignore re-consume of same tag
     if (strused (method->payload.basic_consume.consumer_tag))
         consumer = amq_consumer_table_search (
             self->connection->consumer_table, method->payload.basic_consume.consumer_tag);
 
-    if (consumer)
-        amq_server_agent_basic_consume_ok (
-            self->connection->thread, self->number, consumer->tag);
+    //  If consumer tag specified, ignore re-consume of same tag on same queue
+    if (consumer) {
+        if (consumer->queue == queue)
+            amq_server_agent_basic_consume_ok (
+                self->connection->thread, self->number, consumer->tag);
+        else
+            amq_server_channel_error (self, ASL_NOT_ALLOWED, "Consumer tag used on other queue",
+                AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_CONSUME);
+    }
     else {
         consumer = amq_consumer_new (self->connection, self, queue, method);
         if (consumer) {
             amq_consumer_by_channel_queue (self->consumer_list, consumer);
             amq_queue_consume (queue, consumer, self->active, nowait);
             if (queue->exclusive)
-                amq_server_channel_set_window (self, amq_server_config_private_credit (amq_server_config));
+                self->credit = amq_server_config_private_credit (amq_server_config);
             else
-                amq_server_channel_set_window (self, amq_server_config_shared_credit (amq_server_config));
+                self->credit = amq_server_config_shared_credit (amq_server_config);
+            if (self->credit == 0)
+                self->credit = 1;
         }
-        else
+        else {
+            amq_server_channel_error (self, ASL_RESOURCE_ERROR, "Unable to create consumer",
+                AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_CONSUME);
             smt_log_print (amq_broker->alert_log, "W: cannot create consumer - too many consumers?");
+        }
     }
     amq_consumer_unlink (&consumer);
     </action>
 </method>
 
-<method name = "set window" template = "function">
-    <doc>
-    Sets the channel's credit window.  Always resets the credit.  For internal
-    use by this method only (not an async function).
-    </doc>
-    <argument name = "window" type = "int" />
-    //
-    self->window = window;
-    self->credit = window;
-    self->solvent = 1;
-    self->gained = 0;
-</method>
-
-<method name = "spend">
-    <action>
-    //  Credit can go negative since it's all async
-    //  Do nothing if the window is zero
-    if (self->window && --self->credit == 0)
-        icl_atomic_set32 (&self->solvent, 0);
-    </action>
-</method>
-
 <method name = "earn">
-    <action>
+    <local>
     amq_consumer_t
         *consumer;                      //  Consumer object reference
+    </local>
     //
-    //  If we've gained enough, refill our credit
-    //  Do nothing if the window is zero
-    if (self->window && ++self->gained == self->window) {
-        self->credit = self->gained;
-        self->gained = 0;
-        self->solvent = 1;
-
+    if (icl_atomic_get32 ((volatile qbyte *) &self->credit) == 1) {
         //  Dispatch all queues for the channel
         consumer = amq_consumer_by_channel_first (self->consumer_list);
         while (consumer) {
@@ -189,7 +171,6 @@ maximum number of consumers per channel is set at compile time.
             consumer = amq_consumer_by_channel_next (&consumer);
         }
     }
-    </action>
 </method>
 
 <method name = "cancel" template = "async function" async = "1" on_shutdown = "1">
