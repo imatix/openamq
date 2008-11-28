@@ -383,6 +383,8 @@ for each type of exchange. This is a lock-free asynchronous class.
     if (self->mta)
         amq_cluster_mta_binding_created (self->mta, routing_key, arguments);
 
+    amq_queue_set_last_binding (queue, binding->exchange->type, routing_key,
+        arguments);
     amq_binding_bind_queue (binding, queue);
     amq_binding_unlink (&binding);
     ipr_hash_unlink (&hash);
