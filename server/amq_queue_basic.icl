@@ -142,8 +142,8 @@ runs lock-free as a child of the asynchronous queue class.
                 smt_log_print (amq_broker->alert_log,
                         "E: red alert on queue=%s, reached %d, killing queue %s", 
                         self->queue->name, queue_size, client_identifier);
-                if (self->queue->exclusive && connection)
-                    amq_server_connection_error (connection,
+                if (self->queue->exclusive)
+                    amq_server_connection_error (self->queue->connection,
                         ASL_RESOURCE_ERROR, "Queue overflow, connection killed",
                         AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_PUBLISH);
                 else
@@ -158,8 +158,6 @@ runs lock-free as a child of the asynchronous queue class.
         self->dropped = FALSE;
         self->trimmed = FALSE;
     }
-    amq_server_connection_unlink (&connection);
-
     if (content) {
         //  If immediate, and no consumers, return the message
         rejected = FALSE;
