@@ -1,3 +1,17 @@
+1.1b7 - 2008/11/28
+---------------------------------------------------------------------
+
+Bugfixes:
+    JAMQ-115   exchange_type, routing_key and binding_args details missing in
+               amq_shell output
+
+          29   Memory access error in asl_field_list
+               (http://www.openamq.org/issue:29)
+
+Changes:
+    JAMQ-127   Add instance name (client id) also to yellow/orange alerts on
+               queue
+
 1.1b6 - 2008/09/16
 ---------------------------------------------------------------------
 
