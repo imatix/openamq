@@ -34,7 +34,7 @@
     <project directory = "wireapi" />
     <project directory = "server"  />
     <project directory = "shell"   />
-    <project directory = "restms"  />
+    <project directory = "zyre"    />
 </distrib>
 
 <distrib name = "OpenAMQ install" type = "install">
@@ -42,7 +42,7 @@
     <project directory = "wireapi" />
     <project directory = "server"  />
     <project directory = "shell"   />
-    <project directory = "restms"  />
+    <project directory = "zyre"    />
 </distrib>
 
 </pdl>

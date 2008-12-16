@@ -1,3 +1,4 @@
+
 OpenAMQ change log
 
 AMQP changes for 0.92
@@ -10,7 +11,6 @@ AMQP changes for 0.92
     - basic.ack - make synchronous, reply is ack-ok
     - basic.reject - make synchronous, reply is reject-ok
     - restms class
-        (replaces) - basic.consume - make assertive, accept existing consumer tags
     - direct class
     - content class properties:
         - remove unused properties
@@ -18,16 +18,20 @@ AMQP changes for 0.92
         - add/clarify routing and addressing properties
 
 TODO
+    - in documentation, amq_peering.cfg not mentioned
+        - this provides credential for failover connections
+        - and also for federation connections
+        - unless this file is used, will use default credentials
+    - wiki.amq.org:
+        - update new version of 4-DMP for options flag
+        - write new specification for RestMS
+        - restore awesomer picture on wiki
+        - index of all known AMQP products and what they support
     - make PAL arrived processing faster when possible
     - remove all content class variability in asl scripts
     - show broker HA status via amq_shell
     - show connection direct status via amq_shell
     - show last exchange as well as type on amq_shell queue page
-    - implement persistent queues
-        - only for get/ack
-        - mainly for RESTful access
-        - back the queue using SQLite
-        - add SQLite to foreign
     - put debian packaging into release package
     - remove unused IPR classes
     - remove C++ generation from boom
@@ -36,9 +40,30 @@ TODO
     - merge amq_queue_basic & amq_queue_base into amq_queue
     - make web-based amq_shell tool using http server
     - fix/remove settle time in server (before/after socket? federation?)
+    - use portals for exchange implementation interface
+    - make user extensible exchange interface (FastCGI style)
+    - implement regexp exchange
+        - performance testing of different exchanges & tuning
+    - implement fuzzy text search exchange
+        - use Leif's algorithms...
+        - example for picking up news items, public news server -> RSS
+    - implement rotator exchange
+        - show how shared queue can be implemented as exchange
+    - implement last-held-values for topic exchange
+        - trivial type of exchange
+    - tune topic exchange binding etc.
+        - save all topic keys at shutdown
+        - reload known topic keys at startup
     - solve DoS - create too many queues, exchanges, bindings
         - quotas per connection
         - connections per IP address
+    - consider how to implement reliable req-resp and pub-sub
+        - use persistent exchange, not queue, to back the data
+    - implement persistent queues
+        - only for get/ack
+        - mainly for RESTful access
+        - back the queue using SQLite
+        - add SQLite to foreign
     - solve security on exchanges, bindings, queues
         - set permissions on declare
             - world, group, owner
@@ -50,23 +75,62 @@ TODO
         - document as new security model proposal
     - allow primary in failover to come up alone
     - make federation work with failover
-    - consider how to make federation work asynchronously (queue to queue?)
-    - consider how to implement reliable req-resp and pub-sub
-        - using persistent exchange to back the data
+        - already records/replays via peering
+        - need to include failover detection & recovery
     - rename base to base1 and reversion base2
     - direct mode: allow unlimited connections from client (not 6)
         - test cost of looking up via hash table
-    - remove vhost from broker, use only in cluster identification
-    - return unroutable/unqueuable messages published in direct mode
+    - make regression test set for server
+        - send to shared queue and read back
+        - pubsub over topic exchange
+        - direct mode publisher
+        - direct mode subscriber
+        - returned messages, all modes
+        - run peering test case
+    - send warnings to amq.notify (check CML spec)
+    - win32 support improvements
+        - msvs2008 project files from Boom
+        - win32 installer
+        - win32 service interface
+        - win32 front-end (maybe portable GUI? Clutter?)
+    - redesign queue->consumer->channel using portals
+    - also for exchange->binding->queue?
+
+2008-12-10
+
+* fixed: icl_console output trims whitespace at end of line (1.3, 1.4)
+
+2008-12-08
+
+* fixed: Queue.Delete calls self-destructor for better link mgt (1.4)
+
+2008-12-07
+
+* fixed: PAL scripts did not free client config (1.3, 1.4)
+    asl_pal_stdc.gsl
+* added: PAL scripts can now set command timeout in session (1.3, 1.4)
+    asl_pal_stdc.gsl
+* fixed: queue deletion could crash on destroyed channel (1.2, 1.3, 1.4)
+    amq_server_channel.icl
+
+2008-11-30
+
+* removed: peer host and peer name from asynch client agent connection properties (1.4)
+
+2008-11-26
+
+* changed: virtual host framework removed from server (1.4)
+* changed: DMP-4 upgraded to store publish flag byte (1.3, 1.4)
+    - see spec in base2/asl/notes.txt
+    - need to expand DMP to allow arbitrary envelopes
+* fixed: Basic.Publish 'immediate' functionality was broken (1.3, 1.4)
+* fixed: Direct Mode did not handle mandatory and immediate (1.3, 1.4)
+    - fixed, see examples/test_routing.pal
 
 2008-11-19
 
-* fixed: Direct Mode lease management had thread safety issues (1.3, 1.4).
-    amq_exchange_base.icl
-    amq_lease.icl
-* fixed: credit-based flow control in normal mode was not robust (1.3, 1.4).
-    amq_queue_base.icl
-    amq_server_channel.icl
+* fixed: Direct Mode lease management had thread safety issues (1.3, 1.4)
+* fixed: credit-based flow control in normal mode was not robust (1.3, 1.4)
 
 2008-11-17
 
@@ -86,6 +150,7 @@ TODO
 
 2008-11-15
 
+* fixed: SMT sockets crashed after constant use for 2^31 operations (1.2, 1.3, 1.4)
 * changed: auto-named queues now called "auto.nnn" instead of "#nnn" for compatibility with topic routing. (1.4)
     amq_server.asl
 

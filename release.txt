@@ -15,6 +15,12 @@ All changes in 1.3c3 plus:
 
 ++ 1.3c3 - unreleased
 
+* fixed: SMT sockets crashed after constant use for 2^31 operations (BASE2-301)
+* fixed: PAL scripts did not free client config
+* added: PAL scripts can now set command timeout in session
+* fixed: queue deletion could crash on destroyed channel
+* fixed: Direct Mode did not handle mandatory and immediate (http://www.openamq.org/issue:36)
+* fixed: Basic.Publish 'immediate' functionality was broken since 1.3a.
 * fixed: queue overflow code crashed on shared queues (DAMQ-18)
 * fixed: on slow networks, broker sometimes asserted on setup_timer destroy (DAMQ-19)
 * fixed: PAL crashed when receiving contents greated than 1024 large
@@ -95,6 +101,7 @@ This update includes all fixes in 1.2d2 as well as:
 
 ++ 1.2e0 - unreleased
 
+* fixed: queue deletion could crash on destroyed channel
 
 ++ 1.2d8 - 2008/11/04
 
