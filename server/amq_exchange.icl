@@ -36,15 +36,13 @@ for each type of exchange. This is a lock-free asynchronous class.
     <option name = "hash_type" value = "str" />
     <option name = "initial_size" value = "15" />
 </inherit>
-<inherit class = "icl_list_item">
-    <option name = "prefix" value = "global" />
-</inherit>
+<inherit class = "icl_list_item" />
 <inherit class = "amq_console_object" />
 <inherit class = "smt_object_tracker" />
 
 <!-- Console definitions for this object -->
 <data name = "cml">
-    <class name = "exchange" parent = "broker" label = "Exchange">
+    <class name = "exchange" parent = "amq_broker" label = "Exchange">
         <field name = "name">
           <get>icl_shortstr_cpy (field_value, self->name);</get>
         </field>
@@ -105,7 +103,8 @@ for each type of exchange. This is a lock-free asynchronous class.
             void                 *self,
             amq_server_channel_t *channel,
             amq_content_basic_t  *content,
-            int                   group);
+            int                   group,
+            Bool                  immediate);
     int
         (*compile) (
             void                 *self,
@@ -210,7 +209,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         smt_log_print (amq_broker->alert_log,
             "E: invalid type '%d' in exchange_new", self->type);
 
-    amq_exchange_global_queue (amq_broker->exchange_list, self);
+    amq_exchange_list_queue (amq_broker->exchange_list, self);
 
     //  EXCHANGE FEDERATION ===================================================
     //
@@ -508,8 +507,8 @@ for each type of exchange. This is a lock-free asynchronous class.
     </doc>
     <argument name = "channel"   type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "content"   type = "amq_content_basic_t *">Content to publish</argument>
-    <argument name = "mandatory" type = "Bool" />
-    <argument name = "immediate" type = "Bool" />
+    <argument name = "mandatory" type = "Bool">Route to queue or return?</argument>
+    <argument name = "immediate" type = "Bool">Send immediately or return?</argument>
     <argument name = "group"     type = "int">User group, from connection</argument>
     //
     <possess>
@@ -538,7 +537,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         delivered = 1;                  //  Just fake it
     else
         //  Publish message locally
-        delivered = self->publish (self->object, channel, content, group);
+        delivered = self->publish (self->object, channel, content, group, immediate);
 
     //  Publish message to federation if necessary. We don't have the problem
     //  of message loops with fanout federations because we only push back to
@@ -591,45 +590,6 @@ for each type of exchange. This is a lock-free asynchronous class.
 </method>
 
 <method name = "unbind queue" template = "async function" async = "1">
-    <doc>
-    Unbind a queue from the exchange. Called when queue is being destroyed.
-    All the bindings to specific queue are destroyed.
-    </doc>
-    <argument name = "queue" type = "amq_queue_t *">The queue to unbind</argument>
-    //
-    <possess>
-    queue = amq_queue_link (queue);
-    </possess>
-    <release>
-    amq_queue_unlink (&queue);
-    </release>
-    //
-    <action>
-    amq_queue_bindings_list_t
-        *queue_bindings;                //  List of bindings for queue
-    amq_binding_t
-        *binding;
-
-    queue_bindings =
-        amq_queue_bindings_list_table_search (self->queue_bindings, queue->name);
-    if (queue_bindings) {
-        //  Iterate over queue_bindings list, removing each binding
-        while (1) {
-            binding = amq_queue_bindings_list_pop (queue_bindings);
-            if (!binding)
-                break;
-            if (amq_binding_unbind_queue (binding, queue))
-                //  If binding is now empty, destroy it
-                self->unbind (self->object, binding);
-            amq_binding_unlink (&binding);
-        }
-        //  Per-queue bindings list is now empty, destroy it
-        amq_queue_bindings_list_destroy (&queue_bindings);
-    }
-    </action>
-</method>
-
-<method name = "protocol unbind queue" template = "async function" async = "1">
     <doc>
     Unbind a queue from the exchange.  This method implements the queue.unbind
     protocol command.  We search for the specific binding to unbind, as opposed
@@ -688,6 +648,45 @@ for each type of exchange. This is a lock-free asynchronous class.
             amq_queue_bindings_list_destroy (&queue_bindings);
         else
             amq_queue_bindings_list_unlink (&queue_bindings);
+    }
+    </action>
+</method>
+
+<method name = "broker unbind queue" template = "async function" async = "1">
+    <doc>
+    Unbind a queue from the exchange. Called when queue is being destroyed.
+    All the bindings to specific queue are destroyed.
+    </doc>
+    <argument name = "queue" type = "amq_queue_t *">The queue to unbind</argument>
+    //
+    <possess>
+    queue = amq_queue_link (queue);
+    </possess>
+    <release>
+    amq_queue_unlink (&queue);
+    </release>
+    //
+    <action>
+    amq_queue_bindings_list_t
+        *queue_bindings;                //  List of bindings for queue
+    amq_binding_t
+        *binding;
+
+    queue_bindings =
+        amq_queue_bindings_list_table_search (self->queue_bindings, queue->name);
+    if (queue_bindings) {
+        //  Iterate over queue_bindings list, removing each binding
+        while (1) {
+            binding = amq_queue_bindings_list_pop (queue_bindings);
+            if (!binding)
+                break;
+            if (amq_binding_unbind_queue (binding, queue))
+                //  If binding is now empty, destroy it
+                self->unbind (self->object, binding);
+            amq_binding_unlink (&binding);
+        }
+        //  Per-queue bindings list is now empty, destroy it
+        amq_queue_bindings_list_destroy (&queue_bindings);
     }
     </action>
 </method>

@@ -253,7 +253,7 @@
     if (exchange) {
         queue = amq_queue_table_search (amq_broker->queue_table, method->queue);
         if (queue) {
-            amq_exchange_protocol_unbind_queue (
+            amq_exchange_unbind_queue (
                 exchange, channel, queue, method->routing_key, method->arguments);
             if (!method->nowait)
                 amq_server_agent_queue_unbind_ok (connection->thread, channel->number);
@@ -286,9 +286,9 @@
             amq_server_agent_queue_delete_ok (
                 connection->thread, channel->number, amq_queue_message_count (queue));
 
-        //  Destroy the queue on this peer
-        amq_broker_delete_queue (amq_broker, queue);
-        amq_queue_destroy (&queue);
+        //  Destroy method does not properly release all links to queue
+        amq_queue_self_destruct (queue);
+        amq_queue_unlink (&queue);
     }
     else
         amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined",
@@ -321,7 +321,7 @@
 <class name = "basic">
   <action name = "qos">
     //  Does not do anything except respond Qos-Ok
-    amq_server_agent_basic_qos_ok (channel->connection->thread, channel->number);
+    amq_server_agent_basic_qos_ok (connection->thread, channel->number);
   </action>
 
   <action name = "consume">
@@ -337,7 +337,7 @@
     queue = amq_queue_table_search (amq_broker->queue_table, method->queue);
     if (queue) {
         //  The channel is responsible for creating/canceling consumers
-        amq_server_channel_consume (channel, queue, self, method->nowait);
+        amq_server_channel_consume (channel, queue, self);
         amq_queue_unlink (&queue);
     }
     else
@@ -427,9 +427,9 @@
         *lease;
     </local>
     //
-    lease = amq_lease_new (method->sink, DP_SINK, connection);
+    lease = amq_lease_new (method->sink, DP_SINK, channel);
     if (lease) {
-        amq_server_agent_direct_put_ok (channel->connection->thread, channel->number, lease->name);
+        amq_server_agent_direct_put_ok (connection->thread, channel->number, lease->name);
         amq_lease_unlink (&lease);
     }
     else
@@ -444,9 +444,9 @@
         *lease;
     </local>
     //
-    lease = amq_lease_new (method->feed, DP_FEED, connection);
+    lease = amq_lease_new (method->feed, DP_FEED, channel);
     if (lease) {
-        amq_server_agent_direct_get_ok (channel->connection->thread, channel->number, lease->name);
+        amq_server_agent_direct_get_ok (connection->thread, channel->number, lease->name);
         amq_lease_unlink (&lease);
     }
     else
@@ -457,63 +457,33 @@
 </class>
 
 <class name = "restms">
+  <action name = "pipe-create">
+    amq_resource_pipe_create (method->pipe_class, method->pipe_name, channel);
+  </action>
+  <action name = "pipe-delete">
+    amq_resource_pipe_delete (method->pipe_name);
+  </action>
+
   <action name = "feed-create">
-    <local>
-    int
-        response;
-    icl_shortstr_t
-        reply_text;
-    </local>
-    //
-    response = amq_resource_feed_create (
-        method->feed_name, method->class_name, reply_text);
-    amq_server_agent_restms_feed_create_ok (
-        channel->connection->thread, channel->number,
-        response, reply_text);
+    amq_resource_feed_create (method->feed_class, method->feed_name);
   </action>
-
-  <action name = "feed-query">
-    <local>
-    int
-        response;
-    icl_shortstr_t
-        reply_text;
-    asl_field_list_t
-        *field_list;
-    icl_longstr_t
-        *properties;
-    </local>
-    //
-    field_list = asl_field_list_new (NULL);
-    response = amq_resource_feed_query (
-        method->feed_name, field_list, reply_text);
-    properties = asl_field_list_flatten (field_list);
-    asl_field_list_destroy (&field_list);
-    amq_server_agent_restms_feed_query_ok (
-        channel->connection->thread, channel->number,
-        response, reply_text, properties);
-    icl_longstr_destroy (&properties);
-  </action>
-
   <action name = "feed-delete">
+    amq_resource_feed_delete (method->feed_name);
   </action>
 
-  <action name = "feed-class-query">
-    <local>
-    int
-        response;
-    icl_shortstr_t
-        reply_text;
-    icl_longstr_t
-        *feed_list;
-    </local>
-    //
-    response = amq_resource_feed_query_class (
-        method->feed_name, feed_list, reply_text);
-    amq_server_agent_restms_feed_query_class_ok (
-        channel->connection->thread, channel->number,
-        response, reply_text, feed_list);
-    icl_longstr_destroy (&feed_list);
+  <action name = "join-create">
+    //  Order of arguments follows join URI syntax
+    amq_resource_join_create (
+        method->pipe_class, method->pipe_name,
+        method->address,
+        method->feed_name, method->feed_class,
+        channel);
+  </action>
+  <action name = "join-delete">
+    //  Order of arguments follows join URI syntax
+    amq_resource_join_delete (
+        method->pipe_name, method->address, method->feed_name,
+        channel);
   </action>
 </class>
 

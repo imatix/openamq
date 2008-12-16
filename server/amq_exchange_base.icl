@@ -71,6 +71,7 @@ This is an abstract base class for all exchange implementations.
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "content" type = "amq_content_basic_t *">Content to publish</argument>
     <argument name = "group" type = "int">User group, from connection</argument>
+    <argument name = "immediate" type = "Bool">Send immediately or return?</argument>
     <declare name = "rc" type = "int" default = "0">Return code</declare>
     <local>
     $(selftype)
@@ -129,7 +130,7 @@ This is an abstract base class for all exchange implementations.
                     s_direct_deliver (last_queue, content, lease);
             }
             else {
-                amq_queue_publish (last_queue, channel, content, FALSE);
+                amq_queue_publish (last_queue, channel, content, immediate);
                 if (amq_server_config_debug_route (amq_server_config))
                     smt_log_print (amq_broker->debug_log, "X: deliver  queue=%s",
                         last_queue->key);
@@ -197,7 +198,7 @@ s_direct_deliver (amq_queue_t *queue, amq_content_basic_t *content, amq_lease_t 
     if (queue->warn_limit && queue_size >= queue->warn_limit && !queue->warned) {
         smt_log_print (amq_broker->alert_log,
             "I: queue=%s hit %d messages: no action (%s, %s, %s %s)",
-            queue->name, queue_size, 
+            queue->name, queue_size,
             queue->connection->client_address,
             queue->connection->client_product,
             queue->connection->client_version,
@@ -226,7 +227,7 @@ s_direct_deliver (amq_queue_t *queue, amq_content_basic_t *content, amq_lease_t 
         queue->contents_out++;
         queue->traffic_out += content->body_size;
 
-        amq_server_agent_direct_out (lease->thread, content);
+        amq_server_agent_direct_out (lease->thread, content, 0);
         icl_atomic_inc32 ((volatile qbyte *) &(amq_broker->direct_fed));
         if (amq_server_config_debug_route (amq_server_config))
             smt_log_print (amq_broker->debug_log,
