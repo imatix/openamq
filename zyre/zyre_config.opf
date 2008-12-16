@@ -1,0 +1,112 @@
+<?xml?>
+<!--
+    Copyright (c) 1996-2008 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<opf
+    name    = "zyre_config"
+    comment = "Zyre configuration properties"
+    script  = "opf_gen"
+    root    = "config"
+    config  = "zyre.cfg"
+    >
+
+<!--
+    This file inherits the configuration properties from the HTTP server config,
+    so that Zyre users do not need to manage two config files.  Since we use
+    the http library in Zyre, we load configuration data into http_config as
+    that library expects.
+ -->
+
+<inherit filename = "http_config.opf" />
+
+<public>
+extern $\(selftype)
+    *zyre_config;                     //  Zyre properties object
+</public>
+
+<private>
+$\(selftype)
+    *zyre_config = NULL;
+</private>
+
+<path name = "server">
+    <property name = "name" type = "char *" default = "www.zyre.com" prefix = "server">
+    Announced server name
+    <doc>
+    Specifies the Server: header field name for HTTP responses.
+    </doc>
+    </property>
+</path>
+
+<path name = "amqp" prefix = "amqp">
+    <property name = "autorun" type = "char *" default = "amq_server">
+    AMQP server to start
+    <doc>
+    Specifies the broker to start, when Zyre starts.
+    </doc>
+    </property>
+
+    <property name = "hostname" type = "char *" default = "localhost">
+    AMQP server to connect to
+    <doc>
+    Specifies the hostname and optionally port number to connect to.
+    </doc>
+    </property>
+
+    <property name = "username" type = "char *" default = "guest">
+    AMQP user name
+    <doc>
+    Specifies the user name to use for AMQP connections.
+    </doc>
+    </property>
+
+    <property name = "password" type = "char *" default = "guest">
+    AMQP password
+    <doc>
+    Specifies the password to use for AMQP connections.  Credentials are
+    always passed using the SASL BASIC mechanism.
+    </doc>
+    </property>
+
+    <property name = "timeout" type = "int" default = "5">
+    Peering timeout, seconds
+    <doc>
+    Defines the maximum amount of time connection negotiation may take,
+    before the connection is forcibly closed by the server.
+    </doc>
+    </property>
+
+    <property name = "trace" type = "int" default = "0">
+    AMQP trace level
+    <doc>
+    Specifies the AMQP protocol trace level, which can be 0 (no tracing),
+    1 (show information and protocol methods), 2 (show protocol animation),
+    3 (show wire-level data).
+    </doc>
+    </property>
+
+    <property name = "debug" type = "Bool" default = "0">
+    Debug peering messages?
+    <doc>
+    Specifies whether AMQP peering activity is logged or not.
+    </doc>
+    </property>
+</path>
+
+<!-- These paths are allowed, but ignored -->
+<path name = "security" />
+
+</opf>

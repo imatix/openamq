@@ -1,0 +1,205 @@
+**********************************   ROOT
+
+GET /restms
+    Query RestMS topology
+    returns list of supported pipe and feed classes
+    returns XML content
+        <restms version = "1.0" status = "ok">
+          <pipe_class name = "pipe" uri="http://localhost/restms/pipe" />
+          <feed_class name = "fanout" uri="http://localhost/restms/fanout" />
+          <feed_class name = "direct" uri="http://localhost/restms/direct" />
+          <feed_class name = "topics" uri="http://localhost/restms/topics" />
+          <feed_class name = "header" uri="http://localhost/restms/header" />
+          <feed_class name = "service" uri="http://localhost/restms/service" />
+          <feed_class name = "rotator" uri="http://localhost/restms/rotator" />
+        </restms>
+
+**********************************   PIPES
+
+PUT /restms/{pipe-class}
+    create server-named pipe
+    returns XML content
+        <restms version = "1.0" status = "ok">
+          <pipe name="name" uri="http://localhost/{pipe-class}/{pipe-name}" />
+        </restms>
+
+GET /restms/{pipe-class}
+    gets information about pipe class
+    returns XML content
+        <restms version = "1.0" status = "ok">
+          <pipe_class name = "pipe" size = "{size}" />
+        </restms>
+
+**********************************   PIPE
+
+PUT /restms/{pipe-class}/{pipe-name}
+    Create client-named pipe
+    creates a new pipe resource
+    returns XML content
+        <restms version = "1.0" status = "ok">
+          <pipe name="name" uri="http://localhost/{pipe-class}/{pipe-name}" />
+        </restms>
+
+GET /restms/{pipe-class}/{pipe-name}
+    Query pipe
+    gets information about the pipe
+    gets a list of all waiting messages
+    returns XML content
+        <restms version = "1.0" status = "ok">
+          <pipe name="name" uri="http://localhost/{pipe-class}/{pipe-name}">
+            <message uri = "http://localhost/{pipe-class}/{pipe-name}/{message-id}" />...
+          </pipe>
+        </restms>
+    => NOTFOUND if not known
+
+DELETE /restms/{pipe-class}/{pipe-name}
+    deletes pipe resource
+    returns XML content
+        <restms version = "1.0" status = "ok" />
+    idempotent, pipe does not need to exist
+
+**********************************   FEEDS
+
+GET /restms/{feed-class}
+    Query feed class
+    returns XML content
+        <restms version = "1.0" status = "ok">
+          <feed_class name = "{feed-class}">
+            <feed name="{feed-name}" uri="http://localhost/{feed-class}/{feed-name}" />
+            ...
+          </feed_class>
+        </restms>
+
+**********************************   FEED
+
+PUT /restms/{feed-class}/{feed-name}
+    Create feed
+    returns XML content
+        <restms version = "1.0" status = "ok">
+          <feed name="{feed-name}" uri="http://localhost/{feed-class}/{feed-name}" />
+        </restms>
+
+GET /restms/{feed-class}/{feed-name}
+    Query feed
+    returns XML content
+        <restms version = "1.0" status = "ok">
+          <feed name="{feed-name}" uri="http://localhost/{feed-class}/{feed-name}" {properties} />
+        </restms>
+    => NOTFOUND if not known
+
+DELETE /restms/{feed-class}/{feed-name}
+    Delete feed
+    returns XML content
+        <restms version = "1.0" status = "ok">
+
+**********************************   JOIN
+
+PUT /restms/{pipe-class}/{pipe-name}/{address-string}@{feed-name}[/{feed-class}]
+    Create feed if needed
+    Create client-named pipe if needed
+    Create feed-to-pipe join
+    returns XML content
+        <restms version = "1.0" status = "ok">
+          <pipe name="name" uri="http://localhost/{pipe-class}/{pipe-name}">
+            <join address = "{address-string}" feed = "{feed-uri}" />
+          </pipe>
+        </restms>
+
+PUT /restms/{address-string}@{feed-name}/{feed-class}?{pipe-class}={pipe-name}
+    Create client-named pipe if needed
+    Create feed-to-pipe join
+    returns XML content
+        <restms version = "1.0" status = "ok">
+          <pipe name="name" uri="http://localhost/{pipe-class}/{pipe-name}">
+            <join address = "{address-string}" feed = "{feed-name}" uri = "{join-uri}" />
+          </pipe>
+        </restms>
+
+GET /restms/{address-string}@{feed-name}?{pipe-class}={pipe-name}
+    Query join
+    if (strused (ipr_dict_table_headers_search (request->args, "pipe")))
+    returns XML content
+        <restms version = "1.0" status = "ok">
+          <pipe name="name" uri="http://localhost/{pipe-class}/{pipe-name}">
+            <join address = "{address-string}" feed = "{feed-uri}" />
+          </pipe>
+        </restms>
+    => NOTFOUND if not known
+
+GET /restms/{address-string}@{feed-name}/{feed-class}?{pipe-class}={pipe-name}
+    Query join, asserting the feed class
+    returns XML content
+        <restms version = "1.0" status = "ok">
+          <pipe name="{feed-name}" class = "{feed-class}">
+            <join address = "{address-string}" pipe = "{pipe-uri}" />
+          </feed>
+        </restms>
+    => NOTFOUND if not known
+    => PRECONDITION if wrong class
+
+DELETE /restms/{address-string}@{feed-name}?{pipe-class}={pipe-name}
+    delete join
+
+DELETE /restms/{address-string}@{feed-name}/{feed-class}?{pipe-class}={pipe-name}
+    delete join, asserting the feed class.
+
+**********************************   ADDRESS
+
+POST /restms/{address-string}@{feed-name}[/{feed-class}] + CONTENT
+    Post to feed address
+    check that feed exists, if different from last
+    address is routing key for exchanges
+    address is message id for shared queues
+
+**********************************   MESSAGE
+
+GET /restms/{pipe-class}/{pipe-name}/{message-selector}
+    Get message from pipe
+    returns message content
+    => NOTFOUND if no message or if pipe does not exist
+
+DELETE /restms/{pipe-class}/{pipe-name}/{message-selector}
+    delete message from pipe.
+
+-----------------------------------------------------------------------------
+
+define pipe that sends messages back to feed
+    - allows proxy selection, macroisation
+
+
+
+
+
+config
+    amqp server name
+    amqp server login and password
+    client logins
+        - basic auths
+        - not same as openamq credentials
+
+- if-modified-since
+- cache-control
+- last-modified-time
+
+=====
+
+Not supported:
+
+* Does not allow binding arguments (headers) yet.
+
+RESTful extensions to AMQP
+    - RestMS protocol class
+    - * in topics matches empty routing-key
+    - empty topic segments are allowed (".value")
+    - Basic.Consume is assertive, idempotent
+        - note that must not allow same tag on different queues
+        -> Subsumed in restms protocol class
+    - Queue.Declare private queues are scoped per connection
+        - names uniquified on server, automatically
+        - in declare, consume, cancel, bind, delete
+        -> This is not implemented in OpenAMQ yet but should be
+        -> Subsumed in restms protocol class
+    - Queue.Delete is assertive
+        - if queue does not exist, still returns Delete-Ok
+        -> Subsumed in restms protocol class
+
