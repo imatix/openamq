@@ -191,10 +191,16 @@ s_free_consumer_queue (amq_consumer_by_queue_t *queue)
 {
     amq_consumer_t
         *consumer;
+    amq_server_channel_t
+        *channel;
 
     if (queue) {
         while ((consumer = amq_consumer_by_queue_pop (queue))) {
-            amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE, TRUE);
+            channel = amq_server_channel_link (consumer->channel);
+            if (channel) {
+                amq_server_channel_cancel (channel, consumer->tag, FALSE, TRUE);
+                amq_server_channel_unlink (&channel);
+            }
             amq_consumer_destroy (&consumer);
         }
     }
