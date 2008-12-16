@@ -22,7 +22,7 @@
     version   = "1.0"
     script    = "smt_object_gen"
     target    = "smt"
-    >
+>
 <doc>
 This class implements the server queue class, an asynchronous object
 that acts as a envelope for the separate queue managers for each
@@ -34,18 +34,21 @@ class.  This is a lock-free asynchronous class.
 <inherit class = "smt_object">
     <option name = "possess" value = "1" />
 </inherit>
+<!-- Generate amq_queue_table container of queues indexed as a hash table -->
 <inherit class = "icl_hash_item">
     <option name = "hash_type" value = "str" />
+    <option name = "prefix" value = "table" />
 </inherit>
+<!-- Generate amq_queue_list container of queues held as a linked list -->
 <inherit class = "icl_list_item">
-    <option name = "prefix" value = "global" />
+    <option name = "prefix" value = "list" />
 </inherit>
 <inherit class = "amq_console_object" />
 <inherit class = "smt_object_tracker" />
 
 <!-- Console definitions for this object -->
 <data name = "cml">
-    <class name = "queue" parent = "broker" label = "Message Queue" >
+    <class name = "queue" parent = "amq_broker" label = "Message Queue" >
         <field name = "name">
           <get>icl_shortstr_cpy (field_value, self->name);</get>
         </field>
@@ -211,7 +214,7 @@ class.  This is a lock-free asynchronous class.
     self->auto_delete = auto_delete;
     self->queue_basic = amq_queue_basic_new (self);
     icl_shortstr_cpy (self->name, name);
-    amq_queue_global_queue (amq_broker->queue_list, self);
+    amq_queue_list_queue (amq_broker->queue_list, self);
     if (amq_server_config_debug_queue (amq_server_config))
         smt_log_print (amq_broker->debug_log,
             "Q: create   queue=%s auto_delete=%d", self->name, self->auto_delete);
@@ -295,7 +298,7 @@ class.  This is a lock-free asynchronous class.
     </doc>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "content" type = "amq_content_basic_t *">Content to publish</argument>
-    <argument name = "immediate" type = "Bool" />
+    <argument name = "immediate" type = "Bool">Send immediately or return?</argument>
     //
     <possess>
     channel = amq_server_channel_link (channel);
