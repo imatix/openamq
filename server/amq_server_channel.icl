@@ -195,13 +195,24 @@ check the credit to decide whether or not to use the channel's consumers.
     <action>
     amq_consumer_t
         *consumer = NULL;               //  Consumer reference
+    amq_queue_t
+        *queue;
 
     consumer = amq_consumer_table_search (self->connection->consumer_table, tag);
     if (consumer) {
         amq_consumer_by_channel_remove (consumer);
         if (sync) {
             //  Pass to queue to do the final honours
-            amq_queue_cancel (consumer->queue, consumer, TRUE, nowait);
+            queue = amq_queue_link (consumer->queue);
+            if (queue) {
+                //  Send request to queue, but if queue is just dying, this
+                //  can fail, and leave a dangling consumer.
+                if (amq_queue_cancel (queue, consumer, TRUE, nowait))
+                    amq_consumer_unlink (&consumer);
+                amq_queue_unlink (&queue);
+            }
+            else
+                amq_consumer_unlink (&consumer);
         }
         else {
             //  Consumer must have been removed from its per-queue list
