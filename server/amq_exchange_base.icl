@@ -71,6 +71,7 @@ This is an abstract base class for all exchange implementations.
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "content" type = "amq_content_basic_t *">Content to publish</argument>
     <argument name = "group" type = "int">User group, from connection</argument>
+    <argument name = "immediate" type = "Bool">Send immediately or return?</argument>
     <declare name = "rc" type = "int" default = "0">Return code</declare>
     <local>
     $(selftype)
@@ -99,11 +100,11 @@ This is an abstract base class for all exchange implementations.
     if (amq_server_config_debug_route (amq_server_config))
         smt_log_print (amq_broker->debug_log,
             "X: publish  %s: routing_key=%s", self->exchange->name, routing_key);
-   
-    //  Grab reference to connection 
+
+    //  Grab reference to connection
     connection = channel?
         amq_server_connection_link (channel->connection): NULL;
-        
+
     //  Collect all queues to publish to into queue_set, initially empty
     set_size = 0;
     </header>
@@ -116,19 +117,19 @@ This is an abstract base class for all exchange implementations.
         if (self->exchange->queue_set [set_index] != last_queue) {
             last_queue = self->exchange->queue_set [set_index];
             if (last_queue->lease && last_queue->feed_on && last_queue->lease->thread) {
-                if (last_queue->feed_no_local 
+                if (last_queue->feed_no_local
                 && streq (content->producer_id, last_queue->lease->connection_id)) {
                     if (amq_server_config_debug_route (amq_server_config))
-                        smt_log_print (amq_broker->debug_log, "X: discard  queue=%s (direct, no-local, undeliverable)", 
+                        smt_log_print (amq_broker->debug_log, "X: discard  queue=%s (direct, no-local, undeliverable)",
                             last_queue->key);
                 }
                 else
                     s_direct_deliver (last_queue, content);
             }
             else {
-                amq_queue_publish (last_queue, channel, content, FALSE);
+                amq_queue_publish (last_queue, channel, content, immediate);
                 if (amq_server_config_debug_route (amq_server_config))
-                    smt_log_print (amq_broker->debug_log, "X: deliver  queue=%s", 
+                    smt_log_print (amq_broker->debug_log, "X: deliver  queue=%s",
                         last_queue->key);
             }
             delivered++;
@@ -178,7 +179,7 @@ s_compare_queue (const void *queue1, const void *queue2)
 void
 s_direct_deliver (amq_queue_t *queue, amq_content_basic_t *content)
 {
-    qbyte 
+    qbyte
         queue_size = 0;
 
     queue->contents_in++;
@@ -215,7 +216,7 @@ s_direct_deliver (amq_queue_t *queue, amq_content_basic_t *content)
         }
         icl_atomic_dec32 ((volatile qbyte *) &(queue->lease->pending));
         queue->drop_count++;
-        content = NULL;         
+        content = NULL;
     }
     else
     if (queue_size == 0) {
@@ -228,10 +229,10 @@ s_direct_deliver (amq_queue_t *queue, amq_content_basic_t *content)
         queue->contents_out++;
         queue->traffic_out += content->body_size;
 
-        amq_server_agent_direct_out (queue->lease->thread, content);
+        amq_server_agent_direct_out (queue->lease->thread, content, 0);
         icl_atomic_inc32 ((volatile qbyte *) &(amq_broker->direct_fed));
         if (amq_server_config_debug_route (amq_server_config))
-            smt_log_print (amq_broker->debug_log, 
+            smt_log_print (amq_broker->debug_log,
                 "X: deliver  queue=%s (direct)",  queue->key);
     }
 }

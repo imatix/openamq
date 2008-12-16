@@ -23,7 +23,7 @@
     >
 <doc>
     Implements the Direct Protocol lease for the OpenAMQ server.
-    Creates and resolves leases for sinks (exchanges) and feeds 
+    Creates and resolves leases for sinks (exchanges) and feeds
     (queues).
 </doc>
 
@@ -41,6 +41,8 @@
 <context>
     amq_server_connection_t
         *connection;                    //  Parent connection
+    amq_server_channel_t
+        *channel;                       //  Parent channel
     smt_thread_t
         *thread;                        //  Connection thread, if lease used
     icl_shortstr_t
@@ -49,8 +51,6 @@
         type;                           //  Field type
     icl_shortstr_t
         connection_id;                  //  ID of main connection
-    int
-        group;                          //  Connection user group
     amq_exchange_t
         *sink;                          //  Sink we are using
     amq_queue_t
@@ -67,10 +67,10 @@ static $(selfname)_table_t
 <method name = "new">
     <argument name = "vhost" type = "amq_vhost_t *">Parent vhost</argument>
     <argument name = "name" type = "char *">Sink or feed name</argument>
-    <argument name  = "type" type = "int">DP_SINK or DP_FEED</argument>
-    <argument name = "connection" type = "amq_server_connection_t *">Parent connection</argument>
-    <dismiss argument = "key" value = "self->name">Key is lease name</dismiss>
+    <argument name = "type" type = "int">DP_SINK or DP_FEED</argument>
+    <argument name = "channel" type = "amq_server_channel_t *">Parent channel</argument>
     <dismiss argument = "table" value = "s_$(selfname)_table">Use global table</dismiss>
+    <dismiss argument = "key" value = "self->name">Key is lease name</dismiss>
     <local>
     apr_time_t
         time_now;
@@ -78,9 +78,9 @@ static $(selfname)_table_t
     //
     assert (type == DP_SINK || type == DP_FEED);
     self->type = type;
-    self->connection = amq_server_connection_link (connection);
-    self->group = connection->group;
-    icl_shortstr_cpy (self->connection_id, connection->id);
+    self->channel = amq_server_channel_link (channel);
+    self->connection = amq_server_connection_link (channel->connection);
+    icl_shortstr_cpy (self->connection_id, self->connection->id);
 
     time_now = apr_time_now ();
     if (type == DP_SINK) {
@@ -91,7 +91,7 @@ static $(selfname)_table_t
             self->sink = amq_exchange_link (vhost->default_exchange);
 
         if (self->sink)
-            icl_shortstr_fmt (self->name, "S-%08X%08X-%s", 
+            icl_shortstr_fmt (self->name, "S-%08X%08X-%s",
                 (qbyte) (time_now >> 32), (qbyte) time_now & 0xFFFFFFFF, self->sink->name);
         else
             self_destroy (&self);
@@ -101,8 +101,9 @@ static $(selfname)_table_t
         //  Only allow one lease per queue
         self->feed = amq_queue_table_search (vhost->queue_table, name);
         if (self->feed && !self->feed->lease) {
+            //  Cannot link to lease since that forms circular reference
             self->feed->lease = self;
-            icl_shortstr_fmt (self->name, "F-%08X%08X-%s", 
+            icl_shortstr_fmt (self->name, "F-%08X%08X-%s",
                 (qbyte) (time_now >> 32), (qbyte) time_now & 0xFFFFFFFF, self->feed->name);
         }
         else
@@ -111,15 +112,19 @@ static $(selfname)_table_t
 </method>
 
 <method name = "destroy">
+    if (self->feed) {
+        self->feed->lease = NULL;
+        amq_queue_unlink (&self->feed);
+    }
+    amq_server_channel_unlink (&self->channel);
     amq_server_connection_unlink (&self->connection);
     amq_exchange_unlink (&self->sink);
-    amq_queue_unlink (&self->feed);
     smt_thread_unlink (&self->thread);
 </method>
 
 <method name = "search" return = "self">
     <argument name = "name" type = "char *">Exchange name</argument>
-    <declare  name = "self" type = "$(selftype) *">The found object</declare>
+    <declare name = "self" type = "$(selftype) *">The found object</declare>
     if (!s_$(selfname)_active)
         $(selfname)_initialise ();
     self = $(selfname)_table_search (s_$(selfname)_table, name);
@@ -127,7 +132,7 @@ static $(selfname)_table_t
 
 <method name = "acquire" template = "function">
     <doc>
-    Acquires the lease; returns -1 if the lease was already acquired by 
+    Acquires the lease; returns -1 if the lease was already acquired by
     another thread.  The acquiring thread will receive messages when the
     lease is for a feed.
     </doc>
@@ -144,9 +149,17 @@ static $(selfname)_table_t
     processing for a sink, which in this instance is an exchange.
     </doc>
     <argument name = "content" type = "amq_content_basic_t *" />
+    <argument name = "options" type = "byte">Publish options octet</argument>
     //
     icl_shortstr_cpy (content->producer_id, self->connection_id);
-    amq_exchange_publish (self->sink, NULL, content, FALSE, FALSE, self->group);
+    //  Options octet is [0][0][0][0][0][0][mandatory][immediate]
+    amq_exchange_publish (
+        self->sink,
+        self->channel,
+        content,
+        (options >> 1) & 1,             //  Mandatory bit
+        options & 1,                    //  Immediate bit
+        self->connection->group);
     icl_atomic_inc32 ((volatile qbyte *) &(amq_broker->direct_sunk));
 </method>
 
