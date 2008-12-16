@@ -23,15 +23,24 @@
   RestMS resource discovery and management class.
 
 <doc>
-    Provides methods to discover and work with server-side feeds and selectors
-    as defined by the RestMS specification.
+    Provides methods to work with server-side resources as defined by
+    the RestMS specification.  All methods are request-only, without
+    response.  Errors are logged at the server side and not reported
+    to the client.  This model is designed to allow a RestMS server to
+    push state to the AMQP server, rapidly and without handshaking.
+    In future versions we may allow for asynchronous error reporting
+    back to the RestMS server, probably via an AMQP exchange.  The
+    order of fields follows the URI component order for resources
+    (esp. joins, which have complex URI construction).
 </doc>
 
 <doc name = "grammar">
-    restms              = C:FEED-CREATE S:FEED-CREATE-OK
-                        / C:FEED-QUERY  S:FEED-QUERY-OK
-                        / C:FEED-DELETE S:FEED-DELETE-OK
-                        / C:FEED-CLASS-QUERY S:FEED-CLASS-QUERY-OK
+    restms              = C:PIPE-CREATE
+                        / C:PIPE-DESTROY
+                        / C:FEED-CREATE
+                        / C:FEED-DESTROY
+                        / C:JOIN-CREATE
+                        / C:JOIN-DESTROY
 </doc>
 
 <chassis name = "server" implement = "MAY" />
@@ -39,15 +48,51 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "feed-create" synchronous = "1" index = "10">
+<method name = "pipe-create" index = "10">
+  create a pipe
+  <doc>
+  Creates a pipe of the specified class.  The pipe may already exist,
+  if it has the same class.  Pipe names are unique across all classes.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "pipe class" type = "shortstr" >
+    pipe class
+    <doc>
+    Specifies the class of the pipe to create.  Valid values are: pipe.
+    </doc>
+  </field>
+  <field name = "pipe name" type = "shortstr" >
+    Name of pipe
+    <doc>
+    Specifies the name of the pipe to create.  Pipe names may not contain
+    slashes, spaces, or at signs.
+    </doc>
+  </field>
+</method>
+
+<method name = "pipe-delete" index = "20">
+  delete a pipe
+  <doc>
+  Deletes a specified pipe, if it exists.  Safe to invoke on non-existent
+  or already-deleted pipes.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "pipe name" type = "shortstr" >
+    pipe name
+    <doc>
+    Specifies the name of the pipe to delete.
+    </doc>
+  </field>
+</method>
+
+<method name = "feed-create" index = "30">
   create a feed
   <doc>
   Creates a feed of the specified class.  The feed may already exist,
   if it has the same class.  Feed names are unique across all classes.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "feed-create-ok" />
-  <field name = "class name" type = "shortstr" >
+  <field name = "feed class" type = "shortstr" >
     Feed class
     <doc>
     Specifies the class of the feed to create.  Valid values are: fanout,
@@ -58,159 +103,98 @@
     Name of feed
     <doc>
     Specifies the name of the feed to create.  Feed names may not contain
-    slashes.
-    </doc>
-    <assert check = "notnull" />
-  </field>
-</method>
-
-<method name = "feed-create-ok" synchronous = "1" index = "11">
-  confirm feed exists
-  <doc>
-  </doc>
-  <chassis name = "client" implement = "MUST" />
-  <field name = "response" type = "bit">
-    Failure/success indicator
-    <doc>
-    If zero, the request succeeded.  If 1, the request failed, and the
-    reply-text indicates the nature of the error.
-    </doc>
-  </field>
-  <field name = "reply text" type = "shortstr">
-    Failure message
-    <doc>
-    Indicates the cause of failure, if the response indicator is 1.
+    slashes, spaces, or at signs.
     </doc>
   </field>
 </method>
 
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-<method name = "feed-query" synchronous = "1" index = "20">
-  queries a feed
-  <doc>
-  Gets information about a specified feed.  If the feed exists, returns
-  a set of properties that provide information about the feed.
-  </doc>
-  <chassis name = "server" implement = "MUST" />
-  <response name = "feed-query-ok" />
-  <field name = "feed name" type = "shortstr" >
-    Name of feed
-    <doc>
-    Specifies the name of the feed to query.
-    </doc>
-    <assert check = "notnull" />
-  </field>
-</method>
-
-<method name = "feed-query-ok" synchronous = "1" index = "21">
-  return feed properties
-  <doc>
-  </doc>
-  <chassis name = "client" implement = "MUST" />
-  <field name = "response" type = "bit">
-    Failure/success indicator
-    <doc>
-    If zero, the request succeeded.  If 1, the request failed, and the
-    reply-text indicates the nature of the error.
-    </doc>
-  </field>
-  <field name = "reply text" type = "shortstr">
-    Failure message
-    <doc>
-    Indicates the cause of failure, if the response indicator is 1.
-    </doc>
-  </field>
-  <field name = "properties" type = "table">
-    Feed properties
-    <doc>
-    A set of named properties for the feed, which can be used for
-    monitoring or reporting purposes (i.e. formatted and shown to the
-    user).
-    </doc>
-  </field>
-</method>
-
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-<method name = "feed-delete" synchronous = "1" index = "30">
+<method name = "feed-delete" index = "40">
   delete a feed
   <doc>
   Deletes a specified feed, if it exists.  Safe to invoke on non-existent
   or already-deleted feeds.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "feed-delete-ok" />
   <field name = "feed name" type = "shortstr" >
     feed name
     <doc>
     Specifies the name of the feed to delete.
     </doc>
-    <assert check = "notnull" />
   </field>
 </method>
 
-<method name = "feed-delete-ok" synchronous = "1" index = "31">
-  confirm feed deletion
+<method name = "join-create" index = "50">
+  create a join
   <doc>
-  </doc>
-  <chassis name = "client" implement = "MUST" />
-  <field name = "response" type = "bit">
-    Failure/success indicator
-    <doc>
-    If zero, the request succeeded.  If 1, the request failed, and the
-    reply-text indicates the nature of the error.
-    </doc>
-  </field>
-  <field name = "reply text" type = "shortstr">
-    Failure message
-    <doc>
-    Indicates the cause of failure, if the response indicator is 1.
-    </doc>
-  </field>
-</method>
-
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-<method name = "feed-class-query" synchronous = "1" index = "40">
-  queries a feed class
-  <doc>
-    Queries a feed class and returns a list of all feeds in that class.
+  Creates a join on the specified pipe and feed.  The join may already
+  exist, if it has the same properties.  A join will causes messages to
+  be delivered on the connection.  The consumer-tag property allows
+  messages to be routed into end-application pipes.  Joins on exchange
+  feeds use the consumer tag "x:{pipe-name}" and joins on queue feeds
+  use the consumer tag "q:{pipe-name}".  AMQP does not allow the same
+  tag to be used on multiple queues.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "feed-class-query-ok" />
-  <field name = "class name" type = "shortstr" >
-    Name of feed class
+  <field name = "pipe class" type = "shortstr" >
+    Pipe class
     <doc>
-    Specifies the name of the class to query.
+    Specifies the class of the pipe, which must match the class of the
+    existing pipe.  The only valid value for this field is "pipe".
     </doc>
-    <assert check = "notnull" />
+  </field>
+  <field name = "pipe name" type = "shortstr" >
+    Name of pipe
+    <doc>
+    Specifies the name of the pipe, which must exist.
+    </doc>
+  </field>
+  <field name = "address" type = "shortstr" >
+    Join address
+    <doc>
+    Specifies the address to join.  This is an address literal or
+    pattern who's semantics depend on the feed class.  The address
+    may not contain slashes, spaces, or at signs.
+    </doc>
+  </field>
+  <field name = "feed name" type = "shortstr" >
+    Name of feed
+    <doc>
+    Specifies the name of the feed, which must exist.
+    </doc>
+  </field>
+  <field name = "feed class" type = "shortstr" >
+    Feed class
+    <doc>
+    Specifies the class of the feed, which must match the class of the
+    existing feed.
+    </doc>
   </field>
 </method>
 
-<method name = "feed-class-query-ok" synchronous = "1" index = "41">
-  return class information
+<method name = "join-delete" index = "60">
+  delete a join
   <doc>
+  Deletes a specified join, if it exists.  Safe to invoke on non-existent
+  or already-deleted joins, and referring to non-existent pipes and/or
+  feeds.
   </doc>
-  <chassis name = "client" implement = "MUST" />
-  <field name = "response" type = "bit">
-    Failure/success indicator
+  <chassis name = "server" implement = "MUST" />
+  <field name = "pipe name" type = "shortstr" >
+    Name of pipe
     <doc>
-    If zero, the request succeeded.  If 1, the request failed, and the
-    reply-text indicates the nature of the error.
+    Specifies the name of the pipe, which does not need to exist.
     </doc>
   </field>
-  <field name = "reply text" type = "shortstr">
-    Failure message
+  <field name = "address" type = "shortstr" >
+    Join address
     <doc>
-    Indicates the cause of failure, if the response indicator is 1.
+    Specifies the join address.
     </doc>
   </field>
-  <field name = "feed list" type = "longstr">
-    List of feeds
+  <field name = "feed name" type = "shortstr" >
+    Name of feed
     <doc>
-    Contains a list of feed names, delimited by spaces, contained in the
-    class.
+    Specifies the name of the feed, which does not need to exist.
     </doc>
   </field>
 </method>
