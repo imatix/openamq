@@ -151,7 +151,8 @@ consumer object.
     <argument name = "consumer" type = "amq_consumer_t *">Consumer</argument>
     //
     self->consumer = amq_consumer_link (consumer);
-    self->queue = amq_queue_link (consumer->queue);
+    if (self->consumer)
+        self->queue = amq_queue_link (consumer->queue);
     if (!self->queue)
         self_destroy (&self);
 </method>

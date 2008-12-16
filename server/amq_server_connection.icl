@@ -26,7 +26,7 @@
 This class implements the connection class for the AMQ server.
 </doc>
 
-<import class = "amq_queue_list" />
+<import class = "amq_queue_set" />
 
 <inherit class = "asl_server_connection" />
 <option name = "basename" value = "amq_server" />
@@ -38,10 +38,8 @@ This class implements the connection class for the AMQ server.
 </public>
 
 <context>
-    amq_vhost_t
-        *vhost;                         //  Parent virtual host
-    amq_queue_list_t
-        *own_queue_list;                //  List of exclusive queues
+    amq_queue_set_t
+        *own_queue_set;                 //  Set of exclusive queues
     amq_consumer_table_t
         *consumer_table;                //  Consumers for connection
     qbyte
@@ -53,26 +51,25 @@ This class implements the connection class for the AMQ server.
 </context>
 
 <method name = "new">
-    self->own_queue_list = amq_queue_list_new ();
+    self->own_queue_set = amq_queue_set_new ();
     self->consumer_table = amq_consumer_table_new ();
 </method>
 
 <method name = "destroy">
     <local>
-    amq_queue_list_iter_t *
+    amq_queue_set_iter_t *
        iterator;
     </local>
     //
     //  Firstly, send notification of connection termination to all
     //  exclusive queues created by the connection, so that they can be
     //  destroyed even if there is no consumer on the queue.
-    for (iterator = amq_queue_list_first (self->own_queue_list);
+    for (iterator = amq_queue_set_first (self->own_queue_set);
           iterator != NULL;
-          iterator = amq_queue_list_next (&iterator))
+          iterator = amq_queue_set_next (&iterator))
         amq_queue_unbind_connection (iterator->item);
 
-    amq_vhost_unlink       (&self->vhost);
-    amq_queue_list_destroy (&self->own_queue_list);
+    amq_queue_set_destroy (&self->own_queue_set);
 </method>
 
 <method name = "free">
@@ -82,8 +79,9 @@ This class implements the connection class for the AMQ server.
 <method name = "own queue" template = "function">
     <argument name = "queue" type = "amq_queue_t *">Queue reference</argument>
     <inherit name = "wrlock" />
+    //
     assert (queue->exclusive);
-    amq_queue_list_queue (self->own_queue_list, queue);
+    amq_queue_set_queue (self->own_queue_set, queue);
 </method>
 
 <method name = "unbind queue" template = "function">
@@ -93,14 +91,14 @@ This class implements the connection class for the AMQ server.
     <argument name = "queue" type = "amq_queue_t *">The queue to unbind</argument>
     <inherit name = "wrlock" />
     <local>
-    amq_queue_list_iter_t *
+    amq_queue_set_iter_t *
         iterator;
     </local>
     //
     //  Remove the queue from the list of exclusive connections
-    iterator = amq_queue_list_find (self->own_queue_list, queue);
+    iterator = amq_queue_set_find (self->own_queue_set, queue);
     if (iterator)
-        amq_queue_list_iter_destroy (&iterator);
+        amq_queue_set_iter_destroy (&iterator);
 </method>
 
 <method name = "ready" template = "function">
@@ -118,23 +116,15 @@ This class implements the connection class for the AMQ server.
     if (s_auth_plain (self, method))
         self->authorised = TRUE;
     else
-        self_raise_exception (self, ASL_ACCESS_REFUSED, 
+        self_raise_exception (self, ASL_ACCESS_REFUSED,
             "Invalid authentication data",
             AMQ_SERVER_CONNECTION, AMQ_SERVER_CONNECTION_START_OK);
 </method>
 
 <method name = "open">
-    //  For now, link to single global vhost object
-    self->vhost = amq_vhost_link (amq_broker->vhost);
-
-    if (!self->vhost)
-        self_raise_exception (self, ASL_ACCESS_REFUSED, 
-            "Server is not ready",
-            AMQ_SERVER_CONNECTION, AMQ_SERVER_CONNECTION_OPEN);
-    else
     //  If locked, allow only super user access
     if (amq_broker->locked && self->group == AMQ_CONNECTION_GROUP_NORMAL)
-        self_raise_exception (self, ASL_ACCESS_REFUSED, 
+        self_raise_exception (self, ASL_ACCESS_REFUSED,
             "Connections not allowed at present",
             AMQ_SERVER_CONNECTION, AMQ_SERVER_CONNECTION_OPEN);
     else
@@ -148,7 +138,7 @@ This class implements the connection class for the AMQ server.
     else
     if (amq_broker->failover->enabled) {
         //  Application connections send an event to the failover FSM.
-        //  Failover state machine determines whether connection should 
+        //  Failover state machine determines whether connection should
         //  be accepted or rejected
         if (self->group == AMQ_CONNECTION_GROUP_NORMAL) {
             if (!amq_failover_execute (amq_broker->failover, amq_ha_event_new_connection))
@@ -192,7 +182,7 @@ static int s_auth_plain (
         s_collect_plain_token (method->response->data, login, token_null);
 
     if (strnull (login) || strnull (password)) {
-        self_raise_exception (self, ASL_SYNTAX_ERROR, 
+        self_raise_exception (self, ASL_SYNTAX_ERROR,
             "Missing authentication data",
             AMQ_SERVER_CONNECTION, AMQ_SERVER_CONNECTION_START_OK);
         return (0);
@@ -202,7 +192,7 @@ static int s_auth_plain (
     if (!config->located) {
         smt_log_print (amq_broker->alert_log,
             "E: no 'plain' security defined in server config");
-        self_raise_exception (self, ASL_INTERNAL_ERROR, 
+        self_raise_exception (self, ASL_INTERNAL_ERROR,
             "Bad server configuration", 0, 0);
         return (0);
     }
@@ -221,7 +211,7 @@ static int s_auth_plain (
             else {
                 smt_log_print (amq_broker->alert_log,
                     "E: invalid user group '%s' in config", group);
-                self_raise_exception (self, ASL_INTERNAL_ERROR, 
+                self_raise_exception (self, ASL_INTERNAL_ERROR,
                     "Bad server configuration", 0, 0);
             }
             smt_log_print (amq_broker->daily_log,
@@ -246,7 +236,7 @@ s_collect_plain_token (byte *data, char *token, uint token_end)
     token_null = --token_end;
     while (token_null && data [token_null])
         token_null--;
-        
+
     strclr (token);
     //  Token start must point to a null octet before the string
     token_size = token_end - token_null;

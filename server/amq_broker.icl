@@ -62,11 +62,11 @@
                 *exchange;
           </local>
           <get>
-            exchange = amq_exchange_global_first (self->exchange_list);
+            exchange = amq_exchange_list_first (self->exchange_list);
             icl_shortstr_fmt (field_value, "%d", exchange->object_id);
           </get>
           <next>
-            exchange = amq_exchange_global_next (&exchange);
+            exchange = amq_exchange_list_next (&exchange);
             if (exchange)
                 icl_shortstr_fmt (field_value, "%d", exchange->object_id);
           </next>
@@ -79,17 +79,17 @@
           </local>
           <get>
             //  Get first queue and then skip private queues
-            queue = amq_queue_global_first (self->queue_list);
+            queue = amq_queue_list_first (self->queue_list);
             while (queue && queue->exclusive)
-                queue = amq_queue_global_next (&queue);
+                queue = amq_queue_list_next (&queue);
             if (queue)
                 icl_shortstr_fmt (field_value, "%d", queue->object_id);
           </get>
           <next>
             //  Get next queue and then skip private queues
-            queue = amq_queue_global_next (&queue);
+            queue = amq_queue_list_next (&queue);
             while (queue && queue->exclusive)
-                queue = amq_queue_global_next (&queue);
+                queue = amq_queue_list_next (&queue);
             if (queue)
                 icl_shortstr_fmt (field_value, "%d", queue->object_id);
           </next>
@@ -163,11 +163,11 @@
 <context>
     amq_exchange_table_t
         *exchange_table;                //  Table of exchanges
-    amq_exchange_global_t
+    amq_exchange_list_t
         *exchange_list;                 //  List of exchanges
     amq_queue_table_t
         *queue_table;                   //  Table of queues
-    amq_queue_global_t
+    amq_queue_list_t
         *queue_list;                    //  List of queues
     amq_exchange_t
         *default_exchange;              //  Default exchange
@@ -180,8 +180,6 @@
         dump_state_timer,               //  Dump state timer
         auto_crash_timer,               //  Automatic failure
         auto_block_timer;               //  Automatic blockage
-    amq_vhost_t
-        *vhost;                         //  Single vhost
     amq_connection_by_broker_t
         *mgt_connection_list;           //  Connection mgt objects list
     amq_failover_t
@@ -194,8 +192,6 @@
 </context>
 
 <method name = "new">
-    //  We use a single vhost
-    self->vhost = amq_vhost_new (self, "/");
     self->dump_state_timer = amq_server_config_dump_state (amq_server_config);
     self->auto_crash_timer = amq_server_config_auto_crash (amq_server_config);
     self->auto_block_timer = amq_server_config_auto_block (amq_server_config);
@@ -203,9 +199,9 @@
     amq_console_config = amq_console_config_new (self);
 
     self->exchange_table = amq_exchange_table_new ();
-    self->exchange_list  = amq_exchange_global_new ();
+    self->exchange_list  = amq_exchange_list_new ();
     self->queue_table    = amq_queue_table_new ();
-    self->queue_list     = amq_queue_global_new ();
+    self->queue_list     = amq_queue_list_new ();
     self->shared_queues  = ipr_symbol_table_new ();
 
     //  Automatic wiring schemes
@@ -216,8 +212,6 @@
     s_exchange_declare (self, "amq.headers", AMQ_EXCHANGE_HEADERS, FALSE, FALSE);
     s_exchange_declare (self, "amq.system",  AMQ_EXCHANGE_SYSTEM,  FALSE, FALSE);
     s_exchange_declare (self, "amq.status",  AMQ_EXCHANGE_DIRECT,  FALSE, FALSE);
-
-    //  These exchanges are deprecated
     s_exchange_declare (self, "amq.notify",  AMQ_EXCHANGE_TOPIC,   FALSE, FALSE);
 
     //  These exchanges are automatically federated if --attach is specified
@@ -232,7 +226,7 @@
         self->auto_block_timer = randomof (self->auto_block_timer) + 1;
 
     //  Initialise failover agent
-    self->failover = amq_failover_new (self);
+    self->failover = amq_failover_new ();
 </method>
 
 <method name = "destroy">
@@ -242,19 +236,18 @@
 
     amq_failover_destroy (&self->failover);
     amq_console_config_destroy (&amq_console_config);
-    amq_vhost_destroy (&self->vhost);
     amq_connection_by_broker_destroy (&self->mgt_connection_list);
 
     amq_exchange_unlink (&self->default_exchange);
     amq_exchange_table_destroy (&self->exchange_table);
-    exchange = amq_exchange_global_pop (self->exchange_list);
+    exchange = amq_exchange_list_pop (self->exchange_list);
     while (exchange) {
         amq_exchange_destroy (&exchange);
-        exchange = amq_exchange_global_pop (self->exchange_list);
+        exchange = amq_exchange_list_pop (self->exchange_list);
     }
-    amq_exchange_global_destroy (&self->exchange_list);
+    amq_exchange_list_destroy (&self->exchange_list);
     amq_queue_table_destroy (&self->queue_table);
-    amq_queue_global_destroy (&self->queue_list);
+    amq_queue_list_destroy (&self->queue_list);
     ipr_symbol_table_destroy (&self->shared_queues);
     </action>
 </method>
@@ -303,13 +296,13 @@
         *exchange;
 
     //  Go through all exchanges & bindings, remove link to queue
-    exchange = amq_exchange_global_first (self->exchange_list);
+    exchange = amq_exchange_list_first (self->exchange_list);
     while (exchange) {
-        amq_exchange_unbind_queue (exchange, queue);
-        exchange = amq_exchange_global_next (&exchange);
+        amq_exchange_broker_unbind_queue (exchange, queue);
+        exchange = amq_exchange_list_next (&exchange);
     }
     //  Remove the queue from queue list and queue table
-    amq_queue_global_remove (queue);
+    amq_queue_list_remove (queue);
     amq_queue_table_remove (queue);
     </action>
 </method>
@@ -385,7 +378,6 @@ s_exchange_declare (
     amq_exchange_t
         *exchange;                      //  Predeclared exchange
     exchange = amq_exchange_new (
-        self,                           //  Parent broker
         type,                           //  Exchange type
         name,                           //  Exchange name
         default_exchange,               //  Internal?

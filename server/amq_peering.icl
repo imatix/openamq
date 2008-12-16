@@ -59,7 +59,7 @@ This is a summary of the amq_peering API:
 
     peering = amq_peering_new (
         remote-host-name, virtual-host, trace-level, exchange-name)
-        Create a new peering to the specified host, virtual host and 
+        Create a new peering to the specified host, virtual host and
         remote exchange.
 
     amq_peering_set_login (peering, login-name)
@@ -406,7 +406,7 @@ typedef int (amq_peering_return_fn) (
 
     if (amq_server_config_debug_peering (amq_server_config))
         smt_log_print (amq_broker->debug_log,
-            "P: forward  peer exchange=%s routing_key=%s", 
+            "P: forward  peer exchange=%s routing_key=%s",
             self->exchange, routing_key);
 
     //  Create a Basic.Publish method
@@ -450,10 +450,7 @@ typedef int (amq_peering_return_fn) (
 
 <!-- ********  The following methods are for internal use only  ******** -->
 
-<method name = "peer connection start" template = "async function" async = "1">
-    <doc>
-    Handles a Connection.Start method coming from the peered server.
-    </doc>
+<method name = "protocol handler" template = "async function" async = "1" abstract = "1">
     <argument name = "method" type = "amq_peer_method_t *" />
     <possess>
     method = amq_peer_method_link (method);
@@ -461,45 +458,25 @@ typedef int (amq_peering_return_fn) (
     <release>
     amq_peer_method_unlink (&method);
     </release>
-    //
-    <action>
-    //  TODO: check if we're connecting to ourselves, as fatal error
-    </action>
 </method>
 
-<method name = "peer connection open ok" template = "async function" async = "1">
+<method name = "peer connection open ok" template = "protocol handler">
     <doc>
     Handles a Connection.Open-Ok method coming from the peered server.
     </doc>
-    <argument name = "method" type = "amq_peer_method_t *" />
-    <possess>
-    method = amq_peer_method_link (method);
-    </possess>
-    <release>
-    amq_peer_method_unlink (&method);
-    </release>
-    //
     <action>
     self->channel_nbr = 1;              //  Single channel per connection
     amq_peer_agent_channel_open (self->peer_agent_thread, self->channel_nbr);
     </action>
 </method>
 
-<method name = "peer connection close" template = "async function" async = "1">
+<method name = "peer connection close" template = "protocol handler">
     <doc>
     Handles a Connection.Close method coming from the peered server.
     </doc>
-    <argument name = "method" type = "amq_peer_method_t *" />
-    <possess>
-    method = amq_peer_method_link (method);
-    </possess>
-    <release>
-    amq_peer_method_unlink (&method);
-    </release>
-    //
     <action>
     //  If the connection failed due to a hard error, complain loudly and
-    //  shut down the broker.  We really don't want people using servers 
+    //  shut down the broker.  We really don't want people using servers
     //  with badly defined peerings.
     if (ASL_HARD_ERROR (method->payload.connection_close.reply_code)) {
         smt_log_print (amq_broker->alert_log,
@@ -509,53 +486,29 @@ typedef int (amq_peering_return_fn) (
     </action>
 </method>
 
-<method name = "peer channel open ok" template = "async function" async = "1">
+<method name = "peer channel open ok" template = "protocol handler">
     <doc>
     Handles a Channel.Open-Ok method coming from the peered server.
     </doc>
-    <argument name = "method" type = "amq_peer_method_t *" />
-    <possess>
-    method = amq_peer_method_link (method);
-    </possess>
-    <release>
-    amq_peer_method_unlink (&method);
-    </release>
-    //
     <action>
     s_initialise_peering (self);
     </action>
 </method>
 
-<method name = "peer basic deliver" template = "async function" async = "1">
+<method name = "peer basic deliver" template = "protocol handler">
     <doc>
     Handles a Basic.Deliver method coming from the peered server.
     </doc>
-    <argument name = "method" type = "amq_peer_method_t *" />
-    <possess>
-    method = amq_peer_method_link (method);
-    </possess>
-    <release>
-    amq_peer_method_unlink (&method);
-    </release>
-    //
     <action>
     if (self->content_fn)
         (self->content_fn) (self->content_caller, self, method);
     </action>
 </method>
 
-<method name = "peer basic return" template = "async function" async = "1">
+<method name = "peer basic return" template = "protocol handler">
     <doc>
     Handles a Basic.Return method coming from the peered server.
     </doc>
-    <argument name = "method" type = "amq_peer_method_t *" />
-    <possess>
-    method = amq_peer_method_link (method);
-    </possess>
-    <release>
-    amq_peer_method_unlink (&method);
-    </release>
-    //
     <action>
     if (self->return_fn)
         (self->return_fn) (self->return_caller, self, method);
@@ -606,7 +559,7 @@ typedef int (amq_peering_return_fn) (
 <private name = "async header">
 static void s_initialise_peering (amq_peering_t *self);
 static void s_terminate_peering  (amq_peering_t *self);
-static ipr_looseref_t *s_binding_exists (ipr_looseref_list_t *bindings, 
+static ipr_looseref_t *s_binding_exists (ipr_looseref_list_t *bindings,
     char *routing_key, icl_longstr_t *arguments);
 </private>
 
@@ -676,6 +629,9 @@ s_initialise_peering (amq_peering_t *self)
 static void
 s_terminate_peering (amq_peering_t *self)
 {
+    amq_broker_t
+        *broker_ref;
+
     //  Stop peer agent thread if it's still alive
     if (self->peer_agent_thread) {
         if (!self->peer_agent_thread->zombie)
@@ -689,19 +645,24 @@ s_terminate_peering (amq_peering_t *self)
         if (self->status_fn)
             (self->status_fn) (self->status_caller, self, FALSE);
 
-        smt_log_print (amq_broker->alert_log,
-            "I: exchange %s unpeered from %s", self->exchange, self->host);
+        //  Use broker with caution because it can be destroyed now
+        broker_ref = amq_broker_link (amq_broker);
+        if (broker_ref) {
+            smt_log_print (broker_ref->alert_log,
+                "I: exchange %s unpeered from %s", self->exchange, self->host);
+            amq_broker_unlink (&broker_ref);
+        }
     }
 }
 
 //  Used by peering_bind and peering_unbind to determine if binding is unique.
-//  Searches provided looseref list for a queue.bind method matching the 
+//  Searches provided looseref list for a queue.bind method matching the
 //  provided routing_key and arguments.  Returns looseref if found, NULL if
 //  no match found.
 static ipr_looseref_t *
 s_binding_exists (
-    ipr_looseref_list_t *bindings, 
-    char *routing_key, 
+    ipr_looseref_list_t *bindings,
+    char *routing_key,
     icl_longstr_t *arguments)
 {
     ipr_looseref_t
@@ -769,6 +730,8 @@ s_test_content_handler (
         *content;                       //  Content for testing the peering
     int
         seconds = 1000000;              //  Microseconds per second for sleep
+    amq_broker_t
+        *broker_ref;
 
     //  This selftest is NOT run during normal builds
     //  To enable it, set the environment variable AMQ_PEERING_TEST=1
@@ -819,7 +782,6 @@ s_test_content_handler (
         amq_peering_start (peering);
 
         apr_sleep (1 * seconds);
-        icl_console_print ("BIND");
         icl_console_print ("I: (TEST) Making binding rk-cccccc");
         amq_peering_bind (peering, "rk-cccccc", NULL);
 
@@ -833,9 +795,15 @@ s_test_content_handler (
         icl_console_print ("I: (TEST) Finished - press Ctrl-C when done");
         smt_wait (0);                   //  Execute SMT engine
 
-        amq_peering_unlink (&peering);
-        amq_broker_unlink  (&amq_broker);
-        amq_console_unlink (&amq_console);
+        amq_peering_destroy (&peering);
+        broker_ref = amq_broker_link (amq_broker);
+        amq_broker_destroy  (&broker_ref);
+        amq_console_destroy (&amq_console);
+        smt_wait (0);
+
+        amq_broker_unlink (&amq_broker);
+        smt_wait (0);
+
         amq_server_config_destroy (&amq_server_config);
     }
 </method>

@@ -67,14 +67,9 @@
 <file name = "amq_peer_config.txt"       class = "generated resource">Peering config documentation</file>
 <file name = "amq_peer_agent.smt"        class = "smt public module"
                                          generated = "1"             >Peering client agent</file>
-<file name = "amq_vhost.icl"             class = "icl private class" >Server vhost class</file>
-<file name = "amq_vhost_agent.smt"       class = "smt public module"
-                                         generated = "1"             >Server vhost agent</file>
-<file name = "amq_vhost_config.opf"      class = "gsl data"          >Vhost configuration</file>
-<file name = "amq_vhost_config.icl"      class = "icl private cont"  >Vhost configuration class</file>
 <file name = "amq_exchange.icl"          class = "icl public class"  >Server exchange class</file>
-<file name = "amq_exchange_table.icl"    class = "icl private cont"  >Container for server exchange class</file>
-<file name = "amq_exchange_global.icl"   class = "icl private cont"  >List of exchanges by broker</file>
+<file name = "amq_exchange_table.icl"    class = "icl private cont"  >Table of exchanges per broker</file>
+<file name = "amq_exchange_list.icl"     class = "icl private cont"  >List of exchanges by broker</file>
 <file name = "amq_exchange_agent.smt"    class = "smt public module"
                                          generated = "1"             >Server exchange agent</file>
 <file name = "amq_exchange_base.icl"     class = "private resource"  >Server exchange base class</file>
@@ -94,9 +89,9 @@
 <file name = "amq_index_hash.icl"        class = "icl private cont"  >Message matching index hash</file>
 <file name = "amq_index_array.icl"       class = "icl private cont"  >Message matching index array</file>
 <file name = "amq_queue.icl"             class = "icl public class"  >Server queue envelope class</file>
-<file name = "amq_queue_table.icl"       class = "icl private cont"  >Hash of queues per vhost</file>
-<file name = "amq_queue_global.icl"     class = "icl private cont"   >List of queues by broker</file>
-<file name = "amq_queue_list.icl"        class = "icl private class" >List of queues</file>
+<file name = "amq_queue_table.icl"       class = "icl private cont"  >Hash of queues</file>
+<file name = "amq_queue_list.icl"        class = "icl private cont"  >List of queues</file>
+<file name = "amq_queue_set.icl"         class = "icl private class" >Local queue set</file>
 <file name = "amq_queue_agent.smt"       class = "smt public module"
                                          generated = "1"             >Server queue agent</file>
 <file name = "amq_queue_base.icl"        class = "private resource"  >Queue base class</file>
@@ -148,6 +143,9 @@
                                          class = "smt public module"
                                          generated = "1"             >Config wrapper agent</file>
 <file name = "amq_cml.icl"               class = "icl public class"  >CML functionality</file>
+
+<!-- Test scripts -->
+<file name = "restms_class_test.pal"     class = "private resource"  >RestMS class test</file>
 
 <!-- OpenAMQ deliverables -->
 <file name = "amq_server"                class = "public command"    >Server</file>

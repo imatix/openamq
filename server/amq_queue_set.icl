@@ -17,20 +17,29 @@
 -->
 
 <class
-    name      = "amq_exchange_list"
-    comment   = "list of amq_exchanges"
+    name      = "amq_queue_set"
+    comment   = "Private set of queues per arbitrary parent object"
     version   = "1.0"
     script    = "icl_gen"
     >
 
 <inherit class = "icl_iter_list_head" >
-    <option name = "prefix"     value = "list"/>
-    <option name = "childname"  value = "amq_exchange" />
-    <option name = "childtype"  value = "amq_exchange_t" />
+    <option name = "prefix"     value = "list" />
+    <option name = "childname"  value = "amq_queue" />
+    <option name = "childtype"  value = "amq_queue_t" />
+    <option name = "count"      value = "1" />
 </inherit>
-<option name = "alloc"     value = "cache" />
+<option name = "alloc" value = "cache" />
 
-<import class = "amq_exchange" />
+<import class = "amq_queue" />
+
+<method name = "find" template = "function">
+    <argument name = "value" type = "$(childtype) *" />
+    <declare name = "rc" type = "$(selfname)_iter_t *" />
+    for (rc = self_first (self); rc; rc = self_next (&rc))
+        if (rc->item == value)
+            break;
+</method>
 
 <method name = "selftest">
 </method>

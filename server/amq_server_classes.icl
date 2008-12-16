@@ -51,7 +51,7 @@
 <import class = "amq_lease" />
 <import class = "amq_queue" />
 <import class = "amq_queue_basic" />
-<import class = "amq_queue_list" />
+<import class = "amq_queue_set" />
 <import class = "amq_queue_connection" />
 <import class = "amq_peer_agent" />
 <import class = "amq_peer_config" />
@@ -61,7 +61,5 @@
 <import class = "amq_server_config" />
 <import class = "amq_server_connection" />
 <import class = "amq_server_resource" />
-<import class = "amq_vhost" />
-<import class = "amq_vhost_config" />
 
 </class>

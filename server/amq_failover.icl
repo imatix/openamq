@@ -50,8 +50,6 @@ typedef enum
 </public>
 
 <context>
-    amq_broker_t
-       *broker;                         //  Parent broker
     amq_peering_t
         *peering;                       //  The peering to the other HA peer
     Bool
@@ -70,16 +68,14 @@ typedef enum
 </context>
 
 <method name = "new">
-    <argument name = "broker" type = "amq_broker_t *">Parent broker</argument>
     <local>
     char
         *backup,                        //  Backup to connect to
         *primary;                       //  Primary to connect to
     </local>
     //
-    self->broker = amq_broker_link (broker);
     self->status_exchange = amq_exchange_table_search (
-        broker->vhost->exchange_table, "amq.status");
+        amq_broker->exchange_table, "amq.status");
     assert (self->status_exchange);
     backup  = amq_server_config_backup  (amq_server_config);
     primary = amq_server_config_primary (amq_server_config);
@@ -146,7 +142,6 @@ typedef enum
         amq_peering_unlink (&self->peering);
     }
     amq_exchange_unlink (&self->status_exchange);
-    amq_broker_unlink (&self->broker);
 </method>
 
 <method name = "send state" template = "function">

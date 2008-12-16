@@ -46,8 +46,8 @@ class.
 <context>
     amq_exchange_t
         *exchange;                      //  Parent exchange
-    amq_queue_list_t
-        *queue_list;                    //  List of queues for binding
+    amq_queue_set_t
+        *queue_set;                     //  Set of queues for binding
     ipr_looseref_list_t
         *index_list;                    //  List of indices for binding
     icl_shortstr_t
@@ -82,7 +82,7 @@ class.
     </local>
     //
     self->exchange   = exchange;
-    self->queue_list = amq_queue_list_new ();
+    self->queue_set  = amq_queue_set_new ();
     self->index_list = ipr_looseref_list_new ();
     self->exclusive  = exclusive;
     icl_shortstr_cpy (self->routing_key, routing_key);
@@ -101,7 +101,7 @@ class.
     //  Notify federation, if any, about new binding
     federation = amq_federation_link (self->exchange->federation);
     if (federation) {
-        amq_federation_binding_created (federation, 
+        amq_federation_binding_created (federation,
             self->routing_key, self->arguments, self->exclusive);
         amq_federation_unlink (&federation);
     }
@@ -123,40 +123,40 @@ class.
     if (self->exchange->binding_index)
         ipr_index_delete (self->exchange->binding_index, self->index);
 
-    amq_queue_list_destroy    (&self->queue_list);
+    amq_queue_set_destroy (&self->queue_set);
     ipr_looseref_list_destroy (&self->index_list);
-    icl_longstr_destroy       (&self->arguments);
+    icl_longstr_destroy (&self->arguments);
 </method>
 
 <method name = "bind queue" template = "function">
     <doc>
-    Attach queue to queue_list.  Called by parent exchange during queue bind.
+    Attach queue to queue_set.  Called by parent exchange during queue bind.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">Queue to bind</argument>
     //
-    if (!amq_queue_list_find (self->queue_list, queue))
-        amq_queue_list_queue (self->queue_list, queue);
+    if (!amq_queue_set_find (self->queue_set, queue))
+        amq_queue_set_queue (self->queue_set, queue);
 </method>
 
 <method name = "unbind queue" template = "function">
     <doc>
-    Remove queue from queue_list.  Returns -1 if the binding is empty (has no
+    Remove queue from queue_set.  Returns -1 if the binding is empty (has no
     queues) after this operation.  Called by parent exchange during queue
     unbind.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">Queue to unbind</argument>
     <local>
-    amq_queue_list_iter_t *
+    amq_queue_set_iter_t *
         iterator;
     </local>
     //
     if (!self->zombie) {
-        iterator = amq_queue_list_find (self->queue_list, queue);
+        iterator = amq_queue_set_find (self->queue_set, queue);
         if (iterator)
-            amq_queue_list_iter_destroy (&iterator);
+            amq_queue_set_iter_destroy (&iterator);
 
         //  Signal to caller if binding is now empty
-        if (amq_queue_list_count (self->queue_list) == 0)
+        if (amq_queue_set_count (self->queue_set) == 0)
             rc = -1;
     }
 </method>
@@ -165,31 +165,30 @@ class.
     <doc>
     Collect all queues for the binding into the caller's publish set.
     To avoid the same message being published multiple times to the same
-    queue via different bindings, the exchane collects all queues for a 
+    queue via different bindings, the exchane collects all queues for a
     message, sorts, and eliminates duplicates.  Returns new queue set
     size.  If queue set size reaches 75% of limit, prints warning.
     </doc>
     <argument name = "queue set" type = "amq_queue_t **">Queue set</argument>
     <argument name = "set size"  type = "size_t">Queue set size</argument>
     <local>
-    amq_queue_list_iter_t *
+    amq_queue_set_iter_t *
         iterator;
     </local>
     //
-    iterator = amq_queue_list_first (self->queue_list);
+    iterator = amq_queue_set_first (self->queue_set);
     while (iterator) {
         if (set_size < AMQ_QUEUE_SET_MAX)
             queue_set [set_size++] = (amq_queue_t *) iterator->item;
-        iterator = amq_queue_list_next (&iterator);
+        iterator = amq_queue_set_next (&iterator);
     }
     rc = set_size;
     if (set_size > AMQ_QUEUE_SET_MAX * 75 / 100)
         smt_log_print (amq_broker->alert_log,
-            "W: reaching AMQ_QUEUE_SET_MAX (at %d), please notify openamq-dev@imatix.com", 
+            "W: reaching AMQ_QUEUE_SET_MAX (at %d), please notify openamq-dev@imatix.com",
             AMQ_QUEUE_SET_MAX);
 </method>
 
 <method name = "selftest" />
 
 </class>
-

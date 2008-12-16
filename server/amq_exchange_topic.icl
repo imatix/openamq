@@ -57,10 +57,8 @@ amq_index_hash table.
       - multiple levels separated by '.', e.g. "nasdaq.ibm.usd"
       - single level wildcard represented by '*', e.g. "nasdaq.*.usd"
       - multiple level wildcard represented by '#', e.g. "#.usd"
-    
-    Additionally, OpenAMQ allows slashes to be used interchangeable with
-    dots, to make topics work within a RESTful worldview.  An empty routing 
-    key is valid, and is treated as matching nothing.
+
+    An empty routing key is valid, and is treated as matching nothing.
     </doc>
     <local>
     ipr_regexp_t
@@ -171,7 +169,7 @@ amq_index_hash table.
             "X: route    %s: routing_key=%s", self->exchange->name, routing_key);
 
     assert (index);
-    
+
     //  Collect all queues to publish to
     binding_nbr = ipr_bits_first (index->bindset);
     while (binding_nbr >= 0) {
@@ -184,27 +182,27 @@ amq_index_hash table.
         binding_nbr = ipr_bits_next (index->bindset, binding_nbr);
     }
     amq_index_unlink (&index);
-    //  The queue_set is processed in the footer of this function in 
+    //  The queue_set is processed in the footer of this function in
     //  amq_exchange_base.icl, the same way for all exchanges
 </method>
 
 <private name = "header">
-//  Topic names observe the Perl "word" syntax, i.e. letters, digits, and 
-//  underscores.  Slashes and dots have the same meaning.  Wildcards match 
-//  an empty topic, expressed as " ".
-#define S_WILDCARD_DOT        "[`./]"                       //  .
+//  Topic names observe the Perl "word" syntax, i.e. letters,
+//  digits, and underscores.  The MULTIPLE wildcard matches an
+//  empty topic, expressed as " ".
+
 #define S_WILDCARD_SINGLE     "(?: |`w*)"                   //  *
-#define S_WILDCARD_MULTIPLE   "( |(?:`w*(?:[`./]`w*)*))"    //  #
+#define S_WILDCARD_MULTIPLE   "( |(?:`w*(?:`.`w*)*))"       //  #
 static Bool
     s_topic_to_regexp (char *index_regexp, char *regexp);
 </private>
 
 <private>
-/*    Converts a index routing_key into a regular expression. The routing key 
-      can contain wildcards that index part or all of a index name tree.
+/*    Converts a index routing_key name into a regular expression. The index
+      name can contain wildcards that index part or all of a index name tree.
       '*' in the routing_key name means wildcard a single level of indexes.
-      '#' in the routing_key name means wildcard zero or more levels.  Index 
-      levels are separated by '.' or '/'.  regexp must be an icl_shortstr_t.
+      '#' in the routing_key name means wildcard zero or more levels.
+      index levels are separated by '.'.  regexp must be an icl_shortstr_t.
       Returns true if topic is a wildcard, false if it's a simple topic name.
  */
 static Bool
@@ -220,13 +218,12 @@ s_topic_to_regexp (char *topic, char *regexp)
         * and # index wildcards replaced by appropriate regexp chars.
         We may allow full RE indexing on index names at a later stage.
      */
-    ipr_str_subch (topic, '/', '.');
     to_ptr = regexp;
     *to_ptr++ = '^';                    //  index start of index name
     for (from_ptr = topic; *from_ptr; from_ptr++) {
         if (*from_ptr == '.') {
-            strcpy (to_ptr, S_WILDCARD_DOT);
-            to_ptr += strlen (S_WILDCARD_DOT);
+            *to_ptr++ = '`';
+            *to_ptr++ = '.';
         }
         else
         if (*from_ptr == '*') {

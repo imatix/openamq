@@ -28,17 +28,118 @@
 <inherit class = "icl_base" />
 <import class = "amq_server_classes" />
 
-<method name = "feed create" return = "rc">
+<method name = "pipe create">
     <doc>
-    Creates the feed, or asserts it exists as specified.  Returns zero if
-    the specified feed name and class were accurate and the feed could be
-    created if necessary, -1 if the feed name was illegal or the feed could
-    not be created.
+    Creates the pipe, or asserts it exists as specified. Errors are logged.
+    Pipes are implemented in the simplest fashion: each pipe has an exclusive
+    queue with the same name, with a consumer with tag x:{pipe-name}.  When
+    the front-end creates joins on the pipe, these are implemented as bindings
+    that bring messages into the private queue.  This is for exchange-based
+    feeds.  For queue-based feeds, the pipe is implemented as a consumer on
+    the shared queue, with tag q:{pipe-name}.  These distinct tags are used by
+    the front-end to route messages coming from the AMQP server into separate
+    pipe queues for end-application delivery.
     </doc>
-    <argument name = "feed name" type = "char *">Feed name</argument>
-    <argument name = "class name" type = "char *">Feed class</argument>
-    <argument name = "reply text" type = "char *">Error message if any</argument>
-    <declare name = "rc" type = "int" default = "0">Return code</declare>
+    <argument name = "pipe class" type = "char *" />
+    <argument name = "pipe name" type = "char *" />
+    <argument name = "channel" type = "amq_server_channel_t *" />
+    <local>
+    amq_queue_t
+        *queue = NULL;
+    amq_client_method_t
+        *method;                        //  Consume method
+    amq_server_connection_t
+        *connection;
+    icl_shortstr_t
+        tag;                            //  Consumer tag x:{pipe-name}
+    char
+        *error_text = NULL;             //  Error text, if any
+    </local>
+    //
+    if (strnull (pipe_name))
+        error_text = "pipe_create: pipe name may not be empty";
+    else
+    if (strneq (pipe_class, "pipe"))
+        error_text = "pipe_create: invalid pipe class";
+    else {
+        queue = amq_queue_table_search (amq_broker->queue_table, pipe_name);
+        if (queue && !queue->exclusive)
+            error_text = "pipe_create: pipe queue exists but is not exclusive";
+        else
+        if (queue == NULL) {
+            if (ipr_str_prefixed (pipe_name, "amq."))
+                error_text = "pipe_create: new pipe name may not start with amq.";
+            else {
+                connection = amq_server_connection_link (channel->connection);
+                if (connection) {
+                    //  Create private queue for pipe, and consume from it
+                    queue = amq_queue_new (
+                        connection,
+                        pipe_name,
+                        FALSE,
+                        TRUE,
+                        TRUE,
+                        NULL);
+                    if (queue) {
+                        //  Consume from queue, using pipe name as consumer tag
+                        icl_shortstr_fmt (tag, "x:%s", pipe_name);
+                        method = amq_client_method_new_basic_consume (
+                            0, pipe_name, tag, FALSE, FALSE, FALSE, TRUE, NULL);
+                        amq_server_channel_consume (
+                            channel, queue, (amq_server_method_t *) method);
+                        amq_client_method_unlink (&method);
+                    }
+                    else
+                        error_text = "pipe_create: ERROR: could not create queue";
+                }
+                amq_server_connection_unlink (&connection);
+            }
+        }
+        amq_queue_unlink (&queue);
+    }
+
+    if (error_text)
+        smt_log_print (amq_broker->alert_log, "W: %s", error_text);
+</method>
+
+<method name = "pipe delete">
+    <doc>
+    Deletes a specified pipe.
+    </doc>
+    <argument name = "pipe name" type = "char *" />
+    <local>
+    amq_queue_t
+        *queue = NULL;
+    char
+        *error_text = NULL;             //  Error text, if any
+    </local>
+    //
+    if (strnull (pipe_name))
+        error_text = "pipe_delete: pipe name may not be empty";
+    else
+    if (ipr_str_prefixed (pipe_name, "amq."))
+        error_text = "pipe_delete: tried to delete a standard queue";
+    else {
+        queue = amq_queue_table_search (amq_broker->queue_table, pipe_name);
+        if (queue) {
+            if (!queue->exclusive)
+                error_text = "pipe_delete: tried to delete a shared queue";
+            else
+                amq_queue_self_destruct (queue);
+            amq_queue_unlink (&queue);
+        }
+    }
+    if (error_text)
+        smt_log_print (amq_broker->alert_log, "W: %s", error_text);
+</method>
+
+<method name = "feed create">
+    <doc>
+    Creates the feed, or asserts it exists as specified. Errors are
+    logged.
+    </doc>
+    <argument name = "feed class" type = "char *" />
+    <argument name = "feed name" type = "char *" />
     <local>
     amq_queue_t
         *queue = NULL;
@@ -48,149 +149,243 @@
         auto_delete;
     int
         exchange_type;
+    char
+        *error_text = NULL;             //  Error text, if any
     </local>
-    strclr (reply_text);
+    //
     queue = amq_queue_table_search (amq_broker->queue_table, feed_name);
-    auto_delete = streq (class_name, "service");
+    auto_delete = streq (feed_class, "service");
     exchange = amq_exchange_table_search (amq_broker->exchange_table, feed_name);
-    exchange_type = amq_exchange_type_lookup (class_name);
+    exchange_type = amq_exchange_type_lookup (feed_class);
 
-    if (streq (class_name, "service")
-    ||  streq (class_name, "rotator")) {
+    if (strnull (feed_name))
+        error_text = "feed_create: feed name may not be empty";
+    else
+    if (streq (feed_class, "service") || streq (feed_class, "rotator")) {
         if (exchange
-        || (queue && queue->auto_delete != auto_delete)) {
-            rc = 1;
-            icl_shortstr_cpy (reply_text, "Resource class inconsistency");
-        }
+        || (queue && queue->auto_delete != auto_delete))
+            error_text = "feed_create: feed class does not match existing feed";
         else
         if (queue == NULL) {
-            if (ipr_str_prefixed (feed_name, "amq.")) {
-                rc = 1;
-                icl_shortstr_cpy (reply_text, "Illegal feed name");
-            }
+            if (ipr_str_prefixed (feed_name, "amq."))
+                error_text = "feed_create: new feed name may not start with amq.";
             else {
                 //  Create queue as specified, bind to default exchange
                 queue = amq_queue_new (NULL, feed_name, FALSE, FALSE, auto_delete, NULL);
                 if (queue)
                     amq_exchange_bind_queue (amq_broker->default_exchange,
                         NULL, queue, queue->name, NULL);
-                else {
-                    rc = 1;
-                    icl_shortstr_cpy (reply_text, "Internal error (queues)");
-                }
+                else
+                    error_text = "feed_create: ERROR: could not create queue";
             }
         }
     }
     else
     if (exchange_type >= 0) {
         if (queue
-        || (exchange && exchange->type != exchange_type)) {
-            rc = 1;
-            icl_shortstr_cpy (reply_text, "Resource class inconsistency");
-        }
+        || (exchange && exchange->type != exchange_type))
+            error_text = "feed_create: feed class does not match existing feed";
         else
         if (exchange == NULL) {
-            if (ipr_str_prefixed (feed_name, "amq.")) {
-                rc = 1;
-                icl_shortstr_cpy (reply_text, "Illegal feed name");
-            }
+            if (ipr_str_prefixed (feed_name, "amq."))
+                error_text = "feed_create: new feed name may not start with amq.";
             else {
                 //  Create exchange as specified
                 exchange = amq_exchange_new (exchange_type, feed_name, FALSE, FALSE);
-                if (!exchange) {
-                    rc = 1;
-                    icl_shortstr_cpy (reply_text, "Internal error (exchanges)");
-                }
+                if (!exchange)
+                    error_text = "feed_create: ERROR: could not create exchange";
             }
         }
     }
-    else {
-        rc = 1;
-        icl_shortstr_cpy (reply_text, "Invalid feed class");
-    }
+    else
+        error_text = "feed_create: invalid feed class";
+
     amq_queue_unlink (&queue);
     amq_exchange_unlink (&exchange);
+    if (error_text)
+        smt_log_print (amq_broker->alert_log, "W: %s", error_text);
 </method>
 
-<method name = "feed query" return = "rc">
+<method name = "feed delete">
     <doc>
-    Queries a specified feed.  Returns a list of properties if the feed
-    exists, and sets the return code to 0, otherwise returns -1.
+    Deletes a specified feed.
     </doc>
-    <argument name = "feed name" type = "char *">Feed name</argument>
-    <argument name = "field list" type = "asl_field_list_t *">Properties list</argument>
-    <argument name = "reply text" type = "char *">Error message if any</argument>
-    <declare name = "rc" type = "int" default = "0">Return code</declare>
+    <argument name = "feed name" type = "char *" />
     <local>
     amq_exchange_t
         *exchange = NULL;
     amq_queue_t
         *queue = NULL;
+    char
+        *error_text = NULL;             //  Error text, if any
     </local>
     //
-    strclr (reply_text);
-    queue = amq_queue_table_search (amq_broker->queue_table, feed_name);
-    exchange = amq_exchange_table_search (amq_broker->exchange_table, feed_name);
-    if (queue) {
-        asl_field_new_string (field_list, "class", queue->auto_delete? "service": "rotator");
-    }
+    if (strnull (feed_name))
+        error_text = "feed_delete: feed name may not be empty";
     else
-    if (exchange) {
-        asl_field_new_string (field_list, "class", amq_exchange_type_name (exchange->type));
-    }
+    if (ipr_str_prefixed (feed_name, "amq."))
+        error_text = "feed_delete: tried to delete a standard feed";
     else {
-        rc = 1;
-        icl_shortstr_cpy (reply_text, "Cannot query feed: not found");
+        queue = amq_queue_table_search (amq_broker->queue_table, feed_name);
+        if (queue) {
+            if (queue->exclusive)
+                error_text = "feed_delete: tried to delete a private queue";
+            else
+                amq_queue_self_destruct (queue);
+            amq_queue_unlink (&queue);
+        }
+        else {
+            exchange = amq_exchange_table_search (
+                amq_broker->exchange_table, feed_name);
+            if (exchange) {
+                if (exchange->internal) {
+                    error_text = "feed_delete: tried to delete an internal exchange";
+                    amq_exchange_unlink (&exchange);
+                }
+                else
+                    amq_exchange_destroy (&exchange);
+            }
+        }
     }
-    amq_queue_unlink (&queue);
-    amq_exchange_unlink (&exchange);
+    if (error_text)
+        smt_log_print (amq_broker->alert_log, "W: %s", error_text);
 </method>
 
-<method name = "feed query class" return = "rc">
+<method name = "join create">
     <doc>
-    Queries a specified feed class.  Returns a list of feeds if the feed
-    class is valid, and sets the return code to 0, otherwise returns -1.
+    Creates the join, or asserts it exists as specified. Errors are logged.
     </doc>
-    <argument name = "class name" type = "char *">Class name</argument>
-    <argument name = "feed list" type = "asl_field_list_t *">Feed list</argument>
-    <argument name = "reply text" type = "char *">Error message if any</argument>
-    <declare name = "rc" type = "int" default = "0">Return code</declare>
+    <argument name = "pipe class" type = "char *" />
+    <argument name = "pipe name" type = "char *" />
+    <argument name = "address" type = "char *" />
+    <argument name = "feed name" type = "char *" />
+    <argument name = "feed class" type = "char *" />
+    <argument name = "channel" type = "amq_server_channel_t *" />
     <local>
-    amq_exchange_t
-        *exchange = NULL;
     amq_queue_t
         *queue = NULL;
+    amq_exchange_t
+        *exchange = NULL;
     Bool
         auto_delete;
     int
         exchange_type;
+    amq_client_method_t
+        *method;                        //  Consume method
+    icl_shortstr_t
+        tag;                            //  Consumer tag, q:{pipe-name}
+    char
+        *error_text = NULL;             //  Error text, if any
     </local>
-    strclr (reply_text);
-    auto_delete = streq (class_name, "service");
-    exchange_type = amq_exchange_type_lookup (class_name);
-
-    if (streq (class_name, "service")
-    ||  streq (class_name, "rotator")) {
-        queue = amq_queue_global_first (amq_broker->queue_list);
-        while (queue) {
-            if (queue->auto_delete == auto_delete)
-                icl_longstr_cat (feed_list, "%s ", queue->name);
-            queue = amq_queue_global_next (&queue);
+    //
+    exchange_type = amq_exchange_type_lookup (feed_class);
+    auto_delete = streq (feed_class, "service");
+    if (strnull (feed_name))
+        error_text = "join_create: feed name may not be empty";
+    else
+    if (strneq (pipe_class, "pipe"))
+        error_text = "join_create: invalid pipe class";
+    else
+    if (streq (feed_class, "service") || streq (feed_class, "rotator")) {
+        queue = amq_queue_table_search (amq_broker->queue_table, feed_name);
+        if (queue) {
+            if (queue->exclusive)
+                error_text = "join_create: feed queue exists but is exclusive";
+            else
+            if (queue->auto_delete != auto_delete)
+                error_text = "join_create: feed class does not match existing feed";
+            else {
+                //  Create consumer, with pipe name as tag, on queue
+                //  On shared queues, we do not implement the address string
+                icl_shortstr_fmt (tag, "q:%s", pipe_name);
+                method = amq_client_method_new_basic_consume (
+                    0, feed_name, tag, FALSE, FALSE, FALSE, TRUE, NULL);
+                amq_server_channel_consume (
+                    channel, queue, (amq_server_method_t *) method);
+                amq_client_method_unlink (&method);
+            }
+            amq_queue_unlink (&queue);
         }
+        else
+            error_text = "join_create: feed queue does not exist";
     }
     else
     if (exchange_type >= 0) {
-        exchange = amq_exchange_global_first (amq_broker->exchange_list);
-        while (exchange) {
-            if (exchange->type = exchange_type)
-                icl_longstr_cat (feed_list, "%s ", exchange->name);
-            exchange = amq_exchange_global_next (&exchange);
+        exchange = amq_exchange_table_search (amq_broker->exchange_table, feed_name);
+        queue = amq_queue_table_search (amq_broker->queue_table, pipe_name);
+        if (queue) {
+            if (!queue->exclusive)
+                error_text = "join_create: pipe queue exists but is not exclusive";
+            else
+            if (exchange)
+                //  On exchanges, the address string is the routing key
+                amq_exchange_bind_queue (exchange, channel, queue, address, NULL);
+            else
+                error_text = "join_create: feed exchange does not exist";
+        }
+        else
+            error_text = "join_create: pipe queue does not exist";
+        amq_queue_unlink (&queue);
+        amq_exchange_unlink (&exchange);
+    }
+    else
+        error_text = "join_create: invalid feed class";
+
+    if (error_text)
+        smt_log_print (amq_broker->alert_log, "W: %s", error_text);
+</method>
+
+<method name = "join delete">
+    <doc>
+    Deletes a specified join.
+    </doc>
+    <argument name = "pipe name" type = "char *" />
+    <argument name = "address" type = "char *" />
+    <argument name = "feed name" type = "char *" />
+    <argument name = "channel" type = "amq_server_channel_t *" />
+    <local>
+    amq_queue_t
+        *queue = NULL;
+    amq_exchange_t
+        *exchange = NULL;
+    icl_shortstr_t
+        tag;                            //  Consumer tag, q:{pipe-name}
+    char
+        *error_text = NULL;             //  Error text, if any
+    </local>
+    //
+    if (strnull (feed_name))
+        error_text = "join_delete: feed name may not be empty";
+    else {
+        queue = amq_queue_table_search (amq_broker->queue_table, feed_name);
+        if (queue) {
+            if (queue->exclusive)
+                error_text = "join_delete: feed queue exists but is exclusive";
+            else {
+                //  Cancel consumer, with pipe name as tag, on queue
+                icl_shortstr_fmt (tag, "q:%s", pipe_name);
+                amq_server_channel_cancel (channel, tag, TRUE, TRUE);
+            }
+            amq_queue_unlink (&queue);
+        }
+        else {
+            exchange = amq_exchange_table_search (
+                amq_broker->exchange_table, feed_name);
+            queue = amq_queue_table_search (
+                amq_broker->queue_table, pipe_name);
+            if (exchange && queue) {
+                if (!queue->exclusive)
+                    error_text = "join_delete: pipe queue exists but is not exclusive";
+                else
+                    //  On exchanges, the address string is the routing key
+                    amq_exchange_unbind_queue (exchange, channel, queue, address, NULL);
+            }
+            amq_queue_unlink (&queue);
+            amq_exchange_unlink (&exchange);
         }
     }
-    else {
-        rc = 1;
-        icl_shortstr_cpy (reply_text, "Invalid feed class");
-    }
+    if (error_text)
+        smt_log_print (amq_broker->alert_log, "W: %s", error_text);
 </method>
 
 <method name = "selftest" />

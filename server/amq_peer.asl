@@ -22,6 +22,7 @@
     chassis  = "client"
     basename = "amq_peer"
     caller   = "amq_peering"
+    broker   = "amq_broker"
     >
 <!--
     Specifies the processing for AMQP methods that come in from a peering
@@ -34,9 +35,6 @@
 <option name = "import_classes" value = "amq_server_classes" />
 
 <class name = "connection">
-  <action name = "start">
-    amq_peering_peer_connection_start (caller, self);
-  </action>
   <action name = "open-ok">
     amq_peering_peer_connection_open_ok (caller, self);
   </action>
