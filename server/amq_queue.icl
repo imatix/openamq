@@ -234,8 +234,8 @@ class.  This is a lock-free asynchronous class.
         self_destroy (&self);
     }
     else {
-        //  If unspecified, queue profile defaults to 'private' for exclusive 
-        //  queues, 'shared' for shared queues 
+        //  If unspecified, queue profile defaults to 'private' for exclusive
+        //  queues, 'shared' for shared queues
         profile_field = asl_field_list_search (arg_list, "profile");
         if (!profile_field)
             profile = self->exclusive? "private": "shared";
@@ -244,7 +244,7 @@ class.  This is a lock-free asynchronous class.
         //  Reject unknown queue profiles
         if (s_set_queue_limits (self, profile)) {
             smt_log_print (amq_broker->alert_log,
-                "E: client requested unknown queue profile '%s' (%s, %s, %s, %s)", 
+                "E: client requested unknown queue profile '%s' (%s, %s, %s, %s)",
                 profile,
                 self->connection->client_address,
                 self->connection->client_product,
@@ -304,7 +304,7 @@ class.  This is a lock-free asynchronous class.
     </doc>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "content" type = "amq_content_basic_t *">Content to publish</argument>
-    <argument name = "immediate" type = "Bool" />
+    <argument name = "immediate" type = "Bool">Send immediately or return?</argument>
     //
     <possess>
     channel = amq_server_channel_link (channel);
@@ -387,7 +387,7 @@ class.  This is a lock-free asynchronous class.
 
     if (error) {
         if (channel) {
-            amq_server_channel_error (channel, ASL_ACCESS_REFUSED, 
+            amq_server_channel_error (channel, ASL_ACCESS_REFUSED,
                 error, AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_CONSUME);
             amq_server_channel_cancel (channel, consumer->tag, FALSE, TRUE);
         }
@@ -547,7 +547,7 @@ class.  This is a lock-free asynchronous class.
     </doc>
     //
     rc = amq_queue_basic_message_count (self->queue_basic) +
-         (self->connection ? 
+         (self->connection ?
          smt_thread_reply_backlog (self->connection->thread) :
          0);
 </method>
