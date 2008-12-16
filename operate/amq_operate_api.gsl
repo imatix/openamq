@@ -450,8 +450,8 @@ NULL, NULL);
             //  Read command from stdin
             printf ("/%s>", path);
             strclr (command);
-            fgets (command, 255, stdin);
-            command [strlen (command) - 1] = 0;
+            if (fgets (command, 255, stdin))
+                command [strlen (command) - 1] = 0;
         }
         ipr_str_lower (command);
         ipr_str_crop  (command);
