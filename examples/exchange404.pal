@@ -1,0 +1,7 @@
+<?xml?>
+<pal script = "amq_pal_gen" >
+    <session>
+        <basic_content message_id = "test" />
+        <basic_publish exchange = "no-such-exchange" />
+    </session>
+</pal>
