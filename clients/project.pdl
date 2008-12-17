@@ -18,7 +18,7 @@
 
 <pdl
     name      = "OpenAMQ Client"
-    version   = "1.2d7"
+    version   = "1.2e0"
     workflow  = "standard.pwl"
     library   = "libamq_wireapi"
     copyright = "Copyright (c) 2007-2008 iMatix Corporation"
