@@ -58,16 +58,15 @@
         if (exchange == NULL)
             exchange = "";                     //  Default exchange
         thread = amq_client_session_dp_lookup (self, exchange, DP_SINK);
-        if (!thread)
+        if (!thread) {
             thread = amq_client_session_dp_new (self, exchange, DP_SINK);
-        if (thread) {
-            //  Options octet is [0][0][0][0][0][0][mandatory][immediate]
-            options = ((mandatory & 1) << 1) | (immediate & 1);
-            amq_content_basic_set_routing_key (content, exchange, routing_key, NULL);
-            amq_client_agent_direct_out (thread, content, options);
+            assert (thread);
         }
-        else
-            icl_console_print ("E: cannot create new direct protocol");
+        //  Options octet is [0][0][0][0][0][0][mandatory][immediate]
+        options = ((mandatory & 1) << 1) | (immediate & 1);
+        amq_content_basic_set_routing_key (content, exchange, routing_key, NULL);
+        amq_client_agent_direct_out (thread, content, options);
+        smt_thread_unlink (&thread);
     }
     else
   </action>
@@ -81,8 +80,11 @@
     </local>
     if (self->connection->direct && exclusive) {
         thread = amq_client_session_dp_lookup (self, self->queue, DP_FEED);
-        if (!thread)
+        if (!thread) {
             thread = amq_client_session_dp_new (self, self->queue, DP_FEED);
+            assert (thread);
+        }
+        smt_thread_unlink (&thread);
     }
   </action>
   <action name = "delete" when = "after">
