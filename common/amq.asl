@@ -21,7 +21,6 @@
 
 <!-- Non standard extension classes -->
 <include filename = "asl_direct.asl" />
-<include filename = "amq_restms.asl" />
 
 <option name = "protocol_name"     value = "AMQP" />
 <option name = "protocol_port"     value = "5672" />
