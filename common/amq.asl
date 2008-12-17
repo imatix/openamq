@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
     Please see AMQP specification for copyrights.
- 
+
     Links to full AMQP specification:
     =================================
     http://www.amqp.org/
@@ -18,23 +18,17 @@
 <include filename = "amq_exchange.asl" />
 <include filename = "amq_queue.asl" />
 <include filename = "amq_basic.asl" />
-<include filename = "asl_direct.asl" />
 
-<!-- not supported by OpenAMQ, will be removed in AMQP/0.91
-<include filename = "amq_access.asl" />
-<include filename = "amq_file.asl" />
-<include filename = "amq_stream.asl" />
-<include filename = "amq_tx.asl" />
-<include filename = "amq_dtx.asl" />
-<include filename = "amq_tunnel.asl" />
--->
+<!-- Non standard extension classes -->
+<include filename = "asl_direct.asl" />
+<include filename = "amq_restms.asl" />
 
 <option name = "protocol_name"     value = "AMQP" />
 <option name = "protocol_port"     value = "5672" />
-<option name = "protocol_class"    value = "1"  />
-<option name = "protocol_instance" value = "1"  />
-<option name = "protocol_major"    value = "0"  />
-<option name = "protocol_minor"    value = "9"  />
+<option name = "protocol_version"  value = "\\x00\\x00\\x09\\x01" />
+<option name = "protocol_accept"   value = "\\x01\\x01\\x00\\x09" />
+<option name = "protocol_major"    value = "0" />
+<option name = "protocol_minor"    value = "9" />
 
 <!-- Standard field domains -->
   <domain name = "access ticket" type = "short">
