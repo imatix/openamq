@@ -592,32 +592,38 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
 {
     amq_exchange_t
         *exchange;                      //  We send the reply to amq.direct
+    amq_vhost_t
+        *vhost;
     amq_content_basic_t
         *content;
 
     if (amq_server_config_debug_console (amq_server_config))
         smt_log_print (amq_broker->debug_log, "C: response xml=%s", bucket->data);
 
-    if (*request->reply_to) {
-        exchange = amq_exchange_table_search (amq_broker->exchange_table, "amq.direct");
-        if (exchange) {
-            //  Create a content with our desired reply data
-            content = amq_content_basic_new ();
-            amq_content_basic_set_message_id   (content, request->message_id);
-            amq_content_basic_set_content_type (content, "text/xml");
-            amq_content_basic_record_body      (content, bucket);
-            amq_content_basic_set_routing_key  (content, "amq.direct", request->reply_to, 0);
+    vhost = amq_vhost_link (amq_broker->vhost);
+    if (vhost) {
+        if (*request->reply_to) {
+            exchange = amq_exchange_table_search (vhost->exchange_table, "amq.direct");
+            if (exchange) {
+                //  Create a content with our desired reply data
+                content = amq_content_basic_new ();
+                amq_content_basic_set_message_id   (content, request->message_id);
+                amq_content_basic_set_content_type (content, "text/xml");
+                amq_content_basic_record_body      (content, bucket);
+                amq_content_basic_set_routing_key  (content, "amq.direct", request->reply_to, 0);
 
-            //  Publish the message
-            amq_exchange_publish (exchange, NULL, content, FALSE, FALSE, 0);
-            amq_content_basic_unlink (&content);
+                //  Publish the message
+                amq_exchange_publish (exchange, NULL, content, FALSE, FALSE, 0);
+                amq_content_basic_unlink (&content);
 
-            amq_exchange_unlink (&exchange);
+                amq_exchange_unlink (&exchange);
+            }
         }
+        else
+            smt_log_print (amq_broker->alert_log,
+                "W: console - client did not specify Reply-To queue");
     }
-    else
-        smt_log_print (amq_broker->alert_log,
-            "W: console - client did not specify Reply-To queue");
+    amq_vhost_unlink (&vhost);
 }
 
 //  Callback for object store destruction

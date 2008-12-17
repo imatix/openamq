@@ -22,6 +22,7 @@
     chassis  = "client"
     basename = "amq_peer"
     caller   = "amq_peering"
+    broker   = "amq_broker"
     >
 <!--
     Specifies the processing for AMQP methods that come in from a peering
