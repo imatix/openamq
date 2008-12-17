@@ -1,5 +1,10 @@
 + Stable branch
 
+++ 1.2e0 - 2008/12/17
+
+* fixed: queue deletion could crash on destroyed channel
+* fixed: SMT sockets crashed after constant use for 2^31 operations (BASE2-301)
+
 ++ 1.2d8 - 2008/11/04
 
 * fixed: PAL code generation wrongly tried to set session->silent (property was deprecated)
