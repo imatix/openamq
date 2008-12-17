@@ -58,9 +58,7 @@ independent of the queue content type.
 </method>
 
 <method name = "destroy">
-    <action>
     s_free_consumer_queue (self->consumer_list);
-    </action>
 </method>
 
 <method name = "free">
@@ -160,7 +158,7 @@ s_get_next_consumer (
         }
         else
             connection = NULL;
-            
+
         if (channel_active) {
             if (!channel->solvent)
                 rc = CONSUMER_BUSY;     //  Skip this consumer if busy
@@ -184,7 +182,7 @@ s_get_next_consumer (
         else
             consumer = amq_consumer_by_queue_next (&consumer);
     }
-    *consumer_p = consumer; 
+    *consumer_p = consumer;
     return (rc);
 }
 
@@ -193,10 +191,16 @@ s_free_consumer_queue (amq_consumer_by_queue_t *queue)
 {
     amq_consumer_t
         *consumer;
+    amq_server_channel_t
+        *channel;
 
     if (queue) {
         while ((consumer = amq_consumer_by_queue_pop (queue))) {
-            amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE, TRUE);
+            channel = amq_server_channel_link (consumer->channel);
+            if (channel) {
+                amq_server_channel_cancel (channel, consumer->tag, FALSE, TRUE);
+                amq_server_channel_unlink (&channel);
+            }
             amq_consumer_destroy (&consumer);
         }
     }
