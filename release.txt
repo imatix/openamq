@@ -1,4 +1,24 @@
-+ Unstable branch
++ High-performance release
+
+++ 1.3c3 - unreleased
+
+* added: support for AMQP/0.9.1 (1.3, 1.4)
+* added: PAL scripts can now set command timeout in session
+* added: session->timestamp property indicating when session was opened
+* added: session includes tables returned by AMQP methods
+* added: latency measurement framework, see http://www.openamq.org/doc:user-3-advanced#toc36
+* added: when server takes action on queue overflow, displays client IP address in logs
+* fixed: SMT sockets crashed after constant use for 2^31 operations (BASE2-301)
+* fixed: PAL scripts did not free client config
+* fixed: queue deletion could crash on destroyed channel
+* fixed: Direct Mode did not handle mandatory and immediate (http://www.openamq.org/issue:36)
+* fixed: Basic.Publish 'immediate' functionality was broken since 1.3a
+* fixed: queue overflow code crashed on shared queues (DAMQ-18)
+* fixed: on slow networks, broker sometimes asserted on setup_timer destroy (DAMQ-19)
+* fixed: PAL crashed when receiving contents greated than 1024 large
+* fixed: Direct Mode lease management had thread safety issues
+* fixed: credit-based flow control in normal mode was not robust
+* fixed: WireAPI Direct Mode fixed to allow unlimited connections (AMQ-598)
 
 ++ 1.3c2 - 2008/11/04
 
@@ -62,6 +82,11 @@ This update includes all fixes in 1.2d2 as well as:
 * In PAL, added <session direct = "1"> option to enable Direct Mode
 
 + Stable branch
+
+++ 1.2e0 - 2008/12/17
+
+* fixed: queue deletion could crash on destroyed channel
+* fixed: SMT sockets crashed after constant use for 2^31 operations (BASE2-301)
 
 ++ 1.2d8 - 2008/11/04
 
