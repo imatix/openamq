@@ -20,13 +20,14 @@ $ua->credentials ("localhost", "RestMS", "guest", "guest");
 #   In one step, create a pipe named 'world', create a fanout feed named
 #   'ping', and create a join on all messages, using address string 'hello':
 my $request = HTTP::Request->new (
-    PUT => 'http://localhost/restms/pipe/world/hello@ping/fanout");
+    PUT => 'http://localhost/restms/pipe/world/hello\@ping/fanout");
 my $response = $ua->request ($request);
 die if $response->code != 200;
 
-#   Post "Hello World!" to the address hello@ping
+#   Post "Hello World!" to the address hello@ping, note that Perl treats
+#   '@' as a special character, so we need to escape it
 my $request = HTTP::Request->new (
-    POST => "http://localhost/restms/hello@ping");
+    POST => "http://localhost/restms/hello\@ping");
 $request->content("Hello World!\n");
 my $response = $ua->request ($request);
 die if $response->code != 200;
@@ -236,3 +237,20 @@ The complete list of URI/method combinations is:
 * **DELETE /restms/{pipe-class}/{pipe-name}/{address-string}@{feed-name}[/{feed-class}]** - delete join.
 * **GET /restms/{pipe-class}/{pipe-name}/{message-selector}** - get message from pipe.
 * **DELETE /restms/{pipe-class}/{pipe-name}/{message-selector}** - delete message from pipe.
+
+++ AMQP interoperation
+
+RestMS interoperates with AMQP through some basic conventions, some of which we've already explained.
+
+# In general, AMQP and RestMS applications can freely interoperate, without knowledge of each others' particularities.
+# RestMS publishers can address exchanges, or shared queues by name.  They cannot address shared queues via arbitrary routing keys.
+# RestMS supports all exchanges which route on a single string address, but not currently support the AMQP headers exchange.
+# RestMS does not yet support message properties.  So, these will be blank on messages originating from RestMS publishers, and will be ignored by RestMS consumers.
+
+There are several possible architectures for message delivery from an AMQP server to a RestMS server.  The simplest model is a single connection, which carries all messages.  Messages are then distributed to pipes in the RestMS server.  If multiple pipes request the same messagem, the message will be sent multiple times down the connection.  In this model, the consumer-tag on Basic.Deliver methods tells the RestMS server how to route messages to pipes.  The format of the consumer tag is 'prefix:pipe-name' where 'prefix' is a string that does not include the ':' character.  (The prefix may be needed to ensure unique consumer tags.)
+
+An alternative model is to open multiple connections or channels, e.g. one per pipe, and to use these to segment messages per pipes.  Again, the same message may be sent many times if requested by multiple pipes.
+
+The optimal, but most complex model, is to use federation-style normalization.  In this model, the RestMS server maintains its own routing data structures, and forwards binding requests to the AMQP server.  When messages arrive, they are routed not on consumer tag, but according to the message routing key and/or other properties.  This model demands that the RestMS implementation has the same routing capabilities as the AMQP server, i.e. implements exchanges and shared queues in much the same way.  The advantage of this model is that it allows for stand-alone RestMS operation, and is the optimal design for RestMS-to-RestMS interoperation (with no extra hops to and from the AMQP server).
+
+The iMatix Zyre server implements the first, simplest model.

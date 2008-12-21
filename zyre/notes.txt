@@ -161,13 +161,13 @@ GET /restms/{pipe-class}/{pipe-name}/{message-selector}
 DELETE /restms/{pipe-class}/{pipe-name}/{message-selector}
     delete message from pipe.
 
+
 -----------------------------------------------------------------------------
 
 define pipe that sends messages back to feed
     - allows proxy selection, macroisation
 
-
-
+implement exchange logic in zyre and do federation
 
 
 config
@@ -202,4 +202,42 @@ RESTful extensions to AMQP
     - Queue.Delete is assertive
         - if queue does not exist, still returns Delete-Ok
         -> Subsumed in restms protocol class
+
+
+Zyre - a RESTful Messaging Service
+
+Business messaging is a hot topic because doing this right can be really valuable.  There are lots of free and open options: JMS, JBOSS, XMPP, and recently AMQP.  Each offers different advantages.  But one thing they all have in common: they are complex and demand quite an investment in time to learn and use.  And if you invest in a closed non-standard technology, you can get very trapped.
+
+Imagine if there was a way to get the benefits of business messaging without the hassle.  An open and standard way to connect applications without the cost of complicated technologies.  A cheap, simple, universal messaging system that spoke the most widely used, and best understood protocol: plain old HTTP.  And better, a system that used simple RESTful  methods: GET, PUT, POST, DELETE.
+
+REST may be fashionable but that's because it works.  RESTful architectures can scale.  You can distribute them across proxies and caches.  And you can use ordinary, cheap, standard products everywhere.  Everything speaks HTTP these days.
+
+So this is what we made: a fully RESTful messaging service that gives you the advantages and features of AMQP-style enterprise messaging, with none of the hassle.  Actually, we made two things.  First, we wrote an open specification called "RestMS" that defines a new standard - the first, as far as we know - for RESTful messaging.  Anyone can implement RestMS.  Second, we implemented RestMS, to give you Zyre.
+
+Zyre is a proxy server that speaks HTTP to web clients, and AMQP to an AMQP server.  To connect to Zyre and do RESTful messaging, you need an HTTP library.  In Python, Java, C#, C++, Perl, Ruby, JavaScript, this is almost trivial to do.
+
+To write an conventional messaging application you need to find a compatible client library, learn a complex API, and then write and test programs.  This can take you days, or even weeks.  To write a RestMS application, you use an API you already know - HTTP - and can be productive in as little as an hour.
+
+To get Zyre, download and build OpenAMQ as we explain on the www.openamq.org site.  Zyre works as an add-on to OpenAMQ, and maybe tomorrow other AMQP servers will also support RestMS.
+
+How come iMatix developed RestMS and Zyre?  Mainly we wanted to give our users the //simplest possible// way to do business messaging, and after much research, this was it.  It's possible to TELNET to Zyre and issue commands directly from the terminal.   But using a HTTP library is much easier.
+
+Writing specifications like RestMS is what we do: we were the original authors and designers of AMQP, and we had the first AMQP implementation, with OpenAMQ.  The release notes for OpenAMQ go back to December 2004.  iMatix is used to breaking the mold and redefining the possible.
+
+Zyre is still a young product but it's based on the same technology that drives OpenAMQ.  You'll find it as easy to use, as stable, scalable, and well documented.  The web server in Zyre is fairly basic, but fast, based on the iMatix Xitami webserver, which was awarded "Web Server of the Year" for two years in a row by Internet.com.  Yes, that was a while ago - 1998 and 1999 - but that just goes to prove how long we've been building this kind of product.
+
+Can you build real applications on Zyre?  Unequivocally, yes.  Zyre is built for the Internet: robust, stable, scalable.  Today, Zyre is simple but we will grow it according to your demands.  Certainly, we'll add SSL so that you can easily do secure messaging across the Internet, again, using any common HTTP library.
+
+Since Zyre speaks AMQP, you can connect internal AMQP applications to external HTTP ones, using Zyre as the gateway.  It's a secure, safe way to extend an internal messaging architecture to external clients.  Say you want to deliver quotes to clients across the Internet.  You run Zyre, give your clients private certificates, and they connect in all security to Zyre to get their data.  OK, so this scenario needs SSL support, which we are still making.
+
+When you use Zyre you'll see that the RestMS messaging model is a little different from the AMQP one (if you know it).  We made things clearer and simpler.  To be honest, if we were redesigning AMQP, we'd make it look a lot more like RestMS.  And since we are, infact, working on AMQP/1.0, RestMS gives you some idea of what that new protocol might look like.
+
+RestMS works like this: there are "feeds" that are series of messages.  You can imagine a bunch of stock market prices as a feed.  Applications can publish to a feed, which is how those stock market prices get there.  And applications can take stuff off feeds.  They do this by requesting certain addresses, and getting matching messages into a "pipe" (like a Unix pipe).  Then they read messages off the pipe.
+
+Zyre even lets you connect a pipe back to a feed, so that you can make selections of feeds, merge feeds, and so on.  It works a little like Yahoo! Pipes (if you know this) except that taking seconds to process maybe a dozen RSS messages, RestMS can handle thousands of messages in a fraction of a second.  RestMS is slower than native AMQP but it is still very fast.
+
+Actually Yahoo! Pipes is a neat analogy.  The big difference is that instead of a graphical editor, you create, modify, query, connect, and delete pieces programatically, at runtime, by issuing HTTP requests.  It really is that simple.
+
+We hope you like RestMS and Zyre.
+
 

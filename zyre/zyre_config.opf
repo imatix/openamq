@@ -85,7 +85,7 @@ $\(selftype)
     Peering timeout, seconds
     <doc>
     Defines the maximum amount of time connection negotiation may take,
-    before the connection is forcibly closed by the server.
+    before the connection is forcibly closed by the client.
     </doc>
     </property>
 

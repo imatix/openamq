@@ -2,6 +2,8 @@
 #   Zyre test cases
 
 use LWP::UserAgent;
+use HTTP::Request::Common;
+
 define_constants ();
 
 my $hostname = $ARGV[0];
@@ -95,7 +97,44 @@ restms ("PUT",    "/pipe/pipe.2/usd.*\@market/direct", $REPLY_PRECONDITION);
 restms ("GET",    "/pipe/pipe.2/usd.*\@market/direct", $REPLY_PRECONDITION);
 restms ("DELETE", "/pipe/pipe.2/usd.*\@market/direct", $REPLY_PRECONDITION);
 #   - feed not existing for PUT and no feed class specified
-restms ("PUT",    "/pipe/pipe.3/usd.*\@market2", $REPLY_PRECONDITION);
+restms ("PUT",    "/pipe/pipe.3/usd.*\@unknown", $REPLY_PRECONDITION);
+
+#   --------------------------------------------------------------------------
+#   Address tests
+#
+#   Basic address use, with explicit and implicit feed creation
+restms (          "PUT", "/topic/market1", $REPLY_OK);
+restms_post (     "/usd\@market1", "Test message 1", $REPLY_OK);
+restms_post (     "/usd\@market2/topic", "Test message 2", $REPLY_OK);
+restms (          "GET", "/topic/market1", $REPLY_OK);
+restms (          "GET", "/topic/market2", $REPLY_OK);
+
+#   Error scenarios
+#   - feed class preconditions for POST
+restms_post (     "/usd\@market1/direct", "Test message 3", $REPLY_PRECONDITION);
+#   - feed not existing for POST and no feed class specified
+restms_post (     "/usd\@market3", "Test message 4", $REPLY_PRECONDITION);
+#   - multipart POSTs are not allowed
+restms_post_file ("/usd\@market1", "boomake", $REPLY_NOTIMPLEMENTED);
+
+#   --------------------------------------------------------------------------
+#   Message send/receive tests
+#
+#   Create a pipe and join to several types of feed
+restms ("PUT",    "/pipe/my.pipe/*\@my.fanout/fanout", $REPLY_OK);
+restms ("PUT",    "/pipe/my.pipe/fixed-address\@my.direct/direct", $REPLY_OK);
+restms ("PUT",    "/pipe/my.pipe/*.wildcard\@my.topic/topic", $REPLY_OK);
+restms ("PUT",    "/pipe/my.pipe/*\@my.service/service", $REPLY_OK);
+#   Post a message to each feed
+restms_post (     "/any-address\@my.fanout", "Test a fanout feed", $REPLY_OK);
+restms_post (     "/fixed-address\@my.direct", "Test a directfeed", $REPLY_OK);
+restms_post (     "/some.wildcard\@my.topic", "Test a topic feed", $REPLY_OK);
+restms_post (     "/any-address\@my.service", "Test a service feed", $REPLY_OK);
+#   Fetch and delete four messages from our pipe
+for ($count = 0; $count < 4; $count++) {
+    restms ("GET",    "/pipe/my.pipe/", $REPLY_OK);
+    restms ("DELETE", "/pipe/my.pipe/", $REPLY_OK);
+}
 
 print "------------------------------------------------------------\n";
 print ("OK - Tests successful\n");
@@ -107,6 +146,13 @@ sub restms {
     print "Test: $method $uri\n";
     my $request = HTTP::Request->new ($method => $uri);
     my $response = $ua->request ($request);
+
+    check_response_code ($response, $expect);
+    return ($response);
+}
+
+sub check_response_code {
+    my ($response, $expect) = @_;
     if ($response->code != $expect) {
         print "Fail: " . $response->status_line . ", expected $expect\n";
         print "Content-type=" . $response->content_type . "\n";
@@ -115,24 +161,41 @@ sub restms {
     }
     if ($response->code == 200) {
         print "Pass: response=" . $response->code . " Content-type=" . $response->content_type . "\n";
-        print $response->content . "\n";
+        print $response->content . "\n" if $response->content_length;
     }
     else {
         print "Pass: response=" . $response->code . "\n";
     }
+}
+
+sub restms_post {
+    my ($URL, $content, $expect) = @_;
+    my $uri = "http://$hostname/restms$URL";
+    my $request = HTTP::Request->new (POST => $uri);
+    print "------------------------------------------------------------\n";
+    print "Test: POST $uri\n";
+    $request->content_type('text/plain');
+    $request->content($content);
+    my $response = $ua->request ($request);
+
+    check_response_code ($response, $expect);
     return ($response);
 }
 
-sub test_post {
-    my ($URL, $content) = @_;
-    my $request = HTTP::Request->new (POST => "http://$hostname/restms$URL");
-    $request->content_type('text/plain');
-    $request->content($content);
-    $ua->request ($request);
-    if ($response->code != $REPLY_OK) {
-        print "Failed: $method http://$hostname/restms/$URL (". $response->status_line .")\n";
-        exit (1);
-    }
+sub restms_post_file {
+    my ($URL, $filename, $expect) = @_;
+    my $uri = "http://$hostname/restms$URL";
+    print "------------------------------------------------------------\n";
+    print "Test: POST $uri\n";
+    my $response = $ua->request (POST $uri, 
+        Content_Type => 'form-data',
+        Content => [
+            submit => 1,
+            filename => [ $filename ]
+        ]);
+
+    check_response_code ($response, $expect);
+    return ($response);
 }
 
 sub define_constants {

@@ -99,6 +99,15 @@ This class implements the RestMS pipe object.
     icl_shortstr_cpy (self->uri, string);
 </method>
 
+<method name = "deliver" template = "function">
+    <doc>
+    Deliver a content to the pipe.
+    </doc>
+    <argument name = "content" type = "amq_basic_content_t *">Content</argument>
+    //
+    amq_content_basic_list_queue (self->contents, content);
+</method>
+
 <method name = "selftest">
     <local>
     zyre_pipe_t

@@ -65,6 +65,8 @@
         *pipe_table;                    //  Table of defined pipes
     zyre_feed_table_t
         *feed_table;                    //  Table of defined feeds
+    Bool
+        connected;                      //  Back-end connection alive?
 </context>
 
 <method name = "new">
@@ -86,12 +88,6 @@
     zyre_feed_table_destroy (&self->feed_table);
     zyre_peering_destroy (&self->peering);
     zyre_uri_destroy (&self->uri);
-</method>
-
-<method name = "initialise">
-</method>
-
-<method name = "terminate">
 </method>
 
 <method name = "announce">
@@ -191,6 +187,7 @@
     switch (zyre_uri_set (self->uri, request->pathinfo)) {
         case RESTMS_URI_ADDRESS:
             zyre_restms_address_post (self);
+            break;
         default:
             http_response_set_error (response, HTTP_REPLY_BADREQUEST,
                 "POST method not allowed on this resource");
@@ -278,9 +275,11 @@
     zyre_pipe_t
         *pipe;
 
-    pipe = s_pipe_create (self, NULL);
-    s_report_pipe (self, pipe);
-    zyre_pipe_unlink (&pipe);
+    pipe = s_pipe_assert (self, NULL);
+    if (pipe) {
+        s_report_pipe (self, pipe);
+        zyre_pipe_unlink (&pipe);
+    }
 </method>
 
 <method name = "pipes get" template = "function">
@@ -306,26 +305,18 @@
 
 <method name = "pipe put" template = "function">
     <doc>
-    Creates a client-named pipe of the specified class.  The method is
+    Creates a client-named pipe of the specified class.  The method is 
     idempotent.  If the pipe already exists, asserts that the class is
     accurate.
     </doc>
     zyre_pipe_t
         *pipe;
 
-    pipe = zyre_pipe_table_search (self->pipe_table, self->uri->pipe_name);
+    pipe = s_pipe_assert (self, self->uri->pipe_name);
     if (pipe) {
-        if (streq (pipe->class, self->uri->pipe_class))
-            s_report_pipe (self, pipe);
-        else
-            http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
-                "The requested pipe class is wrong");
-    }
-    else {
-        pipe = s_pipe_create (self, self->uri->pipe_name);
         s_report_pipe (self, pipe);
+        zyre_pipe_unlink (&pipe);
     }
-    zyre_pipe_unlink (&pipe);
 </method>
 
 <method name = "pipe get" template = "function">
@@ -411,19 +402,11 @@
     zyre_feed_t
         *feed;
 
-    feed = zyre_feed_table_search (self->feed_table, self->uri->feed_name);
+    feed = s_feed_assert (self);
     if (feed) {
-        if (streq (feed->class, self->uri->feed_class))
-            s_report_feed (self, feed);
-        else
-            http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
-                "The feed already exists with a different class");
-    }
-    else {
-        feed = s_feed_create (self);
         s_report_feed (self, feed);
+        zyre_feed_unlink (&feed);
     }
-    zyre_feed_unlink (&feed);
 </method>
 
 <method name = "feed get" template = "function">
@@ -489,40 +472,21 @@
     that the class matches.
     </doc>
     zyre_pipe_t
-        *pipe = NULL;
+        *pipe;
     zyre_feed_t
-        *feed = NULL;
+        *feed;
     zyre_join_t
-        *join = NULL;
+        *join;
 
-    pipe = zyre_pipe_table_search (self->pipe_table, self->uri->pipe_name);
-    if (!pipe)
-        pipe = s_pipe_create (self, self->uri->pipe_name);
-
-    feed = zyre_feed_table_search (self->feed_table, self->uri->feed_name);
-    if (feed) {
-        if (*self->uri->feed_class && strneq (self->uri->feed_class, feed->class)) {
-            rc = -1;                    //  Class mismatch
-            http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
-                "The requested feed class does not match");
+    pipe = s_pipe_assert (self, self->uri->pipe_name);
+    feed = s_feed_assert (self);
+    if (pipe && feed) {
+        join = s_join_assert (self, pipe, self->uri->address, feed);
+        if (join) {
+            s_report_join (self, join);
+            zyre_join_unlink (&join);
         }
     }
-    else {
-        if (*self->uri->feed_class)
-            feed = s_feed_create (self);
-        else {
-            rc = -1;                    //  No such feed and can't create
-            http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
-                "The requested feed does not exist");
-        }
-    }
-    if (!rc && pipe && feed) {
-        join = zyre_join_lookup (pipe, self->uri->address, feed->name);
-        if (join == NULL)
-            join = s_join_create (self, pipe, self->uri->address, feed);
-        s_report_join (self, join);
-    }
-    zyre_join_unlink (&join);
     zyre_feed_unlink (&feed);
     zyre_pipe_unlink (&pipe);
 </method>
@@ -622,9 +586,30 @@
 
 <method name = "address post" template = "function">
     <doc>
+    Send the message to the feed, addressed using the specified address 
+    string. If the URI specifies a feed class, the feed will be created if 
+    it does not exist, and if the feed exists, the POST method will check 
+    that the feed class matches (and reply with a PRECONDITION error if not).
     </doc>
-    http_response_set_error (self->response, HTTP_REPLY_NOTIMPLEMENTED,
-        "Not yet implemented");
+    zyre_feed_t
+        *feed;
+    amq_content_basic_t
+        *content;                       //  Content to post
+
+    if (ipr_str_prefixed (self->request->content_type, "multipart"))
+        http_response_set_error (self->response, HTTP_REPLY_NOTIMPLEMENTED,
+            "Multipart contents not supported");
+    else {
+        feed = s_feed_assert (self);
+        if (feed) {
+            content = amq_content_basic_new ();
+            amq_content_basic_record_body (content, self->request->content);
+            zyre_peering_address_post (
+                self->peering, self->uri->address, self->uri->feed_name, content);
+            amq_content_basic_unlink (&content);
+            zyre_feed_unlink (&feed);
+        }
+    }
 </method>
 
 <method name = "message get" template = "function">
@@ -641,6 +626,39 @@
         "Not yet implemented");
 </method>
 
+<method name = "deliver" template = "async function" async = "1">
+    <doc>
+    Deliver a message to a pipe.  The chain of execution is as follows.  The 
+    AMQP server delivers a message to the zyre_peering object across the 
+    peering connection (a Basic.Deliver method).  The zyre_peering object
+    passes this to the s_content_handler callback function, still in the
+    same thread.  The s_content_handler sends us (zyre_restms) an asynch
+    method with the message content, so that the message can be pushed onto
+    the appropriate pipe, as defined by the consumer tag.
+    </doc>
+    <argument name = "content" type = "amq_content_basic_t *">Incoming content</argument>
+    <argument name = "consumer tag" type = "char *">Consumer tag for routing</argument>
+    <action>
+    char
+        *pipe_name;
+    zyre_pipe_t
+        *pipe;
+
+    //  The consumer tag should be in the form prefix:pipe-name
+    pipe_name = strchr (consumer_tag, ':');
+    if (pipe_name) {
+        pipe_name++;                    //  Point to start of pipe name
+        pipe = zyre_pipe_table_search (self->pipe_table, pipe_name);
+        if (pipe) {
+            zyre_pipe_deliver (pipe, content);
+            zyre_pipe_unlink (&pipe);
+        }
+        else
+            icl_console_print ("W: undeliverable message ('%s')", consumer_tag);
+    }
+    <action>
+</method>
+
 <private name = "header">
 //  Return XML descriptions on various resources
 static void
@@ -652,17 +670,17 @@ static void
 static void
     s_report_feed_item (zyre_feed_t *feed, void *argument);
 
-//  Create resources
+//  Create/assert resources
 static zyre_pipe_t *
-    s_pipe_create (zyre_restms_t *self, char *pipe_name);
+    s_pipe_assert (zyre_restms_t *self, char *pipe_name);
 static zyre_feed_t *
-    s_feed_create (zyre_restms_t *self);
+    s_feed_assert (zyre_restms_t *self);
 static zyre_join_t *
-    s_join_create (zyre_restms_t *self, zyre_pipe_t *pipe, char *address, zyre_feed_t *feed);
+    s_join_assert (zyre_restms_t *self, zyre_pipe_t *pipe, char *address, zyre_feed_t *feed);
 
 //  Callbacks from the zyre_peering agent
 static int s_status_handler (
-    void *caller, zyre_peering_t *peering, Bool status);
+    void *caller, zyre_peering_t *peering, Bool connected);
 static int s_content_handler (
     void *caller, zyre_peering_t *peering, zyre_peer_method_t *method);
 </private>
@@ -680,7 +698,8 @@ s_report_pipe (zyre_restms_t *self, zyre_pipe_t *pipe)
     ipr_xml_tree_leaf (tree, "status", "ok");
       ipr_xml_tree_open (tree, "pipe");
         ipr_xml_tree_leaf (tree, "name", pipe->name);
-        ipr_xml_tree_leaf (tree, "uri", pipe->uri);
+        ipr_xml_tree_leaf (tree, "uri",  pipe->uri);
+        ipr_xml_tree_leaf (tree, "messages", amq_content_basic_list_count (pipe->contents));
       ipr_xml_tree_shut (tree);
     http_response_set_from_xml (self->response, tree);
     ipr_xml_tree_destroy (&tree);
@@ -711,7 +730,7 @@ s_report_feed_item (zyre_feed_t *feed, void *argument)
 
     ipr_xml_tree_open (tree, "feed");
       ipr_xml_tree_leaf (tree, "name", feed->name);
-      ipr_xml_tree_leaf (tree, "uri", feed->uri);
+      ipr_xml_tree_leaf (tree, "uri",  feed->uri);
     ipr_xml_tree_shut (tree);
 }
 
@@ -740,61 +759,96 @@ s_report_join (zyre_restms_t *self, zyre_join_t *join)
 
 //  Name is provided explicitly to allow server-named pipes
 static zyre_pipe_t *
-s_pipe_create (zyre_restms_t *self, char *pipe_name)
+s_pipe_assert (zyre_restms_t *self, char *pipe_name)
 {
     zyre_pipe_t
-        *pipe;
+        *pipe = NULL;
 
-    pipe = zyre_pipe_new (self->pipe_table, self->uri->pipe_class, pipe_name);
-    zyre_pipe_set_uri (pipe, "%s%s/%s", self->response->root_uri, pipe->class, pipe->name);
-    zyre_peering_pipe_create (self->peering, pipe->class, pipe->name);
+    //  Lookup pipe if explicitly named, create if not found, or auto-named
+    if (pipe_name)
+        pipe = zyre_pipe_table_search (self->pipe_table, pipe_name);
+    if (pipe) {
+        if (strneq (pipe->class, self->uri->pipe_class)) {
+            http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
+                "The requested pipe class is wrong");
+            zyre_pipe_unlink (&pipe);
+        }
+    }
+    else
+    if (*self->uri->pipe_class) {
+        pipe = zyre_pipe_new (self->pipe_table, self->uri->pipe_class, pipe_name);
+        assert (pipe);
+        zyre_pipe_set_uri (pipe, "%s%s/%s", self->response->root_uri, pipe->class, pipe->name);
+        zyre_peering_pipe_create (self->peering, pipe->class, pipe->name);
+    }
+    else
+        //  Pipe not found, and can't create, since no class specified
+        http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
+            "The requested pipe does not exist");
+
     return (pipe);
 }
 
 static zyre_feed_t *
-s_feed_create (zyre_restms_t *self)
+s_feed_assert (zyre_restms_t *self)
 {
     zyre_feed_t
         *feed;
 
-    feed = zyre_feed_new (self->feed_table, self->uri->feed_class, self->uri->feed_name);
-    zyre_feed_set_uri (feed, "%s%s/%s", self->response->root_uri, feed->class, feed->name);
-    zyre_peering_feed_create (self->peering, feed->class, feed->name);
+    feed = zyre_feed_table_search (self->feed_table, self->uri->feed_name);
+    if (feed) {
+        if (*self->uri->feed_class && strneq (self->uri->feed_class, feed->class)) {
+            http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
+                "The requested feed class does not match");
+            zyre_feed_unlink (&feed);
+        }
+    }
+    else
+    if (*self->uri->feed_class) {
+        feed = zyre_feed_new (self->feed_table, self->uri->feed_class, self->uri->feed_name);
+        assert (feed);
+        zyre_feed_set_uri (feed, "%s%s/%s", self->response->root_uri, feed->class, feed->name);
+        zyre_peering_feed_create (self->peering, feed->class, feed->name);
+    }
+    else
+        //  Feed not found, and can't create, since no class specified
+        http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
+            "The requested feed does not exist");
+
     return (feed);
 }
 
 static zyre_join_t *
-s_join_create (zyre_restms_t *self, zyre_pipe_t *pipe, char *address, zyre_feed_t *feed)
+s_join_assert (zyre_restms_t *self, zyre_pipe_t *pipe, char *address, zyre_feed_t *feed)
 {
     zyre_join_t
         *join;
 
-    join = zyre_join_new (pipe, address, feed->name, feed->class);
-    zyre_join_set_uri (join, "%s%s/%s/%s@%s/%s",
-        self->response->root_uri,
-        pipe->class, pipe->name,
-        address,
-        feed->name, feed->class);
-    zyre_peering_join_create (
-        self->peering,
-        pipe->name,
-        address,
-        feed->name,
-        feed->class);
+    join = zyre_join_lookup (pipe, address, feed->name);
+    if (join == NULL) {
+        join = zyre_join_new (pipe, address, feed->name, feed->class);
+        zyre_join_set_uri (join, "%s%s/%s/%s@%s/%s",
+            self->response->root_uri,
+            pipe->class, pipe->name,
+            address,
+            feed->name, feed->class);
+        zyre_peering_join_create (
+            self->peering,
+            pipe->name,
+            address,
+            feed->name,
+            feed->class);
+    }
     return (join);
 }
 
 static int
-s_status_handler (void *caller, zyre_peering_t *peering, Bool status)
+s_status_handler (void *caller, zyre_peering_t *peering, Bool connected)
 {
     zyre_restms_t
         *self = caller;
 
-    if (status)
-        icl_console_print ("I: (TEST) peering now connected to %s", peering->host);
-    else
-        icl_console_print ("W: (TEST) peering disconnected from %s", peering->host);
-
+    self->connected = connected;
     return (0);
 }
 
@@ -803,8 +857,14 @@ s_content_handler (void *caller, zyre_peering_t *peering, zyre_peer_method_t *me
 {
     zyre_restms_t
         *self = caller;
+    amq_content_basic_t
+        *content;
 
-    icl_console_print ("I: (TEST) received message from peering");
+    assert (method->class_id  == ZYRE_PEER_BASIC);
+    assert (method->method_id == ZYRE_PEER_BASIC_DELIVER);
+
+    content = (amq_content_basic_t *) method->content;
+    zyre_restms_deliver (self, content, method->payload.basic_deliver.consumer_tag);
     return (0);
 }
 </private>
