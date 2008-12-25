@@ -328,11 +328,16 @@
         *pipe;
     </local>
     //
-    pipe = s_pipe_assert (self, response, self->uri->pipe_name);
-    if (pipe) {
-        s_report_pipe (response, pipe);
-        zyre_pipe_unlink (&pipe);
+    if (streq (self->uri->pipe_class, "pipe")) {
+        pipe = s_pipe_assert (self, response, self->uri->pipe_name);
+        if (pipe) {
+            s_report_pipe (response, pipe);
+            zyre_pipe_unlink (&pipe);
+        }
     }
+    else
+        http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED,
+            "Zyre does not yet implement stream pipes");
 </method>
 
 <method name = "pipe get" template = "function">
@@ -347,18 +352,23 @@
         *pipe;
     </local>
     //
-    pipe = zyre_pipe_table_search (self->pipe_table, self->uri->pipe_name);
-    if (!pipe)
-        http_response_set_error (response, HTTP_REPLY_NOTFOUND,
-            "The requested pipe does not exist");
-    else
-    if (streq (pipe->class, self->uri->pipe_class))
-        s_report_pipe (response, pipe);
-    else
-        http_response_set_error (response, HTTP_REPLY_PRECONDITION,
-            "The requested pipe class is wrong");
+    if (streq (self->uri->pipe_class, "pipe")) {
+        pipe = zyre_pipe_table_search (self->pipe_table, self->uri->pipe_name);
+        if (!pipe)
+            http_response_set_error (response, HTTP_REPLY_NOTFOUND,
+                "The requested pipe does not exist");
+        else
+        if (streq (pipe->class, self->uri->pipe_class))
+            s_report_pipe (response, pipe);
+        else
+            http_response_set_error (response, HTTP_REPLY_PRECONDITION,
+                "The requested pipe class is wrong");
 
-    zyre_pipe_unlink (&pipe);
+        zyre_pipe_unlink (&pipe);
+    }
+    else
+        http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED,
+            "Zyre does not yet implement stream pipes");
 </method>
 
 <method name = "pipe delete" template = "function">
@@ -374,26 +384,31 @@
         *tree;
     </local>
     //
-    pipe = zyre_pipe_table_search (self->pipe_table, self->uri->pipe_name);
-    if (pipe) {
-        if (streq (pipe->class, self->uri->pipe_class)) {
-            zyre_peering_pipe_delete (self->peering, pipe->name);
-            zyre_pipe_destroy (&pipe);
+    if (streq (self->uri->pipe_class, "pipe")) {
+        pipe = zyre_pipe_table_search (self->pipe_table, self->uri->pipe_name);
+        if (pipe) {
+            if (streq (pipe->class, self->uri->pipe_class)) {
+                zyre_peering_pipe_delete (self->peering, pipe->name);
+                zyre_pipe_destroy (&pipe);
+            }
+            else {
+                rc = -1;                    //  Class mismatch
+                http_response_set_error (response, HTTP_REPLY_PRECONDITION,
+                    "The requested pipe does not exist");
+                zyre_pipe_unlink (&pipe);
+            }
         }
-        else {
-            rc = -1;                    //  Class mismatch
-            http_response_set_error (response, HTTP_REPLY_PRECONDITION,
-                "The requested pipe does not exist");
-            zyre_pipe_unlink (&pipe);
+        if (!rc) {
+            tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
+            ipr_xml_tree_leaf (tree, "version", "1.0");
+            ipr_xml_tree_leaf (tree, "status", "ok");
+            http_response_set_from_xml (response, tree);
+            ipr_xml_tree_destroy (&tree);
         }
     }
-    if (!rc) {
-        tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
-        ipr_xml_tree_leaf (tree, "version", "1.0");
-        ipr_xml_tree_leaf (tree, "status", "ok");
-        http_response_set_from_xml (response, tree);
-        ipr_xml_tree_destroy (&tree);
-    }
+    else
+        http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED,
+            "Zyre does not yet implement stream pipes");
 </method>
 
 <method name = "feeds get" template = "function">
@@ -515,17 +530,22 @@
         *join;
     </local>
     //
-    pipe = s_pipe_assert (self, response, self->uri->pipe_name);
-    feed = s_feed_assert (self, response);
-    if (pipe && feed) {
-        join = s_join_assert (self, response, pipe, self->uri->address, feed);
-        if (join) {
-            s_report_join (response, join);
-            zyre_join_unlink (&join);
+    if (streq (self->uri->pipe_class, "pipe")) {
+        pipe = s_pipe_assert (self, response, self->uri->pipe_name);
+        feed = s_feed_assert (self, response);
+        if (pipe && feed) {
+            join = s_join_assert (self, response, pipe, self->uri->address, feed);
+            if (join) {
+                s_report_join (response, join);
+                zyre_join_unlink (&join);
+            }
         }
+        zyre_feed_unlink (&feed);
+        zyre_pipe_unlink (&pipe);
     }
-    zyre_feed_unlink (&feed);
-    zyre_pipe_unlink (&pipe);
+    else
+        http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED,
+            "Zyre does not yet implement stream pipes");
 </method>
 
 <method name = "join get" template = "function">
@@ -679,24 +699,31 @@
         *nozzle;
     </local>
     //
-    pipe = zyre_pipe_table_search (self->pipe_table, self->uri->pipe_name);
-    if (pipe) {
-        //  If nozzle is empty, always create new nozzle for this request
-        //  else try to find the nozzle and only create if it does not exist
-        if (strnull (self->uri->nozzle)) 
-            nozzle = zyre_nozzle_new (pipe, "");
-        else {
-            nozzle = zyre_nozzle_lookup (pipe, self->uri->nozzle);
-            if (!nozzle) 
-                nozzle = zyre_nozzle_new (pipe, self->uri->nozzle);
+    if (streq (self->uri->pipe_class, "pipe")) {
+        pipe = zyre_pipe_table_search (self->pipe_table, self->uri->pipe_name);
+        if (pipe) {
+            //  If nozzle is empty, always create new nozzle for this request
+            //  else try to find the nozzle and only create if it does not exist
+            if (strnull (self->uri->nozzle))
+                nozzle = zyre_nozzle_new (pipe, "");
+            else {
+                nozzle = zyre_nozzle_lookup (pipe, self->uri->nozzle);
+                if (!nozzle)
+                    nozzle = zyre_nozzle_new (pipe, self->uri->nozzle);
+            }
+            zyre_nozzle_message_get (nozzle, response, self->uri->index);
+            zyre_nozzle_unlink (&nozzle);
+            zyre_pipe_unlink (&pipe);
         }
-        zyre_nozzle_message_get (nozzle, response, self->uri->index);
-        zyre_nozzle_unlink (&nozzle);
-        zyre_pipe_unlink (&pipe);
+        else {
+            http_response_set_error (response, HTTP_REPLY_PRECONDITION,
+                "The pipe does not exist");
+            rc = -1;
+        }
     }
     else {
-        http_response_set_error (response, HTTP_REPLY_PRECONDITION,
-            "The pipe does not exist");
+        http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED,
+            "Zyre does not yet implement stream pipes");
         rc = -1;
     }
 </method>
@@ -719,31 +746,36 @@
         *tree;
     </local>
     //
-    pipe = zyre_pipe_table_search (self->pipe_table, self->uri->pipe_name);
-    if (pipe) {
-        nozzle = zyre_nozzle_lookup (pipe, self->uri->nozzle);
-        if (nozzle) {
-            count = zyre_nozzle_purge (nozzle);
-            zyre_nozzle_unlink (&nozzle);
-        }
-        tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
-        ipr_xml_tree_leaf (tree, "version", "1.0");
-        ipr_xml_tree_leaf (tree, "status", "ok");
-          ipr_xml_tree_open (tree, "pipe");
-            ipr_xml_tree_leaf (tree, "name", pipe->name);
-            ipr_xml_tree_leaf (tree, "uri",  pipe->uri);
-            ipr_xml_tree_open (tree, "nozzle");
-              ipr_xml_tree_leaf (tree, "name", self->uri->nozzle);
-              ipr_xml_tree_leaf (tree, "size", "%d", count);
+    if (streq (self->uri->pipe_class, "pipe")) {
+        pipe = zyre_pipe_table_search (self->pipe_table, self->uri->pipe_name);
+        if (pipe) {
+            nozzle = zyre_nozzle_lookup (pipe, self->uri->nozzle);
+            if (nozzle) {
+                count = zyre_nozzle_purge (nozzle);
+                zyre_nozzle_unlink (&nozzle);
+            }
+            tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
+            ipr_xml_tree_leaf (tree, "version", "1.0");
+            ipr_xml_tree_leaf (tree, "status", "ok");
+            ipr_xml_tree_open (tree, "pipe");
+                ipr_xml_tree_leaf (tree, "name", pipe->name);
+                ipr_xml_tree_leaf (tree, "uri",  pipe->uri);
+                ipr_xml_tree_open (tree, "nozzle");
+                ipr_xml_tree_leaf (tree, "name", self->uri->nozzle);
+                ipr_xml_tree_leaf (tree, "size", "%d", count);
+                ipr_xml_tree_shut (tree);
             ipr_xml_tree_shut (tree);
-          ipr_xml_tree_shut (tree);
-        http_response_set_from_xml (response, tree);
-        ipr_xml_tree_destroy (&tree);
-        zyre_pipe_unlink (&pipe);
+            http_response_set_from_xml (response, tree);
+            ipr_xml_tree_destroy (&tree);
+            zyre_pipe_unlink (&pipe);
+        }
+        else
+            http_response_set_error (response, HTTP_REPLY_PRECONDITION,
+                "The pipe does not exist");
     }
     else
-        http_response_set_error (response, HTTP_REPLY_PRECONDITION,
-            "The pipe does not exist");
+        http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED,
+            "Zyre does not yet implement stream pipes");
 </method>
 
 <method name = "deliver" template = "async function" async = "1">

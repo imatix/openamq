@@ -1,16 +1,3 @@
-Waiting on messages
-
-- we can have multiple clients using same unnamed nozzle
-- unnamed nozzles:
-    - create new nozzle for each request
-    client a waits on unnamed nozzle
-    client b waits on unnamed nozzle
-        - message arrives
-        - pipe tries to deliver to first nozzle
-        - on deliver failure, push back to pipe
-            - destroy unnamed nozzle
-            - on success, destroy unnamed nozzle
-
 
 define pipe that sends messages back to feed
     - allows proxy selection, macroisation

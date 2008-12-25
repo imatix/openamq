@@ -12,18 +12,16 @@ $hostname = "localhost" unless $hostname;
 my $ua = new LWP::UserAgent;
 $ua->agent ('Zyre tester');
 $ua->credentials ($hostname, "Zyre", "guest", "guest");
+$ua->timeout (1);                       #   Keep things impatient
 
-#   Pingback option is used to test wait on message.  If this is set, we 
-#   sleep two seconds and then post a message to the my.service feed.
-my $pingback = $ARGV [1];
-if ($pingback) {
-    print "Waiting two seconds to send pingback...\n";
-    sleep (2);
-    restms_post ("/any-address\@my.service", "Test a message pingback", $REPLY_OK);
+#   loopback option is used to test wait on message.  If this is set, we
+#   wait two seconds and post a message to the my.service feed.
+my $loopback = $ARGV [1];
+if ($loopback) {
+    sleep ($ARGV [2]);
+    restms_post ("/any-address\@my.service", "Test a message loopback ".$ARGV [3], $REPLY_OK);
     exit (0);
 }
-
-if (0) {
 
 #   --------------------------------------------------------------------------
 #   Get root map
@@ -38,13 +36,13 @@ $response->content =~ /name\s*=\s*"([^"]+)"/;
 $pipe_name = $1 || die "Failed: malformed response for pipe\n";
 
 #   GET pipe class information
-restms ("GET",    "/pipe", $REPLY_OK);
+restms ("GET", "/pipe", $REPLY_OK);
 #   GET pipe information
-restms ("GET",    "/pipe/$pipe_name", $REPLY_OK);
+restms ("GET", "/pipe/$pipe_name", $REPLY_OK);
 #   PUT is idempotent
-restms ("PUT",    "/pipe/$pipe_name", $REPLY_OK);
+restms ("PUT", "/pipe/$pipe_name", $REPLY_OK);
 #   POST does not work on pipes
-restms ("POST",   "/pipe/$pipe_name", $REPLY_BADREQUEST);
+restms ("POST", "/pipe/$pipe_name", $REPLY_BADREQUEST);
 #   Delete the pipe
 restms ("DELETE", "/pipe/$pipe_name", $REPLY_OK);
 #   Method is idempotent, so we can do it again
@@ -64,6 +62,9 @@ restms ("DELETE", "/pipe/$pipe_name", $REPLY_OK);
 restms ("DELETE", "/pipe/BOO/BAH/HUMBUG", $REPLY_BADREQUEST);
 #   - pipe must exist for GET method
 restms ("GET", "/pipe/not.found", $REPLY_NOTFOUND);
+#   - stream pipes are not implemented
+restms ("GET", "/stream/not.found", $REPLY_NOTIMPLEMENTED);
+restms ("PUT", "/stream/stream.pipe", $REPLY_NOTIMPLEMENTED);
 
 #   --------------------------------------------------------------------------
 #   Feed tests
@@ -110,84 +111,91 @@ restms ("GET",    "/pipe/pipe.2/usd.*\@market/direct", $REPLY_PRECONDITION);
 restms ("DELETE", "/pipe/pipe.2/usd.*\@market/direct", $REPLY_PRECONDITION);
 #   - feed not existing for PUT and no feed class specified
 restms ("PUT",    "/pipe/pipe.3/usd.*\@unknown", $REPLY_PRECONDITION);
+#   - stream pipes are not implemented
+restms ("PUT",    "/stream/pipe.3/usd.*\@unknown", $REPLY_NOTIMPLEMENTED);
 
 #   --------------------------------------------------------------------------
 #   Address tests
 #
 #   Basic address use, with explicit and implicit feed creation
-restms (          "PUT", "/topic/market1", $REPLY_OK);
-restms_post (     "/usd\@market1", "Test message 1", $REPLY_OK);
-restms_post (     "/usd\@market2/topic", "Test message 2", $REPLY_OK);
-restms (          "GET", "/topic/market1", $REPLY_OK);
-restms (          "GET", "/topic/market2", $REPLY_OK);
+restms ("PUT", "/topic/market1", $REPLY_OK);
+restms_post ("/usd\@market1", "Test message 1", $REPLY_OK);
+restms_post ("/usd\@market2/topic", "Test message 2", $REPLY_OK);
+restms ("GET", "/topic/market1", $REPLY_OK);
+restms ("GET", "/topic/market2", $REPLY_OK);
 
 #   Error scenarios
 #   - feed class preconditions for POST
-restms_post (     "/usd\@market1/direct", "Test message 3", $REPLY_PRECONDITION);
+restms_post ("/usd\@market1/direct", "Test message 3", $REPLY_PRECONDITION);
 #   - feed not existing for POST and no feed class specified
-restms_post (     "/usd\@market3", "Test message 4", $REPLY_PRECONDITION);
+restms_post ("/usd\@market3", "Test message 4", $REPLY_PRECONDITION);
 #   - multipart POSTs are not allowed
 restms_post_file ("/usd\@market1", "boomake", $REPLY_NOTIMPLEMENTED);
-
-}   #   endif
 
 #   --------------------------------------------------------------------------
 #   Message send/receive tests
 #
 #   Create a pipe and join to several types of feed
-restms ("PUT",    "/pipe/my.pipe/*\@my.fanout/fanout", $REPLY_OK);
-restms ("PUT",    "/pipe/my.pipe/fixed-address\@my.direct/direct", $REPLY_OK);
-restms ("PUT",    "/pipe/my.pipe/*.wildcard\@my.topic/topic", $REPLY_OK);
-restms ("PUT",    "/pipe/my.pipe/*\@my.service/service", $REPLY_OK);
+restms ("PUT", "/pipe/my.pipe/*\@my.fanout/fanout", $REPLY_OK);
+restms ("PUT", "/pipe/my.pipe/fixed-address\@my.direct/direct", $REPLY_OK);
+restms ("PUT", "/pipe/my.pipe/*.wildcard\@my.topic/topic", $REPLY_OK);
+restms ("PUT", "/pipe/my.pipe/*\@my.service/service", $REPLY_OK);
 
-if (0) {
 #   Post a message to each feed
-restms_post (     "/any-address\@my.fanout", "Test a fanout feed", $REPLY_OK);
-restms_post (     "/fixed-address\@my.direct", "Test a directfeed", $REPLY_OK);
-restms_post (     "/some.wildcard\@my.topic", "Test a topic feed", $REPLY_OK);
-restms_post (     "/any-address\@my.service", "Test a service feed", $REPLY_OK);
+restms_post ("/any-address\@my.fanout", "Test a fanout feed", $REPLY_OK);
+restms_post ("/fixed-address\@my.direct", "Test a direct feed", $REPLY_OK);
+restms_post ("/some.wildcard\@my.topic", "Test a topic feed", $REPLY_OK);
+restms_post ("/any-address\@my.service", "Test a service feed", $REPLY_OK);
 #   Fetch/delete four messages from our pipe
-restms ("GET",    "/pipe/my.pipe/", $REPLY_OK);
-restms ("GET",    "/pipe/my.pipe/", $REPLY_OK);
-restms ("GET",    "/pipe/my.pipe/", $REPLY_OK);
-restms ("GET",    "/pipe/my.pipe/", $REPLY_OK);
-}   #   endif
+restms ("GET", "/pipe/my.pipe/", $REPLY_OK);
+restms ("GET", "/pipe/my.pipe/", $REPLY_OK);
+restms ("GET", "/pipe/my.pipe/", $REPLY_OK);
+restms ("GET", "/pipe/my.pipe/", $REPLY_OK);
 
-#   Test a pingback, waiting for message to arrive
-system ("perl ./zyre_test.pl $hostname 1 &");
-print ("Waiting for pingback to arrive (2 seconds)...\n");
-restms ("GET",    "/pipe/my.pipe/", $REPLY_OK);
+#   Test incoming messages using loopback to send us a message with 2-second delay
+#   First, set timeout high to allow message to arrive
+$ua->timeout (3);
+system ("perl ./testit.pl $hostname 1 2 AAA >/dev/null &");
+restms ("GET", "/pipe/my.pipe/", $REPLY_OK);
+#   Next, set timeout low to abort message delivery
+#   Note that timeout is reported as 500 Internalerror
+$ua->timeout (1);
+system ("perl ./testit.pl $hostname 1 2 BBB >/dev/null &");
+restms ("GET", "/pipe/my.pipe/", $REPLY_INTERNALERROR);
+#   Now, set timeout to allow message to arrive
+$ua->timeout (2);
+restms ("GET", "/pipe/my.pipe/", $REPLY_OK);
+#   We expect no other message to be waiting
+$ua->timeout (1);
+restms ("GET", "/pipe/my.pipe/", $REPLY_INTERNALERROR);
 
-if (0) {
+#   Now test with named nozzle and explicit delete
+restms_post ("/any-address\@my.service", "Test a message loopback index 0", $REPLY_OK);
+restms_post ("/any-address\@my.service", "Test a message loopback index 1", $REPLY_OK);
+restms_post ("/any-address\@my.service", "Test a message loopback index 2", $REPLY_OK);
+restms ("GET", "/pipe/my.pipe/my.nozzle", $REPLY_OK);
+restms ("GET", "/pipe/my.pipe/my.nozzle/1", $REPLY_OK);
+restms ("GET", "/pipe/my.pipe/my.nozzle/2", $REPLY_OK);
+restms ("GET", "/pipe/my.pipe/my.nozzle", $REPLY_OK);
+restms ("GET", "/pipe/my.pipe/my.nozzle/1", $REPLY_OK);
+restms ("GET", "/pipe/my.pipe/my.nozzle/2", $REPLY_OK);
+restms ("DELETE", "/pipe/my.pipe/my.nozzle", $REPLY_OK);
+restms ("GET", "/pipe/my.pipe/my.nozzle", $REPLY_INTERNALERROR);
 
-#   Post a message to each feed
-restms_post (     "/any-address\@my.fanout", "Test a fanout feed", $REPLY_OK);
-restms_post (     "/fixed-address\@my.direct", "Test a direct feed", $REPLY_OK);
-restms_post (     "/some.wildcard\@my.topic", "Test a topic feed", $REPLY_OK);
-restms_post (     "/any-address\@my.service", "Test a service feed", $REPLY_OK);
-#   Fetch four messages and hold in a pick set
-restms ("GET",    "/pipe/my.pipe/set/0", $REPLY_OK);
-restms ("GET",    "/pipe/my.pipe/set/1", $REPLY_OK);
-restms ("GET",    "/pipe/my.pipe/set/2", $REPLY_OK);
-restms ("GET",    "/pipe/my.pipe/set/3", $REPLY_OK);
-#   Check that we can fetch the same messages idempotently
-restms ("GET",    "/pipe/my.pipe/set/0", $REPLY_OK);
-#   Delete all four messages
-restms ("DELETE", "/pipe/my.pipe/set", $REPLY_OK);
 #   Error scenarios
-restms ("GET",    "/pipe/my.pipe/set/", $REPLY_BADREQUEST);
-restms ("GET",    "/pipe/my.pipe/set/text", $REPLY_BADREQUEST);
-restms ("GET",    "/stream/my.pipe/", $REPLY_NOTIMPLEMENTED);
-}   #   endif
+restms ("GET", "/pipe/my.pipe/my.nozzle/", $REPLY_BADREQUEST);
+restms ("GET", "/pipe/my.pipe/my.nozzle/invalid-index", $REPLY_BADREQUEST);
+restms ("GET", "/stream/my.pipe/", $REPLY_NOTIMPLEMENTED);
+restms ("GET", "/stream/my.stream/", $REPLY_NOTIMPLEMENTED);
 
-print "------------------------------------------------------------\n";
-print ("OK - Tests successful\n");
+carp ("------------------------------------------------------------");
+carp ("OK - Tests successful");
 
 sub restms {
     my ($method, $URL, $expect) = @_;
     my $uri = "http://$hostname/restms$URL";
-    print "------------------------------------------------------------\n";
-    print "Test: $method $uri\n";
+    carp ("------------------------------------------------------------");
+    carp ("Test: $method $uri");
     my $request = HTTP::Request->new ($method => $uri);
     my $response = $ua->request ($request);
 
@@ -198,17 +206,17 @@ sub restms {
 sub check_response_code {
     my ($response, $expect) = @_;
     if ($response->code != $expect) {
-        print "Fail: " . $response->status_line . ", expected $expect\n";
-        print "Content-type=" . $response->content_type . "\n";
-        print $response->content . "\n";
+        carp ("Fail: " . $response->status_line . ", expected $expect");
+        carp ("Content-type=" . $response->content_type);
+        carp ($response->content);
         exit (1);
     }
     if ($response->code == 200) {
-        print "Pass: response=" . $response->code . " Content-type=" . $response->content_type . "\n";
-        print $response->content . "\n" if $response->content_length;
+        carp ("Pass: response=" . $response->code . " Content-type=" . $response->content_type);
+        carp ($response->content) if $response->content_length;
     }
     else {
-        print "Pass: response=" . $response->code . "\n";
+        carp ("Pass: response=" . $response->code);
     }
 }
 
@@ -216,8 +224,8 @@ sub restms_post {
     my ($URL, $content, $expect) = @_;
     my $uri = "http://$hostname/restms$URL";
     my $request = HTTP::Request->new (POST => $uri);
-    print "------------------------------------------------------------\n";
-    print "Test: POST $uri\n";
+    carp ("------------------------------------------------------------");
+    carp ("Test: POST $uri");
     $request->content_type('text/plain');
     $request->content($content);
     my $response = $ua->request ($request);
@@ -229,8 +237,8 @@ sub restms_post {
 sub restms_post_file {
     my ($URL, $filename, $expect) = @_;
     my $uri = "http://$hostname/restms$URL";
-    print "------------------------------------------------------------\n";
-    print "Test: POST $uri\n";
+    carp ("------------------------------------------------------------");
+    carp ("Test: POST $uri");
     my $response = $ua->request (POST $uri, 
         Content_Type => 'form-data',
         Content => [
@@ -263,4 +271,13 @@ sub define_constants {
     $REPLY_NOTIMPLEMENTED = 501;
     $REPLY_OVERLOADED     = 503;
     $REPLY_VERSIONUNSUP   = 505;
+}
+
+sub carp {
+    my ($string) = @_;
+    #   Prepare date and time variables
+    ($sec, $min, $hour, $day, $month, $year) = localtime;
+    $date = sprintf ("%04d-%02d-%02d", $year + 1900, $month + 1, $day);
+    $time = sprintf ("%2d:%02d:%02d", $hour, $min, $sec);
+    print "$date $time $string\n";
 }

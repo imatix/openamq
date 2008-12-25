@@ -253,12 +253,14 @@ GET /restms/pipe/my.pipe/my.nozzle/0
 
 ++ Pipe semantics
 
-As for feeds, pipe semantics are defined explicitly in the URI according to the pipe class.  RestMS defines two pipe classes:
+As for feeds, pipe semantics are defined explicitly in the URI according to the pipe class specified by the caller.  RestMS defines two pipe classes:
 
 * pipe - delivers individual messages.  One GET method results in one message.
-* stream - delivers multiple messages.  One GET method results in an open-ended stream of messages, delivered to the client application as multipart contents.
+* stream - delivers multiple messages.  One GET method results in an open-ended stream of messages, delivered to the client application as multipart chunked contents.
 
-The stream class does not support nozzles, and is intended for high-performance delivery of messages to a single application, with no message acknowledgments.
+The pipe class must be used consistently in all URIs that refer to a pipe.  It is invalid (BADREQUEST) to create a pipe using one class name and access it using a different class name.
+
+The stream class does not allow nozzles, and is intended for high-performance delivery of messages to a single application, with no message acknowledgments.  Streaming can be considered properly RESTful.  Note that the streaming response format is not yet defined.
 
 ++ Summary of URIs
 
