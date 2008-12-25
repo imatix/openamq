@@ -1,4 +1,3 @@
-
 OpenAMQ change log
 
 AMQP changes for 0.92
@@ -18,6 +17,9 @@ AMQP changes for 0.92
         - add/clarify routing and addressing properties
 
 TODO
+    - document iCL classes like icl_longstr, asl_field_table, etc. for
+      WireAPI developers
+    - remove iter_list_head unless Sustrik can explain why we need it
     - in documentation, amq_peering.cfg not mentioned
         - this provides credential for failover connections
         - and also for federation connections
@@ -90,6 +92,11 @@ TODO
         - win32 front-end (maybe portable GUI? Clutter?)
     - redesign queue->consumer->channel using portals
     - also for exchange->binding->queue?
+
+2008-12-20
+
+* fixed: removed setup timer for peering connections (1.4)
+    asl_client_agent.gsl
 
 2008-12-19
 
