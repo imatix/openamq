@@ -47,6 +47,8 @@ This class implements the RestMS pipe object.
         *contents;                      //  Messages for pipe
     zyre_join_list_t
         *join_list;                     //  Joins for pipe
+    zyre_nozzle_list_t
+        *nozzle_list;                   //  Nozzles for pipe
     apr_time_t
         time_created,                   //  For house-keeping
         time_accessed;
@@ -79,17 +81,18 @@ This class implements the RestMS pipe object.
     icl_shortstr_cpy (self->class, class);
     self->contents = amq_content_basic_list_new ();
     self->join_list = zyre_join_list_new ();
+    self->nozzle_list = zyre_nozzle_list_new ();
 </method>
 
 <method name = "destroy">
-    amq_content_basic_list_destroy (&self->contents);
+    zyre_nozzle_list_destroy (&self->nozzle_list);
     zyre_join_list_destroy (&self->join_list);
+    amq_content_basic_list_destroy (&self->contents);
 </method>
 
 <method name = "set uri" template = "function">
     <argument name = "format" type = "char *">Format specifier</argument>
     <argument name = "args" type = "...">Variable arguments</argument>
-    //
     <local>
     icl_shortstr_t
         string;
@@ -99,13 +102,33 @@ This class implements the RestMS pipe object.
     icl_shortstr_cpy (self->uri, string);
 </method>
 
-<method name = "deliver" template = "function">
+<method name = "accept" template = "function">
     <doc>
-    Deliver a content to the pipe.
+    Accept a message content onto the pipe and dispatches messages in as far
+    as possible.
     </doc>
-    <argument name = "content" type = "amq_basic_content_t *">Content</argument>
+    <argument name = "content" type = "amq_content_basic_t *">Content</argument>
+    <local>
+    zyre_nozzle_t
+        *nozzle;
+    </local>
     //
-    amq_content_basic_list_queue (self->contents, content);
+    //  Pass message to first waiting nozzle, if any, else queue on pipe
+    nozzle = zyre_nozzle_list_first (self->nozzle_list);
+    while (nozzle) {
+        if (nozzle->waiting) {
+            //  Move nozzle to end of list to implement a round-robin
+            zyre_nozzle_list_queue (self->nozzle_list, nozzle);
+            zyre_nozzle_accept (nozzle, content);
+            break;
+        }
+        nozzle = zyre_nozzle_list_next (&nozzle);
+    }
+    //  Hold on own list if we could not pass the content to a nozzle
+    if (nozzle)
+        zyre_nozzle_unlink (&nozzle);
+    else
+        amq_content_basic_list_queue (self->contents, content);
 </method>
 
 <method name = "selftest">

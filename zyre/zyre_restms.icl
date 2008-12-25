@@ -55,10 +55,6 @@
 <context>
     zyre_uri_t
         *uri;                           //  Parsed URI
-    http_request_t
-        *request;                       //  Current HTTP request
-    http_response_t
-        *response;                      //  Current HTTP response
     zyre_peering_t
         *peering;                       //  Peering to remote server
     zyre_pipe_table_t
@@ -98,101 +94,98 @@
 
 <method name = "get">
     <action>
-    self->request = request;
-    self->response = response;
-    switch (zyre_uri_set (self->uri, request->pathinfo)) {
+    Bool
+        reply = TRUE;
+
+    switch (zyre_uri_set (self->uri, response->request->pathinfo)) {
         case RESTMS_URI_ROOT:
-            zyre_restms_root_get (self);
+            zyre_restms_root_get (self, response);
             break;
         case RESTMS_URI_PIPES:
-            zyre_restms_pipes_get (self);
+            zyre_restms_pipes_get (self, response);
             break;
         case RESTMS_URI_PIPE:
-            zyre_restms_pipe_get (self);
+            zyre_restms_pipe_get (self, response);
             break;
         case RESTMS_URI_FEEDS:
-            zyre_restms_feeds_get (self);
+            zyre_restms_feeds_get (self, response);
             break;
         case RESTMS_URI_FEED:
-            zyre_restms_feed_get (self);
+            zyre_restms_feed_get (self, response);
             break;
         case RESTMS_URI_JOIN:
-            zyre_restms_join_get (self);
+            zyre_restms_join_get (self, response);
             break;
         case RESTMS_URI_MESSAGE:
-            zyre_restms_message_get (self);
+            //  This method may decide to return nothing, and wait
+            reply = zyre_restms_message_get (self, response);
             break;
         default:
             http_response_set_error (response, HTTP_REPLY_BADREQUEST,
                 "GET method not allowed on this resource");
     }
-    http_portal_response_reply (portal, caller, response);
+    if (reply)
+        http_portal_response_reply (portal, response);
     </action>
 </method>
 
 <method name = "put">
     <action>
-    self->request = request;
-    self->response = response;
-    switch (zyre_uri_set (self->uri, request->pathinfo)) {
+    switch (zyre_uri_set (self->uri, response->request->pathinfo)) {
         case RESTMS_URI_PIPES:
-            zyre_restms_pipes_put (self);
+            zyre_restms_pipes_put (self, response);
             break;
         case RESTMS_URI_PIPE:
-            zyre_restms_pipe_put (self);
+            zyre_restms_pipe_put (self, response);
             break;
         case RESTMS_URI_FEED:
-            zyre_restms_feed_put (self);
+            zyre_restms_feed_put (self, response);
             break;
         case RESTMS_URI_JOIN:
-            zyre_restms_join_put (self);
+            zyre_restms_join_put (self, response);
             break;
         default:
             http_response_set_error (response, HTTP_REPLY_BADREQUEST,
                 "PUT method not allowed on this resource");
     }
-    http_portal_response_reply (portal, caller, response);
+    http_portal_response_reply (portal, response);
     </action>
 </method>
 
 <method name = "delete">
     <action>
-    self->request = request;
-    self->response = response;
-    switch (zyre_uri_set (self->uri, request->pathinfo)) {
+    switch (zyre_uri_set (self->uri, response->request->pathinfo)) {
         case RESTMS_URI_PIPE:
-            zyre_restms_pipe_delete (self);
+            zyre_restms_pipe_delete (self, response);
             break;
         case RESTMS_URI_FEED:
-            zyre_restms_feed_delete (self);
+            zyre_restms_feed_delete (self, response);
             break;
         case RESTMS_URI_JOIN:
-            zyre_restms_join_delete (self);
+            zyre_restms_join_delete (self, response);
             break;
         case RESTMS_URI_MESSAGE:
-            zyre_restms_message_delete (self);
+            zyre_restms_message_delete (self, response);
             break;
         default:
             http_response_set_error (response, HTTP_REPLY_BADREQUEST,
                 "DELETE method not allowed on this resource");
     }
-    http_portal_response_reply (portal, caller, response);
+    http_portal_response_reply (portal, response);
     </action>
 </method>
 
 <method name = "post">
     <action>
-    self->request = request;
-    self->response = response;
-    switch (zyre_uri_set (self->uri, request->pathinfo)) {
+    switch (zyre_uri_set (self->uri, response->request->pathinfo)) {
         case RESTMS_URI_ADDRESS:
-            zyre_restms_address_post (self);
+            zyre_restms_address_post (self, response);
             break;
         default:
             http_response_set_error (response, HTTP_REPLY_BADREQUEST,
                 "POST method not allowed on this resource");
     }
-    http_portal_response_reply (portal, caller, response);
+    http_portal_response_reply (portal, response);
     </action>
 </method>
 
@@ -200,7 +193,7 @@
     <action>
     http_response_set_error (response, HTTP_REPLY_BADREQUEST,
         "HEAD method not allowed on this resource");
-    http_portal_response_reply (portal, caller, response);
+    http_portal_response_reply (portal, response);
     </action>
 </method>
 
@@ -208,7 +201,7 @@
     <action>
     http_response_set_error (response, HTTP_REPLY_BADREQUEST,
             "MOVE method not allowed on this resource");
-    http_portal_response_reply (portal, caller, response);
+    http_portal_response_reply (portal, response);
     </action>
 </method>
 
@@ -216,9 +209,24 @@
     <action>
     http_response_set_error (response, HTTP_REPLY_BADREQUEST,
         "COPY method not allowed on this resource");
-    http_portal_response_reply (portal, caller, response);
+    http_portal_response_reply (portal, response);
     </action>
 </method>
+
+<method name = "success">
+    <action>
+    //  Pedantic success notification is handled by nozzles
+    zyre_nozzle_delivery_success ((zyre_nozzle_t *) response->argument);
+    </action>
+</method>
+
+<method name = "failure">
+    <action>
+    //  Pedantic failure notification is handled by nozzles
+    zyre_nozzle_delivery_failure ((zyre_nozzle_t *) response->argument);
+    </action>
+</method>
+
 
 <!-- Implementations for each RestMS method -->
 
@@ -227,6 +235,7 @@
     Queries the RestMS topology, returns a list of available pipe and feed
     classes.
     </doc>
+    <argument name = "response" type = "http_response_t *" />
     <local>
     ipr_xml_tree_t
         *tree;
@@ -237,33 +246,33 @@
     ipr_xml_tree_leaf (tree, "status", "ok");
       ipr_xml_tree_open (tree, "pipe_class");
         ipr_xml_tree_leaf (tree, "name", "pipe");
-        ipr_xml_tree_leaf (tree, "uri", "%spipe", self->response->root_uri);
+        ipr_xml_tree_leaf (tree, "uri", "%spipe", response->root_uri);
       ipr_xml_tree_shut (tree);
       ipr_xml_tree_open (tree, "feed_class");
         ipr_xml_tree_leaf (tree, "name", "fanout");
-        ipr_xml_tree_leaf (tree, "uri", "%sfanout", self->response->root_uri);
+        ipr_xml_tree_leaf (tree, "uri", "%sfanout", response->root_uri);
       ipr_xml_tree_shut (tree);
       ipr_xml_tree_open (tree, "feed_class");
         ipr_xml_tree_leaf (tree, "name", "direct");
-        ipr_xml_tree_leaf (tree, "uri", "%sdirect", self->response->root_uri);
+        ipr_xml_tree_leaf (tree, "uri", "%sdirect", response->root_uri);
       ipr_xml_tree_shut (tree);
       ipr_xml_tree_open (tree, "feed_class");
         ipr_xml_tree_leaf (tree, "name", "topic");
-        ipr_xml_tree_leaf (tree, "uri", "%stopic", self->response->root_uri);
+        ipr_xml_tree_leaf (tree, "uri", "%stopic", response->root_uri);
       ipr_xml_tree_shut (tree);
       ipr_xml_tree_open (tree, "feed_class");
         ipr_xml_tree_leaf (tree, "name", "headers");
-        ipr_xml_tree_leaf (tree, "uri", "%sheaders", self->response->root_uri);
+        ipr_xml_tree_leaf (tree, "uri", "%sheaders", response->root_uri);
       ipr_xml_tree_shut (tree);
       ipr_xml_tree_open (tree, "feed_class");
         ipr_xml_tree_leaf (tree, "name", "service");
-        ipr_xml_tree_leaf (tree, "uri", "%sservice", self->response->root_uri);
+        ipr_xml_tree_leaf (tree, "uri", "%sservice", response->root_uri);
       ipr_xml_tree_shut (tree);
       ipr_xml_tree_open (tree, "feed_class");
         ipr_xml_tree_leaf (tree, "name", "rotator");
-        ipr_xml_tree_leaf (tree, "uri", "%srotator", self->response->root_uri);
+        ipr_xml_tree_leaf (tree, "uri", "%srotator", response->root_uri);
       ipr_xml_tree_shut (tree);
-    http_response_set_from_xml (self->response, tree);
+    http_response_set_from_xml (response, tree);
     ipr_xml_tree_destroy (&tree);
 </method>
 
@@ -272,12 +281,15 @@
     Creates a server-named pipe.  This method returns the name for the new
     pipe.  It is not idempotent, and each invocation will create a new pipe.
     </doc>
+    <argument name = "response" type = "http_response_t *" />
+    <local>
     zyre_pipe_t
         *pipe;
-
-    pipe = s_pipe_assert (self, NULL);
+    </local>
+    //
+    pipe = s_pipe_assert (self, response, NULL);
     if (pipe) {
-        s_report_pipe (self, pipe);
+        s_report_pipe (response, pipe);
         zyre_pipe_unlink (&pipe);
     }
 </method>
@@ -287,6 +299,7 @@
     Queries the pipe class.  This method returns information about the pipe
     class.  It is idempotent and has no side effects.
     </doc>
+    <argument name = "response" type = "http_response_t *" />
     <local>
     ipr_xml_tree_t
         *tree;
@@ -299,7 +312,7 @@
         ipr_xml_tree_leaf (tree, "name", "pipe");
         ipr_xml_tree_leaf (tree, "size", "%d", self->pipe_table->nbr_items);
       ipr_xml_tree_shut (tree);
-    http_response_set_from_xml (self->response, tree);
+    http_response_set_from_xml (response, tree);
     ipr_xml_tree_destroy (&tree);
 </method>
 
@@ -309,12 +322,15 @@
     idempotent.  If the pipe already exists, asserts that the class is
     accurate.
     </doc>
+    <argument name = "response" type = "http_response_t *" />
+    <local>
     zyre_pipe_t
         *pipe;
-
-    pipe = s_pipe_assert (self, self->uri->pipe_name);
+    </local>
+    //
+    pipe = s_pipe_assert (self, response, self->uri->pipe_name);
     if (pipe) {
-        s_report_pipe (self, pipe);
+        s_report_pipe (response, pipe);
         zyre_pipe_unlink (&pipe);
     }
 </method>
@@ -325,18 +341,21 @@
     pipe.  It is idempotent and has no side effects.  Asserts that the pipe
     class is accurate.
     </doc>
+    <argument name = "response" type = "http_response_t *" />
+    <local>
     zyre_pipe_t
         *pipe;
-
+    </local>
+    //
     pipe = zyre_pipe_table_search (self->pipe_table, self->uri->pipe_name);
     if (!pipe)
-        http_response_set_error (self->response, HTTP_REPLY_NOTFOUND,
+        http_response_set_error (response, HTTP_REPLY_NOTFOUND,
             "The requested pipe does not exist");
     else
     if (streq (pipe->class, self->uri->pipe_class))
-        s_report_pipe (self, pipe);
+        s_report_pipe (response, pipe);
     else
-        http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
+        http_response_set_error (response, HTTP_REPLY_PRECONDITION,
             "The requested pipe class is wrong");
 
     zyre_pipe_unlink (&pipe);
@@ -347,11 +366,14 @@
     Deletes the specified pipe.  This method is idempotent.  If the pipe
     exists, asserts that the class is accurate before deleting it.
     </doc>
+    <argument name = "response" type = "http_response_t *" />
+    <local>
     zyre_pipe_t
         *pipe;
     ipr_xml_tree_t
         *tree;
-
+    </local>
+    //
     pipe = zyre_pipe_table_search (self->pipe_table, self->uri->pipe_name);
     if (pipe) {
         if (streq (pipe->class, self->uri->pipe_class)) {
@@ -360,7 +382,7 @@
         }
         else {
             rc = -1;                    //  Class mismatch
-            http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
+            http_response_set_error (response, HTTP_REPLY_PRECONDITION,
                 "The requested pipe does not exist");
             zyre_pipe_unlink (&pipe);
         }
@@ -369,7 +391,7 @@
         tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
         ipr_xml_tree_leaf (tree, "version", "1.0");
         ipr_xml_tree_leaf (tree, "status", "ok");
-        http_response_set_from_xml (self->response, tree);
+        http_response_set_from_xml (response, tree);
         ipr_xml_tree_destroy (&tree);
     }
 </method>
@@ -379,9 +401,12 @@
     Queries the feed class.  This method returns the set of feeds defined
     in that class.  It is idempotent and has no side effects.
     </doc>
+    <argument name = "response" type = "http_response_t *" />
+    <local>
     ipr_xml_tree_t
         *tree;
-
+    </local>
+    //
     tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
     ipr_xml_tree_leaf (tree, "version", "1.0");
     ipr_xml_tree_leaf (tree, "status", "ok");
@@ -389,7 +414,7 @@
         ipr_xml_tree_leaf (tree, "name", self->uri->feed_class);
         zyre_feed_table_apply (self->feed_table, s_report_feed_item, tree);
       ipr_xml_tree_shut (tree);
-    http_response_set_from_xml (self->response, tree);
+    http_response_set_from_xml (response, tree);
     ipr_xml_tree_destroy (&tree);
 </method>
 
@@ -399,12 +424,15 @@
     method is idempotent (it can be repeated with no further effect).  If
     the feed already exists, asserts that the class is accurate.
     </doc>
+    <argument name = "response" type = "http_response_t *" />
+    <local>
     zyre_feed_t
         *feed;
-
-    feed = s_feed_assert (self);
+    </local>
+    //
+    feed = s_feed_assert (self, response);
     if (feed) {
-        s_report_feed (self, feed);
+        s_report_feed (response, feed);
         zyre_feed_unlink (&feed);
     }
 </method>
@@ -415,18 +443,21 @@
     feed.  It is idempotent and has no side effects.  Asserts that the
     class is accurate.
     </doc>
+    <argument name = "response" type = "http_response_t *" />
+    <local>
     zyre_feed_t
         *feed;
-
+    </local>
+    //
     feed = zyre_feed_table_search (self->feed_table, self->uri->feed_name);
     if (!feed)
-        http_response_set_error (self->response, HTTP_REPLY_NOTFOUND,
+        http_response_set_error (response, HTTP_REPLY_NOTFOUND,
             "The requested feed does not exist");
     else
     if (streq (feed->class, self->uri->feed_class))
-        s_report_feed (self, feed);
+        s_report_feed (response, feed);
     else
-        http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
+        http_response_set_error (response, HTTP_REPLY_PRECONDITION,
             "The requested feed class is wrong");
     zyre_feed_unlink (&feed);
 </method>
@@ -436,11 +467,14 @@
     Deletes the specified feed.  This method is idempotent.  If the feed
     exists, asserts that the class is accurate before deleting it.
     </doc>
+    <argument name = "response" type = "http_response_t *" />
+    <local>
     zyre_feed_t
         *feed;
     ipr_xml_tree_t
         *tree;
-
+    </local>
+    //
     feed = zyre_feed_table_search (self->feed_table, self->uri->feed_name);
     if (feed) {
         if (streq (feed->class, self->uri->feed_class)) {
@@ -449,7 +483,7 @@
         }
         else {
             rc = -1;                    //  Class mismatch
-            http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
+            http_response_set_error (response, HTTP_REPLY_PRECONDITION,
                 "The requested feed class is wrong");
             zyre_feed_unlink (&feed);
         }
@@ -458,7 +492,7 @@
         tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
         ipr_xml_tree_leaf (tree, "version", "1.0");
         ipr_xml_tree_leaf (tree, "status", "ok");
-        http_response_set_from_xml (self->response, tree);
+        http_response_set_from_xml (response, tree);
         ipr_xml_tree_destroy (&tree);
     }
 </method>
@@ -471,19 +505,22 @@
     the feed exists and the URI includes a feed class, the method asserts
     that the class matches.
     </doc>
+    <argument name = "response" type = "http_response_t *" />
+    <local>
     zyre_pipe_t
         *pipe;
     zyre_feed_t
         *feed;
     zyre_join_t
         *join;
-
-    pipe = s_pipe_assert (self, self->uri->pipe_name);
-    feed = s_feed_assert (self);
+    </local>
+    //
+    pipe = s_pipe_assert (self, response, self->uri->pipe_name);
+    feed = s_feed_assert (self, response);
     if (pipe && feed) {
-        join = s_join_assert (self, pipe, self->uri->address, feed);
+        join = s_join_assert (self, response, pipe, self->uri->address, feed);
         if (join) {
-            s_report_join (self, join);
+            s_report_join (response, join);
             zyre_join_unlink (&join);
         }
     }
@@ -498,16 +535,19 @@
     all exist.  If the URI includes a feed class, the method asserts that the
     class is accurate.
     </doc>
+    <argument name = "response" type = "http_response_t *" />
+    <local>
     zyre_pipe_t
         *pipe = NULL;
     zyre_feed_t
         *feed = NULL;
     zyre_join_t
         *join = NULL;
-
+    </local>
+    //
     pipe = zyre_pipe_table_search (self->pipe_table, self->uri->pipe_name);
     if (!pipe) {
-        http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
+        http_response_set_error (response, HTTP_REPLY_PRECONDITION,
             "The join pipe does not exist");
         rc = -1;
     }
@@ -515,13 +555,13 @@
         feed = zyre_feed_table_search (self->feed_table, self->uri->feed_name);
         if (feed) {
             if (*self->uri->feed_class && strneq (self->uri->feed_class, feed->class)) {
-                http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
+                http_response_set_error (response, HTTP_REPLY_PRECONDITION,
                     "The requested feed class does not match");
                 rc = -1;
             }
         }
         else {
-            http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
+            http_response_set_error (response, HTTP_REPLY_PRECONDITION,
                 "The join feed does not exist");
             rc = -1;
         }
@@ -529,9 +569,9 @@
     if (!rc) {
         join = zyre_join_lookup (pipe, self->uri->address, feed->name);
         if (join)
-            s_report_join (self, join);
+            s_report_join (response, join);
         else
-            http_response_set_error (self->response, HTTP_REPLY_NOTFOUND,
+            http_response_set_error (response, HTTP_REPLY_NOTFOUND,
                 "The requested join does not exist");
     }
     zyre_join_unlink (&join);
@@ -546,6 +586,8 @@
     feed and the join exist, the delete method will first check that the class
     is accurate before proceding.
     </doc>
+    <argument name = "response" type = "http_response_t *" />
+    <local>
     zyre_pipe_t
         *pipe = NULL;
     zyre_feed_t
@@ -554,13 +596,14 @@
         *join = NULL;
     ipr_xml_tree_t
         *tree;
-
+    </local>
+    //
     pipe = zyre_pipe_table_search (self->pipe_table, self->uri->pipe_name);
     if (pipe) {
         feed = zyre_feed_table_search (self->feed_table, self->uri->feed_name);
         if (feed
         && *self->uri->feed_class && strneq (self->uri->feed_class, feed->class)) {
-            http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
+            http_response_set_error (response, HTTP_REPLY_PRECONDITION,
                 "The requested feed class does not match");
             rc = -1;
         }
@@ -579,7 +622,7 @@
         tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
         ipr_xml_tree_leaf (tree, "version", "1.0");
         ipr_xml_tree_leaf (tree, "status", "ok");
-        http_response_set_from_xml (self->response, tree);
+        http_response_set_from_xml (response, tree);
         ipr_xml_tree_destroy (&tree);
     }
 </method>
@@ -591,39 +634,116 @@
     it does not exist, and if the feed exists, the POST method will check 
     that the feed class matches (and reply with a PRECONDITION error if not).
     </doc>
+    <argument name = "response" type = "http_response_t *" />
+    <local>
     zyre_feed_t
         *feed;
     amq_content_basic_t
         *content;                       //  Content to post
-
-    if (ipr_str_prefixed (self->request->content_type, "multipart"))
-        http_response_set_error (self->response, HTTP_REPLY_NOTIMPLEMENTED,
+    ipr_xml_tree_t
+        *tree;
+    </local>
+    //
+    if (ipr_str_prefixed (response->request->content_type, "multipart"))
+        http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED,
             "Multipart contents not supported");
     else {
-        feed = s_feed_assert (self);
+        feed = s_feed_assert (self, response);
         if (feed) {
             content = amq_content_basic_new ();
-            amq_content_basic_record_body (content, self->request->content);
+            amq_content_basic_record_body (content, response->request->content);
             zyre_peering_address_post (
                 self->peering, self->uri->address, self->uri->feed_name, content);
             amq_content_basic_unlink (&content);
             zyre_feed_unlink (&feed);
         }
+        tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
+        ipr_xml_tree_leaf (tree, "version", "1.0");
+        ipr_xml_tree_leaf (tree, "status", "ok");
+        http_response_set_from_xml (response, tree);
+        ipr_xml_tree_destroy (&tree);
     }
 </method>
 
 <method name = "message get" template = "function">
     <doc>
+    Waits for a message on the pipe.  The pipe returns messages asynchronously
+    via the portal.  Returns -1 if there was an error, in which case the caller
+    needs to respond to the client all.
     </doc>
-    http_response_set_error (self->response, HTTP_REPLY_NOTIMPLEMENTED,
-        "Not yet implemented");
+    <argument name = "response" type = "http_response_t *" />
+    <local>
+    zyre_pipe_t
+        *pipe;
+    zyre_nozzle_t
+        *nozzle;
+    </local>
+    //
+    pipe = zyre_pipe_table_search (self->pipe_table, self->uri->pipe_name);
+    if (pipe) {
+        //  If nozzle is empty, always create new nozzle for this request
+        //  else try to find the nozzle and only create if it does not exist
+        if (strnull (self->uri->nozzle)) 
+            nozzle = zyre_nozzle_new (pipe, "");
+        else {
+            nozzle = zyre_nozzle_lookup (pipe, self->uri->nozzle);
+            if (!nozzle) 
+                nozzle = zyre_nozzle_new (pipe, self->uri->nozzle);
+        }
+        zyre_nozzle_message_get (nozzle, response, self->uri->index);
+        zyre_nozzle_unlink (&nozzle);
+        zyre_pipe_unlink (&pipe);
+    }
+    else {
+        http_response_set_error (response, HTTP_REPLY_PRECONDITION,
+            "The pipe does not exist");
+        rc = -1;
+    }
 </method>
 
 <method name = "message delete" template = "function">
     <doc>
+    Deletes one or more messages from the pipe, in effect acknowledging that 
+    the messages were successfully processed.  The nozzle must be specified.
+    This method is idempotent.
     </doc>
-    http_response_set_error (self->response, HTTP_REPLY_NOTIMPLEMENTED,
-        "Not yet implemented");
+    <argument name = "response" type = "http_response_t *" />
+    <local>
+    zyre_pipe_t
+        *pipe;
+    zyre_nozzle_t
+        *nozzle;
+    size_t
+        count = 0;
+    ipr_xml_tree_t
+        *tree;
+    </local>
+    //
+    pipe = zyre_pipe_table_search (self->pipe_table, self->uri->pipe_name);
+    if (pipe) {
+        nozzle = zyre_nozzle_lookup (pipe, self->uri->nozzle);
+        if (nozzle) {
+            count = zyre_nozzle_purge (nozzle);
+            zyre_nozzle_unlink (&nozzle);
+        }
+        tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
+        ipr_xml_tree_leaf (tree, "version", "1.0");
+        ipr_xml_tree_leaf (tree, "status", "ok");
+          ipr_xml_tree_open (tree, "pipe");
+            ipr_xml_tree_leaf (tree, "name", pipe->name);
+            ipr_xml_tree_leaf (tree, "uri",  pipe->uri);
+            ipr_xml_tree_open (tree, "nozzle");
+              ipr_xml_tree_leaf (tree, "name", self->uri->nozzle);
+              ipr_xml_tree_leaf (tree, "size", "%d", count);
+            ipr_xml_tree_shut (tree);
+          ipr_xml_tree_shut (tree);
+        http_response_set_from_xml (response, tree);
+        ipr_xml_tree_destroy (&tree);
+        zyre_pipe_unlink (&pipe);
+    }
+    else
+        http_response_set_error (response, HTTP_REPLY_PRECONDITION,
+            "The pipe does not exist");
 </method>
 
 <method name = "deliver" template = "async function" async = "1">
@@ -650,33 +770,34 @@
         pipe_name++;                    //  Point to start of pipe name
         pipe = zyre_pipe_table_search (self->pipe_table, pipe_name);
         if (pipe) {
-            zyre_pipe_deliver (pipe, content);
+            zyre_pipe_accept (pipe, content);
             zyre_pipe_unlink (&pipe);
         }
         else
             icl_console_print ("W: undeliverable message ('%s')", consumer_tag);
     }
-    <action>
+    </action>
 </method>
 
 <private name = "header">
 //  Return XML descriptions on various resources
 static void
-    s_report_pipe (zyre_restms_t *self, zyre_pipe_t *pipe);
+    s_report_pipe (http_response_t *response, zyre_pipe_t *pipe);
 static void
-    s_report_feed (zyre_restms_t *self, zyre_feed_t *feed);
+    s_report_feed (http_response_t *response, zyre_feed_t *feed);
 static void
-    s_report_join (zyre_restms_t *self, zyre_join_t *join);
+    s_report_join (http_response_t *response, zyre_join_t *join);
 static void
     s_report_feed_item (zyre_feed_t *feed, void *argument);
 
 //  Create/assert resources
 static zyre_pipe_t *
-    s_pipe_assert (zyre_restms_t *self, char *pipe_name);
+    s_pipe_assert (zyre_restms_t *self, http_response_t *response, char *pipe_name);
 static zyre_feed_t *
-    s_feed_assert (zyre_restms_t *self);
+    s_feed_assert (zyre_restms_t *self, http_response_t *response);
 static zyre_join_t *
-    s_join_assert (zyre_restms_t *self, zyre_pipe_t *pipe, char *address, zyre_feed_t *feed);
+    s_join_assert (zyre_restms_t *self, http_response_t *response,
+        zyre_pipe_t *pipe, char *address, zyre_feed_t *feed);
 
 //  Callbacks from the zyre_peering agent
 static int s_status_handler (
@@ -687,7 +808,7 @@ static int s_content_handler (
 
 <private name = "footer">
 static void
-s_report_pipe (zyre_restms_t *self, zyre_pipe_t *pipe)
+s_report_pipe (http_response_t *response, zyre_pipe_t *pipe)
 {
     ipr_xml_tree_t
         *tree;
@@ -699,14 +820,14 @@ s_report_pipe (zyre_restms_t *self, zyre_pipe_t *pipe)
       ipr_xml_tree_open (tree, "pipe");
         ipr_xml_tree_leaf (tree, "name", pipe->name);
         ipr_xml_tree_leaf (tree, "uri",  pipe->uri);
-        ipr_xml_tree_leaf (tree, "messages", amq_content_basic_list_count (pipe->contents));
+        ipr_xml_tree_leaf (tree, "messages", "%d", amq_content_basic_list_count (pipe->contents));
       ipr_xml_tree_shut (tree);
-    http_response_set_from_xml (self->response, tree);
+    http_response_set_from_xml (response, tree);
     ipr_xml_tree_destroy (&tree);
 }
 
 static void
-s_report_feed (zyre_restms_t *self, zyre_feed_t *feed)
+s_report_feed (http_response_t *response, zyre_feed_t *feed)
 {
     ipr_xml_tree_t
         *tree;
@@ -716,7 +837,7 @@ s_report_feed (zyre_restms_t *self, zyre_feed_t *feed)
     ipr_xml_tree_leaf (tree, "version", "1.0");
     ipr_xml_tree_leaf (tree, "status", "ok");
     s_report_feed_item (feed, tree);
-    http_response_set_from_xml (self->response, tree);
+    http_response_set_from_xml (response, tree);
     ipr_xml_tree_destroy (&tree);
 }
 
@@ -735,7 +856,7 @@ s_report_feed_item (zyre_feed_t *feed, void *argument)
 }
 
 static void
-s_report_join (zyre_restms_t *self, zyre_join_t *join)
+s_report_join (http_response_t *response, zyre_join_t *join)
 {
     ipr_xml_tree_t
         *tree;
@@ -753,13 +874,13 @@ s_report_join (zyre_restms_t *self, zyre_join_t *join)
             ipr_xml_tree_leaf (tree, "uri",  join->uri);
           ipr_xml_tree_shut (tree);
       ipr_xml_tree_shut (tree);
-    http_response_set_from_xml (self->response, tree);
+    http_response_set_from_xml (response, tree);
     ipr_xml_tree_destroy (&tree);
 }
 
 //  Name is provided explicitly to allow server-named pipes
 static zyre_pipe_t *
-s_pipe_assert (zyre_restms_t *self, char *pipe_name)
+s_pipe_assert (zyre_restms_t *self, http_response_t *response, char *pipe_name)
 {
     zyre_pipe_t
         *pipe = NULL;
@@ -769,7 +890,7 @@ s_pipe_assert (zyre_restms_t *self, char *pipe_name)
         pipe = zyre_pipe_table_search (self->pipe_table, pipe_name);
     if (pipe) {
         if (strneq (pipe->class, self->uri->pipe_class)) {
-            http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
+            http_response_set_error (response, HTTP_REPLY_PRECONDITION,
                 "The requested pipe class is wrong");
             zyre_pipe_unlink (&pipe);
         }
@@ -778,19 +899,19 @@ s_pipe_assert (zyre_restms_t *self, char *pipe_name)
     if (*self->uri->pipe_class) {
         pipe = zyre_pipe_new (self->pipe_table, self->uri->pipe_class, pipe_name);
         assert (pipe);
-        zyre_pipe_set_uri (pipe, "%s%s/%s", self->response->root_uri, pipe->class, pipe->name);
+        zyre_pipe_set_uri (pipe, "%s%s/%s", response->root_uri, pipe->class, pipe->name);
         zyre_peering_pipe_create (self->peering, pipe->class, pipe->name);
     }
     else
         //  Pipe not found, and can't create, since no class specified
-        http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
+        http_response_set_error (response, HTTP_REPLY_PRECONDITION,
             "The requested pipe does not exist");
 
     return (pipe);
 }
 
 static zyre_feed_t *
-s_feed_assert (zyre_restms_t *self)
+s_feed_assert (zyre_restms_t *self, http_response_t *response)
 {
     zyre_feed_t
         *feed;
@@ -798,7 +919,7 @@ s_feed_assert (zyre_restms_t *self)
     feed = zyre_feed_table_search (self->feed_table, self->uri->feed_name);
     if (feed) {
         if (*self->uri->feed_class && strneq (self->uri->feed_class, feed->class)) {
-            http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
+            http_response_set_error (response, HTTP_REPLY_PRECONDITION,
                 "The requested feed class does not match");
             zyre_feed_unlink (&feed);
         }
@@ -807,19 +928,24 @@ s_feed_assert (zyre_restms_t *self)
     if (*self->uri->feed_class) {
         feed = zyre_feed_new (self->feed_table, self->uri->feed_class, self->uri->feed_name);
         assert (feed);
-        zyre_feed_set_uri (feed, "%s%s/%s", self->response->root_uri, feed->class, feed->name);
+        zyre_feed_set_uri (feed, "%s%s/%s", response->root_uri, feed->class, feed->name);
         zyre_peering_feed_create (self->peering, feed->class, feed->name);
     }
     else
         //  Feed not found, and can't create, since no class specified
-        http_response_set_error (self->response, HTTP_REPLY_PRECONDITION,
+        http_response_set_error (response, HTTP_REPLY_PRECONDITION,
             "The requested feed does not exist");
 
     return (feed);
 }
 
 static zyre_join_t *
-s_join_assert (zyre_restms_t *self, zyre_pipe_t *pipe, char *address, zyre_feed_t *feed)
+s_join_assert (
+    zyre_restms_t *self,
+    http_response_t *response,
+    zyre_pipe_t *pipe,
+    char *address,
+    zyre_feed_t *feed)
 {
     zyre_join_t
         *join;
@@ -828,7 +954,7 @@ s_join_assert (zyre_restms_t *self, zyre_pipe_t *pipe, char *address, zyre_feed_
     if (join == NULL) {
         join = zyre_join_new (pipe, address, feed->name, feed->class);
         zyre_join_set_uri (join, "%s%s/%s/%s@%s/%s",
-            self->response->root_uri,
+            response->root_uri,
             pipe->class, pipe->name,
             address,
             feed->name, feed->class);

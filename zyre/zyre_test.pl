@@ -6,12 +6,24 @@ use HTTP::Request::Common;
 
 define_constants ();
 
-my $hostname = $ARGV[0];
+my $hostname = $ARGV [0];
 $hostname = "localhost" unless $hostname;
 
 my $ua = new LWP::UserAgent;
 $ua->agent ('Zyre tester');
 $ua->credentials ($hostname, "Zyre", "guest", "guest");
+
+#   Pingback option is used to test wait on message.  If this is set, we 
+#   sleep two seconds and then post a message to the my.service feed.
+my $pingback = $ARGV [1];
+if ($pingback) {
+    print "Waiting two seconds to send pingback...\n";
+    sleep (2);
+    restms_post ("/any-address\@my.service", "Test a message pingback", $REPLY_OK);
+    exit (0);
+}
+
+if (0) {
 
 #   --------------------------------------------------------------------------
 #   Get root map
@@ -117,6 +129,8 @@ restms_post (     "/usd\@market3", "Test message 4", $REPLY_PRECONDITION);
 #   - multipart POSTs are not allowed
 restms_post_file ("/usd\@market1", "boomake", $REPLY_NOTIMPLEMENTED);
 
+}   #   endif
+
 #   --------------------------------------------------------------------------
 #   Message send/receive tests
 #
@@ -125,16 +139,46 @@ restms ("PUT",    "/pipe/my.pipe/*\@my.fanout/fanout", $REPLY_OK);
 restms ("PUT",    "/pipe/my.pipe/fixed-address\@my.direct/direct", $REPLY_OK);
 restms ("PUT",    "/pipe/my.pipe/*.wildcard\@my.topic/topic", $REPLY_OK);
 restms ("PUT",    "/pipe/my.pipe/*\@my.service/service", $REPLY_OK);
+
+if (0) {
 #   Post a message to each feed
 restms_post (     "/any-address\@my.fanout", "Test a fanout feed", $REPLY_OK);
 restms_post (     "/fixed-address\@my.direct", "Test a directfeed", $REPLY_OK);
 restms_post (     "/some.wildcard\@my.topic", "Test a topic feed", $REPLY_OK);
 restms_post (     "/any-address\@my.service", "Test a service feed", $REPLY_OK);
-#   Fetch and delete four messages from our pipe
-for ($count = 0; $count < 4; $count++) {
-    restms ("GET",    "/pipe/my.pipe/", $REPLY_OK);
-    restms ("DELETE", "/pipe/my.pipe/", $REPLY_OK);
-}
+#   Fetch/delete four messages from our pipe
+restms ("GET",    "/pipe/my.pipe/", $REPLY_OK);
+restms ("GET",    "/pipe/my.pipe/", $REPLY_OK);
+restms ("GET",    "/pipe/my.pipe/", $REPLY_OK);
+restms ("GET",    "/pipe/my.pipe/", $REPLY_OK);
+}   #   endif
+
+#   Test a pingback, waiting for message to arrive
+system ("perl ./zyre_test.pl $hostname 1 &");
+print ("Waiting for pingback to arrive (2 seconds)...\n");
+restms ("GET",    "/pipe/my.pipe/", $REPLY_OK);
+
+if (0) {
+
+#   Post a message to each feed
+restms_post (     "/any-address\@my.fanout", "Test a fanout feed", $REPLY_OK);
+restms_post (     "/fixed-address\@my.direct", "Test a direct feed", $REPLY_OK);
+restms_post (     "/some.wildcard\@my.topic", "Test a topic feed", $REPLY_OK);
+restms_post (     "/any-address\@my.service", "Test a service feed", $REPLY_OK);
+#   Fetch four messages and hold in a pick set
+restms ("GET",    "/pipe/my.pipe/set/0", $REPLY_OK);
+restms ("GET",    "/pipe/my.pipe/set/1", $REPLY_OK);
+restms ("GET",    "/pipe/my.pipe/set/2", $REPLY_OK);
+restms ("GET",    "/pipe/my.pipe/set/3", $REPLY_OK);
+#   Check that we can fetch the same messages idempotently
+restms ("GET",    "/pipe/my.pipe/set/0", $REPLY_OK);
+#   Delete all four messages
+restms ("DELETE", "/pipe/my.pipe/set", $REPLY_OK);
+#   Error scenarios
+restms ("GET",    "/pipe/my.pipe/set/", $REPLY_BADREQUEST);
+restms ("GET",    "/pipe/my.pipe/set/text", $REPLY_BADREQUEST);
+restms ("GET",    "/stream/my.pipe/", $REPLY_NOTIMPLEMENTED);
+}   #   endif
 
 print "------------------------------------------------------------\n";
 print ("OK - Tests successful\n");

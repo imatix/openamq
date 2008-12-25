@@ -47,7 +47,9 @@ strings.
         pipe_class,                     //  Parsed pipe class
         pipe_name,                      //  Parsed pipe name
         address,                        //  Parsed address string
-        selector;                       //  Parsed message selector
+        nozzle;                         //  Parsed message nozzle
+    size_t
+        index;                          //  Parsed message index
 </context>
 
 <public name = "header">
@@ -98,9 +100,9 @@ strings.
 //                        ( addr )@( feed )   /(class )
 #define ADDRESS_REGEXP "^/([^/@]+)@([^/@]+)(?:/([^/@]+))?$"
 
-//  This regexp matches a message URI with optional selector (3 items)
-//                        ( pipe )/(class )/(select)
-#define MESSAGE_REGEXP "^/([^/@]+)/([^/@]+)/([^/@]+)?$"
+//  This regexp matches a message URI with nozzle and index (4 items)
+//                        ( pipe )/(class )/   (nozzle)   /(index)
+#define MESSAGE_REGEXP "^/([^/@]+)/([^/@]+)/(?:([^/@]+)(?:/([0-9]+))?)?$"
 
 //  This regexp matches a class name and an option item name
 //                        (class )   /( item )
@@ -118,7 +120,7 @@ strings.
     pipe        /{pipe-class}/{pipe-name}
     address     /{address-string}@{feed-name}[/{feed-class}]
     join        /{pipe-class}/{pipe-name}/{address-string}@{feed-name}[/{feed-class}]
-    message     /{pipe-class}/{pipe-name}/[{message-selector}]
+    message     /{pipe-class}/{pipe-name}/[{nozzle}[/{index}]]
     </doc>
     <local>
     ipr_regexp_t
@@ -137,7 +139,7 @@ strings.
     strclr (self->pipe_class);
     strclr (self->pipe_name);
     strclr (self->address);
-    strclr (self->selector);
+    strclr (self->nozzle);
 
     if (streq (self->uri, "/"))
         rc = RESTMS_URI_ROOT;
@@ -174,15 +176,16 @@ strings.
         ipr_regexp_destroy (&regexp);
     }
     if (rc == RESTMS_URI_INVALID) {
-        //  Try message URI with optional message selector
-        //  /{pipe-class}/{pipe-name}/[{message-selector}]
+        //  Try message URI with optional nozzle and index
+        //  /{pipe-class}/{pipe-name}/[{nozzle}[/{index}]]
         regexp = ipr_regexp_new (MESSAGE_REGEXP);
-        if (ipr_regexp_match (regexp, self->uri, &part1, &part2, &part3) == 3) {
+        if (ipr_regexp_match (regexp, self->uri, &part1, &part2, &part3, &part4) == 4) {
             if (zyre_uri_is_pipe_class (part1)) {
                 rc = RESTMS_URI_MESSAGE;
                 icl_shortstr_cpy (self->pipe_class, part1);
                 icl_shortstr_cpy (self->pipe_name,  part2);
-                icl_shortstr_cpy (self->selector,   part3);
+                icl_shortstr_cpy (self->nozzle,     part3);
+                self->index = atoi (part4);
             }
         }
         ipr_regexp_destroy (&regexp);
@@ -230,7 +233,8 @@ strings.
     <declare name = "rc" type = "int" default = "0" />
     //
     assert (string);
-    if (streq (string, "pipe"))
+    if (streq (string, "pipe")
+    ||  streq (string, "stream"))
         rc = TRUE;
     else
         rc = FALSE;

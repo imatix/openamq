@@ -28,6 +28,7 @@
 <import class = "zyre_config" />
 <import class = "zyre_feed" />
 <import class = "zyre_join" />
+<import class = "zyre_nozzle" />
 <import class = "zyre_peer_agent" />
 <import class = "zyre_peer_config" />
 <import class = "zyre_peering" />

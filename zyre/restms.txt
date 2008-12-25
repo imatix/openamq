@@ -1,12 +1,40 @@
-Zyre - an open source RestMS implementation
+This document describes RestMS, a RESTful Messaging Service that exposes AMQP networks via a pure HTTP interface.  RestMS is designed to interoperate with AMQP/0.9.1 and future versions of AMQP.
 
-++ The RESTful Messaging Service (RestMS)
+* Name: 7-RESTMS@wiki.amqp.org
+* Editor: Pieter Hintjens <ph@imatix.com>
+* Contributors: none.
+* State: draft.
 
-"All REST interactions are stateless. That is, each request contains all of the information necessary for a connector to understand the request, independent of any requests that may have preceded it."
+++ License
+
+Copyright (c) 2008 iMatix Corporation.
+
+This Specification is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.
+
+This Specification is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, see <http://www.gnu.org/licenses>.
+
+++ Change Process
+
+This document is governed by the 1-COSS@wiki.amqp.org specification.
+
+++ Goals
+
+RestMS aims to:
+
+* Deliver AMQP-interoperable enterprise messaging to web applications.
+* Deliver the scalability and simplicity of the RESTful model.
+* Be easy to use in any programming language, for any application, on any platform.
+* Define a standardized and implementation-independent URI mapping scheme.
+
+This specification is an initial, simple RESTful mapping of AMQP.  It does not claim to be complete, robust, or fast.  Our intention is to demonstrate that RESTful messaging is feasible today, and that the needs of a RESTful messaging service as a set of clean, idempotent URL methods, are a constructive input into the design of AMQP/1.0.
 
 ++ Introduction
 
-RestMS is a RESTful messaging service designed for web applications.  A RestMS application can be as simple as this fully working "Hello World!" example:
+"All REST interactions are stateless. That is, each request contains all of the information necessary for a connector to understand the request, independent of any requests that may have preceded it."
+
+RestMS is a RESTful messaging service designed for web applications.  A RestMS application can be as simple as this fully working "Hello World!" example in Perl:
 
 [[code]]
 #!/usr/bin/perl
@@ -20,14 +48,13 @@ $ua->credentials ("localhost", "RestMS", "guest", "guest");
 #   In one step, create a pipe named 'world', create a fanout feed named
 #   'ping', and create a join on all messages, using address string 'hello':
 my $request = HTTP::Request->new (
-    PUT => 'http://localhost/restms/pipe/world/hello\@ping/fanout");
+    PUT => 'http://localhost/restms/pipe/world/hello@ping/fanout");
 my $response = $ua->request ($request);
 die if $response->code != 200;
 
-#   Post "Hello World!" to the address hello@ping, note that Perl treats
-#   '@' as a special character, so we need to escape it
+#   Post "Hello World!" to the address hello@ping
 my $request = HTTP::Request->new (
-    POST => "http://localhost/restms/hello\@ping");
+    POST => "http://localhost/restms/hello@ping");
 $request->content("Hello World!\n");
 my $response = $ua->request ($request);
 die if $response->code != 200;
@@ -40,13 +67,6 @@ die if $response->code != 200;
 print $response->content;
 [[/code]]
 
-RestMS aims to:
-
-* Deliver an application messaging service with the advantages of the RESTful model.
-* Be easy to use in any programming language, for any application, on any platform.
-* Define a standardized and implementation-independent URI mapping scheme.
-* Be interoperable with AMQP enterprise messaging networks.
-
 RestMS uses URIs to address a set of resources.  Applications create, use, and delete these resources.  RestMS URIs are standard HTTP URIs, and RestMS is designed to be built into a web server as an extension or URI handler.  By convention, as shown in our hello world example and this documentation, URI paths start with "/restms".
 
 RestMS uses a simple loosely-coupled message model based on these main types of resource:
@@ -56,11 +76,11 @@ RestMS uses a simple loosely-coupled message model based on these main types of 
 * An "address" is where applications send messages to.  Addresses are grouped by feed and applications can invent addresses arbitrarily.
 * A "join" regulates the flow of messages from a feed into a pipe.  A join says, "route all messages that match this set of addresses, from this feed, into this pipe".
 
-[[diagram]]
+AMQP architects may recognize the similarity with AMQP concepts but the RestMS resources are overall simpler and more regular than the AMQP ones.
 
-RestMS keeps applications at a proper distance from each other.  An architecture where pieces have explicit knowledge of each other is fragile and expensive to change.  The loosely-coupled model allows consumers and publishers to join and leave the network freely, and supports robust designs such as redundancy, workload distribution, and dynamic service registration and access.
+Like AMQP, RestMS keeps applications at a proper distance from each other.  Publishers do not send to queues but to addresses.  An architecture where pieces have explicit knowledge of each other is fragile and expensive to change.  The loosely-coupled model allows consumers and publishers to join and leave the network freely, and supports robust designs such as redundancy, workload distribution, and dynamic service registration and access.
 
-Publishing applications write a message to an addresses within a feed, which causes the message to be placed in the feed and made available to consuming applications.  Consuming applications create a pipe, subscribe the pipe for selected addresses withing one or more feeds, and then read the messages that come down the pipe.
+Publishing applications write a message to an address within a feed, which causes the message to be placed in the feed and made available to consuming applications.  Consuming applications create a pipe, join the pipe to selected addresses within one or more feeds, and then read the messages that come down their pipe.
 
 Both feeds and pipes acts like first-in-first-out queues, but they do different types of work.  Feeds are mainly concerned with storing and forwarding messages to multiple pipes, while pipes are mainly concerned with supplying messages to a single application.  In a distributed network, feeds will be close to publishers, and pipes will be close to subscribers.  Feeds are public resources, pipes are usually private to a single application.  Feeds have sophisticated semantics for deciding what messages go where, while pipes do not.
 
@@ -68,13 +88,13 @@ Both feeds and pipes acts like first-in-first-out queues, but they do different 
 
 While RestMS remains interoperable with existing AMQP networks (via AMQP servers that implement the RestMS extension class), it is intended to be both simpler to understand and use, and more in line with the evolution of AMQP towards an AMQP/1.0 specification.
 
-RestMS deliberately invents new nomenclature but for those familiar with AMQP, a feed corresponds to an exchange and/or shared queue, an address corresponds to a routing key, a pipe is analogous to a private queue, and a tap matches an AMQP binding.  If it helps to understand RestMS, these are the main shifts that RestMS makes from the AMQP/0.9.1 semantic model:
+RestMS deliberately invents new nomenclature but for those familiar with AMQP, a feed corresponds to an exchange and/or shared queue, an address corresponds to a routing key, a pipe is analogous to a private queue, and a join matches an AMQP binding.  If it helps to understand RestMS, these are the main shifts that RestMS makes from the AMQP/0.9.1 semantic model:
 
 * Shared queues are merged into exchanges, and the resulting entity is renamed "feed".  In AMQP, exchanges have no state, while shared queues cannot do routing.  In RestMS, feeds have both state and capacity to route messages.
 * The exclusive queue concept are renamed to "pipe" and moved closer to the client edge.
 * The binding / routing key concepts are merged into a new concept called "address", which is used both for publishing messages and for joining pipes to feeds.
 
-The most significant semantic change from AMQP to RestMS is that we do not allow louse coupling of shared queues, i.e. the ability to bind and address a shared queue using arbitrary routing keys.  We consider this functionality to be confusing, complex, and not needed by any common messaging scenarios.  In RestMS, shared queues are addressed directly, as named feeds.  This simplification is key to RestMS's simplicity.
+The most significant semantic change from AMQP to RestMS is that we do not allow loose coupling of shared queues, i.e. the ability to bind and address a shared queue using arbitrary routing keys.  We consider this functionality to be confusing, complex, and not needed by any common messaging scenarios.  In RestMS, shared queues are addressed directly, as named feeds.  This simplification is key to RestMS's simplicity.
 
 ++ Architecture
 
@@ -98,9 +118,9 @@ The set of valid feed classes, and their meaning, is defined by the server imple
 
 The valid methods on feeds are:
 
-* PUT - creates a feed of the specified class, with the specified name.  The method is idempotent (it can be repeated with no further effect).  If the feed already exists, asserts that the class is accurate.
-* GET - queries the specified feed.  The method returns information about the feed.  It is idempotent and has no side effects.  Asserts that the class is accurate.
-* DELETE - deletes the specified feed.  This method is idempotent.  If the feed exists, asserts that the class is accurate before deleting it.
+* PUT - creates a feed of the specified class, with the specified name.  The method is idempotent (it can be repeated with no further effect).
+* GET - queries the specified feed.  The method returns information about the feed.  It is idempotent and has no side effects.
+* DELETE - deletes the specified feed.  This method is idempotent.
 
 Further, applications can also use these methods on feed classes:
 
@@ -116,18 +136,18 @@ The URI for a pipe takes this form:
 /restms/{pipe-class}/{pipe-name}
 [[/code]]
 
-The set of valid pipe classes, and their meaning, defined by the RestMS server implementation.  Each pipe class defines a particular set of semantics for the pipes it contains.  Applications can create and delete pipes at runtime.
+The set of valid pipe classes, and their meaning, are defined later.  Each pipe class defines a particular set of semantics for the pipes it contains.  Applications can create and delete pipes at runtime.
 
 The valid methods on pipes are:
 
-* PUT - creates a client-named pipe of the specified class.  The method is idempotent.  If the pipe already exists, asserts that the class is accurate.
-* GET - queries the specified pipe.  The method returns information about the pipe.  It is idempotent and has no side effects.  Asserts that the pipe class is accurate.
-* DELETE - deletes the specified pipe.  This method is idempotent.  If the pipe exists, asserts that the class is accurate before deleting it.
+* PUT - creates client-named pipe of the specified class.  The method is idempotent.
+* GET - queries the specified pipe.  The method returns information about the pipe.  It is idempotent and has no side effects.
+* DELETE - deletes the specified pipe.  This method is idempotent.
 
 Further, applications can also use these methods on pipe classes:
 
 * GET - queries the pipe class.  This method returns information about the pipe class.  It is idempotent and has no side effects.
-* PUT - creates a server-named pipe.  This method returns the name for the new pipe.  It is not idempotent, and each invocation will create a new pipe.
+* PUT - creates a server-named pipe.  This method returns the name for the new pipe.  It is not idempotent - each such PUT method will create a new pipe.
 
 Applications should delete pipes when they are finished using them.  However, RestMS server implementations will normally do housekeeping on pipes, and automatically delete pipes that are unused for a certain time, or which have overflowed beyond some configured limit.  A RestMS server should be stable over time, even if applications do not clean up their resources.
 
@@ -173,51 +193,85 @@ The address strings in a join URI are patterns rather than literal strings.  The
 
 ++ Messages
 
-A message is a discrete package of data sent by one application to another.  Messages are the units of information transfer between RestMS applications.  They are binary blobs with a set of properties.  Applications access messages via their pipes, that is, pipes are the containers for messages.  The basic URI for a message consists of a pipe URI followed by an optional message selector:
+A message is a discrete package of data sent by one application to another.  Messages are the units of information transfer between RestMS applications.  They are binary blobs with no identifiers.  Applications access messages via their pipes, that is, pipes are the containers for messages.  The URI for a message consists of a pipe URI followed by an optional nozzle, and message index:
 
 [[code]]
-/restms/{pipe-class}/{pipe-name}/[{message-selector}]
+/restms/{pipe-class}/{pipe-name}/[{nozzle}[/{index}]]
 [[/code]]
 
-The valid methods on messages are:
+These are the valid methods on a message:
 
-* GET - retrieves the specified message or messages.  This method is idempotent and has no side effects, if a selector is specified.
-* DELETE - deletes the specified message or messages.  This method is idempotent.
+* GET - waits for and fetches the next message on the pipe.  If the nozzle is empty, deletes the message after delivering it to the client application.
+* DELETE - deletes one or more messages from the pipe, in effect acknowledging that the messages were successfully processed.  The nozzle must be specified.  This method is idempotent.
 
-The message selector specifies which messages to retrieve or delete.  Messages are indexed on the pipe, from 1 (the first message the pipe receives) upwards.  The message selector can be a single message index (to specify one message), an open-ended range (to specify all waiting messages starting from the index), or a range (to specify an exactly list of messages):
+The GET method always waits.  With RestMS we do not poll for messages, we always work on the basis of event driven waits.  The client can break the connection at any time, and the time of the wait may be tuned by HTTP headers (not yet defined), or by implementation-defined configuration options.
+
+The simplest way to get messages from a pipe is to GET with an empty nozzle:
 
 [[code]]
-/restms/{pipe-class}/{pipe-name}/{index}
-/restms/{pipe-class}/{pipe-name}/{index}-
-/restms/{pipe-class}/{pipe-name}/{index}-{end-index}
+GET /restms/{pipe-class}/{pipe-name}/
 [[/code]]
 
-Messages are held in the pipe for a reasonable period, which depends on the RestMS server implementation.  Implementations may arbitrarily delete read, or unread messages, if applications do not fetch them promptly.  If a pipe is deleted, any messages it still holds are also deleted.
+This waits for, and returns a single message, and deletes it from the pipe.  It is safe for several applications to do this GET method at the same time.  However this is not properly RESTful since the GET method has the side-effect of deleting the message.  If the GET method is executed twice, two messages will be consumed.
 
-Applications have a choice of techniques for fetching and deleting messages.  The simplest is to use alternate GET and DELETE methods.  High performance applications can use an open-ended GET to receive a stream of messages, and then delete them using range DELETEs, on a separate HTTP connection.
-
-Applications can also GET a message using an empty selector:
+To do properly RESTful message delivery, specify a nozzle, and GET and DELETE each message, e.g.
 
 [[code]]
-/restms/{pipe-class}/{pipe-name}/
+GET /restms/pipe/my.pipe/my.nozzle
+... process message ...
+DELETE /restms/pipe/my.pipe/my.nozzle
 [[/code]]
 
-This method is NOT idempotent, and has the side effect of immediately deleting the message.  The empty selector breaks the strict RESTful rules but makes it possible for more than one application to share a single pipe, and to use the simplest possible technique for fetching messages.
+The GET method is idempotent and if executed twice, will return the same message twice.  The DELETE method is also safe to invoke multiple times with no further consequences.
 
-Note that the URIs for messages and for joins both start with a pipe class and name.  The significant difference is that a join URI always includes a well-formed address.
+The nozzle creates a URI that fully identifies a message, without application pre-knowledge of message identifiers.  The nozzle holds one or more messages on behalf of an application and lets us do properly RESTful GET and DELETE methods.  When two or more applications share a pipe (for workload distribution), they should use unique nozzles.  If multiple applications try to use the same named nozzle, the results are undefined.
+
+Nozzles are managed by the RestMS implementation as follows: the nozzle has a configurable life span, and if no DELETE is received within that life span, the nozzle is deleted and any messages it holds are returned to the pipe where they can be delivered to other applications.
+
+However, doing GET and DELETE for every message is slow.  Realistic applications need performance.  The GET method lets applications specify an index, from 0 upwards, which effectively pulls more messages from the pipe into the set, allowing them to be acknowleged with a single DELETE:
+
+[[code]]
+GET /restms/pipe/my.pipe/my.nozzle/0
+... process message ...
+GET /restms/pipe/my.pipe/my.nozzle/1
+... process message ...
+GET /restms/pipe/my.pipe/my.nozzle/2
+... process message ...
+GET /restms/pipe/my.pipe/my.nozzle/3
+... process message ...
+GET /restms/pipe/my.pipe/my.nozzle/4
+... process message ...
+DELETE /restms/pipe/my.pipe/my.nozzle
+[[/code]]
+
+Note that these two URIs are equivalent:
+
+[[code]]
+GET /restms/pipe/my.pipe/my.nozzle
+GET /restms/pipe/my.pipe/my.nozzle/0
+[[/code]]
+
+++ Pipe semantics
+
+As for feeds, pipe semantics are defined explicitly in the URI according to the pipe class.  RestMS defines two pipe classes:
+
+* pipe - delivers individual messages.  One GET method results in one message.
+* stream - delivers multiple messages.  One GET method results in an open-ended stream of messages, delivered to the client application as multipart contents.
+
+The stream class does not support nozzles, and is intended for high-performance delivery of messages to a single application, with no message acknowledgments.
 
 ++ Summary of URIs
 
 This table shows the different URI types and the methods they allow:
 
-|| Root       || /restms/ || GET ||
+|| Root       || /restms || GET ||
 || Feed class || /restms/{feed-class} || GET ||
 || Feed       || /restms/{feed-class}/{feed-name} || PUT, GET, DELETE ||
 || Pipe class || /restms/{pipe-class} || GET, PUT ||
 || Pipe       || /restms/{pipe-class}/{pipe-name} || PUT, GET, DELETE ||
 || Address    || /restms/{address-string}@{feed-name}[/{feed-class}] || POST ||
 || Join       || /restms/{pipe-class}/{pipe-name}/{address-string}@{feed-name}[/{feed-class}] || PUT, GET, DELETE ||
-|| Message    || /restms/{pipe-class}/{pipe-name}/[{message-selector}] || GET, DELETE ||
+|| Message    || /restms/{pipe-class}/{pipe-name}/[{nozzle}[/{index}]] || GET, DELETE ||
 
 The complete list of URI/method combinations is:
 
@@ -235,8 +289,8 @@ The complete list of URI/method combinations is:
 * **PUT /restms/{pipe-class}/{pipe-name}/{address-string}@{feed-name}[/{feed-class}]** - create join.
 * **GET /restms/{pipe-class}/{pipe-name}/{address-string}@{feed-name}[/{feed-class}]** - query join.
 * **DELETE /restms/{pipe-class}/{pipe-name}/{address-string}@{feed-name}[/{feed-class}]** - delete join.
-* **GET /restms/{pipe-class}/{pipe-name}/{message-selector}** - get message from pipe.
-* **DELETE /restms/{pipe-class}/{pipe-name}/{message-selector}** - delete message from pipe.
+* **GET /restms/{pipe-class}/{pipe-name}/[{nozzle}[/{index}]]** - get message from pipe.
+* **DELETE /restms/{pipe-class}/{pipe-name}/{nozzle}** - delete messages from pipe.
 
 ++ AMQP interoperation
 
@@ -253,4 +307,211 @@ An alternative model is to open multiple connections or channels, e.g. one per p
 
 The optimal, but most complex model, is to use federation-style normalization.  In this model, the RestMS server maintains its own routing data structures, and forwards binding requests to the AMQP server.  When messages arrive, they are routed not on consumer tag, but according to the message routing key and/or other properties.  This model demands that the RestMS implementation has the same routing capabilities as the AMQP server, i.e. implements exchanges and shared queues in much the same way.  The advantage of this model is that it allows for stand-alone RestMS operation, and is the optimal design for RestMS-to-RestMS interoperation (with no extra hops to and from the AMQP server).
 
-The iMatix Zyre server implements the first, simplest model.
+++ Appendix
+
+This is the RestMS class used to provide safe, idempotent access to RestMS resources on an AMQP server:
+
+[[code]]
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2007 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<class
+    name    = "restms"
+    handler = "connection"
+    index   = "61501"
+  >
+  RestMS resource discovery and management class.
+
+<doc>
+    Provides methods to work with server-side resources as defined by
+    the RestMS specification.  All methods are request-only, without
+    response.  Errors are logged at the server side and not reported
+    to the client.  This model is designed to allow a RestMS server to
+    push state to the AMQP server, rapidly and without handshaking.
+    In future versions we may allow for asynchronous error reporting
+    back to the RestMS server, probably via an AMQP exchange.  The
+    order of fields follows the URI component order for resources
+    (esp. joins, which have complex URI construction).
+</doc>
+
+<doc name = "grammar">
+    restms              = C:PIPE-CREATE
+                        / C:PIPE-DESTROY
+                        / C:FEED-CREATE
+                        / C:FEED-DESTROY
+                        / C:JOIN-CREATE
+                        / C:JOIN-DESTROY
+</doc>
+
+<chassis name = "server" implement = "MAY" />
+<chassis name = "client" implement = "MAY" />
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+<method name = "pipe-create" index = "10">
+  create a pipe
+  <doc>
+  Creates a pipe of the specified class.  The pipe may already exist,
+  if it has the same class.  Pipe names are unique across all classes.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "pipe class" type = "shortstr" >
+    pipe class
+    <doc>
+    Specifies the class of the pipe to create.  Valid values are: pipe.
+    </doc>
+  </field>
+  <field name = "pipe name" type = "shortstr" >
+    Name of pipe
+    <doc>
+    Specifies the name of the pipe to create.  Pipe names may not contain
+    slashes, spaces, or at signs.
+    </doc>
+  </field>
+</method>
+
+<method name = "pipe-delete" index = "20">
+  delete a pipe
+  <doc>
+  Deletes a specified pipe, if it exists.  Safe to invoke on non-existent
+  or already-deleted pipes.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "pipe name" type = "shortstr" >
+    pipe name
+    <doc>
+    Specifies the name of the pipe to delete.
+    </doc>
+  </field>
+</method>
+
+<method name = "feed-create" index = "30">
+  create a feed
+  <doc>
+  Creates a feed of the specified class.  The feed may already exist,
+  if it has the same class.  Feed names are unique across all classes.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "feed class" type = "shortstr" >
+    Feed class
+    <doc>
+    Specifies the class of the feed to create.  Valid values are: fanout,
+    direct, topic, headers, rotator, and service.
+    </doc>
+  </field>
+  <field name = "feed name" type = "shortstr" >
+    Name of feed
+    <doc>
+    Specifies the name of the feed to create.  Feed names may not contain
+    slashes, spaces, or at signs.
+    </doc>
+  </field>
+</method>
+
+<method name = "feed-delete" index = "40">
+  delete a feed
+  <doc>
+  Deletes a specified feed, if it exists.  Safe to invoke on non-existent
+  or already-deleted feeds.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "feed name" type = "shortstr" >
+    feed name
+    <doc>
+    Specifies the name of the feed to delete.
+    </doc>
+  </field>
+</method>
+
+<method name = "join-create" index = "50">
+  create a join
+  <doc>
+  Creates a join on the specified pipe and feed.  The join may already
+  exist, if it has the same properties.  A join will causes messages to
+  be delivered on the connection.  The consumer-tag property allows
+  messages to be routed into end-application pipes.  Joins on exchange
+  feeds use the consumer tag "x:{pipe-name}" and joins on queue feeds
+  use the consumer tag "q:{pipe-name}".  AMQP does not allow the same
+  tag to be used on multiple queues.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "pipe class" type = "shortstr" >
+    Pipe class
+    <doc>
+    Specifies the class of the pipe, which must match the class of the
+    existing pipe.  The only valid value for this field is "pipe".
+    </doc>
+  </field>
+  <field name = "pipe name" type = "shortstr" >
+    Name of pipe
+    <doc>
+    Specifies the name of the pipe, which must exist.
+    </doc>
+  </field>
+  <field name = "address" type = "shortstr" >
+    Join address
+    <doc>
+    Specifies the address to join.  This is an address literal or
+    pattern who's semantics depend on the feed class.  The address
+    may not contain slashes, spaces, or at signs.
+    </doc>
+  </field>
+  <field name = "feed name" type = "shortstr" >
+    Name of feed
+    <doc>
+    Specifies the name of the feed, which must exist.
+    </doc>
+  </field>
+  <field name = "feed class" type = "shortstr" >
+    Feed class
+    <doc>
+    Specifies the class of the feed, which must match the class of the
+    existing feed.
+    </doc>
+  </field>
+</method>
+
+<method name = "join-delete" index = "60">
+  delete a join
+  <doc>
+  Deletes a specified join, if it exists.  Safe to invoke on non-existent
+  or already-deleted joins, and referring to non-existent pipes and/or
+  feeds.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "pipe name" type = "shortstr" >
+    Name of pipe
+    <doc>
+    Specifies the name of the pipe, which does not need to exist.
+    </doc>
+  </field>
+  <field name = "address" type = "shortstr" >
+    Join address
+    <doc>
+    Specifies the join address.
+    </doc>
+  </field>
+  <field name = "feed name" type = "shortstr" >
+    Name of feed
+    <doc>
+    Specifies the name of the feed, which does not need to exist.
+    </doc>
+  </field>
+</method>
+
+</class>
+[[/code]]
