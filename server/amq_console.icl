@@ -188,6 +188,9 @@ $(selftype)
     xml_cml = ipr_xml_first_child (xml_root);
     if (xml_cml && streq (ipr_xml_name (xml_cml), "cml")) {
         xml_item = ipr_xml_first_child (xml_cml);
+        if (xml_item == NULL || ipr_xml_name (xml_item) == NULL)
+            s_invalid_cml (content, bucket, "malformed CML command");
+        else
         if (streq (ipr_xml_name (xml_item), "schema-request"))
             s_execute_schema (content);
         else
