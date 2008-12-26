@@ -205,6 +205,7 @@
     self->shared_queues  = ipr_symbol_table_new ();
 
     //  Automatic wiring schemes
+    //  If you change these, please maintain zyre/zyre_restms.icl
     s_exchange_declare (self, "$default$",   AMQ_EXCHANGE_DIRECT,  TRUE,  FALSE);
     s_exchange_declare (self, "amq.fanout",  AMQ_EXCHANGE_FANOUT,  FALSE, FALSE);
     s_exchange_declare (self, "amq.direct",  AMQ_EXCHANGE_DIRECT,  FALSE, FALSE);
