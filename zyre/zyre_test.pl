@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 #   Zyre test cases
+#   This script is placed into the public domain by its author,
+#   iMatix Corporation.
 
 use LWP::UserAgent;
 use HTTP::Request::Common;

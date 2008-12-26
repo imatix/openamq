@@ -49,7 +49,7 @@
 <import class = "zyre_classes" />
 
 <public name = "header">
-#define RESTMS_XML_ROOT     "zyre"
+#define RESTMS_XML_ROOT     "restms"
 </public>
 
 <context>
@@ -757,14 +757,14 @@
             tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
             ipr_xml_tree_leaf (tree, "version", "1.0");
             ipr_xml_tree_leaf (tree, "status", "ok");
-            ipr_xml_tree_open (tree, "pipe");
+              ipr_xml_tree_open (tree, "pipe");
                 ipr_xml_tree_leaf (tree, "name", pipe->name);
                 ipr_xml_tree_leaf (tree, "uri",  pipe->uri);
-                ipr_xml_tree_open (tree, "nozzle");
-                ipr_xml_tree_leaf (tree, "name", self->uri->nozzle);
-                ipr_xml_tree_leaf (tree, "size", "%d", count);
-                ipr_xml_tree_shut (tree);
-            ipr_xml_tree_shut (tree);
+                  ipr_xml_tree_open (tree, "nozzle");
+                    ipr_xml_tree_leaf (tree, "name", self->uri->nozzle);
+                    ipr_xml_tree_leaf (tree, "size", "%d", count);
+                  ipr_xml_tree_shut (tree);
+              ipr_xml_tree_shut (tree);
             http_response_set_from_xml (response, tree);
             ipr_xml_tree_destroy (&tree);
             zyre_pipe_unlink (&pipe);
@@ -852,7 +852,7 @@ s_report_pipe (http_response_t *response, zyre_pipe_t *pipe)
       ipr_xml_tree_open (tree, "pipe");
         ipr_xml_tree_leaf (tree, "name", pipe->name);
         ipr_xml_tree_leaf (tree, "uri",  pipe->uri);
-        ipr_xml_tree_leaf (tree, "messages", "%d", amq_content_basic_list_count (pipe->contents));
+        ipr_xml_tree_leaf (tree, "size", "%d", amq_content_basic_list_count (pipe->contents));
       ipr_xml_tree_shut (tree);
     http_response_set_from_xml (response, tree);
     ipr_xml_tree_destroy (&tree);
