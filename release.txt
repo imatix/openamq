@@ -157,7 +157,7 @@ This update includes all fixes in 1.2d2 as well as:
 
 This change is designed to make the server more manageable when using very high message rates, and slow clients.  Prior to this change, messages were offloaded from message queues to protocol threads (for sending to clients), at full speed.  This meant that the configurable queue limits would never be reached, so server memory could grow to excess.  This change implements a credit-based flow control so that the bulk of messages will remain on the message queue, where they can be properly managed by the queue limit handling (e.g. discard old messages if queue is too full).
 
-++ 1.2d3 - 2008/09/25 (STABLE)
+++ 1.2d3 - 2008/09/25
 
 * Fixed rare server crash (BASE2-299)
 * Fixed failover logic in JMS client (JAMQ-125)

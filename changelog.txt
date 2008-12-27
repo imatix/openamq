@@ -17,6 +17,12 @@ AMQP changes for 0.92
         - add/clarify routing and addressing properties
 
 TODO
+    - projector exchange, generates test data
+        - generate N random messages
+        - immediately or with precise delays
+        - size, max, min
+        - message id template
+        - body
     - document iCL classes like icl_longstr, asl_field_table, etc. for
       WireAPI developers
     - remove iter_list_head unless Sustrik can explain why we need it
@@ -92,6 +98,10 @@ TODO
         - win32 front-end (maybe portable GUI? Clutter?)
     - redesign queue->consumer->channel using portals
     - also for exchange->binding->queue?
+
+2008-12-27
+
+* fixed: aborts if peering credentials are not found (1.3, 1.4) (AMQ-595)
 
 2008-12-20
 
