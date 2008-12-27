@@ -317,20 +317,35 @@ for each type of exchange. This is a lock-free asynchronous class.
         smt_log_print (amq_broker->debug_log,
             "X: destroy  exchange=%s type=%s", self->name, amq_exchange_type_name (self->type));
 
-    if (self->type == AMQ_EXCHANGE_SYSTEM)
-        amq_exchange_system_destroy ((amq_exchange_system_t **) &self->object);
+    if (self->type == AMQ_EXCHANGE_SYSTEM) {
+        amq_exchange_system_t
+            *exchange = (amq_exchange_system_t *) self->object;
+        amq_exchange_system_destroy (&exchange);
+    }
     else
-    if (self->type == AMQ_EXCHANGE_FANOUT)
-        amq_exchange_fanout_destroy ((amq_exchange_fanout_t **) &self->object);
+    if (self->type == AMQ_EXCHANGE_FANOUT) {
+        amq_exchange_fanout_t
+            *exchange = (amq_exchange_fanout_t *) self->object;
+        amq_exchange_fanout_destroy (&exchange);
+    }
     else
-    if (self->type == AMQ_EXCHANGE_DIRECT)
-        amq_exchange_direct_destroy ((amq_exchange_direct_t **) &self->object);
+    if (self->type == AMQ_EXCHANGE_DIRECT) {
+        amq_exchange_direct_t
+            *exchange = (amq_exchange_direct_t *) self->object;
+        amq_exchange_direct_destroy (&exchange);
+    }
     else
-    if (self->type == AMQ_EXCHANGE_TOPIC)
-        amq_exchange_topic_destroy ((amq_exchange_topic_t **) &self->object);
+    if (self->type == AMQ_EXCHANGE_TOPIC) {
+        amq_exchange_topic_t
+            *exchange = (amq_exchange_topic_t *) self->object;
+        amq_exchange_topic_destroy (&exchange);
+    }
     else
-    if (self->type == AMQ_EXCHANGE_HEADERS)
-        amq_exchange_headers_destroy ((amq_exchange_headers_t **) &self->object);
+    if (self->type == AMQ_EXCHANGE_HEADERS) {
+        amq_exchange_headers_t
+            *exchange = (amq_exchange_headers_t *) self->object;
+        amq_exchange_headers_destroy (&exchange);
+    }
     </action>
 </method>
 
