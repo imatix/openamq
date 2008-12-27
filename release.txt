@@ -1,6 +1,23 @@
 + RESTful release
 
-++ 1.4a0 - 2008/
+++ 1.4a1 - 2008/12/27
+
+Zyre:
+
+* fixed: zyre server asserted on normal connection close in RestMS Hello World test
+* added: support for RestMS-reply-to and RestMS-message-id headers on POST address and GET message
+* added: zyre_cml.pl example of remote OpenAMQ administration over HTTP
+* added: defines predefined OpenAMQ feeds at startup
+* added: added support for OpenAMQ "system" exchange type
+* fixed: occasional assert on message delivery to pipe due to died content
+* fixed: joins properly deleted if their feed is deleted
+* fixed: XML responses incorrectly used <zyre> instead of <restms> for root
+
+OpenAMQ:
+
+* fixed: console crashed when supplied malformed CML data.
+
+++ 1.4a0 - 2008/12/25
 
 All changes in 1.3c3 onwards plus:
 
