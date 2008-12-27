@@ -204,10 +204,13 @@ typedef int (amq_peering_return_fn) (
         icl_longstr_destroy (&self->auth_data);
         self->auth_data = ipr_sasl_plain_encode (login, ipr_config_get (config, "password", ""));
     }
-    else
+    else {
         smt_log_print (amq_broker->alert_log,
-            "W: peering credentials for '%s' not defined - cannot connect", login);
-
+            "E: login credentials for '%s' not defined - cannot connect", login);
+        smt_log_print (amq_broker->alert_log,
+            "E: please check security section in configuration, and restart");
+        exit (EXIT_FAILURE);
+    }
     ipr_config_destroy (&config);
 </method>
 
