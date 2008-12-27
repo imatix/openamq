@@ -345,7 +345,7 @@
                 "W: ************************  AUTO-CRASH  ************************");
             smt_log_print (amq_broker->alert_log,
                 "W: server is now emulating a system crash, and will exit brutally.");
-            exit (0);
+            exit (EXIT_SUCCESS);
         }
     }
     if (self->auto_block_timer) {
