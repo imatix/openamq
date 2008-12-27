@@ -177,7 +177,7 @@ if [ ! -z "$UPDATE" ]; then
     if [ -d clients ]; then
         PROJECTS="common clients server operate"
     else
-        PROJECTS="common wireapi server shell restms"
+        PROJECTS="common wireapi server shell zyre"
     fi
     for PROJECT in . $PROJECTS; do
         perl -n -p -e 's/version   = "....."/version   = "'$VERSION'"/' < $PROJECT/project.pdl > _tmp
@@ -310,7 +310,7 @@ if [ ! -z "$VERSION" ]; then
     if [ -d clients ]; then
         PROJECTS="common clients server operate"
     else
-        PROJECTS="common wireapi server shell restms"
+        PROJECTS="common wireapi server shell zyre"
     fi
     for PROJECT in . $PROJECTS; do
         perl -n -p -e 's/version   = "....."/version   = "'$VERSION'"/' < $PROJECT/project.pdl > _tmp
