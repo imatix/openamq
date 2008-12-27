@@ -1,0 +1,18 @@
+<?xml?>
+<pal script = "amq_pal_gen" >
+    <set name = "count" value = "5" cmdline = "C" />
+    <random name = "msg_size" min = "1" max = "4000" />
+    <echo>Sending $count messages of $msg_size bytes</echo>
+    <session>
+        <repeat times = "$count" counter = "id">
+            <basic_content message_id = "test" size = "$msg_size" fill = "null" >
+                <headers>
+                    <field name = "currency" value = "USD" />
+                    <field name = "latency" value = "1" />
+                </headers>
+            </basic_content>
+            <basic_publish exchange = "amq.topic" routing_key = "test.topic" />
+        </repeat>
+        <echo>Sent $count messages successfully, exiting</echo>
+    </session>
+</pal>

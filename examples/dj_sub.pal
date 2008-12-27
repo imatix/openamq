@@ -1,0 +1,19 @@
+<?xml?>
+<pal script = "amq_pal_gen" >
+    <set name = "count" value = "5" cmdline = "C" />
+    <session>
+        <queue_declare exclusive = "1" />
+        <queue_bind exchange = "amq.topic" routing_key = "*.*" />
+        <basic_consume queue = "$queue" />
+        <repeat>
+            <wait />
+            <basic_arrived>
+                <inc name = "received" />
+                <if  name = "received" test = "eq" value = "$count" >
+                    <echo>Received $count messages successfully, exiting</echo>
+                    <exit />
+                </if>
+            </basic_arrived>
+        </repeat>
+    </session>
+</pal>
