@@ -541,7 +541,6 @@ typedef int (zyre_peering_return_fn) (
     feed = zyre_feed_table_search (self->feed_table, feed_name);
     assert (feed);
     if (feed->as_queue) {
-        amq_content_basic_set_message_id (content, address);
         method = zyre_peer_method_new_basic_publish (
             0,                          //  Ticket
             NULL,                       //  Default exchange
@@ -707,7 +706,7 @@ s_initialise_peering (zyre_peering_t *self)
         self->connected = TRUE;
         self->offlined = FALSE;
         smt_log_print (http_server->alert_log,
-            "I: Zyre is now peered to %s", self->host);
+            "I: Zyre is now peered to OpenAMQ server on %s", self->host);
 
         //  Create first feeds, then pipes, then joins on AMQP server
         zyre_feed_table_apply (self->feed_table, s_synchronize_feed, self);
@@ -746,7 +745,7 @@ s_terminate_peering (zyre_peering_t *self)
         server_ref = http_server_link (http_server);
         if (server_ref) {
             smt_log_print (server_ref->alert_log,
-                "I: Zyre unpeered from %s", self->host);
+                "I: Zyre unpeered from OpenAMQ server at %s", self->host);
             http_server_unlink (&server_ref);
         }
     }

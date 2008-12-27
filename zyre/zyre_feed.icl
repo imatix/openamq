@@ -59,19 +59,6 @@ This class implements the RestMS feed object.
     self->as_queue = (streq (class, "service") || streq (class, "rotator"));
 </method>
 
-<method name = "set uri" template = "function">
-    <argument name = "format" type = "char *">Format specifier</argument>
-    <argument name = "args" type = "...">Variable arguments</argument>
-    //
-    <local>
-    icl_shortstr_t
-        string;
-    </local>
-    //
-    apr_vsnprintf (string, ICL_SHORTSTR_MAX, format, args);
-    icl_shortstr_cpy (self->uri, string);
-</method>
-
 <method name = "selftest">
     <local>
     zyre_feed_t

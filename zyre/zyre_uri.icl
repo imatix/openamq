@@ -252,6 +252,7 @@ strings.
     ||  streq (string, "direct")
     ||  streq (string, "topic")
     ||  streq (string, "headers")
+    ||  streq (string, "system")
     ||  streq (string, "service")
     ||  streq (string, "rotator"))
         rc = TRUE;

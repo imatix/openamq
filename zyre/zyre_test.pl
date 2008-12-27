@@ -80,6 +80,13 @@ restms ("POST",   "/fanout/my.fanout", $REPLY_BADREQUEST);
 restms ("DELETE", "/fanout/my.fanout", $REPLY_OK);
 restms ("DELETE", "/fanout/my.fanout", $REPLY_OK);
 
+#   Test predefined feeds
+restms ("GET",    "/fanout/amq.fanout", $REPLY_OK);
+restms ("GET",    "/direct/amq.direct", $REPLY_OK);
+restms ("GET",    "/topic/amq.topic", $REPLY_OK);
+restms ("GET",    "/headers/amq.headers", $REPLY_OK);
+restms ("GET",    "/system/amq.system", $REPLY_OK);
+
 #   Error scenarios
 #   - multisegment feed names are illegal
 restms ("DELETE", "/fanout/BOO/BAH/HUMBUG", $REPLY_BADREQUEST);
@@ -90,6 +97,8 @@ restms ("PUT",    "/fanout/my.fanout", $REPLY_OK);
 restms ("PUT",    "/direct/my.fanout", $REPLY_PRECONDITION);
 restms ("GET",    "/direct/my.fanout", $REPLY_PRECONDITION);
 restms ("DELETE", "/direct/my.fanout", $REPLY_PRECONDITION);
+#   - undefined feeds
+restms ("GET",    "/fanout/amq.no-such", $REPLY_NOTFOUND);
 
 #   --------------------------------------------------------------------------
 #   Join tests
@@ -148,33 +157,36 @@ restms_post ("/any-address\@my.fanout", "Test a fanout feed", $REPLY_OK);
 restms_post ("/fixed-address\@my.direct", "Test a direct feed", $REPLY_OK);
 restms_post ("/some.wildcard\@my.topic", "Test a topic feed", $REPLY_OK);
 restms_post ("/any-address\@my.service", "Test a service feed", $REPLY_OK);
+
 #   Fetch/delete four messages from our pipe
 restms ("GET", "/pipe/my.pipe/", $REPLY_OK);
 restms ("GET", "/pipe/my.pipe/", $REPLY_OK);
 restms ("GET", "/pipe/my.pipe/", $REPLY_OK);
 restms ("GET", "/pipe/my.pipe/", $REPLY_OK);
 
+#   We expect no other message to be waiting
+restms ("GET", "/pipe/my.pipe/", $REPLY_CLIENTTIMEOUT);
+
 #   Test incoming messages using loopback to send us a message with 2-second delay
 #   First, set timeout high to allow message to arrive
 $ua->timeout (3);
-system ("perl ./testit.pl $hostname 1 2 AAA >/dev/null &");
+system ("perl ./zyre_test.pl $hostname 1 2 AAA >/dev/null &");
 restms ("GET", "/pipe/my.pipe/", $REPLY_OK);
 #   Next, set timeout low to abort message delivery
-#   Note that timeout is reported as 500 Internalerror
 $ua->timeout (1);
-system ("perl ./testit.pl $hostname 1 2 BBB >/dev/null &");
-restms ("GET", "/pipe/my.pipe/", $REPLY_INTERNALERROR);
+system ("perl ./zyre_test.pl $hostname 1 2 BBB >/dev/null &");
+restms ("GET", "/pipe/my.pipe/", $REPLY_CLIENTTIMEOUT);
 #   Now, set timeout to allow message to arrive
 $ua->timeout (2);
 restms ("GET", "/pipe/my.pipe/", $REPLY_OK);
 #   We expect no other message to be waiting
 $ua->timeout (1);
-restms ("GET", "/pipe/my.pipe/", $REPLY_INTERNALERROR);
+restms ("GET", "/pipe/my.pipe/", $REPLY_CLIENTTIMEOUT);
 
 #   Now test with named nozzle and explicit delete
-restms_post ("/any-address\@my.service", "Test a message loopback index 0", $REPLY_OK);
-restms_post ("/any-address\@my.service", "Test a message loopback index 1", $REPLY_OK);
-restms_post ("/any-address\@my.service", "Test a message loopback index 2", $REPLY_OK);
+restms_post ("/any-address\@my.service", "Test named nozzle index 0", $REPLY_OK);
+restms_post ("/any-address\@my.service", "Test named nozzle index 1", $REPLY_OK);
+restms_post ("/any-address\@my.service", "Test named nozzle index 2", $REPLY_OK);
 restms ("GET", "/pipe/my.pipe/my.nozzle", $REPLY_OK);
 restms ("GET", "/pipe/my.pipe/my.nozzle/1", $REPLY_OK);
 restms ("GET", "/pipe/my.pipe/my.nozzle/2", $REPLY_OK);
@@ -182,13 +194,30 @@ restms ("GET", "/pipe/my.pipe/my.nozzle", $REPLY_OK);
 restms ("GET", "/pipe/my.pipe/my.nozzle/1", $REPLY_OK);
 restms ("GET", "/pipe/my.pipe/my.nozzle/2", $REPLY_OK);
 restms ("DELETE", "/pipe/my.pipe/my.nozzle", $REPLY_OK);
-restms ("GET", "/pipe/my.pipe/my.nozzle", $REPLY_INTERNALERROR);
+restms ("GET", "/pipe/my.pipe/my.nozzle", $REPLY_CLIENTTIMEOUT);
+restms ("DELETE", "/pipe/my.pipe/my.nozzle", $REPLY_OK);
 
 #   Error scenarios
 restms ("GET", "/pipe/my.pipe/my.nozzle/", $REPLY_BADREQUEST);
 restms ("GET", "/pipe/my.pipe/my.nozzle/invalid-index", $REPLY_BADREQUEST);
 restms ("GET", "/stream/my.pipe/", $REPLY_NOTIMPLEMENTED);
 restms ("GET", "/stream/my.stream/", $REPLY_NOTIMPLEMENTED);
+
+#   --------------------------------------------------------------------------
+#   Join lifecycle tests
+#
+#   Test that joins are deleted when their pipes or feeds are deleted
+#   Create pipe, feed, and join
+restms ("PUT",     "/pipe/my.pipe/*\@my.fanout/fanout", $REPLY_OK);
+#   Check that join works, that we get a message
+restms_post (     "/any-address\@my.fanout", "Test a fanout feed", $REPLY_OK);
+restms ("GET",    "/pipe/my.pipe/", $REPLY_OK);
+#   Delete and recreate the feed, the join should now be gone
+restms ("DELETE", "/fanout/my.fanout", $REPLY_OK);
+restms ("PUT",    "/fanout/my.fanout", $REPLY_OK);
+#   Check that join works, that we get a message
+restms_post (     "/any-address\@my.fanout", "Test a fanout feed", $REPLY_OK);
+restms ("GET",    "/pipe/my.pipe/", $REPLY_CLIENTTIMEOUT);
 
 carp ("------------------------------------------------------------");
 carp ("OK - Tests successful");
@@ -197,7 +226,7 @@ sub restms {
     my ($method, $URL, $expect) = @_;
     my $uri = "http://$hostname/restms$URL";
     carp ("------------------------------------------------------------");
-    carp ("Test: $method $uri");
+    carp ("Test: $method $uri (=> $expect)");
     my $request = HTTP::Request->new ($method => $uri);
     my $response = $ua->request ($request);
 
@@ -229,7 +258,8 @@ sub restms_post {
     carp ("------------------------------------------------------------");
     carp ("Test: POST $uri");
     $request->content_type('text/plain');
-    $request->content($content);
+    $request->content ($content);
+    $request->header ("Restms-Message-Id" => $content);
     my $response = $ua->request ($request);
 
     check_response_code ($response, $expect);
@@ -270,6 +300,7 @@ sub define_constants {
     $REPLY_PRECONDITION   = 412;
     $REPLY_TOOLARGE       = 413;
     $REPLY_INTERNALERROR  = 500;
+    $REPLY_CLIENTTIMEOUT  = 500;        #   When no message arrives in time
     $REPLY_NOTIMPLEMENTED = 501;
     $REPLY_OVERLOADED     = 503;
     $REPLY_VERSIONUNSUP   = 505;

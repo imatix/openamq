@@ -140,7 +140,7 @@ The actual response content for each method depends on the work done by the meth
 
 Content returned by a RestMS implementation is never cached.  That is, the response headers are set as follows:
 
-* Cache-Control: no-cache
+* Cache-control: no-cache
 * Expires: 0
 * Last-modified: empty
 
@@ -170,7 +170,7 @@ The valid methods on feeds are:
 
 * PUT - creates a feed of the specified class, with the specified name.  The method is idempotent (it can be repeated with no further effect).
 * GET - queries the specified feed.  The method returns information about the feed.  It is idempotent and has no side effects.
-* DELETE - deletes the specified feed.  This method is idempotent.
+* DELETE - deletes the specified feed.  This method is idempotent.  Implicitly deletes any joins made onto the feed.
 
 Further, applications can also use these methods on feed classes:
 
@@ -315,6 +315,13 @@ As for feeds, pipe semantics are defined explicitly in the URI according to the 
 The pipe class must be used consistently in all URIs that refer to a pipe.  It is invalid (BADREQUEST) to create a pipe using one class name and access it using a different class name.
 
 The stream class does not allow nozzles, and is intended for high-performance delivery of messages to a single application, with no message acknowledgments.  Streaming can be considered properly RESTful.  Note that the streaming response format is not yet defined.
+
+++ HTTP headers
+
+RestMS uses certain HTTP headers to provide additional information, both on requests and responses.  These headers obey the rules for application-defined HTTP headers:
+
+* RestMS-reply-to - specifies the reply-to property on messages.  It is optional on POST address, and may be present in replies from GET message.  The meaning of this field is application-defined.
+* RestMS-message-id - specifies the message-id property on messages.  It is optional on POST address, and may be present in replies from GET message.  The meaning of this field is application-defined.
 
 ++ Summary of URIs
 

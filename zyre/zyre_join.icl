@@ -44,6 +44,8 @@ This class implements the RestMS join object.
         feed_name,                      //  Feed name
         feed_class,                     //  Feed class
         uri;                            //  Join URI if any
+    ipr_looseref_t
+        *looseref;                      //  Pointer to loose list
 </context>
 
 <method name = "new">
@@ -79,19 +81,6 @@ This class implements the RestMS join object.
         join = zyre_join_list_next (&join);
     }
     return (join);
-</method>
-
-<method name = "set uri" template = "function">
-    <argument name = "format" type = "char *">Format specifier</argument>
-    <argument name = "args" type = "...">Variable arguments</argument>
-    //
-    <local>
-    icl_shortstr_t
-        string;
-    </local>
-    //
-    apr_vsnprintf (string, ICL_SHORTSTR_MAX, format, args);
-    icl_shortstr_cpy (self->uri, string);
 </method>
 
 <method name = "selftest">

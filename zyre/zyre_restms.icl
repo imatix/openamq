@@ -61,14 +61,22 @@
         *pipe_table;                    //  Table of defined pipes
     zyre_feed_table_t
         *feed_table;                    //  Table of defined feeds
+    ipr_looseref_list_t
+        *joins;                         //  Looseref list of joins
     Bool
         connected;                      //  Back-end connection alive?
 </context>
 
 <method name = "new">
+    <local>
+    zyre_feed_t
+        *feed;
+    </local>
+    //
     self->uri = zyre_uri_new (NULL);
     self->pipe_table = zyre_pipe_table_new ();
     self->feed_table = zyre_feed_table_new ();
+    self->joins = ipr_looseref_list_new ();
 
     //  Prepare peering to AMQP server
     self->peering = zyre_peering_new (zyre_config_amqp_hostname (zyre_config),
@@ -77,9 +85,32 @@
     zyre_peering_set_status_handler  (self->peering, s_status_handler, self);
     zyre_peering_set_content_handler (self->peering, s_content_handler, self);
     zyre_peering_start               (self->peering);
+
+    //  Create pre-defined OpenAMQ feeds
+    feed = s_feed_assert (self, NULL, "amq.fanout",  "fanout");
+    zyre_feed_unlink (&feed);
+    feed = s_feed_assert (self, NULL, "amq.direct",  "direct");
+    zyre_feed_unlink (&feed);
+    feed = s_feed_assert (self, NULL, "amq.topic",   "topic");
+    zyre_feed_unlink (&feed);
+    feed = s_feed_assert (self, NULL, "amq.headers", "headers");
+    zyre_feed_unlink (&feed);
+    feed = s_feed_assert (self, NULL, "amq.system",  "system");
+    zyre_feed_unlink (&feed);
+    feed = s_feed_assert (self, NULL, "amq.status",  "direct");
+    zyre_feed_unlink (&feed);
+    feed = s_feed_assert (self, NULL, "amq.notify",  "topic");
+    zyre_feed_unlink (&feed);
+    feed = s_feed_assert (self, NULL, "amq.service", "direct");
+    zyre_feed_unlink (&feed);
+    feed = s_feed_assert (self, NULL, "amq.data",    "topic");
+    zyre_feed_unlink (&feed);
+    feed = s_feed_assert (self, NULL, "amq.dataex",  "headers");
+    zyre_feed_unlink (&feed);
 </method>
 
 <method name = "destroy">
+    ipr_looseref_list_destroy (&self->joins);
     zyre_pipe_table_destroy (&self->pipe_table);
     zyre_feed_table_destroy (&self->feed_table);
     zyre_peering_destroy (&self->peering);
@@ -248,30 +279,13 @@
         ipr_xml_tree_leaf (tree, "name", "pipe");
         ipr_xml_tree_leaf (tree, "uri", "%spipe", response->root_uri);
       ipr_xml_tree_shut (tree);
-      ipr_xml_tree_open (tree, "feed_class");
-        ipr_xml_tree_leaf (tree, "name", "fanout");
-        ipr_xml_tree_leaf (tree, "uri", "%sfanout", response->root_uri);
-      ipr_xml_tree_shut (tree);
-      ipr_xml_tree_open (tree, "feed_class");
-        ipr_xml_tree_leaf (tree, "name", "direct");
-        ipr_xml_tree_leaf (tree, "uri", "%sdirect", response->root_uri);
-      ipr_xml_tree_shut (tree);
-      ipr_xml_tree_open (tree, "feed_class");
-        ipr_xml_tree_leaf (tree, "name", "topic");
-        ipr_xml_tree_leaf (tree, "uri", "%stopic", response->root_uri);
-      ipr_xml_tree_shut (tree);
-      ipr_xml_tree_open (tree, "feed_class");
-        ipr_xml_tree_leaf (tree, "name", "headers");
-        ipr_xml_tree_leaf (tree, "uri", "%sheaders", response->root_uri);
-      ipr_xml_tree_shut (tree);
-      ipr_xml_tree_open (tree, "feed_class");
-        ipr_xml_tree_leaf (tree, "name", "service");
-        ipr_xml_tree_leaf (tree, "uri", "%sservice", response->root_uri);
-      ipr_xml_tree_shut (tree);
-      ipr_xml_tree_open (tree, "feed_class");
-        ipr_xml_tree_leaf (tree, "name", "rotator");
-        ipr_xml_tree_leaf (tree, "uri", "%srotator", response->root_uri);
-      ipr_xml_tree_shut (tree);
+    s_report_feed_class (self, response, "fanout", tree);
+    s_report_feed_class (self, response, "direct", tree);
+    s_report_feed_class (self, response, "topic", tree);
+    s_report_feed_class (self, response, "headers", tree);
+    s_report_feed_class (self, response, "system", tree);
+    s_report_feed_class (self, response, "service", tree);
+    s_report_feed_class (self, response, "rotator", tree);
     http_response_set_from_xml (response, tree);
     ipr_xml_tree_destroy (&tree);
 </method>
@@ -287,7 +301,7 @@
         *pipe;
     </local>
     //
-    pipe = s_pipe_assert (self, response, NULL);
+    pipe = s_pipe_assert (self, response, NULL, self->uri->pipe_class);
     if (pipe) {
         s_report_pipe (response, pipe);
         zyre_pipe_unlink (&pipe);
@@ -329,7 +343,7 @@
     </local>
     //
     if (streq (self->uri->pipe_class, "pipe")) {
-        pipe = s_pipe_assert (self, response, self->uri->pipe_name);
+        pipe = s_pipe_assert (self, response, self->uri->pipe_name, self->uri->pipe_class);
         if (pipe) {
             s_report_pipe (response, pipe);
             zyre_pipe_unlink (&pipe);
@@ -425,10 +439,7 @@
     tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
     ipr_xml_tree_leaf (tree, "version", "1.0");
     ipr_xml_tree_leaf (tree, "status", "ok");
-      ipr_xml_tree_open (tree, "feed_class");
-        ipr_xml_tree_leaf (tree, "name", self->uri->feed_class);
-        zyre_feed_table_apply (self->feed_table, s_report_feed_item, tree);
-      ipr_xml_tree_shut (tree);
+    s_report_feed_class (self, response, self->uri->feed_class, tree);
     http_response_set_from_xml (response, tree);
     ipr_xml_tree_destroy (&tree);
 </method>
@@ -445,7 +456,7 @@
         *feed;
     </local>
     //
-    feed = s_feed_assert (self, response);
+    feed = s_feed_assert (self, response, self->uri->feed_name, self->uri->feed_class);
     if (feed) {
         s_report_feed (response, feed);
         zyre_feed_unlink (&feed);
@@ -480,12 +491,17 @@
 <method name = "feed delete" template = "function">
     <doc>
     Deletes the specified feed.  This method is idempotent.  If the feed
-    exists, asserts that the class is accurate before deleting it.
+    exists, asserts that the class is accurate before deleting it.  Also
+    deletes any joins made onto the feed.
     </doc>
     <argument name = "response" type = "http_response_t *" />
     <local>
     zyre_feed_t
         *feed;
+    ipr_looseref_t
+        *looseref;
+    zyre_join_t
+        *join;
     ipr_xml_tree_t
         *tree;
     </local>
@@ -494,6 +510,17 @@
     if (feed) {
         if (streq (feed->class, self->uri->feed_class)) {
             zyre_peering_feed_delete (self->peering, feed->name);
+            //  Destroy all joins for this feed
+            looseref = ipr_looseref_list_first (self->joins);
+            while (looseref) {
+                join = (zyre_join_t *) (looseref->object);
+                if (streq (join->feed_name, feed->name)) {
+                    looseref = ipr_looseref_list_next (&looseref);
+                    s_join_delete (self, zyre_join_link (join));
+                }
+                else
+                    looseref = ipr_looseref_list_next (&looseref);
+            }
             zyre_feed_destroy (&feed);
         }
         else {
@@ -531,8 +558,8 @@
     </local>
     //
     if (streq (self->uri->pipe_class, "pipe")) {
-        pipe = s_pipe_assert (self, response, self->uri->pipe_name);
-        feed = s_feed_assert (self, response);
+        pipe = s_pipe_assert (self, response, self->uri->pipe_name, self->uri->pipe_class);
+        feed = s_feed_assert (self, response, self->uri->feed_name, self->uri->feed_class);
         if (pipe && feed) {
             join = s_join_assert (self, response, pipe, self->uri->address, feed);
             if (join) {
@@ -629,11 +656,8 @@
         }
         else {
             join = zyre_join_lookup (pipe, self->uri->address, self->uri->feed_name);
-            if (join) {
-                zyre_peering_join_delete (
-                    self->peering, pipe->name, self->uri->address, self->uri->feed_name);
-                zyre_join_destroy (&join);
-            }
+            if (join)
+                s_join_delete (self, join);
         }
     }
     zyre_feed_unlink (&feed);
@@ -668,10 +692,14 @@
         http_response_set_error (response, HTTP_REPLY_NOTIMPLEMENTED,
             "Multipart contents not supported");
     else {
-        feed = s_feed_assert (self, response);
+        feed = s_feed_assert (self, response, self->uri->feed_name, self->uri->feed_class);
         if (feed) {
             content = amq_content_basic_new ();
-            amq_content_basic_record_body (content, response->request->content);
+            amq_content_basic_record_body  (content, response->request->content);
+            amq_content_basic_set_reply_to (content,
+                http_request_get_header (response->request, "RestMS-Reply-To"));
+            amq_content_basic_set_message_id (content,
+                http_request_get_header (response->request, "RestMS-Message-Id"));
             zyre_peering_address_post (
                 self->peering, self->uri->address, self->uri->feed_name, content);
             amq_content_basic_unlink (&content);
@@ -752,14 +780,14 @@
             nozzle = zyre_nozzle_lookup (pipe, self->uri->nozzle);
             if (nozzle) {
                 count = zyre_nozzle_purge (nozzle);
-                zyre_nozzle_unlink (&nozzle);
+                zyre_nozzle_destroy (&nozzle);
             }
             tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
             ipr_xml_tree_leaf (tree, "version", "1.0");
             ipr_xml_tree_leaf (tree, "status", "ok");
               ipr_xml_tree_open (tree, "pipe");
                 ipr_xml_tree_leaf (tree, "name", pipe->name);
-                ipr_xml_tree_leaf (tree, "uri",  pipe->uri);
+                ipr_xml_tree_leaf (tree, "uri", "%s%s/%s", response->root_uri, pipe->class, pipe->name);
                   ipr_xml_tree_open (tree, "nozzle");
                     ipr_xml_tree_leaf (tree, "name", self->uri->nozzle);
                     ipr_xml_tree_leaf (tree, "size", "%d", count);
@@ -790,6 +818,12 @@
     </doc>
     <argument name = "content" type = "amq_content_basic_t *">Incoming content</argument>
     <argument name = "consumer tag" type = "char *">Consumer tag for routing</argument>
+    <possess>
+    content = amq_content_basic_link (content);
+    </possess>
+    <release>
+    amq_content_basic_unlink (&content);
+    </release>
     <action>
     char
         *pipe_name;
@@ -814,22 +848,25 @@
 <private name = "header">
 //  Return XML descriptions on various resources
 static void
+    s_report_feed_class (zyre_restms_t *self,
+        http_response_t *response, char *feed_class, ipr_xml_tree_t *tree);
+static void
     s_report_pipe (http_response_t *response, zyre_pipe_t *pipe);
 static void
     s_report_feed (http_response_t *response, zyre_feed_t *feed);
 static void
     s_report_join (http_response_t *response, zyre_join_t *join);
-static void
-    s_report_feed_item (zyre_feed_t *feed, void *argument);
 
 //  Create/assert resources
 static zyre_pipe_t *
-    s_pipe_assert (zyre_restms_t *self, http_response_t *response, char *pipe_name);
+    s_pipe_assert (zyre_restms_t *self, http_response_t *response, char *pipe_name, char *pipe_class);
 static zyre_feed_t *
-    s_feed_assert (zyre_restms_t *self, http_response_t *response);
+    s_feed_assert (zyre_restms_t *self, http_response_t *response, char *feed_name, char *feed_class);
 static zyre_join_t *
     s_join_assert (zyre_restms_t *self, http_response_t *response,
         zyre_pipe_t *pipe, char *address, zyre_feed_t *feed);
+static void
+    s_join_delete (zyre_restms_t *self, zyre_join_t *join);
 
 //  Callbacks from the zyre_peering agent
 static int s_status_handler (
@@ -839,6 +876,36 @@ static int s_content_handler (
 </private>
 
 <private name = "footer">
+static void
+s_report_feed_class (
+    zyre_restms_t *self,
+    http_response_t *response,
+    char *feed_class,
+    ipr_xml_tree_t *tree)
+{
+    uint
+        index;
+    zyre_feed_t
+        *feed;
+
+    ipr_xml_tree_open (tree, "feed_class");
+    ipr_xml_tree_leaf (tree, "name", feed_class);
+    ipr_xml_tree_leaf (tree, "uri", "%s%s", response->root_uri, feed_class);
+    for (index = 0; index != self->feed_table->max_items; index++) {
+        feed = self->feed_table->table_items [index];
+        while (feed) {
+            if (streq (feed->class, feed_class)) {
+                ipr_xml_tree_open (tree, "feed");
+                    ipr_xml_tree_leaf (tree, "name", feed->name);
+                    ipr_xml_tree_leaf (tree, "uri", "%s%s/%s", response->root_uri, feed->class, feed->name);
+                ipr_xml_tree_shut (tree);
+            }
+            feed = feed->table_next;
+        }
+    }
+    ipr_xml_tree_shut (tree);
+}
+
 static void
 s_report_pipe (http_response_t *response, zyre_pipe_t *pipe)
 {
@@ -851,7 +918,7 @@ s_report_pipe (http_response_t *response, zyre_pipe_t *pipe)
     ipr_xml_tree_leaf (tree, "status", "ok");
       ipr_xml_tree_open (tree, "pipe");
         ipr_xml_tree_leaf (tree, "name", pipe->name);
-        ipr_xml_tree_leaf (tree, "uri",  pipe->uri);
+        ipr_xml_tree_leaf (tree, "uri", "%s%s/%s", response->root_uri, pipe->class, pipe->name);
         ipr_xml_tree_leaf (tree, "size", "%d", amq_content_basic_list_count (pipe->contents));
       ipr_xml_tree_shut (tree);
     http_response_set_from_xml (response, tree);
@@ -868,23 +935,12 @@ s_report_feed (http_response_t *response, zyre_feed_t *feed)
     tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
     ipr_xml_tree_leaf (tree, "version", "1.0");
     ipr_xml_tree_leaf (tree, "status", "ok");
-    s_report_feed_item (feed, tree);
+      ipr_xml_tree_open (tree, "feed");
+        ipr_xml_tree_leaf (tree, "name", feed->name);
+        ipr_xml_tree_leaf (tree, "uri", "%s%s/%s", response->root_uri, feed->class, feed->name);
+      ipr_xml_tree_shut (tree);
     http_response_set_from_xml (response, tree);
     ipr_xml_tree_destroy (&tree);
-}
-
-//  Adds one feed item to an XML tree
-
-static void
-s_report_feed_item (zyre_feed_t *feed, void *argument)
-{
-    ipr_xml_tree_t
-        *tree = argument;
-
-    ipr_xml_tree_open (tree, "feed");
-      ipr_xml_tree_leaf (tree, "name", feed->name);
-      ipr_xml_tree_leaf (tree, "uri",  feed->uri);
-    ipr_xml_tree_shut (tree);
 }
 
 static void
@@ -899,11 +955,17 @@ s_report_join (http_response_t *response, zyre_join_t *join)
     ipr_xml_tree_leaf (tree, "status", "ok");
       ipr_xml_tree_open (tree, "pipe");
         ipr_xml_tree_leaf (tree, "name", join->pipe->name);
-        ipr_xml_tree_leaf (tree, "uri",  join->pipe->uri);
+        ipr_xml_tree_leaf (tree, "uri", "%s%s/%s", response->root_uri, join->pipe->class, join->pipe->name);
           ipr_xml_tree_open (tree, "join");
             ipr_xml_tree_leaf (tree, "address", join->address);
             ipr_xml_tree_leaf (tree, "feed", join->feed_name);
-            ipr_xml_tree_leaf (tree, "uri",  join->uri);
+            ipr_xml_tree_leaf (tree, "uri", "%s%s/%s/%s@%s/%s", 
+                response->root_uri,
+                join->pipe->class,
+                join->pipe->name,
+                join->address,
+                join->feed_name,
+                join->feed_class);
           ipr_xml_tree_shut (tree);
       ipr_xml_tree_shut (tree);
     http_response_set_from_xml (response, tree);
@@ -912,7 +974,11 @@ s_report_join (http_response_t *response, zyre_join_t *join)
 
 //  Name is provided explicitly to allow server-named pipes
 static zyre_pipe_t *
-s_pipe_assert (zyre_restms_t *self, http_response_t *response, char *pipe_name)
+s_pipe_assert (
+    zyre_restms_t *self,
+    http_response_t *response,
+    char *pipe_name,
+    char *pipe_class)
 {
     zyre_pipe_t
         *pipe = NULL;
@@ -921,17 +987,16 @@ s_pipe_assert (zyre_restms_t *self, http_response_t *response, char *pipe_name)
     if (pipe_name)
         pipe = zyre_pipe_table_search (self->pipe_table, pipe_name);
     if (pipe) {
-        if (strneq (pipe->class, self->uri->pipe_class)) {
+        if (strneq (pipe->class, pipe_class)) {
             http_response_set_error (response, HTTP_REPLY_PRECONDITION,
                 "The requested pipe class is wrong");
             zyre_pipe_unlink (&pipe);
         }
     }
     else
-    if (*self->uri->pipe_class) {
-        pipe = zyre_pipe_new (self->pipe_table, self->uri->pipe_class, pipe_name);
+    if (*pipe_class) {
+        pipe = zyre_pipe_new (self->pipe_table, pipe_class, pipe_name);
         assert (pipe);
-        zyre_pipe_set_uri (pipe, "%s%s/%s", response->root_uri, pipe->class, pipe->name);
         zyre_peering_pipe_create (self->peering, pipe->class, pipe->name);
     }
     else
@@ -942,28 +1007,34 @@ s_pipe_assert (zyre_restms_t *self, http_response_t *response, char *pipe_name)
     return (pipe);
 }
 
+//  Assert feed, allow null response
 static zyre_feed_t *
-s_feed_assert (zyre_restms_t *self, http_response_t *response)
+s_feed_assert (
+    zyre_restms_t *self,
+    http_response_t *response,
+    char *feed_name,
+    char *feed_class)
 {
     zyre_feed_t
         *feed;
 
-    feed = zyre_feed_table_search (self->feed_table, self->uri->feed_name);
+    feed = zyre_feed_table_search (self->feed_table, feed_name);
     if (feed) {
-        if (*self->uri->feed_class && strneq (self->uri->feed_class, feed->class)) {
-            http_response_set_error (response, HTTP_REPLY_PRECONDITION,
-                "The requested feed class does not match");
+        if (*feed_class && strneq (feed_class, feed->class)) {
+            if (response)
+                http_response_set_error (response, HTTP_REPLY_PRECONDITION,
+                    "The requested feed class does not match");
             zyre_feed_unlink (&feed);
         }
     }
     else
-    if (*self->uri->feed_class) {
-        feed = zyre_feed_new (self->feed_table, self->uri->feed_class, self->uri->feed_name);
+    if (*feed_class) {
+        feed = zyre_feed_new (self->feed_table, feed_class, feed_name);
         assert (feed);
-        zyre_feed_set_uri (feed, "%s%s/%s", response->root_uri, feed->class, feed->name);
         zyre_peering_feed_create (self->peering, feed->class, feed->name);
     }
     else
+    if (response)
         //  Feed not found, and can't create, since no class specified
         http_response_set_error (response, HTTP_REPLY_PRECONDITION,
             "The requested feed does not exist");
@@ -985,19 +1056,25 @@ s_join_assert (
     join = zyre_join_lookup (pipe, address, feed->name);
     if (join == NULL) {
         join = zyre_join_new (pipe, address, feed->name, feed->class);
-        zyre_join_set_uri (join, "%s%s/%s/%s@%s/%s",
-            response->root_uri,
-            pipe->class, pipe->name,
-            address,
-            feed->name, feed->class);
         zyre_peering_join_create (
             self->peering,
             pipe->name,
             address,
             feed->name,
             feed->class);
+        //  Store on global join list, with back reference
+        join->looseref = ipr_looseref_queue (self->joins, join);
     }
     return (join);
+}
+
+static void
+s_join_delete (zyre_restms_t *self, zyre_join_t *join)
+{
+    zyre_peering_join_delete (
+        self->peering, join->pipe->name, self->uri->address, self->uri->feed_name);
+    ipr_looseref_destroy (&join->looseref);
+    zyre_join_destroy (&join);
 }
 
 static int

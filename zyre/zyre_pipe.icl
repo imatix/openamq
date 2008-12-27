@@ -90,18 +90,6 @@ This class implements the RestMS pipe object.
     amq_content_basic_list_destroy (&self->contents);
 </method>
 
-<method name = "set uri" template = "function">
-    <argument name = "format" type = "char *">Format specifier</argument>
-    <argument name = "args" type = "...">Variable arguments</argument>
-    <local>
-    icl_shortstr_t
-        string;
-    </local>
-    //
-    apr_vsnprintf (string, ICL_SHORTSTR_MAX, format, args);
-    icl_shortstr_cpy (self->uri, string);
-</method>
-
 <method name = "accept" template = "function">
     <doc>
     Accept a message content onto the pipe and dispatches messages in as far
