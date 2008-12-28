@@ -113,27 +113,53 @@ In this document we provide a formal specification for the syntax and semantics 
 
 RestMS returns three types of content:
 
-# Success responses to RestMS methods, which are formatted as XML data with content type "text/xml".
+# Success responses to RestMS methods, which are formatted as structured data.
 # Failure responses to RestMS methods, which are formatted as HTML data with content type "text/html".
 # Message deliveries from GET methods on messages, which are formatted as binary data with content type "application/octet-stream".
 
 We plan to add a multipart chunked encoding for stream pipes.
 
-Response messages use this XML format:
+Structured success responses are formatted either in XML or in JSON, depending on the Accept: header.  The server will parse the Accept: header and look for the first instance of any of:
+
+* "application/xml" - format the response as XML
+* "text/xml" - format the response as XML
+* "application/json" - format the response as JSON
+
+The response MIME type matches that used from the Accept: header.
+
+XML response messages use this XML format:
 
 [[code]]
 <?xml version="1.0"?>
 <restms version="1.0" status="ok">
-  [ <pipe_class name="{class-name}" uri="{class-uri}" size="{children}" /> ]...
-  [ <feed_class name="{class-name}" uri="{class-uri}">
-    [ <feed name="{feed-name}" uri="{feed-uri}" /> ]...
-    </feed_class> ]...
-  [ <pipe name="{feed-name}" uri="{feed-uri}" size="{messages}">
-    [ <join address="{address-pattern}" feed="{feed-name}" uri="{join-uri}" /> ]...
-    [ <nozzle name="{nozzle-name}" size="{messages}" /> ]...
-    </pipe> ]...
-  [ <feed name="{feed-name}" uri="{feed-uri}" /> ]...
+    <pipe_class name="name" uri="uri" size="pipes" />
+    <feed_class name="name" uri="uri">
+        <feed name="name" uri="uri" />
+    </feed_class>
+    <pipe name="name" uri="uri" size="messages">
+        <join address="pattern" feed="name" uri="uri" />
+        <nozzle name="name" size="messages" />
+    </pipe>
+    <feed name="name" uri="uri" />
 </restms>
+[[/code]]
+
+All items except the root can occur 0 or more times.  JSON response messages use a corresponding JSON format, where all items except the root item can also occur 0 or more times:
+
+[[code]]
+{
+"restms":{ "version":"1.0", "status":"ok",
+    "pipe_class":[ { "name":"name", "uri":"uri", "size":pipes } ],
+    "feed_class":[ { "name":"name", "uri":"uri",
+        "feed":[ { "name":"name", "uri":"uri" } ]
+        } ],
+    "pipe":[ { "name":"name", "uri":"uri", "size":messages,
+        "join":[ { "address":"pattern", "feed":"name", "uri":"uri" } ],
+        "nozzle":[ { "name":"name", "size":messages } ]
+        } ],
+    "feed":[ { "name":"name", "uri":"uri" } ]
+    }
+}
 [[/code]]
 
 The actual response content for each method depends on the work done by the method, and we do not specify the responses formally here, yet.

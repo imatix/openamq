@@ -165,9 +165,6 @@ This class implements the RestMS nozzle object.
     //
     assert (self->auto_delete);
     assert (self_purge (self) == 1);
-
-    //  To self-destruct we need first to grab a link
-    self = zyre_nozzle_link (self);
     self_destroy (&self);
 </method>
 
@@ -188,9 +185,6 @@ This class implements the RestMS nozzle object.
     content = amq_content_basic_list_pop (self->contents);
     assert (content);
     pipe = self->pipe;
-
-    //  To self-destruct we need first to grab a link
-    self = zyre_nozzle_link (self);
     self_destroy (&self);
 
     //  Now pass content back to pipe to hold or pass to other nozzles
@@ -219,8 +213,9 @@ This class implements the RestMS nozzle object.
     ipr_bucket_unlink (&bucket);
 
     //  If auto-delete, we need to get a success/failure back
+    //  Add extra link to self to avoid disappearing in the meantime
     if (self->auto_delete)
-        http_response_set_pedantic (self->response, self);
+        http_response_set_pedantic (self->response, zyre_nozzle_link (self));
 
     //  Send our response back to the HTTP thread via the portal
     http_portal_response_reply (self->response->portal, self->response);

@@ -209,7 +209,7 @@ typedef int (zyre_peering_return_fn) (
     else {
         smt_log_print (http_server->alert_log,
             "E: login credentials for '%s' not defined - cannot connect", login);
-        smt_log_print (http_server->error_log,
+        smt_log_print (http_server->alert_log,
             "E: please check security section in configuration, and restart");
         exit (EXIT_FAILURE);
     }
