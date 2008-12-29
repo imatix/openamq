@@ -2,8 +2,7 @@ This document describes RestMS, a RESTful Messaging Service that exposes AMQP ne
 
 * Name: 7-RESTMS@wiki.amqp.org
 * Editor: Pieter Hintjens <ph@imatix.com>
-* Contributors: none.
-* State: draft.
+* Resources: http://www.restms.org.
 
 ++ License
 
