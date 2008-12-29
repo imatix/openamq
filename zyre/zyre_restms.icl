@@ -730,15 +730,11 @@
     if (streq (self->uri->pipe_class, "pipe")) {
         pipe = zyre_pipe_table_search (self->pipe_table, self->uri->pipe_name);
         if (pipe) {
-            //  If nozzle is empty, always create new nozzle for this request
-            //  else try to find the nozzle and only create if it does not exist
-            if (strnull (self->uri->nozzle))
-                nozzle = zyre_nozzle_new (pipe, "");
-            else {
-                nozzle = zyre_nozzle_lookup (pipe, self->uri->nozzle);
-                if (!nozzle)
-                    nozzle = zyre_nozzle_new (pipe, self->uri->nozzle);
-            }
+            //  Try to find the nozzle and only create if it does not exist
+            nozzle = zyre_nozzle_lookup (pipe, self->uri->nozzle);
+            if (!nozzle)
+                nozzle = zyre_nozzle_new (pipe, self->uri->nozzle);
+
             zyre_nozzle_message_get (nozzle, response, self->uri->index);
             zyre_nozzle_unlink (&nozzle);
             zyre_pipe_unlink (&pipe);

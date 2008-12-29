@@ -8,17 +8,17 @@ use HTTP::Request::Common;
 
 define_constants ();
 
-my $hostname = $ARGV [0];
+$hostname = $ARGV [0];
 $hostname = "localhost" unless $hostname;
 
-my $ua = new LWP::UserAgent;
+$ua = new LWP::UserAgent;
 $ua->agent ('Zyre tester');
 $ua->credentials ($hostname, "Zyre", "guest", "guest");
 $ua->timeout (1);                       #   Keep things impatient
 
 #   loopback option is used to test wait on message.  If this is set, we
 #   wait two seconds and post a message to the my.service feed.
-my $loopback = $ARGV [1];
+$loopback = $ARGV [1];
 if ($loopback) {
     sleep ($ARGV [2]);
     restms_post ("/any-address\@my.service", "Test a message loopback ".$ARGV [3], $REPLY_OK);
@@ -33,7 +33,7 @@ restms ("GET", "/", $REPLY_OK);
 #   Pipe tests
 #
 #   Create a pipe and get the pipe URI
-my $response = restms ("PUT", "/pipe", $REPLY_OK);
+$response = restms ("PUT", "/pipe", $REPLY_OK);
 $response->content =~ /name\s*=\s*"([^"]+)"/;
 $pipe_name = $1 || die "Failed: malformed response for pipe\n";
 
@@ -51,7 +51,7 @@ restms ("DELETE", "/pipe/$pipe_name", $REPLY_OK);
 restms ("DELETE", "/pipe/$pipe_name", $REPLY_OK);
 
 #   Create a pipe explicitly and check we can access it
-my $pipe_name = "mypipe";
+$pipe_name = "mypipe";
 restms ("PUT",    "/pipe/$pipe_name", $REPLY_OK);
 restms ("PUT",    "/pipe/$pipe_name", $REPLY_OK);
 restms ("GET",    "/pipe/$pipe_name", $REPLY_OK);
@@ -146,6 +146,9 @@ restms_post_file ("/usd\@market1", "boomake", $REPLY_NOTIMPLEMENTED);
 #   --------------------------------------------------------------------------
 #   Message send/receive tests
 #
+#   Delete pipe if it existed from previous test run
+restms ("DELETE", "/pipe/my.pipe", $REPLY_OK);
+
 #   Create a pipe and join to several types of feed
 restms ("PUT", "/pipe/my.pipe/*\@my.fanout/fanout", $REPLY_OK);
 restms ("PUT", "/pipe/my.pipe/fixed-address\@my.direct/direct", $REPLY_OK);
@@ -160,18 +163,27 @@ restms_post ("/any-address\@my.service", "Test a service feed", $REPLY_OK);
 
 #   Fetch/delete four messages from our pipe
 restms ("GET", "/pipe/my.pipe/", $REPLY_OK);
+$response->content eq "Test a fanout feed" || die;
+restms ("DELETE", "/pipe/my.pipe/", $REPLY_OK);
 restms ("GET", "/pipe/my.pipe/", $REPLY_OK);
+$response->content eq "Test a direct feed" || die;
+restms ("DELETE", "/pipe/my.pipe/", $REPLY_OK);
 restms ("GET", "/pipe/my.pipe/", $REPLY_OK);
+$response->content eq "Test a topic feed" || die;
+restms ("DELETE", "/pipe/my.pipe/", $REPLY_OK);
 restms ("GET", "/pipe/my.pipe/", $REPLY_OK);
+$response->content eq "Test a service feed" || die;
+restms ("DELETE", "/pipe/my.pipe/", $REPLY_OK);
 
 #   We expect no other message to be waiting
 restms ("GET", "/pipe/my.pipe/", $REPLY_CLIENTTIMEOUT);
 
-#   Test incoming messages using loopback to send us a message with 2-second delay
+#   Test wait using loopback to send us a message with 2-second delay
 #   First, set timeout high to allow message to arrive
 $ua->timeout (3);
 system ("perl ./zyre_test.pl $hostname 1 2 AAA >/dev/null &");
 restms ("GET", "/pipe/my.pipe/", $REPLY_OK);
+restms ("DELETE", "/pipe/my.pipe/", $REPLY_OK);
 #   Next, set timeout low to abort message delivery
 $ua->timeout (1);
 system ("perl ./zyre_test.pl $hostname 1 2 BBB >/dev/null &");
@@ -179,11 +191,13 @@ restms ("GET", "/pipe/my.pipe/", $REPLY_CLIENTTIMEOUT);
 #   Now, set timeout to allow message to arrive
 $ua->timeout (2);
 restms ("GET", "/pipe/my.pipe/", $REPLY_OK);
+restms ("DELETE", "/pipe/my.pipe/", $REPLY_OK);
 #   We expect no other message to be waiting
 $ua->timeout (1);
 restms ("GET", "/pipe/my.pipe/", $REPLY_CLIENTTIMEOUT);
+restms ("DELETE", "/pipe/my.pipe/", $REPLY_OK);
 
-#   Now test with named nozzle and explicit delete
+#   Now test idempotent GET/DELETE with named nozzle
 restms_post ("/any-address\@my.service", "Test named nozzle index 0", $REPLY_OK);
 restms_post ("/any-address\@my.service", "Test named nozzle index 1", $REPLY_OK);
 restms_post ("/any-address\@my.service", "Test named nozzle index 2", $REPLY_OK);
@@ -212,6 +226,7 @@ restms ("PUT",     "/pipe/my.pipe/*\@my.fanout/fanout", $REPLY_OK);
 #   Check that join works, that we get a message
 restms_post (     "/any-address\@my.fanout", "Test a fanout feed", $REPLY_OK);
 restms ("GET",    "/pipe/my.pipe/", $REPLY_OK);
+restms ("DELETE", "/pipe/my.pipe/", $REPLY_OK);
 #   Delete and recreate the feed, the join should now be gone
 restms ("DELETE", "/fanout/my.fanout", $REPLY_OK);
 restms ("PUT",    "/fanout/my.fanout", $REPLY_OK);
@@ -227,8 +242,8 @@ sub restms {
     my $uri = "http://$hostname/restms$URL";
     carp ("------------------------------------------------------------");
     carp ("Test: $method $uri (=> $expect)");
-    my $request = HTTP::Request->new ($method => $uri);
-    my $response = $ua->request ($request);
+    $request = HTTP::Request->new ($method => $uri);
+    $response = $ua->request ($request);
 
     check_response_code ($response, $expect);
     return ($response);
@@ -254,13 +269,13 @@ sub check_response_code {
 sub restms_post {
     my ($URL, $content, $expect) = @_;
     my $uri = "http://$hostname/restms$URL";
-    my $request = HTTP::Request->new (POST => $uri);
+    $request = HTTP::Request->new (POST => $uri);
     carp ("------------------------------------------------------------");
     carp ("Test: POST $uri");
     $request->content_type('text/plain');
     $request->content ($content);
     $request->header ("Restms-Message-Id" => $content);
-    my $response = $ua->request ($request);
+    $response = $ua->request ($request);
 
     check_response_code ($response, $expect);
     return ($response);
@@ -271,7 +286,7 @@ sub restms_post_file {
     my $uri = "http://$hostname/restms$URL";
     carp ("------------------------------------------------------------");
     carp ("Test: POST $uri");
-    my $response = $ua->request (POST $uri, 
+    $response = $ua->request (POST $uri, 
         Content_Type => 'form-data',
         Content => [
             submit => 1,

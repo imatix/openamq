@@ -41,34 +41,32 @@ RestMS is a RESTful messaging service designed for web applications.  A RestMS a
 #   Hello World application for RestMS
 #
 use LWP::UserAgent;
-my $ua = new LWP::UserAgent;
+use HTTP::Request::Common;
 
-$hostname = $ARGV [0]? $ARGV [0]: "localhost";
+my $hostname = $ARGV [0]? $ARGV [0]: "localhost";
+my $base = "http://$hostname/restms";
+my $ua = new LWP::UserAgent;
 $ua->agent ('Perl');
 $ua->credentials ($hostname, "RestMS", "guest", "guest");
 
 #   In one step, create a pipe named 'world', create a fanout feed named
 #   'ping', and create a join on all messages, using address string 'hello':
-my $request = HTTP::Request->new (
-    PUT => "http://$hostname/restms/pipe/world/hello\@ping/fanout");
-my $response = $ua->request ($request);
+my $response = $ua->request (PUT "$base/pipe/world/hello\@ping/fanout");
+$response->code == 200 || die;
 
-#   Post "Hello World!" to the address helloping
-my $request = HTTP::Request->new (
-    POST => "http://$hostname/restms/hello\@ping");
-$request->content("Hello World!\n");
-my $response = $ua->request ($request);
-die if $response->code != 200;
+my $response = $ua->request (POST "$base/hello\@ping", 
+    Content => "Hello World!\n");
+$response->code == 200 || die;
 
 #   Message goes into feed and then comes back to our pipe
-my $request = HTTP::Request->new (
-    GET => "http://$hostname/restms/pipe/world/");
-my $response = $ua->request ($request);
-die if $response->code != 200;
+my $response = $ua->request (GET "$base/pipe/world/");
+$response->code == 200 || die;
 print $response->content;
 [[/code]]
 
 RestMS uses URIs to address a set of resources.  Applications create, use, and delete these resources.  RestMS URIs are standard HTTP URIs, and RestMS is designed to be built into a web server as an extension or URI handler.  By convention, as shown in our hello world example and this documentation, URI paths start with "/restms".
+
+++ Resource hierarchy
 
 RestMS uses a simple loosely-coupled message model based on these main types of resource:
 
@@ -76,7 +74,19 @@ RestMS uses a simple loosely-coupled message model based on these main types of 
 * A "pipe" is a named stream of messages that is filled from a feed, and made available to applications.
 * An "address" is where applications send messages to.  Addresses are contained within feeds, and applications can invent addresses arbitrarily.
 * A "join" regulates the flow of messages from a feed into a pipe.  A join says, "route all messages that match this set of addresses, from this feed, into this pipe".
-* A "nozzle" distributes messages from a pipe to an application.  Nozzles allow several applications to share a pipe safely.
+* A "nozzle" regulates the flow of messages from a pipe to an application.  A nozzle holds a series of messages delivered to one application. Nozzles let multiple applications share a single pipe safely.
+
+These resources form a hierarchy:
+[[code]]
+restms
+    pipe_class
+        pipe
+            join
+            nozzle
+                message
+    feed_class
+        feed
+[[/code]]
 
 AMQP architects may recognize the similarity with AMQP concepts but the RestMS resources are overall simpler and more regular than the AMQP ones.
 
@@ -99,7 +109,7 @@ RestMS deliberately invents new nomenclature but for those familiar with AMQP, a
 
 The main semantic change from AMQP to RestMS is that we do not allow loose coupling of shared queues, i.e. the ability to bind and address a shared queue using arbitrary routing keys.  We consider this AMQP functionality to be confusing and not needed by any common messaging scenarios.  In RestMS, shared queues are addressed directly, as named feeds.  This simplification is a key part of RestMS's overall design.
 
-++ Architecture
+++ Implementation architecture
 
 The RestMS software architecture consists of these components:
 
@@ -115,7 +125,7 @@ RestMS returns three types of content:
 
 # Success responses to RestMS methods, which are formatted as structured data.
 # Failure responses to RestMS methods, which are formatted as HTML data with content type "text/html".
-# Message deliveries from GET methods on messages, which are formatted as binary data with content type "application/octet-stream".
+# Message deliveries from GET methods on nozzles, which are formatted as binary data with content type "application/octet-stream".
 
 We plan to add a multipart chunked encoding for stream pipes.
 
@@ -127,7 +137,7 @@ Structured success responses are formatted either in XML or in JSON, depending o
 
 The response MIME type matches that used from the Accept: header.
 
-XML response messages use this XML format:
+XML response messages use this XML format, which matches the resource hierarchy except that pipe classes are not browsable, since pipes are private resources:
 
 [[code]]
 <?xml version="1.0"?>
@@ -271,44 +281,39 @@ The full join URI is the most complex RestMS URI, as it defines a relationship b
 
 The address strings in a join URI are patterns rather than literal strings.  The actual meaning of the pattern depends on the feed class. An example is a topic matching class, where a subscriber would create a join on the address "*.USD" a a publisher might post to an address "GOLD.USD".
 
-++ Messages and nozzles
+++ Nozzles
 
-A message is a discrete package of data sent by one application to another.  Messages are the units of information transfer between RestMS applications.  They are binary blobs with no identifiers.  Applications access messages via their pipes, that is, pipes are the containers for messages.  The URI for a message consists of a pipe URI followed by optional nozzle name and message index:
-
-[[code]]
-/restms/{pipe-class}/{pipe-name}/[{nozzle}[/{index}]]
-[[/code]]
-
-These are the valid methods on a message:
-
-* GET - waits for and fetches the next message on the pipe.  If the nozzle is empty, deletes the message after delivering it to the client application.
-* DELETE - deletes one or more messages from the pipe, in effect acknowledging that the messages were successfully processed.  The nozzle must be specified.  This method is idempotent.
-
-The GET method always waits.  With RestMS we do not poll for messages, we always work on the basis of event driven waits.  The client can break the connection at any time, and the time of the wait may be tuned by HTTP headers (not yet defined), or by implementation-defined configuration options.
-
-The simplest way to get messages from a pipe is to GET with an empty nozzle:
+A nozzle regulates the flow of messages off pipes to applications.  Messages are the discrete packages of data sent between applications and routed across RestMS servers.  They are unnamed binary blobs and cannot be directly addressed.  Applications access messages via nozzles, that is, nozzles are the containers for messages.  The URI for a nozzle consists of a pipe URI followed by nozzle name and optional message :
 
 [[code]]
-GET /restms/{pipe-class}/{pipe-name}/
+/restms/{pipe-class}/{pipe-name}/{nozzle}[/{index}]
 [[/code]]
 
-This waits for, and returns a single message, and deletes it from the pipe.  It is safe for several applications to do this GET method at the same time.  However this is not properly RESTful since the GET method has the side-effect of deleting the message.  If the GET method is executed twice, e.g. by an intermediate cache, two messages will be consumed.
+These are the valid methods on a nozzle:
 
-To do properly RESTful message delivery, specify a nozzle, and GET and DELETE each message, e.g.
+* GET - gets a message from the nozzle.  Will wait for a message to arrive on the pipe, and will take a message off the pipe, if necessary.
+* DELETE - deletes the nozzle and all messages it contains, in effect acknowledging that the messages were successfully processed.  This method is idempotent.
+
+The GET method always waits if it cannot deliver a message immediately.  RestMS applications do not poll for messages.  The client can use its own timeouts to break the connection at any time.  Note that nozzles, once created, will continue to wait for messages, and applications that decide to stop waiting on a nozzle should delete it.
+
+The simplest use of a nozzle is to get one message and then confirm that message:
+
+[[code]]
+GET /restms/pipe/my.pipe/my.nozzle/0
+... process message ...
+DELETE /restms/pipe/my.pipe/my.nozzle/0
+[[/code]]
+
+An index '/0', or an unspecified index both mean 'get the first message'.  These two methods are equivalent:
 
 [[code]]
 GET /restms/pipe/my.pipe/my.nozzle
-... process message ...
-DELETE /restms/pipe/my.pipe/my.nozzle
+GET /restms/pipe/my.pipe/my.nozzle/0
 [[/code]]
 
-Using a nozzle, the GET method is idempotent and if executed twice, will return the same message twice.  The DELETE method is also safe to invoke multiple times with no further consequences.
+The GET nozzle method has the side effect of pulling one or more messages from the pipe into the nozzle, but is idempotent.  If executed more than once successively, will return the same message twice.  The DELETE method is also safe to invoke multiple times with no further consequences.
 
-The nozzle creates a URI that fully identifies a message, without application pre-knowledge of message identifiers.  The nozzle holds one or more messages on behalf of an application and lets us do properly RESTful GET and DELETE methods.  When two or more applications share a pipe (for workload distribution), they should use unique nozzles.  If multiple applications try to use the same named nozzle, the results will be arbitrary and undefined.
-
-Nozzles are managed by the RestMS implementation as follows: the nozzle has a configurable life span, and if no DELETE is received within that life span, the nozzle is deleted and any messages it holds are returned to the pipe where they can be delivered to other applications.
-
-Doing a GET and a DELETE for every message is slow.  Realistic applications need performance.  The GET method can specify an index, from 0 upwards, which effectively pulls more messages from the pipe into the set, allowing them to be acknowleged with a single DELETE:
+A more sophisticated use of a nozzle is to get a series of messages and then confirm them in a single step:
 
 [[code]]
 GET /restms/pipe/my.pipe/my.nozzle/0
@@ -324,12 +329,24 @@ GET /restms/pipe/my.pipe/my.nozzle/4
 DELETE /restms/pipe/my.pipe/my.nozzle
 [[/code]]
 
-Note that these two URIs are equivalent:
+The index is a numeric value starting at 0.  GET methods may be received and processed out of order.  Applications can skips indices.  The DELETE method will delete even undelivered messages in that case.  The following is valid and will result in one thousand messages being taken off the pipe, and a single one (the the 1000th message) delivered to the application:
 
 [[code]]
-GET /restms/pipe/my.pipe/my.nozzle
-GET /restms/pipe/my.pipe/my.nozzle/0
+GET /restms/pipe/my.pipe/my.nozzle/999
+DELETE /restms/pipe/my.pipe/my.nozzle
 [[/code]]
+
+If the RestMS implementation destroys the nozzle before receiving a DELETE method, any messages it holds will be returned to the pipe for future delivery.
+
+For convenience, the nozzle name may be empty, in which case the index may not be specified.  This allows a short URI for retrieving and confirming individual messages:
+
+[[code]]
+GET /restms/pipe/my.pipe/
+... process message ...
+DELETE /restms/pipe/my.pipe/
+[[/code]]
+
+Applications MUST NOT share nozzles.  The effects of sharing a nozzle are arbitrary and undefined.  If two applications wish to share a pipe they MUST agree in advance on unique nozzle names.
 
 ++ Pipe semantics
 
@@ -360,7 +377,7 @@ This table shows the different URI types and the methods they allow:
 || Pipe       || /restms/{pipe-class}/{pipe-name} || PUT, GET, DELETE ||
 || Address    || /restms/{address-string}@{feed-name}[/{feed-class}] || POST ||
 || Join       || /restms/{pipe-class}/{pipe-name}/{address-string}@{feed-name}[/{feed-class}] || PUT, GET, DELETE ||
-|| Message    || /restms/{pipe-class}/{pipe-name}/[{nozzle}[/{index}]] || GET, DELETE ||
+|| Nozzle     || /restms/{pipe-class}/{pipe-name}/{nozzle}[/{index}] || GET, DELETE ||
 
 The complete list of URI/method combinations is:
 
@@ -378,8 +395,8 @@ The complete list of URI/method combinations is:
 * **PUT /restms/{pipe-class}/{pipe-name}/{address-string}@{feed-name}[/{feed-class}]** - create join.
 * **GET /restms/{pipe-class}/{pipe-name}/{address-string}@{feed-name}[/{feed-class}]** - query join.
 * **DELETE /restms/{pipe-class}/{pipe-name}/{address-string}@{feed-name}[/{feed-class}]** - delete join.
-* **GET /restms/{pipe-class}/{pipe-name}/[{nozzle}[/{index}]]** - get message from pipe.
-* **DELETE /restms/{pipe-class}/{pipe-name}/{nozzle}** - delete messages from pipe.
+* **GET /restms/{pipe-class}/{pipe-name}/{nozzle}[/{index}]** - get message from nozzle.
+* **DELETE /restms/{pipe-class}/{pipe-name}/{nozzle}** - delete messages from nozzle.
 
 ++ AMQP interoperation
 

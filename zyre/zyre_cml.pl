@@ -2,21 +2,7 @@
 #   Zyre example showing how console access to an OpenAMQ server using
 #   CML over RestMS.
 #
-#   Copyright (c) 1996-2007 iMatix Corporation
-# 
-#   This file is licensed under the GPL as follows:
-# 
-#   This program is free software; you can redistribute it and/or modify
-#   it under the terms of the GNU General Public License as published by
-#   the Free Software Foundation; either version 2 of the License, or (at
-#   your option) any later version.
-# 
-#   This program is distributed in the hope that it will be useful, but
-#   WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-#   General Public License for more details.
-# 
-#   For information on alternative licensing for OEMs, please contact
+#   This script is placed into the public domain by its author,
 #   iMatix Corporation.
 
 use LWP::UserAgent;
@@ -95,6 +81,7 @@ sub cml_request {
     $response = $ua->request ($request);
     check_ok ($response);
 
-    #   Read CML response
+    #   Read & delete CML response
     restms (GET => "$baseuri/pipe/$pipe/");
+    restms (DELETE => "$baseuri/pipe/$pipe/");
 }

@@ -46,7 +46,6 @@ This class implements the RestMS nozzle object.
     http_response_t
         *response;                      //  Response waiting for message
     Bool
-        auto_delete,                    //  Delete messages when delivered?
         waiting;                        //  Waiting for a message from pipe?
 </context>
 
@@ -57,11 +56,8 @@ This class implements the RestMS nozzle object.
     assert (pipe);
     self->pipe = pipe;
     icl_shortstr_cpy (self->name, name);
-    zyre_nozzle_list_queue (pipe->nozzle_list, self);
     self->contents = amq_content_basic_list_new ();
-    //  Unnamed nozzles delete messages automatically when sent, and die when
-    //  pedantic success or failure is signalled by the HTTP thread
-    self->auto_delete = (strnull (self->name));
+    zyre_nozzle_list_queue (pipe->nozzle_list, self);
 </method>
 
 <method name = "destroy">
@@ -156,42 +152,6 @@ This class implements the RestMS nozzle object.
     }
 </method>
 
-<method name = "delivery success" template = "function">
-    <doc>
-    Invoked by the HTTP thread when a message was successfully delivered, and
-    the nozzle had asked for pedantic responses.  When the nozzle gets this,
-    it does an auto-delete (destroying the content it holds).
-    </doc>
-    //
-    assert (self->auto_delete);
-    assert (self_purge (self) == 1);
-    self_destroy (&self);
-</method>
-
-<method name = "delivery failure" template = "function">
-    <doc>
-    Invoked by the HTTP thread when a message was successfully delivered, and
-    the nozzle had asked for pedantic responses.  When the nozzle gets this,
-    it does an auto-delete (destroying the content it holds).
-    </doc>
-    <local>
-    zyre_pipe_t
-        *pipe;
-    amq_content_basic_t
-        *content;
-    </local>
-    //
-    //  Get content off the nozzle
-    content = amq_content_basic_list_pop (self->contents);
-    assert (content);
-    pipe = self->pipe;
-    self_destroy (&self);
-
-    //  Now pass content back to pipe to hold or pass to other nozzles
-    zyre_pipe_accept (pipe, content);
-    amq_content_basic_unlink (&content);
-</method>
-
 <method name = "dispatch" template = "function">
     <doc>
     Sends a specified message to the current response.
@@ -211,11 +171,6 @@ This class implements the RestMS nozzle object.
     assert (bucket);
     http_response_set_dynamic (self->response, bucket, "application/octet-stream");
     ipr_bucket_unlink (&bucket);
-
-    //  If auto-delete, we need to get a success/failure back
-    //  Add extra link to self to avoid disappearing in the meantime
-    if (self->auto_delete)
-        http_response_set_pedantic (self->response, zyre_nozzle_link (self));
 
     //  Send our response back to the HTTP thread via the portal
     http_portal_response_reply (self->response->portal, self->response);
