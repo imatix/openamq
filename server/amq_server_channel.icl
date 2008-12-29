@@ -120,16 +120,20 @@ check the credit to decide whether or not to use the channel's consumers.
     <action>
     amq_consumer_t
         *consumer = NULL;
-
+    Bool
+        nowait = method->payload.basic_consume.nowait;
+        
     if (strused (method->payload.basic_consume.consumer_tag))
         consumer = amq_consumer_table_search (
             self->connection->consumer_table, method->payload.basic_consume.consumer_tag);
 
     //  If consumer tag specified, ignore re-consume of same tag on same queue
     if (consumer) {
-        if (consumer->queue == queue)
-            amq_server_agent_basic_consume_ok (
-                self->connection->thread, self->number, consumer->tag);
+        if (consumer->queue == queue) {
+            if (!nowait)
+                amq_server_agent_basic_consume_ok (
+                    self->connection->thread, self->number, consumer->tag);
+        }
         else
             amq_server_channel_error (self, ASL_NOT_ALLOWED, "Consumer tag used on other queue",
                 AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_CONSUME);
@@ -138,8 +142,7 @@ check the credit to decide whether or not to use the channel's consumers.
         consumer = amq_consumer_new (self->connection, self, queue, method);
         if (consumer) {
             amq_consumer_by_channel_queue (self->consumer_list, consumer);
-            amq_queue_consume (queue, consumer, self->active,
-                method->payload.basic_consume.nowait);
+            amq_queue_consume (queue, consumer, self->active, nowait);
             if (queue->exclusive)
                 self->credit = amq_server_config_private_credit (amq_server_config);
             else
