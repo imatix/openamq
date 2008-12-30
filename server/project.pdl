@@ -89,6 +89,9 @@
                                          class = "icl private class" >List of bindings per queue</file>
 <file name = "amq_queue_bindings_list_table.icl"
                                          class = "icl private cont"  >Hash of binding lists per queue</file>
+<file name = "amq_binding_mgt.icl"       class = "icl public class"  >Binding management class</file>
+<file name = "amq_binding_mgt_agent.smt" class = "smt public module"
+                                         generated = "1"             >Binding management agent</file>
 <file name = "amq_hitset.icl"            class = "icl private class" >Server exchange hitset class</file>
 <file name = "amq_index.icl"             class = "icl private class" >Message matching index class</file>
 <file name = "amq_index_hash.icl"        class = "icl private cont"  >Message matching index hash</file>

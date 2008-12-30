@@ -27,6 +27,7 @@
 <option name = "selftest" value = "0" />
 
 <import class = "amq_binding" />
+<import class = "amq_binding_mgt" />
 <import class = "amq_broker" />
 <import class = "amq_client_method" />
 <import class = "amq_cml" />

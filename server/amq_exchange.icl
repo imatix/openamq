@@ -69,6 +69,23 @@ for each type of exchange. This is a lock-free asynchronous class.
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", (int) (self->traffic_out / (1024 * 1024)));</get>
         </field>
+        
+        <class name = "binding" label = "Bindings" repeat = "1" source = "amq_binding_mgt" >
+          <local>
+            amq_binding_t
+                *binding;
+          </local>
+          <get>
+            binding = amq_binding_list_first (self->binding_list);
+            if (binding)
+                icl_shortstr_fmt (field_value, "%d", binding->binding_mgt->object_id);
+          </get>
+          <next>
+            binding = amq_binding_list_next (&binding);
+            if (binding)
+                icl_shortstr_fmt (field_value, "%d", binding->binding_mgt->object_id);
+          </next>
+        </class>
     </class>
 </data>
 

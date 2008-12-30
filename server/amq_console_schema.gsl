@@ -86,6 +86,9 @@ function process_class (class_name, margin)
     xml from "$(my.class_name).icl"
     for ->class.data where name = "cml"
         for class
+            for class as child
+                child.source ?= "amq_" + name
+            endfor
             copy class to root
             >$(my.margin)<class name = "$(name)" label = "$(label?name)">
             if count (field, name = "name") = 0
@@ -102,10 +105,9 @@ function process_class (class_name, margin)
                 process_method (method, my.margin + indent)
             endfor
             >$(my.margin)</class>
-            for class
-                class.source ?= "amq_" + name
-                if count (root.class, count.name = class.name, count) = 0
-                    process_class (source, my.margin)
+            for class as child
+                if count (root.class, count.name = child.name, count) = 0
+                    process_class (child.source, my.margin)
                 endif
             endfor
         endfor

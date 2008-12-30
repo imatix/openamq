@@ -48,12 +48,16 @@ class.
         *exchange;                      //  Parent exchange
     amq_queue_list_t
         *queue_list;                    //  List of queues for binding
+    amq_binding_mgt_t
+        *binding_mgt;                   //  Interface to console
     ipr_looseref_list_t
         *index_list;                    //  List of indices for binding
     icl_shortstr_t
         routing_key;                    //  Binding routing key
     icl_longstr_t
         *arguments;                     //  Additional binding arguments
+    icl_shortstr_t
+        arguments_str;                  //  Arguments in string form
     Bool
         is_wildcard,                    //  Matches multiple routing keys?
         exclusive;                      //  Has at least one exclusive queue
@@ -79,11 +83,14 @@ class.
     <local>
     amq_federation_t
         *federation;
+    asl_field_list_t
+        *field_list;
     </local>
     //
     self->exchange   = exchange;
     self->queue_list = amq_queue_list_new ();
     self->index_list = ipr_looseref_list_new ();
+    self->binding_mgt = amq_binding_mgt_new (exchange, self);
     self->exclusive  = exclusive;
     icl_shortstr_cpy (self->routing_key, routing_key);
 
@@ -98,6 +105,12 @@ class.
             "E: too many bindings in %s exchange", exchange->name);
         self_destroy (&self);
     }
+    // Store binding arguments in human readable form
+    field_list = asl_field_list_new (self->arguments);
+    assert (field_list);
+    asl_field_list_dump (field_list, self->arguments_str);
+    asl_field_list_destroy (&field_list);
+    
     //  Notify federation, if any, about new binding
     federation = amq_federation_link (self->exchange->federation);
     if (federation) {
@@ -123,6 +136,7 @@ class.
     if (self->exchange->binding_index)
         ipr_index_delete (self->exchange->binding_index, self->index);
 
+    amq_binding_mgt_destroy   (&self->binding_mgt);
     amq_queue_list_destroy    (&self->queue_list);
     ipr_looseref_list_destroy (&self->index_list);
     icl_longstr_destroy       (&self->arguments);

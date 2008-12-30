@@ -38,6 +38,7 @@
 <file name = "amq_mgt_console.icl"      class = "icl public class"  >Management console class</file>
 <file name = "amq_mgt_broker.icl"       class = "icl public cont"   >Management broker class</file>
 <file name = "amq_mgt_exchange.icl"     class = "icl public cont"   >Management exchange class</file>
+<file name = "amq_mgt_binding.icl"      class = "icl public cont"   >Management binding class</file>
 <file name = "amq_mgt_queue.icl"        class = "icl public cont"   >Management queue class</file>
 <file name = "amq_mgt_config.icl"       class = "icl public cont"   >Management config class</file>
 <file name = "amq_mgt_connection.icl"   class = "icl public cont"   >Management connection class</file>
