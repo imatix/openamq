@@ -26,8 +26,10 @@ if ($loopback) {
 }
 
 #   --------------------------------------------------------------------------
-#   Get root map
+#   Get root map as XML
 restms ("GET", "/", $REPLY_OK);
+#   Get root map as JSON
+restms ("GET", "/", $REPLY_OK, "application/json");
 
 #   --------------------------------------------------------------------------
 #   Pipe tests
@@ -211,6 +213,9 @@ restms ("DELETE", "/pipe/my.pipe/my.nozzle", $REPLY_OK);
 restms ("GET", "/pipe/my.pipe/my.nozzle", $REPLY_CLIENTTIMEOUT);
 restms ("DELETE", "/pipe/my.pipe/my.nozzle", $REPLY_OK);
 
+#   Test message skipping
+#   Not yet implemented in Zyre
+
 #   Error scenarios
 restms ("GET", "/pipe/my.pipe/my.nozzle/", $REPLY_BADREQUEST);
 restms ("GET", "/pipe/my.pipe/my.nozzle/invalid-index", $REPLY_BADREQUEST);
@@ -238,11 +243,13 @@ carp ("------------------------------------------------------------");
 carp ("OK - Tests successful");
 
 sub restms {
-    my ($method, $URL, $expect) = @_;
+    my ($method, $URL, $expect, $accept) = @_;
+    $accept = "text/xml" unless $accept;
     my $uri = "http://$hostname/restms$URL";
     carp ("------------------------------------------------------------");
     carp ("Test: $method $uri (=> $expect)");
     $request = HTTP::Request->new ($method => $uri);
+    $request->header ("Accept" => $accept);
     $response = $ua->request ($request);
 
     check_response_code ($response, $expect);
