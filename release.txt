@@ -1,5 +1,20 @@
 + RESTful release
 
+++ 1.4a3 - 2008/12/30
+
+OpenAMQ:
+
+* added: console interface now shows bindings per exchange (http://www.openamq.org/issue:10)
+* added: ipr_config class now reports config files loaded (http://www.openamq.org/issue:34)
+
+++ 1.4a2 - 2008/12/30
+
+Zyre:
+
+* fixed: large POSTs did not work systematically (regression test failure)
+* fixed: assertion failure on nozzles (regression test failure)
+* fixed: JSON output for repeated items was incorrect.
+
 ++ 1.4a1 - 2008/12/27
 
 Zyre:
@@ -29,6 +44,11 @@ All changes in 1.3c3 onwards plus:
 * changed: auto-named queues are now called "auto.nnn" instead of "#nnn"
 
 + High-performance release
+
+++ 1.3c4 - 2008/12/xx
+
+* added: console interface now shows bindings per exchange (http://www.openamq.org/issue:10)
+* added: ipr_config class now reports config files loaded (http://www.openamq.org/issue:34)
 
 ++ 1.3c3 - 2008/12/17
 
@@ -117,6 +137,10 @@ This update includes all fixes in 1.2d2 as well as:
 * In PAL, added <session direct = "1"> option to enable Direct Mode
 
 + Stable branch
+
+++ 1.2e1 - 2008/01/xx
+
+* added: ipr_config class now reports config files loaded (http://www.openamq.org/issue:34)
 
 ++ 1.2e0 - 2008/12/17
 

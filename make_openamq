@@ -17,7 +17,7 @@
 #   For information on alternative licensing for OEMs, please contact
 #   iMatix Corporation.
 #
-#   make_openamq [-r revision] [-b branch] [-v version] [-m model] [-c] [-s] [-a] [-p]
+#   make_openamq [-r revision] [-b branch] [-v version] [-m model] [-c] [-s] [-a] [-p] [-i where]
 #
 #       * revision = svn revision number, default = head
 #       * branch = "trunk" or "xxx" where branch name is "/branches/prod_openamq_xxx", e.g. "1.2d"
@@ -27,7 +27,7 @@
 #       * -s means just report status and exit
 #       * -a means automatically do svn commits
 #       * -p means update local project.pdl files
-#       *
+#       * -i means install packages to svpublic.imatix.com directory
 #
 #   Working directories
 #    ~/build-$BRANCH-$REVISION-$MODEL       BUILD directory for this version
@@ -97,6 +97,7 @@ MODEL=mtd
 CLEAN=0
 STATUS=0
 COMMIT=0
+INSTALL=""
 
 #   Parse command line
 while [ ! -z "$1" ]; do
@@ -119,6 +120,13 @@ while [ ! -z "$1" ]; do
         COMMIT=1                        #   Automatically do svn commits
     elif [ "$1" = "-p" ]; then
         UPDATE=1                        #   Update project files
+    elif [ "$1" = "-i" ]; then
+        shift
+        if [ ! -z "$1" ]; then
+            INSTALL=$1
+        else
+            croak "use '-i stable/unstable'"
+        fi
     elif [ "$1" = "-r" ]; then
         shift
         if [ ! -z "$1" ]; then
@@ -423,5 +431,14 @@ if [ $? -ne 0 ]; then
     croak
 fi
 rm -rf ~/ibase-$MYNAME-kit || croak
+
+fi
+
+#   SSH session must be loaded
+if [ ! -z "$INSTALL" ]; then
+    scp OpenAMQ-${VERSION}.tar.gz OpenAMQ-${VERSION}.zip svpublic.imatix.com:/web/xiadmin/vhosts/download.imatix.com/openamq/$INSTALL/
+    echo "* **[http://download.imatix.com/openamq/$INSTALL/OpenAMQ-${VERSION}.tar.gz OpenAMQ-${VERSION}.tar.gz] for UNIX** - `date +%Y/%m/%d`"
+    echo "* **[http://download.imatix.com/openamq/$INSTALL/OpenAMQ-${VERSION}.zip OpenAMQ-${VERSION}.zip ] for Windows** - `date +%Y/%m/%d`"
+fi
 
 carp "****  Finished making & testing source kits ****"

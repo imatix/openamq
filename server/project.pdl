@@ -79,7 +79,10 @@
 <file name = "amq_exchange_topic.icl"    class = "icl private class" >Server topic exchange class</file>
 <file name = "amq_exchange_headers.icl"  class = "icl private class" >Server headers exchange class</file>
 <file name = "amq_binding.icl"           class = "icl private class" >Server exchange bindings class</file>
-<file name = "amq_binding_list.icl"      class = "icl private cont"  >Server bindings list</file>
+<file name = "amq_binding_list.icl"      class = "icl private cont"  >Bindings per exchange</file>
+<file name = "amq_binding_mgt.icl"       class = "icl public class"  >Binding management class</file>
+<file name = "amq_binding_mgt_agent.smt" class = "smt public module"
+                                         generated = "1"             >Binding management agent</file>
 <file name = "amq_queue_bindings_list.icl"
                                          class = "icl private class" >List of bindings per queue</file>
 <file name = "amq_queue_bindings_list_table.icl"
