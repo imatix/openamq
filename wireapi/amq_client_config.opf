@@ -105,7 +105,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "on overflow" type = "icl_shortstr_t" default = "trim">
+    <property name = "on overflow" type = "char *" default = "trim">
     Sets action for high-water overflow
     <doc>
     Specifies how the WireAPI stack should handle an overflow condition, as
