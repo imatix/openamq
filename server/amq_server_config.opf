@@ -38,14 +38,14 @@ $\(selftype)
 </private>
 
 <path name = "server">
-    <property name = "port" type = "icl_shortstr_t" default = "5672">
+    <property name = "port" type = "char *" default = "5672">
     Server port for clients
     <doc>
     Specifies the port on which the server should open its connections.
     </doc>
     </property>
 
-    <property name = "listen" type = "icl_shortstr_t" default = "*">
+    <property name = "listen" type = "char *" default = "*">
     Address (local network interface) to listen on
     <doc>
     Specifies the network interface on which the server should listen for
@@ -64,7 +64,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "vhost" type = "icl_shortstr_t" default = "/">
+    <property name = "vhost" type = "char *" default = "/">
     Server vhost identifier
     <doc>
     Specifies the virtual host name, an arbitrary string. OpenAMQ does not
@@ -109,7 +109,7 @@ $\(selftype)
 </path>
 
 <path name = "logging">
-    <property name = "log path" type = "icl_shortstr_t" default = "logs">
+    <property name = "log path" type = "char *" default = "logs">
     Active log file directory
     <doc>
     Specifies the directory path into which active log files are
@@ -126,7 +126,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "archive path" type = "icl_shortstr_t" default = "archive">
+    <property name = "archive path" type = "char *" default = "archive">
     Archive log file directory
     <doc>
     Specifies the directory path into which archived log files are
@@ -135,7 +135,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "archive cmd" type = "icl_shortstr_t">
+    <property name = "archive cmd" type = "char *">
     Archive log file command
     <doc>
     If specified, this command is run on all archived log files. You can
@@ -145,7 +145,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "alert log" type = "icl_shortstr_t" default = "alert.log">
+    <property name = "alert log" type = "char *" default = "alert.log">
     Error log file name
     <doc>
     The name of the alert log file, which records all errors and warnings
@@ -154,7 +154,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "daily log" type = "icl_shortstr_t" default = "daily.log">
+    <property name = "daily log" type = "char *" default = "daily.log">
     Daily log file name
     <doc>
     The name of the daily log file, which records all normal activity
@@ -163,7 +163,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "debug log" type = "icl_shortstr_t" default = "debug.log">
+    <property name = "debug log" type = "char *" default = "debug.log">
     Debug log file name
     <doc>
     The name of the debug log file, which records all normal activity,
@@ -327,7 +327,7 @@ $\(selftype)
 </path>
 
 <path name = "failover">
-    <property name = "backup" type = "icl_shortstr_t" default = "">
+    <property name = "backup" type = "char *" default = "">
     Failover backup host:port
     <doc>
     Used when running the primary server, specifies the failover backup
@@ -337,7 +337,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "primary" type = "icl_shortstr_t" default = "">
+    <property name = "primary" type = "char *" default = "">
     Failover primary host:port
     <doc>
     Used when running the backup server, specifies the failover primary
@@ -361,7 +361,7 @@ $\(selftype)
 </path>
 
 <path name = "federation">
-    <property name = "attach" type = "icl_shortstr_t" default = "">
+    <property name = "attach" type = "char *" default = "">
     Enable auto-federation to specified host
     <doc>
     If specified, the server will auto-federate to the specified parent
@@ -374,7 +374,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "attach vhost" type = "icl_shortstr_t" default = "/">
+    <property name = "attach vhost" type = "char *" default = "/">
     Auto-federation virtual host name
     <doc>
     Specifies the auto-federation vhost name, an arbitrary string that
@@ -383,7 +383,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "attach login" type = "icl_shortstr_t" default = "peering">
+    <property name = "attach login" type = "char *" default = "peering">
     Auto-federation login user name
     <doc>
     Specifies the user name to be used when logging in.  You do not need to
@@ -391,7 +391,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "attach all" type = "icl_shortstr_t" default = "">
+    <property name = "attach all" type = "char *" default = "">
     Auto-federate exchanges by pattern
     <doc>
     If set, the server will auto-federate all exchanges that match the
