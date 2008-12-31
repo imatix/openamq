@@ -213,10 +213,6 @@ Further, applications can also use these methods on feed classes:
 
 Feed names may not contain /, #, @, or spaces.
 
-The response to a PUT is a content 
-
-<?xml version="1.0"?><restms version="1.0" status="ok"><pipe name="6VVFHDQWQYV3SB4L1" uri="http://localhost:8080/pipe/6VVFHDQWQYV3SB4L1" messages="0"/></restms>
-
 ++ Pipes
 
 The URI for a pipe takes this form:

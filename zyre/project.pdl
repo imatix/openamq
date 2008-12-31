@@ -25,6 +25,7 @@
     >
 <include filename = "prelude.pdl" />
 <inherit filename = "icl_classes.pdl" />
+<inherit filename = "ipr_classes.pdl" />
 <inherit filename = "smt_classes.pdl" />
 
 <file name = "version.h"            class = "c version"         >Project version file</file>
