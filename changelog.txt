@@ -25,7 +25,6 @@ TODO
         - body
     - document iCL classes like icl_longstr, asl_field_table, etc. for
       WireAPI developers
-    - remove iter_list_head unless Sustrik can explain why we need it
     - in documentation, amq_peering.cfg not mentioned
         - this provides credential for failover connections
         - and also for federation connections
@@ -34,13 +33,13 @@ TODO
         - index of all known AMQP products and what they support
     - make PAL arrived processing faster when possible
     - remove all content class variability in asl scripts
+        - alias amq_content_basic_t -> amq_content_t
     - show broker HA status via amq_shell
     - show connection direct status via amq_shell
     - show last exchange as well as type on amq_shell queue page
     - put debian packaging into release package
     - remove unused IPR classes
-    - remove C++ generation from boom
-    - remove C++ templates
+        - only dm class, finally
     - reorganize openamq archive to be clean
     - merge amq_queue_basic & amq_queue_base into amq_queue
     - make web-based amq_shell tool using http server
@@ -101,6 +100,7 @@ TODO
 
 2008-12-30
 
+* changed: removed all C++ generation from base2 frameworks (1.4)
 * added: console interface now shows bindings per exchange (1.3, 1.4) (http://www.openamq.org/issue:10)
 * added: ipr_config class now reports config files loaded (1.3, 1.4) (http://www.openamq.org/issue:34)
 

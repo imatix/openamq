@@ -1,11 +1,12 @@
 + RESTful release
 
-++ 1.4a3 - 2008/12/30
+++ 1.4a3 - 2008/01/
 
 OpenAMQ:
 
 * added: console interface now shows bindings per exchange (http://www.openamq.org/issue:10)
 * added: ipr_config class now reports config files loaded (http://www.openamq.org/issue:34)
+* added: HTTP server checks Host: against ".", "..", and / characters
 
 ++ 1.4a2 - 2008/12/30
 
@@ -19,7 +20,7 @@ Zyre:
 
 Zyre:
 
-* fixed: zyre server asserted on normal connection close in RestMS Hello World test
+* fixed: Zyre asserted on normal connection close in RestMS Hello World test
 * added: support for RestMS-reply-to and RestMS-message-id headers on POST address and GET message
 * added: zyre_cml.pl example of remote OpenAMQ administration over HTTP
 * added: defines predefined OpenAMQ feeds at startup
@@ -27,6 +28,7 @@ Zyre:
 * fixed: occasional assert on message delivery to pipe due to died content
 * fixed: joins properly deleted if their feed is deleted
 * fixed: XML responses incorrectly used <zyre> instead of <restms> for root
+* added: implemented JSON support for RestMS responses via "Accept: application/json" header
 
 OpenAMQ:
 
