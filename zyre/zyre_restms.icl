@@ -268,17 +268,17 @@
     </doc>
     <argument name = "response" type = "http_response_t *" />
     <local>
-    ipr_xml_tree_t
+    ipr_tree_t
         *tree;
     </local>
     //
-    tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
-    ipr_xml_tree_leaf (tree, "version", "1.0");
-    ipr_xml_tree_leaf (tree, "status", "ok");
-      ipr_xml_tree_open (tree, "pipe_class");
-        ipr_xml_tree_leaf (tree, "name", "pipe");
-        ipr_xml_tree_leaf (tree, "uri", "%spipe", response->root_uri);
-      ipr_xml_tree_shut (tree);
+    tree = ipr_tree_new (RESTMS_XML_ROOT);
+    ipr_tree_leaf (tree, "version", "1.0");
+    ipr_tree_leaf (tree, "status", "ok");
+      ipr_tree_open (tree, "pipe_class");
+        ipr_tree_leaf (tree, "name", "pipe");
+        ipr_tree_leaf (tree, "uri", "%spipe", response->root_uri);
+      ipr_tree_shut (tree);
     s_report_feed_class (self, response, "fanout", tree);
     s_report_feed_class (self, response, "direct", tree);
     s_report_feed_class (self, response, "topic", tree);
@@ -286,8 +286,8 @@
     s_report_feed_class (self, response, "system", tree);
     s_report_feed_class (self, response, "service", tree);
     s_report_feed_class (self, response, "rotator", tree);
-    http_response_set_from_xml (response, tree);
-    ipr_xml_tree_destroy (&tree);
+    http_response_set_from_tree (response, tree);
+    ipr_tree_destroy (&tree);
 </method>
 
 <method name = "pipes put" template = "function">
@@ -315,19 +315,19 @@
     </doc>
     <argument name = "response" type = "http_response_t *" />
     <local>
-    ipr_xml_tree_t
+    ipr_tree_t
         *tree;
     </local>
     //
-    tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
-    ipr_xml_tree_leaf (tree, "version", "1.0");
-    ipr_xml_tree_leaf (tree, "status", "ok");
-      ipr_xml_tree_open (tree, "pipe_class");
-        ipr_xml_tree_leaf (tree, "name", "pipe");
-        ipr_xml_tree_leaf (tree, "size", "%d", self->pipe_table->nbr_items);
-      ipr_xml_tree_shut (tree);
-    http_response_set_from_xml (response, tree);
-    ipr_xml_tree_destroy (&tree);
+    tree = ipr_tree_new (RESTMS_XML_ROOT);
+    ipr_tree_leaf (tree, "version", "1.0");
+    ipr_tree_leaf (tree, "status", "ok");
+      ipr_tree_open (tree, "pipe_class");
+        ipr_tree_leaf (tree, "name", "pipe");
+        ipr_tree_leaf (tree, "size", "%d", self->pipe_table->nbr_items);
+      ipr_tree_shut (tree);
+    http_response_set_from_tree (response, tree);
+    ipr_tree_destroy (&tree);
 </method>
 
 <method name = "pipe put" template = "function">
@@ -394,7 +394,7 @@
     <local>
     zyre_pipe_t
         *pipe;
-    ipr_xml_tree_t
+    ipr_tree_t
         *tree;
     </local>
     //
@@ -413,11 +413,11 @@
             }
         }
         if (!rc) {
-            tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
-            ipr_xml_tree_leaf (tree, "version", "1.0");
-            ipr_xml_tree_leaf (tree, "status", "ok");
-            http_response_set_from_xml (response, tree);
-            ipr_xml_tree_destroy (&tree);
+            tree = ipr_tree_new (RESTMS_XML_ROOT);
+            ipr_tree_leaf (tree, "version", "1.0");
+            ipr_tree_leaf (tree, "status", "ok");
+            http_response_set_from_tree (response, tree);
+            ipr_tree_destroy (&tree);
         }
     }
     else
@@ -432,16 +432,16 @@
     </doc>
     <argument name = "response" type = "http_response_t *" />
     <local>
-    ipr_xml_tree_t
+    ipr_tree_t
         *tree;
     </local>
     //
-    tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
-    ipr_xml_tree_leaf (tree, "version", "1.0");
-    ipr_xml_tree_leaf (tree, "status", "ok");
+    tree = ipr_tree_new (RESTMS_XML_ROOT);
+    ipr_tree_leaf (tree, "version", "1.0");
+    ipr_tree_leaf (tree, "status", "ok");
     s_report_feed_class (self, response, self->uri->feed_class, tree);
-    http_response_set_from_xml (response, tree);
-    ipr_xml_tree_destroy (&tree);
+    http_response_set_from_tree (response, tree);
+    ipr_tree_destroy (&tree);
 </method>
 
 <method name = "feed put" template = "function">
@@ -502,7 +502,7 @@
         *looseref;
     zyre_join_t
         *join;
-    ipr_xml_tree_t
+    ipr_tree_t
         *tree;
     </local>
     //
@@ -531,11 +531,11 @@
         }
     }
     if (!rc) {
-        tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
-        ipr_xml_tree_leaf (tree, "version", "1.0");
-        ipr_xml_tree_leaf (tree, "status", "ok");
-        http_response_set_from_xml (response, tree);
-        ipr_xml_tree_destroy (&tree);
+        tree = ipr_tree_new (RESTMS_XML_ROOT);
+        ipr_tree_leaf (tree, "version", "1.0");
+        ipr_tree_leaf (tree, "status", "ok");
+        http_response_set_from_tree (response, tree);
+        ipr_tree_destroy (&tree);
     }
 </method>
 
@@ -641,7 +641,7 @@
         *feed = NULL;
     zyre_join_t
         *join = NULL;
-    ipr_xml_tree_t
+    ipr_tree_t
         *tree;
     </local>
     //
@@ -663,11 +663,11 @@
     zyre_feed_unlink (&feed);
     zyre_pipe_unlink (&pipe);
     if (!rc) {
-        tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
-        ipr_xml_tree_leaf (tree, "version", "1.0");
-        ipr_xml_tree_leaf (tree, "status", "ok");
-        http_response_set_from_xml (response, tree);
-        ipr_xml_tree_destroy (&tree);
+        tree = ipr_tree_new (RESTMS_XML_ROOT);
+        ipr_tree_leaf (tree, "version", "1.0");
+        ipr_tree_leaf (tree, "status", "ok");
+        http_response_set_from_tree (response, tree);
+        ipr_tree_destroy (&tree);
     }
 </method>
 
@@ -684,7 +684,7 @@
         *feed;
     amq_content_basic_t
         *content;                       //  Content to post
-    ipr_xml_tree_t
+    ipr_tree_t
         *tree;
     </local>
     //
@@ -705,11 +705,11 @@
             amq_content_basic_unlink (&content);
             zyre_feed_unlink (&feed);
         }
-        tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
-        ipr_xml_tree_leaf (tree, "version", "1.0");
-        ipr_xml_tree_leaf (tree, "status", "ok");
-        http_response_set_from_xml (response, tree);
-        ipr_xml_tree_destroy (&tree);
+        tree = ipr_tree_new (RESTMS_XML_ROOT);
+        ipr_tree_leaf (tree, "version", "1.0");
+        ipr_tree_leaf (tree, "status", "ok");
+        http_response_set_from_tree (response, tree);
+        ipr_tree_destroy (&tree);
     }
 </method>
 
@@ -766,7 +766,7 @@
         *nozzle;
     size_t
         count = 0;
-    ipr_xml_tree_t
+    ipr_tree_t
         *tree;
     </local>
     //
@@ -778,19 +778,19 @@
                 count = zyre_nozzle_purge (nozzle);
                 zyre_nozzle_destroy (&nozzle);
             }
-            tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
-            ipr_xml_tree_leaf (tree, "version", "1.0");
-            ipr_xml_tree_leaf (tree, "status", "ok");
-              ipr_xml_tree_open (tree, "pipe");
-                ipr_xml_tree_leaf (tree, "name", pipe->name);
-                ipr_xml_tree_leaf (tree, "uri", "%s%s/%s", response->root_uri, pipe->class, pipe->name);
-                  ipr_xml_tree_open (tree, "nozzle");
-                    ipr_xml_tree_leaf (tree, "name", self->uri->nozzle);
-                    ipr_xml_tree_leaf (tree, "size", "%d", count);
-                  ipr_xml_tree_shut (tree);
-              ipr_xml_tree_shut (tree);
-            http_response_set_from_xml (response, tree);
-            ipr_xml_tree_destroy (&tree);
+            tree = ipr_tree_new (RESTMS_XML_ROOT);
+            ipr_tree_leaf (tree, "version", "1.0");
+            ipr_tree_leaf (tree, "status", "ok");
+              ipr_tree_open (tree, "pipe");
+                ipr_tree_leaf (tree, "name", pipe->name);
+                ipr_tree_leaf (tree, "uri", "%s%s/%s", response->root_uri, pipe->class, pipe->name);
+                  ipr_tree_open (tree, "nozzle");
+                    ipr_tree_leaf (tree, "name", self->uri->nozzle);
+                    ipr_tree_leaf (tree, "size", "%d", count);
+                  ipr_tree_shut (tree);
+              ipr_tree_shut (tree);
+            http_response_set_from_tree (response, tree);
+            ipr_tree_destroy (&tree);
             zyre_pipe_unlink (&pipe);
         }
         else
@@ -845,7 +845,7 @@
 //  Return XML descriptions on various resources
 static void
     s_report_feed_class (zyre_restms_t *self,
-        http_response_t *response, char *feed_class, ipr_xml_tree_t *tree);
+        http_response_t *response, char *feed_class, ipr_tree_t *tree);
 static void
     s_report_pipe (http_response_t *response, zyre_pipe_t *pipe);
 static void
@@ -877,95 +877,95 @@ s_report_feed_class (
     zyre_restms_t *self,
     http_response_t *response,
     char *feed_class,
-    ipr_xml_tree_t *tree)
+    ipr_tree_t *tree)
 {
     uint
         index;
     zyre_feed_t
         *feed;
 
-    ipr_xml_tree_open (tree, "feed_class");
-    ipr_xml_tree_leaf (tree, "name", feed_class);
-    ipr_xml_tree_leaf (tree, "uri", "%s%s", response->root_uri, feed_class);
+    ipr_tree_open (tree, "feed_class");
+    ipr_tree_leaf (tree, "name", feed_class);
+    ipr_tree_leaf (tree, "uri", "%s%s", response->root_uri, feed_class);
     for (index = 0; index != self->feed_table->max_items; index++) {
         feed = self->feed_table->table_items [index];
         while (feed) {
             if (streq (feed->class, feed_class)) {
-                ipr_xml_tree_open (tree, "feed");
-                    ipr_xml_tree_leaf (tree, "name", feed->name);
-                    ipr_xml_tree_leaf (tree, "uri", "%s%s/%s", response->root_uri, feed->class, feed->name);
-                ipr_xml_tree_shut (tree);
+                ipr_tree_open (tree, "feed");
+                    ipr_tree_leaf (tree, "name", feed->name);
+                    ipr_tree_leaf (tree, "uri", "%s%s/%s", response->root_uri, feed->class, feed->name);
+                ipr_tree_shut (tree);
             }
             feed = feed->table_next;
         }
     }
-    ipr_xml_tree_shut (tree);
+    ipr_tree_shut (tree);
 }
 
 static void
 s_report_pipe (http_response_t *response, zyre_pipe_t *pipe)
 {
-    ipr_xml_tree_t
+    ipr_tree_t
         *tree;
 
     assert (pipe);
-    tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
-    ipr_xml_tree_leaf (tree, "version", "1.0");
-    ipr_xml_tree_leaf (tree, "status", "ok");
-      ipr_xml_tree_open (tree, "pipe");
-        ipr_xml_tree_leaf (tree, "name", pipe->name);
-        ipr_xml_tree_leaf (tree, "uri", "%s%s/%s", response->root_uri, pipe->class, pipe->name);
-        ipr_xml_tree_leaf (tree, "size", "%d", amq_content_basic_list_count (pipe->contents));
-      ipr_xml_tree_shut (tree);
-    http_response_set_from_xml (response, tree);
-    ipr_xml_tree_destroy (&tree);
+    tree = ipr_tree_new (RESTMS_XML_ROOT);
+    ipr_tree_leaf (tree, "version", "1.0");
+    ipr_tree_leaf (tree, "status", "ok");
+      ipr_tree_open (tree, "pipe");
+        ipr_tree_leaf (tree, "name", pipe->name);
+        ipr_tree_leaf (tree, "uri", "%s%s/%s", response->root_uri, pipe->class, pipe->name);
+        ipr_tree_leaf (tree, "size", "%d", amq_content_basic_list_count (pipe->contents));
+      ipr_tree_shut (tree);
+    http_response_set_from_tree (response, tree);
+    ipr_tree_destroy (&tree);
 }
 
 static void
 s_report_feed (http_response_t *response, zyre_feed_t *feed)
 {
-    ipr_xml_tree_t
+    ipr_tree_t
         *tree;
 
     assert (feed);
-    tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
-    ipr_xml_tree_leaf (tree, "version", "1.0");
-    ipr_xml_tree_leaf (tree, "status", "ok");
-      ipr_xml_tree_open (tree, "feed");
-        ipr_xml_tree_leaf (tree, "name", feed->name);
-        ipr_xml_tree_leaf (tree, "uri", "%s%s/%s", response->root_uri, feed->class, feed->name);
-      ipr_xml_tree_shut (tree);
-    http_response_set_from_xml (response, tree);
-    ipr_xml_tree_destroy (&tree);
+    tree = ipr_tree_new (RESTMS_XML_ROOT);
+    ipr_tree_leaf (tree, "version", "1.0");
+    ipr_tree_leaf (tree, "status", "ok");
+      ipr_tree_open (tree, "feed");
+        ipr_tree_leaf (tree, "name", feed->name);
+        ipr_tree_leaf (tree, "uri", "%s%s/%s", response->root_uri, feed->class, feed->name);
+      ipr_tree_shut (tree);
+    http_response_set_from_tree (response, tree);
+    ipr_tree_destroy (&tree);
 }
 
 static void
 s_report_join (http_response_t *response, zyre_join_t *join)
 {
-    ipr_xml_tree_t
+    ipr_tree_t
         *tree;
 
     assert (join);
-    tree = ipr_xml_tree_new (RESTMS_XML_ROOT);
-    ipr_xml_tree_leaf (tree, "version", "1.0");
-    ipr_xml_tree_leaf (tree, "status", "ok");
-      ipr_xml_tree_open (tree, "pipe");
-        ipr_xml_tree_leaf (tree, "name", join->pipe->name);
-        ipr_xml_tree_leaf (tree, "uri", "%s%s/%s", response->root_uri, join->pipe->class, join->pipe->name);
-          ipr_xml_tree_open (tree, "join");
-            ipr_xml_tree_leaf (tree, "address", join->address);
-            ipr_xml_tree_leaf (tree, "feed", join->feed_name);
-            ipr_xml_tree_leaf (tree, "uri", "%s%s/%s/%s@%s/%s", 
+    tree = ipr_tree_new (RESTMS_XML_ROOT);
+    ipr_tree_leaf (tree, "version", "1.0");
+    ipr_tree_leaf (tree, "status", "ok");
+      ipr_tree_open (tree, "pipe");
+        ipr_tree_leaf (tree, "name", join->pipe->name);
+        ipr_tree_leaf (tree, "uri", "%s%s/%s", response->root_uri, join->pipe->class, join->pipe->name);
+          ipr_tree_open (tree, "join");
+            ipr_tree_leaf (tree, "address", join->address);
+            ipr_tree_leaf (tree, "feed", join->feed_name);
+            ipr_tree_leaf (tree, "uri", "%s%s/%s/%s@%s/%s", 
                 response->root_uri,
                 join->pipe->class,
                 join->pipe->name,
                 join->address,
                 join->feed_name,
                 join->feed_class);
-          ipr_xml_tree_shut (tree);
-      ipr_xml_tree_shut (tree);
-    http_response_set_from_xml (response, tree);
-    ipr_xml_tree_destroy (&tree);
+          ipr_tree_shut (tree);
+      ipr_tree_shut (tree);
+    http_response_set_from_tree (response, tree);
+    ipr_tree_destroy (&tree);
 }
 
 //  Name is provided explicitly to allow server-named pipes
