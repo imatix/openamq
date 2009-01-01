@@ -4,7 +4,7 @@ gdl
     product   = iCL
     author    = iMatix Corporation <info@imatix.com>
     date      = 2007/01/30
-    copyright = Copyright (c) 2004-2007 iMatix Corporation
+    copyright = Copyright (c) 2004-2009 iMatix Corporation
     version   = 1.0
 end gdl
 

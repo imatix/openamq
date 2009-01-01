@@ -4,7 +4,7 @@ gdl
     product   = Base/2
     author    = iMatix Corporation
     date      = 2007/03/12
-    copyright = Copyright (c) 2002-2007 iMatix Corporation
+    copyright = Copyright (c) 2002-2009 iMatix Corporation
     version   = 5.0
 end gdl
 

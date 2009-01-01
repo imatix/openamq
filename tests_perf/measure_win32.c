@@ -1,7 +1,7 @@
 //
 //  measure.c - Measures throughput and latency of OpenAMQ
 //
-//  Copyright (c) 1996-2007 iMatix Corporation
+//  Copyright (c) 1996-2009 iMatix Corporation
 //  All rights reserved.
 //  
 //  This file is licensed under the BSD license as follows:

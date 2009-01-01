@@ -4,7 +4,7 @@ gdl
     product   = Base/2
     author    = iMatix Corporation <tools@imatix.com>
     date      = 2007/03/12
-    copyright = Copyright (c) 2002-2007 iMatix Corporation
+    copyright = Copyright (c) 2002-2009 iMatix Corporation
     version   = 5.0
 end gdl
 
@@ -165,7 +165,7 @@ Here is the contents of the file smt_demo_trivial.smt:
      *
      *  smt_demo_trivial - A trivial demonstration of an SMT agent.
      *
-     *  Copyright (c) 1991-2005 iMatix Corporation
+     *  Copyright (c) 1991-2009 iMatix Corporation
      *  ------------------------------------------------------------------------->
     
     <agent name = "smt_demo_trivial" script = "smt_gen.gsl">
