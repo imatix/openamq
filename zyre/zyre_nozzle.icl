@@ -1,6 +1,6 @@
 <?xml?>
 <!--
-    Copyright (c) 1996-2007 iMatix Corporation
+    Copyright (c) 1996-2009 iMatix Corporation
 
     This file is licensed under the GPL as follows:
 

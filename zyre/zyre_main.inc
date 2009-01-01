@@ -8,7 +8,7 @@
     of this code from the main code is intended to ease the creation
     of customised main programs without duplication of this code.
 
-    Copyright (c) 1996-2008 iMatix Corporation
+    Copyright (c) 1996-2009 iMatix Corporation
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

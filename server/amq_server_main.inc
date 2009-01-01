@@ -2,7 +2,7 @@
  *
  *  Main set-up for amq_servers
  *
- *  Copyright (c) 2007-2008 iMatix Corporation
+ *  Copyright (c) 2007-2009 iMatix Corporation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by

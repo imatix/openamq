@@ -1,7 +1,7 @@
 /*
     Zyre - a RestMS server
 
-    Copyright (c) 1996-2006 iMatix Corporation
+    Copyright (c) 1996-2009 iMatix Corporation
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

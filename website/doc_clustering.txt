@@ -4,7 +4,7 @@ gdl
     product   = OpenAMQ
     author    = iMatix Corporation <openamq@imatix.com>
     date      = 2006/08/03
-    copyright = Copyright (c) 2006-2007 iMatix Corporation
+    copyright = Copyright (c) 2006-2009 iMatix Corporation
     version   = 2.1a0
 end gdl
 
@@ -19,7 +19,7 @@ This document is a technical whitepaper.
 Copyright and License
 =====================
 
-Copyright (c) 1996-2007 iMatix Corporation
+Copyright (c) 1996-2009 iMatix Corporation
 
 Licensed under the Creative Commons Attribution-Share Alike 2.5 License.
 

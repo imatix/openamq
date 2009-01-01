@@ -4,7 +4,7 @@ gdl
     product   = AMQ
     author    = Pieter Hintjens
     date      = 2006/02/07
-    copyright = Copyright (c) 2004-2007 iMatix Corporation
+    copyright = Copyright (c) 2004-2009 iMatix Corporation
     version   = 1.0a2
 end gdl
 
@@ -19,7 +19,7 @@ This document is a design white paper.
 Copyright and License
 =====================
 
-Copyright (c) 1996-2007 iMatix Corporation
+Copyright (c) 1996-2009 iMatix Corporation
 
 Licensed under the Creative Commons Attribution-Share Alike 2.5 License.
 
