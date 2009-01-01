@@ -173,7 +173,7 @@ This class implements the RestMS nozzle object.
     ipr_bucket_unlink (&bucket);
 
     //  Send our response back to the HTTP thread via the portal
-    http_portal_response_reply (self->response->portal, self->response);
+    http_uri_portal_response_reply (self->response->portal, self->response);
     self->waiting = FALSE;
 </method>
 

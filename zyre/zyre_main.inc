@@ -38,7 +38,8 @@ static Bool
     s_opt_showinfo = FALSE;             //  -i means show information
 static char
     *s_opt_workdir = NULL,              //  -w specifies working directory
-    *s_opt_config = NULL;               //  -s specifies configuration file
+    *s_opt_config = NULL,               //  -s specifies configuration file
+    *s_opt_snapshot = NULL;             //  -S specifies snapshot filename
 static int
     s_argc;
 static char
@@ -61,7 +62,8 @@ static char
     "General options:\n"                                                     \
     "  -w directory     Working directory for server (current)\n"            \
     "  -s filename      Load custom settings from file (zyre.cfg)\n"         \
-    "  -X comment       Comment\n"                                           \
+    "  -S filename      Snapshot server settings to file\n"                  \
+    "  -X comment       Comment, has no effect\n"                            \
     "  -q               Quiet mode: no messages (no)\n"                      \
     "  -b               Run as background server process (no)\n"             \
     "  -f               Run as foreground console process (yes)\n"           \
@@ -116,6 +118,9 @@ s_zyre_initialise (int argc, char *argv [])
                     break;
                 case 's':
                     argparm = &s_opt_config;
+                    break;
+                case 'S':
+                    argparm = &s_opt_snapshot;
                     break;
                 case 'X':
                     argparm = &comment;
@@ -212,7 +217,15 @@ s_zyre_initialise (int argc, char *argv [])
     smt_set_polling_threads (zyre_config_polling_threads (zyre_config));
     smt_set_working_threads (zyre_config_working_threads (zyre_config));
     smt_set_action_limit    (zyre_config_kernel_limit    (zyre_config));
-
+    
+    if (s_opt_snapshot) {
+        if (streq (s_opt_snapshot, s_opt_config))
+            icl_console_print ("E: unwise snapshot to '%s' prevented", s_opt_snapshot);
+        else {
+            zyre_config_commit (zyre_config, s_opt_snapshot);
+            icl_console_print ("I: saved configuration snapshot to '%s'", s_opt_snapshot);
+        }
+    }
     //  Move into the background if so desired
     if (s_opt_bkground) {
         char
@@ -246,21 +259,21 @@ s_zyre_initialise (int argc, char *argv [])
 static void
 s_zyre_execute (void)
 {
-    http_portal_t
+    http_uri_portal_t
         *portal;
 
-    //  Register standard plugins in path resolution order
+    //  Register URI handlers in path resolution order
     //  The http_server is the portal client
     //
-    portal = zyre_restms_http_portal_new (NULL, "/restms");
-    http_server_http_portal_bind (http_server, portal);
-    http_portal_request_announce (portal, "/restms");
-    http_portal_unlink (&portal);
+    portal = zyre_restms_http_uri_portal_new (NULL, "/restms");
+    http_server_http_uri_portal_bind (http_server, portal);
+    http_uri_portal_request_announce (portal, "/restms", http_server->alert_log, http_server->debug_log);
+    http_uri_portal_unlink (&portal);
 
-    portal = http_file_http_portal_new (NULL, "/");
-    http_server_http_portal_bind (http_server, portal);
-    http_portal_request_announce (portal, "/");
-    http_portal_unlink (&portal);
+    portal = http_file_http_uri_portal_new (NULL, "/");
+    http_server_http_uri_portal_bind (http_server, portal);
+    http_uri_portal_request_announce (portal, "/", http_server->alert_log, http_server->debug_log);
+    http_uri_portal_unlink (&portal);
 
     //  Run SMT until finished
     smt_wait (0);

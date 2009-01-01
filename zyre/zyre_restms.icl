@@ -43,7 +43,7 @@
     RESTMS_URI_MESSAGE          -       Y       Y       -
 </doc>
 
-<inherit class = "http_portal_back" />
+<inherit class = "http_uri_portal_back" />
 
 <import class = "wireapi" />
 <import class = "zyre_classes" />
@@ -53,6 +53,9 @@
 </public>
 
 <context>
+    smt_log_t
+        *alert_log,                     //  Log thread for warnings & info
+        *debug_log;                     //  Log thread for debugging output
     zyre_uri_t
         *uri;                           //  Parsed URI
     zyre_peering_t
@@ -110,16 +113,22 @@
 </method>
 
 <method name = "destroy">
+    <action>
     ipr_looseref_list_destroy (&self->joins);
     zyre_pipe_table_destroy (&self->pipe_table);
     zyre_feed_table_destroy (&self->feed_table);
     zyre_peering_destroy (&self->peering);
     zyre_uri_destroy (&self->uri);
+    smt_log_unlink (&self->alert_log);
+    smt_log_unlink (&self->debug_log);
+    </action>
 </method>
 
 <method name = "announce">
-    icl_console_print ("I: initializing AMQP plugin on '%s'", path);
-    icl_console_print ("I: connecting to AMQP server at %s",
+    self->alert_log = smt_log_link (alert_log);
+    self->debug_log = smt_log_link (debug_log);
+    smt_log_print (self->alert_log, "I: initializing AMQP plugin on '%s'", path);
+    smt_log_print (self->alert_log, "I: connecting to AMQP server at %s",
         zyre_config_amqp_hostname (zyre_config));
 </method>
 
@@ -156,7 +165,7 @@
                 "GET method not allowed on this resource");
     }
     if (reply)
-        http_portal_response_reply (portal, response);
+        http_uri_portal_response_reply (portal, response);
     </action>
 </method>
 
@@ -179,7 +188,7 @@
             http_response_set_error (response, HTTP_REPLY_BADREQUEST,
                 "PUT method not allowed on this resource");
     }
-    http_portal_response_reply (portal, response);
+    http_uri_portal_response_reply (portal, response);
     </action>
 </method>
 
@@ -202,7 +211,7 @@
             http_response_set_error (response, HTTP_REPLY_BADREQUEST,
                 "DELETE method not allowed on this resource");
     }
-    http_portal_response_reply (portal, response);
+    http_uri_portal_response_reply (portal, response);
     </action>
 </method>
 
@@ -216,7 +225,7 @@
             http_response_set_error (response, HTTP_REPLY_BADREQUEST,
                 "POST method not allowed on this resource");
     }
-    http_portal_response_reply (portal, response);
+    http_uri_portal_response_reply (portal, response);
     </action>
 </method>
 
@@ -224,7 +233,7 @@
     <action>
     http_response_set_error (response, HTTP_REPLY_BADREQUEST,
         "HEAD method not allowed on this resource");
-    http_portal_response_reply (portal, response);
+    http_uri_portal_response_reply (portal, response);
     </action>
 </method>
 
@@ -232,7 +241,7 @@
     <action>
     http_response_set_error (response, HTTP_REPLY_BADREQUEST,
             "MOVE method not allowed on this resource");
-    http_portal_response_reply (portal, response);
+    http_uri_portal_response_reply (portal, response);
     </action>
 </method>
 
@@ -240,7 +249,7 @@
     <action>
     http_response_set_error (response, HTTP_REPLY_BADREQUEST,
         "COPY method not allowed on this resource");
-    http_portal_response_reply (portal, response);
+    http_uri_portal_response_reply (portal, response);
     </action>
 </method>
 
@@ -836,7 +845,7 @@
             zyre_pipe_unlink (&pipe);
         }
         else
-            icl_console_print ("W: undeliverable message ('%s')", consumer_tag);
+            smt_log_print (self->alert_log, "W: undeliverable message ('%s')", consumer_tag);
     }
     </action>
 </method>
