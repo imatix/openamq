@@ -37,6 +37,7 @@ static char
     *s_opt_port = NULL,                 //  -p specifies server port
     *s_opt_workdir = NULL,              //  -w specifies working directory
     *s_opt_config = NULL,               //  -s specifies configuration file
+    *s_opt_snapshot = NULL,             //  -S specifies snapshot filename
     *s_opt_trace = NULL,                //  -t defines trace level
     *s_opt_monitor = NULL;              //  -m means monitor server
 static int
@@ -56,6 +57,7 @@ static char
     "General options:\n"                                                     \
     "  -w directory     Working directory for server (current)\n"            \
     "  -s filename      Load custom settings from file (amq_server.cfg)\n"   \
+    "  -S filename      Snapshot server settings to file\n"                  \
     "  -X comment       Comment, has no effect\n"                            \
     "  -q               Quiet mode: no messages (no)\n"                      \
     "  -b               Run as background server process (no)\n"             \
@@ -118,6 +120,9 @@ s_start (int argc, char *argv [])
                     break;
                 case 's':
                     argparm = &s_opt_config;
+                    break;
+                case 'S':
+                    argparm = &s_opt_snapshot;
                     break;
                 case 't':
                     icl_console_print ("W: deprecated argument, suggest you use '--trace'");
@@ -208,7 +213,14 @@ s_start (int argc, char *argv [])
         s_opt_config = "amq_server.cfg";
     amq_server_config = amq_server_config_new ("amq_server_base.cfg", s_opt_config, TRUE);
     amq_server_config_cmdline_parse (amq_server_config, SERVER_NAME, s_argc, s_argv);
-
+    if (s_opt_snapshot) {
+        if (streq (s_opt_snapshot, s_opt_config))
+            icl_console_print ("E: unwise snapshot to '%s' prevented", s_opt_snapshot);
+        else {
+            amq_server_config_commit (amq_server_config, s_opt_snapshot);
+            icl_console_print ("I: saved configuration snapshot to '%s'", s_opt_snapshot);
+        }
+    }
     //  Check that server security is reasonably defined
     config = ipr_config_dup (amq_server_config->config);
     ipr_config_locate (config, "/config/security", "plain");
