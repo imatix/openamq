@@ -216,7 +216,6 @@ s_zyre_initialise (int argc, char *argv [])
     //  Set system options from HTTP server configuration
     smt_set_polling_threads (zyre_config_polling_threads (zyre_config));
     smt_set_working_threads (zyre_config_working_threads (zyre_config));
-    smt_set_action_limit    (zyre_config_kernel_limit    (zyre_config));
     
     if (s_opt_snapshot) {
         if (streq (s_opt_snapshot, s_opt_config))
