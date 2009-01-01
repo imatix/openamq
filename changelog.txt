@@ -38,8 +38,6 @@ TODO
     - show connection direct status via amq_shell
     - show last exchange as well as type on amq_shell queue page
     - put debian packaging into release package
-    - remove unused IPR classes
-        - only dm class, finally
     - reorganize openamq archive to be clean
     - merge amq_queue_basic & amq_queue_base into amq_queue
     - make web-based amq_shell tool using http server
@@ -98,11 +96,21 @@ TODO
     - redesign queue->consumer->channel using portals
     - also for exchange->binding->queue?
 
+2009-01-01
+
+* added: -S command line option to snapshot config data (1.3, 1.4)
+* fixed: copyright statements in all code updated to 2009 (1.2, 1.3, 1.4)
+
 2008-12-30
 
 * changed: removed all C++ generation from base2 frameworks (1.4)
 * added: console interface now shows bindings per exchange (1.3, 1.4) (http://www.openamq.org/issue:10)
 * added: ipr_config class now reports config files loaded (1.3, 1.4) (http://www.openamq.org/issue:34)
+* added: http: access logging in NSCA and Apache formats
+
+2008-12-29
+
+* added: http: policy based security module
 
 2008-12-27
 
