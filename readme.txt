@@ -1,6 +1,6 @@
 OpenAMQ
 
-Copyright (c) 2007-2008 iMatix Corporation
+Copyright (c) 2007-2009 iMatix Corporation
 
 This is the OpenAMQ source distribution, and consists of the following
 subdirectories:

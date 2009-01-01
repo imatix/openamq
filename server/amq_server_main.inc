@@ -2,7 +2,7 @@
  *
  *  Main set-up for amq_servers
  *
- *  Copyright (c) 2007-2008 iMatix Corporation
+ *  Copyright (c) 2007-2009 iMatix Corporation
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -218,7 +218,7 @@ s_start (int argc, char *argv [])
             icl_console_print ("E: unwise snapshot to '%s' prevented", s_opt_snapshot);
         else {
             amq_server_config_commit (amq_server_config, s_opt_snapshot);
-            icl_console_print ("I: configuration snapshot saved to '%s'", s_opt_snapshot);
+            icl_console_print ("I: saved configuration snapshot to '%s'", s_opt_snapshot);
         }
     }
     //  Check that server security is reasonably defined
