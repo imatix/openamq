@@ -980,7 +980,6 @@ s_top_children ($\(selftype) *self, char *command, FILE *xml_data)
 .for class where repeat ?= 1
     else if (strcmp (childname, "$(name)") == 0) {
         if (0) {}
-.echo class.source + ".icl"
 .   childdef = xml.load_file (class.source + ".icl") ? abort_xml_error ()
 .   for childdef->data->class.field where defined (type) & type = "int"
         else if (strcmp (criterion, "$(field.name)") == 0) {

@@ -37,12 +37,8 @@
 <file name = "zyre_config.opf"      class = "gsl data"          >Configuration schema</file>
 <file name = "zyre_config.icl"      class = "icl private class" generated = "1"
                                                                 >Configuration class</file>
-<file name = "zyre_restms.icl"      class = "icl private class" >HTTP RestMS plugin</file>
-<file name = "zyre_restms_agent.smt" class = "smt public module" generated = "1"
-                                                                >HTTP plugin agent</file>
-<file name = "zyre_peering.icl"     class = "icl private class" >Smart link to AMQP server</file>
-<file name = "zyre_peering_agent.smt" class = "smt public module" generated = "1"
-                                                                >Server peering agent</file>
+<file name = "zyre_restms.icl"      class = "async private"     >HTTP RestMS plugin</file>
+<file name = "zyre_peering.icl"     class = "async private"     >Smart link to AMQP server</file>
 <file name = "zyre_uri.icl"         class = "icl private class" >URI parsing</file>
 <file name = "zyre_base.cfg"        class = "public resource"   >Zyre base config file</file>
 <file name = "zyre_test.pl"         class = "private resource"  >Zyre test scenarios</file>
@@ -53,7 +49,7 @@
 <file name = "zyre_peer_config.opf" class = "gsl data"          >Peering config syntax</file>
 <file name = "zyre_peer_config.icl" class = "icl private cont"  >Peering config class</file>
 <file name = "zyre_peer_config.txt" class = "generated resource">Peering config docs</file>
-<file name = "zyre_peer_agent.smt"  class = "smt public module" generated = "1"
+<file name = "zyre_peer_agent.smt"  class = "smt private module" generated = "1"
                                                                 >Peering client agent</file>
 
 <file name = "zyre_join.icl"        class = "icl public class"  >Zyre join class</file>
