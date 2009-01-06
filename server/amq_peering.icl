@@ -752,7 +752,7 @@ s_test_content_handler (
     test_flag = getenv ("AMQ_PEERING_TEST");
     if (test_flag && *test_flag == '1') {
         icl_console_mode (ICL_CONSOLE_DATE, TRUE);
-        amq_server_config = amq_server_config_new ("amq_server_base.cfg", NULL, FALSE);
+        amq_server_config = amq_server_config_new ();
 
         //  Move to some unused port so we can talk to another server
         //  on the real AMQP port (5672)
