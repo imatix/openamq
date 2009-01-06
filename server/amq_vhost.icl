@@ -59,7 +59,7 @@ Defines a virtual host. This is a lock-free asynchronous class.
     smt_log_print (amq_broker->daily_log, "I: starting virtual host '%s'", self->name);
 
     self->broker = broker;
-    self->config = amq_vhost_config_new (NULL, NULL, FALSE);
+    self->config = amq_vhost_config_new ();
 
     self->exchange_table = amq_exchange_table_new ();
     self->exchange_list  = amq_exchange_by_vhost_new ();
