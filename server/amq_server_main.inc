@@ -36,7 +36,7 @@ static Bool
 static char
     *s_opt_port = NULL,                 //  -p specifies server port
     *s_opt_workdir = NULL,              //  -w specifies working directory
-    *s_opt_config = NULL,               //  -s specifies configuration file
+    *s_opt_config = "amq_server.cfg",   //  -s specifies configuration file
     *s_opt_snapshot = NULL,             //  -S specifies snapshot filename
     *s_opt_trace = NULL,                //  -t defines trace level
     *s_opt_monitor = NULL;              //  -m means monitor server
@@ -52,7 +52,7 @@ static char
 
 #define USAGE                                                                \
     "Syntax: %s [options...]\n"                                              \
-    "   Starts the OpenAMQ server\n"                                         \
+    "   Starts the " SERVER_NAME "/" VERSION " server\n"                     \
     "\n"                                                                     \
     "General options:\n"                                                     \
     "  -w directory     Working directory for server (current)\n"            \
@@ -66,7 +66,7 @@ static char
     "  -v               Show version information\n"                          \
     "  -h               Show summary of command-line options\n"              \
     "  --help           Show detailed configuration help\n"                  \
-    "\n"                                                                     
+    "\n"
 
 //  Parse arguments, return 0 if OK, 1 if error
 
@@ -76,9 +76,9 @@ s_start (int argc, char *argv [])
     Bool
         arg_error = FALSE;
     int
-        argn;                           //  Argument number                  
+        argn;                           //  Argument number
     char
-        *myname,                        //  Executable's name                
+        *myname,                        //  Executable's name
         *comment,                       //  We ignore this argument
         **argparm;                      //  Argument parameter to pick-up
     ipr_config_t
@@ -87,7 +87,7 @@ s_start (int argc, char *argv [])
     //  Save argument line for later use
     s_argc = argc;
     s_argv = argv;
-    
+
     icl_system_initialise (argc, argv);
     icl_console_mode (ICL_CONSOLE_DATE, TRUE);
     myname  = argv [0];
@@ -155,7 +155,7 @@ s_start (int argc, char *argv [])
                     printf (COPYRIGHT "\n");
                     printf (NOWARRANTY);
                     printf ("Build model:" BUILDMODEL "\n");
-                    printf ("Memory model: %s\n", 
+                    printf ("Memory model: %s\n",
                         icl_mem_allocator == ICL_MEM_THIN?   "thin":
                         icl_mem_allocator == ICL_MEM_FAT?    "fat":
                         icl_mem_allocator == ICL_MEM_DIRECT? "direct": "unknown");
@@ -171,7 +171,7 @@ s_start (int argc, char *argv [])
                     printf (BUILDMODEL "\n\n");
                     printf (COPYRIGHT "\n");
                     printf (NOWARRANTY);
-                    printf (USAGE, SERVER_NAME);
+                    printf (USAGE, argv [0]);
                     amq_server_config_cmdline_help ();
                     exit (EXIT_SUCCESS);
 
@@ -198,7 +198,7 @@ s_start (int argc, char *argv [])
     if (s_opt_silent)
         icl_console_mode (ICL_CONSOLE_QUIET, TRUE);
     else {
-        printf (SERVER_NAME "/" VERSION "\n");
+        printf (SERVER_NAME "/" VERSION " -- for bugs and updates, go to www.openamq.com\n");
         printf (BUILDMODEL "\n\n");
         printf (COPYRIGHT "\n");
         printf (NOWARRANTY);
@@ -208,11 +208,18 @@ s_start (int argc, char *argv [])
         icl_console_print ("E: can't work in '%s' - %s", s_opt_workdir, strerror (errno));
         exit (EXIT_FAILURE);
     }
+    ipr_bucket_t
+        *bucket;
+
     //  Load configuration data, if any, into the config_table
-    if (!s_opt_config)
-        s_opt_config = "amq_server.cfg";
-    amq_server_config = amq_server_config_new ("amq_server_base.cfg", s_opt_config, TRUE);
+    amq_server_config = amq_server_config_new ();
+    bucket = amq_server_resource_get ("amq_server_base.cfg");
+    amq_server_config_load_bucket   (amq_server_config, bucket);
+    ipr_bucket_destroy (&bucket);
+    amq_server_config_load_xmlfile  (amq_server_config, s_opt_config, TRUE);
     amq_server_config_cmdline_parse (amq_server_config, SERVER_NAME, s_argc, s_argv);
+
+    //  Snapshot configuration into debug file, if wanted
     if (s_opt_snapshot) {
         if (streq (s_opt_snapshot, s_opt_config))
             icl_console_print ("E: unwise snapshot to '%s' prevented", s_opt_snapshot);

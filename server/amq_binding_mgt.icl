@@ -65,15 +65,8 @@ This class shows one binding.
     <argument name = "exchange" type = "amq_exchange_t *">Parent exchange</argument>
     <argument name = "binding" type = "amq_binding_t *">Parent binding</argument>
     //
-    self->exchange = amq_exchange_link (exchange);
-    self->binding = amq_binding_link (binding);
-</method>
-
-<method name = "destroy">
-    <action>
-    amq_exchange_unlink (&self->exchange);
-    amq_binding_unlink (&self->binding);
-    </action>
+    self->exchange = exchange;
+    self->binding = binding;
 </method>
 
 <method name = "selftest" />
