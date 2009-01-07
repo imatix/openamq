@@ -113,7 +113,7 @@ strings.
     <doc>
     Parses the URI into its components, and returns the URI type, if it
     could be parsed.
-    root        /
+    root        empty or /
     feeds       /{feed-class}
     feed        /{feed-class}/{feed-name}
     pipes       /{pipe-class}
@@ -141,7 +141,7 @@ strings.
     strclr (self->address);
     strclr (self->nozzle);
 
-    if (streq (self->uri, "/"))
+    if (streq (self->uri, "") || streq (self->uri, "/"))
         rc = RESTMS_URI_ROOT;
 
     if (rc == RESTMS_URI_INVALID) {
@@ -273,6 +273,7 @@ strings.
 
     uri = zyre_uri_new (NULL);
 
+    assert (RESTMS_URI_ROOT    == zyre_uri_set (uri, ""));
     assert (RESTMS_URI_ROOT    == zyre_uri_set (uri, "/"));
     assert (RESTMS_URI_FEEDS   == zyre_uri_set (uri, "/direct"));
     assert (RESTMS_URI_FEED    == zyre_uri_set (uri, "/direct/amq.direct"));
@@ -286,7 +287,6 @@ strings.
     assert (RESTMS_URI_MESSAGE == zyre_uri_set (uri, "/pipe/my.pipe.0001/"));
 
     //  Invalid URIs
-    assert (RESTMS_URI_INVALID == zyre_uri_set (uri, ""));
     assert (RESTMS_URI_INVALID == zyre_uri_set (uri, "//"));
     assert (RESTMS_URI_INVALID == zyre_uri_set (uri, "/direcx"));
     assert (RESTMS_URI_INVALID == zyre_uri_set (uri, "/direct/"));

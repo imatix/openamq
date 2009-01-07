@@ -27,8 +27,10 @@ if ($loopback) {
 
 #   --------------------------------------------------------------------------
 #   Get root map as XML
+restms ("GET", "", $REPLY_OK);
 restms ("GET", "/", $REPLY_OK);
 #   Get root map as JSON
+restms ("GET", "", $REPLY_OK, "application/json");
 restms ("GET", "/", $REPLY_OK, "application/json");
 
 #   --------------------------------------------------------------------------
@@ -138,6 +140,8 @@ restms ("GET", "/topic/market1", $REPLY_OK);
 restms ("GET", "/topic/market2", $REPLY_OK);
 
 #   Error scenarios
+#   - POST without a content body
+restms ("POST", "/usd\@market1", $REPLY_BADREQUEST);
 #   - feed class preconditions for POST
 restms_post ("/usd\@market1/direct", "Test message 3", $REPLY_PRECONDITION);
 #   - feed not existing for POST and no feed class specified
@@ -293,7 +297,7 @@ sub restms_post_file {
     my $uri = "http://$hostname/restms$URL";
     carp ("------------------------------------------------------------");
     carp ("Test: POST $uri");
-    $response = $ua->request (POST $uri, 
+    $response = $ua->request (POST $uri,
         Content_Type => 'form-data',
         Content => [
             submit => 1,

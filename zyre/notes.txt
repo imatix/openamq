@@ -1,3 +1,8 @@
+- restms.digistan.org microsite
+-> restms.org template
+-> restms@digistan.org email list
+-> examples, wiki, implementations
+
 
 define pipe that sends messages back to feed
     - allows proxy selection, macroisation

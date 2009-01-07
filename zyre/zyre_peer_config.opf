@@ -21,7 +21,7 @@
     comment = "Peer client configuration properties"
     script  = "opf_gen"
     root    = "config"
-    config  = "zyre_peer.cfg"
+    config  = "zyre.cfg"
     >
 
 <public>

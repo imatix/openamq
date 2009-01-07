@@ -597,9 +597,10 @@ typedef int (zyre_peering_return_fn) (
 <!-- ********  The following methods are for internal use only  ******** -->
 
 <method name = "initialise">
-    //  Load peering configuration data from zyre.cfg if present
+    //  Shadow the main config, generated peer agent uses 'zyre_peer_config'
     //  Then start asynchronous client connection (zyre_peer_agent)
-    zyre_peer_config = zyre_peer_config_new ("zyre_base.cfg", "zyre.cfg", FALSE);
+    zyre_peer_config = zyre_peer_config_new ();
+    zyre_peer_config_shadow (zyre_peer_config, zyre_config->config);
     zyre_peer_agent_init ();
 </method>
 
@@ -848,8 +849,10 @@ s_test_content_handler (
         icl_console_mode (ICL_CONSOLE_DATE, TRUE);
 
         //  These objects are needed for our test framework
-        zyre_config = zyre_config_new ("zyre_base.cfg", NULL, FALSE);
-        http_config = http_config_new ("http_base.cfg", NULL, FALSE);
+        zyre_config = zyre_config_new ();
+        zyre_config_load (zyre_config, "zyre_base.cfg", FALSE);
+        http_config = http_config_new ();
+        http_config_load (http_config, "http_base.cfg", FALSE);
         http_config_set_port (http_config, "8080");
         http_server = http_server_new ();
 

@@ -1,7 +1,54 @@
+On Sun, Jan 4, 2009 at 7:35 AM, Steve Vinoski <vinoski@ieee.org>:
+
+Here are my comments, as promised. I hope they're helpful.
+
+* In the Goals section, it says, "...RESTful messaging service as a set of clean, idempotent URL methods..." First, I'm not sure what a "URL method" is, and second, not all interactions are idempotent. I would change this to "...RESTful messaging service as a set of resources clearly identified with URIs, each supporting the appropriate HTTP methods..." or something along those lines.
+
+* In the Introduction section, the example shows the creation of a several resources via PUT resulting in a 200 OK. There are several issues here. First, the response code for resource creation is typically 201, which means Created. Second, using PUT for creation, while valid, is somewhat unusual because it makes clients responsible for minting URIs for the server's resources. Most servers prefer to control their own URIs by steering clients toward resource creation via POST.
+
+* Have you considered how Atom and the Atom Publishing Protocol might fit here?
+
+* Under MIME types, in item 1 of the list it says that responses are "structured data." Doesn't the MIME type really depend on the application? This could be an area where Atom could help, BTW.
+
+* Under MIME types, you describe how the server checks the Accept header. This is actually quite a complicated area; you might want to look at the mimeparse module up at code.google.com (<http://code.google.com/p/mimeparse/>) to see the complications. Keep in mind that the Accept headers that browsers send are so complex as to be almost useless, and also that clients are not required to send an Accept header at all.
+
+* Your proposed XML format should probably use namespaces, and you might want to consider creating a specific MIME type for it and submitting it for registration with the IANA. The main problem with XML as far as RESTful services go is that saying something is application/xml isn't nearly enough to allow a client to determine what form of XML it really is; with a specific MIME type, this problem is eliminated. Also, here again you might want to look at Atom, given that it at least has application/atom+xml which is still not entirely specific but is certainly less general than application/xml.
+
+* Why are responses never cached? That might hint that there are problems in other areas of the proposal.
+
+* In your descriptions of your resources, you need not repeatedly specify that GET is idempotent and has no side-effects, that PUT and DELETE are idempotent, etc.
+
+* Under Feeds, the XML you're proposing to return from PUT has issues. First, it seems to specify status in the XML, but status really goes in the HTTP headers. Likewise, the URI there doesn't make sense, since the client had to already know that URI in order to do the PUT in the first place. I think you might want to consider using a POST to create a feed class. If /restms can be thought of as a collection of feed classes, then POSTing to /restms would add a new feed class to the collection, returning 201 with the URI of the feed specified in the Location header, and perhaps in the body of the response as well. Likewise, perhaps each feed class can be thought of as a collection of feeds, where you POST to a feed class instance to add a new feed to it. Again, I recommend looking at Atom and AtomPub, as it could fit very well here.
+
+* Under Pipes, a potential issue is that we have pipe classes also directly under /restms. How can you tell them apart from feed classes? Might it be better to have /restms/feeds and /restms/pipes, with each being a collection resource for its respective classes?
+
+* The Address URI is a little suspect. Logically it would seem better to have /restms/{feed class}/{feed name}/{address-string}.
+
+* Not to sound like a broken record, but you might look at AtomPub to see what it does as far as posting messages goes. Even if you don't use AtomPub itself, I think you'll at least find some good ideas to borrow from there.
+
+* The Join URI seems suspect too. Given the form of these proposed URIs, it seems that you're relying quite a bit on the client to assemble them, which isn't strictly illegal but it does represent yet another area of coupling between client and server. It might be better to consider how to let the server control the URIs and how to use "hypermedia as the engine of application state" to allow the client to discover and use the appropriate URIs.
+
+* Under Nozzles, the fact that GET will wait for messages to show up on the pipe is reminiscent of COMET, which is how people fake notification-style RESTful web services with GET -- you might want to check it out.
+
+* Under Nozzles, the fact that the client is building URIs by specifying the numeric message ID is one way to do it, but it's again adding coupling and taking some control from the server. It might be better to have each message return both its content along with a URI for the next message.
+
+* How can you enforce that nozzles shouldn't be shared across apps? One way is to have the server construct their URIs. Not foolproof, but it helps to sort of make the URIs private.
+
+* Under Pipe Semantics, your note about 400 Bad Request hints again at the problems associated with having clients construct URIs rather than being driven by the server.
+
+* Under HTTP Headers, I'd strongly advise that you avoid custom headers, even if they're optional. Having them adds another point of coupling and automatically eliminates any client that doesn't grok those headers from being a participant. If you insist on having them, you should precede their names with "X-" to make it clear they're non-standard.
+
+So all in all, I would take a serious look at the URIs and the amount the client understands about how to construct them, and so consider POST rather than PUT for resource creation, and also look to Atom and AtomPub for inspiration and possibly significant reuse of concepts and approaches.
+
+------------
+
+
+
 This document describes RestMS, a RESTful Messaging Service that exposes AMQP networks via a pure HTTP interface.  RestMS is designed to interoperate with AMQP/0.9.1 and future versions of AMQP.
 
 * Name: 7-RESTMS@wiki.amqp.org
 * Editor: Pieter Hintjens <ph@imatix.com>
+* Contributors: Steve Vinoski <vinoski@ieee.org>
 * Resources: http://www.restms.org.
 
 ++ License
@@ -53,7 +100,7 @@ $ua->credentials ($hostname, "RestMS", "guest", "guest");
 my $response = $ua->request (PUT "$base/pipe/world/hello\@ping/fanout");
 $response->code == 200 || die;
 
-my $response = $ua->request (POST "$base/hello\@ping", 
+my $response = $ua->request (POST "$base/hello\@ping",
     Content => "Hello World!\n");
 $response->code == 200 || die;
 
@@ -181,7 +228,7 @@ Content returned by a RestMS implementation is never cached.  That is, the respo
 
 ++ Topology
 
-RestMS is based on a hypermedia dialog between a client application and a server.  In other words, applications use URIs to work with resources, and RestMS responses contain URIs to further resources when appropriate.  
+RestMS is based on a hypermedia dialog between a client application and a server.  In other words, applications use URIs to work with resources, and RestMS responses contain URIs to further resources when appropriate.
 
 The root resource is called the "topology".  Applications get a map of the implementation by querying this topology.  The URI for the topology is "/restms" with no further path information:
 

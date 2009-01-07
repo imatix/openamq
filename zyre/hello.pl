@@ -15,7 +15,7 @@ $ua->credentials ($hostname, "RestMS", "guest", "guest");
 my $response = $ua->request (PUT "$base/pipe/world/hello\@ping/fanout");
 $response->code == 200 || die;
 
-my $response = $ua->request (POST "$base/hello\@ping", 
+my $response = $ua->request (POST "$base/hello\@ping",
     Content => "Hello World!\n");
 $response->code == 200 || die;
 

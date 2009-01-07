@@ -43,8 +43,8 @@ This class implements the RestMS nozzle object.
         name;                           //  Nozzle name
     amq_content_basic_list_t
         *contents;                      //  Messages for pipe
-    http_response_t
-        *response;                      //  Response waiting for message
+    http_driver_context_t
+        *context;                       //  Context waiting for message
     Bool
         waiting;                        //  Waiting for a message from pipe?
 </context>
@@ -74,7 +74,7 @@ This class implements the RestMS nozzle object.
         amq_content_basic_unlink (&content);
         content = amq_content_basic_list_pop (self->contents);
     }
-    http_response_unlink (&self->response);
+    http_driver_context_unlink (&self->context);
     amq_content_basic_list_destroy (&self->contents);
 </method>
 
@@ -114,7 +114,7 @@ This class implements the RestMS nozzle object.
     Gets the message, specified by index, from the nozzle or pipe if
     possible, else waits for a message from the pipe.
     </doc>
-    <argument name = "response" type = "http_response_t *">Client response</argument>
+    <argument name = "context" type = "http_driver_context_t *">Client context</argument>
     <argument name = "index" type = "size_t">Message index</argument>
     <local>
     amq_content_basic_t
@@ -125,8 +125,8 @@ This class implements the RestMS nozzle object.
     //
     //  We allow one response per nozzle; if multiple apps use the same
     //  nozzle the results are undefined and unpredictable.
-    http_response_unlink (&self->response);
-    self->response = http_response_link (response);
+    http_driver_context_unlink (&self->context);
+    self->context = http_driver_context_link (context);
 
     //  Look for message according to index
     //  Optimise for common case where index is greater than list size
@@ -154,7 +154,8 @@ This class implements the RestMS nozzle object.
 
 <method name = "dispatch" template = "function">
     <doc>
-    Sends a specified message to the current response.
+    Sends a specified message to the current context.  After a dispatch
+    the context is unlinked.
     </doc>
     <argument name = "content" type = "amq_content_basic_t *">Content</argument>
     <local>
@@ -164,16 +165,17 @@ This class implements the RestMS nozzle object.
         *bucket;
     </local>
     //
-    assert (self->response);
+    assert (self->context);
 
     amq_content_basic_set_reader (content, &reader, IPR_BUCKET_MAX_SIZE);
     bucket = amq_content_basic_replay_body (content, &reader);
     assert (bucket);
-    http_response_set_dynamic (self->response, bucket, "application/octet-stream");
+    http_response_set_dynamic (self->context->response, bucket, "application/octet-stream");
     ipr_bucket_unlink (&bucket);
 
     //  Send our response back to the HTTP thread via the portal
-    http_uri_portal_response_reply (self->response->portal, self->response);
+    http_driver_context_reply (self->context);
+    http_driver_context_unlink (&self->context);
     self->waiting = FALSE;
 </method>
 

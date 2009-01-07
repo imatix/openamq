@@ -59,7 +59,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "hostname" type = "char *" default = "localhost">
+    <property name = "hostname" type = "char *" default = "localhost:5672">
     AMQP server to connect to
     <doc>
     Specifies the hostname and optionally port number to connect to.

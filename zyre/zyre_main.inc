@@ -30,6 +30,7 @@
 #include "http.h"
 #include "zyre_restms.h"
 #include "zyre_config.h"
+#include "zyre_resource.h"
 #include "version.h"
 
 static Bool
@@ -38,7 +39,7 @@ static Bool
     s_opt_showinfo = FALSE;             //  -i means show information
 static char
     *s_opt_workdir = NULL,              //  -w specifies working directory
-    *s_opt_config = NULL,               //  -s specifies configuration file
+    *s_opt_config = "zyre.cfg",         //  -s specifies configuration file
     *s_opt_snapshot = NULL;             //  -S specifies snapshot filename
 static int
     s_argc;
@@ -51,13 +52,12 @@ static char
     "\n"
 
 #define USAGE                                                                \
-    "Zyre is an implementation of the RestMS protocol for RESTful business\n"\
-    "messaging over plain HTTP.  Zyre speaks HTTP to Web client apps on\n"   \
-    "one side, and AMQP to an OpenAMQ broker at the other.  For help on\n"   \
-    "using Zyre, see www.openamq.org\n"                                      \
+    "Zyre is an implementation of the 7-RestMS@wiki.amqp.org protocol for\n" \
+    "RESTful business messaging over plain HTTP.  Zyre speaks to HTTP apps\n" \
+    "at one edge, and to an AMQP broker like OpenAMQ at the other.\n"\
     "\n"                                                                     \
     "Syntax: %s [options...]\n"                                              \
-    "   Starts the Zyre server\n"                                            \
+    "   Starts the " SERVER_NAME "/" VERSION " server\n"                     \
     "\n"                                                                     \
     "General options:\n"                                                     \
     "  -w directory     Working directory for server (current)\n"            \
@@ -85,6 +85,8 @@ s_zyre_initialise (int argc, char *argv [])
         *myname,                        //  Executable's name
         *comment,                       //  We ignore this argument
         **argparm;                      //  Argument parameter to pick-up
+    ipr_bucket_t
+        *bucket;
 
     //  Save argument line for later use
     s_argc = argc;
@@ -161,7 +163,7 @@ s_zyre_initialise (int argc, char *argv [])
                     printf (BUILDMODEL "\n\n");
                     printf (COPYRIGHT "\n");
                     printf (NOWARRANTY);
-                    printf (USAGE, SERVER_NAME);
+                    printf (USAGE, argv [0]);
                     zyre_config_cmdline_help ();
                     exit (EXIT_SUCCESS);
 
@@ -188,7 +190,7 @@ s_zyre_initialise (int argc, char *argv [])
     if (s_opt_silent)
         icl_console_mode (ICL_CONSOLE_QUIET, TRUE);
     else {
-        printf (SERVER_NAME "/" VERSION "\n");
+        printf (SERVER_NAME "/" VERSION " -- for bugs and updates, go to www.zyre.com\n");
         printf (BUILDMODEL "\n\n");
         printf (COPYRIGHT "\n");
         printf (NOWARRANTY);
@@ -198,25 +200,40 @@ s_zyre_initialise (int argc, char *argv [])
         icl_console_print ("E: can't work in '%s' - %s", s_opt_workdir, strerror (errno));
         exit (EXIT_FAILURE);
     }
-    //  Load configuration data into the config_table
-    if (!s_opt_config)
-        s_opt_config = "zyre.cfg";
-
-    zyre_config = zyre_config_new ("zyre_base.cfg", s_opt_config, TRUE);
+    //  Load configuration data into the config tables
+    //  We need to prepare two config objects, zyre_config and http_config,
+    //  used by the Zyre and Xitami cores respectively.  They will share an
+    //  identical config tree, loaded from:
+    //
+    //      - http_base.cfg (in-built)
+    //      - zyre_base.cfg (in-built)
+    //      - xitami.cfg    (if found on path)
+    //      - s_opt_config  (zyre.cfg, if found on path)
+    //      - command line  (final override)
+    //
+    //  The command line is parsed by zyre_config.
+    //
+    zyre_config = zyre_config_new ();
+    bucket = http_resource_get ("http_base.cfg");
+    zyre_config_load_bucket   (zyre_config, bucket);
+    ipr_bucket_destroy (&bucket);
+    bucket = zyre_resource_get ("zyre_base.cfg");
+    zyre_config_load_bucket   (zyre_config, bucket);
+    ipr_bucket_destroy (&bucket);
+    zyre_config_load_xmlfile  (zyre_config, "xitami.cfg", FALSE);
+    zyre_config_load_xmlfile  (zyre_config, s_opt_config, FALSE);
     zyre_config_cmdline_parse (zyre_config, SERVER_NAME, s_argc, s_argv);
 
-    //  Shadow the http_config from the zyre_config and command line so that
-    //  we can run the http server properly.
+    //  Now shadow http_config from zyre_config so that we can run the
+    //  Xitami core properly
     http_config = http_config_new (NULL, NULL, FALSE);
-    http_config_shadow (http_config, "http_base.cfg", s_opt_config, s_argc, s_argv);
+    http_config_shadow (http_config, zyre_config->config);
 
-    //  Poke RestMS config settings into http_config table
-    http_config_set_server_name (http_config, zyre_config_server_name (zyre_config));
-
-    //  Set system options from HTTP server configuration
+    //  Set system options from configuration
     smt_set_polling_threads (zyre_config_polling_threads (zyre_config));
     smt_set_working_threads (zyre_config_working_threads (zyre_config));
-    
+
+    //  Snapshot configuration into debug file, if wanted
     if (s_opt_snapshot) {
         if (streq (s_opt_snapshot, s_opt_config))
             icl_console_print ("E: unwise snapshot to '%s' prevented", s_opt_snapshot);
@@ -258,21 +275,36 @@ s_zyre_initialise (int argc, char *argv [])
 static void
 s_zyre_execute (void)
 {
-    http_uri_portal_t
-        *portal;
+    http_driver_module_t
+        *driver_module;
+    http_access_module_t
+        *access_module;
 
-    //  Register URI handlers in path resolution order
-    //  The http_server is the portal client
-    //
-    portal = zyre_restms_http_uri_portal_new (NULL, "/restms");
-    http_server_http_uri_portal_bind (http_server, portal);
-    http_uri_portal_request_announce (portal, "/restms", http_server->alert_log, http_server->debug_log);
-    http_uri_portal_unlink (&portal);
+    //  Register driver_modules, in lookup order
 
-    portal = http_file_http_uri_portal_new (NULL, "/");
-    http_server_http_uri_portal_bind (http_server, portal);
-    http_uri_portal_request_announce (portal, "/", http_server->alert_log, http_server->debug_log);
-    http_uri_portal_unlink (&portal);
+    driver_module = zyre_driver_restms_http_driver_module_new (NULL, "/restms");
+    http_server_http_driver_module_bind (http_server, driver_module);
+    http_driver_module_request_announce (driver_module, http_server->alert_log);
+    http_driver_module_unlink (&driver_module);
+
+    driver_module = http_driver_file_http_driver_module_new (NULL, "/");
+    http_server_http_driver_module_bind (http_server, driver_module);
+    http_driver_module_request_announce (driver_module, http_server->alert_log);
+    http_driver_module_unlink (&driver_module);
+
+    //  Register access modules, in execution order
+
+    //  The policy module checks the request against policies
+    access_module = http_access_policy_http_access_module_new (NULL);
+    http_server_http_access_module_bind (http_server, access_module);
+    http_access_module_request_announce (access_module, http_server->alert_log);
+    http_access_module_unlink (&access_module);
+
+    //  The logger module logs access results & errors
+    access_module = http_access_logger_http_access_module_new (NULL);
+    http_server_http_access_module_bind (http_server, access_module);
+    http_access_module_request_announce (access_module, http_server->alert_log);
+    http_access_module_unlink (&access_module);
 
     //  Run SMT until finished
     smt_wait (0);

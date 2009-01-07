@@ -37,7 +37,7 @@
 <file name = "zyre_config.opf"      class = "gsl data"          >Configuration schema</file>
 <file name = "zyre_config.icl"      class = "icl private class" generated = "1"
                                                                 >Configuration class</file>
-<file name = "zyre_restms.icl"      class = "async private"     >HTTP RestMS plugin</file>
+<file name = "zyre_driver_restms.icl" class = "async private"   >RestMS driver module</file>
 <file name = "zyre_peering.icl"     class = "async private"     >Smart link to AMQP server</file>
 <file name = "zyre_uri.icl"         class = "icl private class" >URI parsing</file>
 <file name = "zyre_base.cfg"        class = "public resource"   >Zyre base config file</file>
