@@ -27,7 +27,7 @@
     comment = "client configuration properties"
     script  = "opf_gen"
     root    = "config"
-    config  = "amq_wireapi.cfg"
+    config  = "wireapi.cfg"
     >
 
 <public>
