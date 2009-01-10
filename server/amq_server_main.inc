@@ -83,6 +83,8 @@ s_start (int argc, char *argv [])
         **argparm;                      //  Argument parameter to pick-up
     ipr_config_t
         *config;                        //  Current server config file
+    ipr_bucket_t
+        *bucket;
 
     //  Save argument line for later use
     s_argc = argc;
@@ -208,15 +210,12 @@ s_start (int argc, char *argv [])
         icl_console_print ("E: can't work in '%s' - %s", s_opt_workdir, strerror (errno));
         exit (EXIT_FAILURE);
     }
-    ipr_bucket_t
-        *bucket;
-
     //  Load configuration data, if any, into the config_table
     amq_server_config = amq_server_config_new ();
     bucket = amq_server_resource_get ("amq_server_base.cfg");
     amq_server_config_load_bucket   (amq_server_config, bucket);
     ipr_bucket_destroy (&bucket);
-    amq_server_config_load_xmlfile  (amq_server_config, s_opt_config, TRUE);
+    amq_server_config_load_xmlfile  (amq_server_config, s_opt_config, FALSE);
     amq_server_config_cmdline_parse (amq_server_config, SERVER_NAME, s_argc, s_argv);
 
     //  Snapshot configuration into debug file, if wanted

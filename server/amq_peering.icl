@@ -129,7 +129,7 @@ typedef int (amq_peering_return_fn) (
         channel_nbr;                    //  Active channel number
     ipr_looseref_list_t
         *bindings,                      //  Bindings sent/pending
-        *forwards;                      //  Forwards pending
+        *messages;                      //  Messages pending
 
     //  Callbacks into caller object
     amq_peering_status_fn
@@ -163,7 +163,7 @@ typedef int (amq_peering_return_fn) (
 
     //  Create binding state lists
     self->bindings = ipr_looseref_list_new ();
-    self->forwards = ipr_looseref_list_new ();
+    self->messages = ipr_looseref_list_new ();
 </method>
 
 <method name = "destroy">
@@ -178,9 +178,9 @@ typedef int (amq_peering_return_fn) (
         amq_peer_method_unlink (&method);
     ipr_looseref_list_destroy (&self->bindings);
 
-    while ((method = (amq_peer_method_t *) ipr_looseref_pop (self->forwards)))
+    while ((method = (amq_peer_method_t *) ipr_looseref_pop (self->messages)))
         amq_peer_method_unlink (&method);
-    ipr_looseref_list_destroy (&self->forwards);
+    ipr_looseref_list_destroy (&self->messages);
     </action>
 </method>
 
@@ -286,6 +286,30 @@ typedef int (amq_peering_return_fn) (
     self->return_caller = NULL;
 </method>
 
+<method name = "start" template = "async function" async = "1">
+    <doc>
+    Start the peering. You must call this method to start the peering.
+    You can send bind methods before or after calling start; the bindings
+    are queued and sent to the peer only when the connection succeeds.
+    </doc>
+    //
+    <action>
+    self->enabled = TRUE;
+    smt_timer_request_delay (self->thread, 100 * 1000, monitor_event);
+    </action>
+</method>
+
+<method name = "stop" template = "async function" async = "1">
+    <doc>
+    Stop the peering. If you want to restart the peering, use the start
+    method.
+    </doc>
+    //
+    <action>
+    self->enabled = FALSE;
+    </action>
+</method>
+
 <method name = "bind" template = "async function" async = "1">
     <doc>
     Sets up a queue binding using the specified queue.bind method. This method
@@ -294,7 +318,6 @@ typedef int (amq_peering_return_fn) (
     </doc>
     <argument name = "routing key" type = "char *">Bind to routing key</argument>
     <argument name = "arguments" type = "icl_longstr_t *">Bind arguments</argument>
-    //
     <possess>
     routing_key = icl_mem_strdup (routing_key);
     arguments = icl_longstr_dup (arguments);
@@ -341,7 +364,6 @@ typedef int (amq_peering_return_fn) (
     </doc>
     <argument name = "routing key" type = "char *">Bind to routing key</argument>
     <argument name = "arguments" type = "icl_longstr_t *">Bind arguments</argument>
-    //
     <possess>
     routing_key = icl_mem_strdup (routing_key);
     arguments = icl_longstr_dup (arguments);
@@ -385,13 +407,12 @@ typedef int (amq_peering_return_fn) (
 
 <method name = "forward" template = "async function" async = "1">
     <doc>
-    Forwards a basic content to the remote peer.
+    messages a basic content to the remote peer.
     </doc>
     <argument name = "routing key" type = "char *">Routing key for publish</argument>
     <argument name = "content" type = "amq_content_basic_t *">Content to publish</argument>
     <argument name = "mandatory" type = "Bool">Mandatory routing</argument>
     <argument name = "immediate" type = "Bool">Immediate delivery</argument>
-    //
     <possess>
     routing_key = icl_mem_strdup (routing_key);
     content = amq_content_basic_link (content);
@@ -417,37 +438,13 @@ typedef int (amq_peering_return_fn) (
         ticket, self->exchange, routing_key, mandatory, immediate);
     method->content = amq_content_basic_link (content);
 
-    //  We only hold forwards if the connection is currently down
+    //  We only hold messages if the connection is currently down
     if (self->connected) {
         amq_peer_agent_push (self->peer_agent_thread, self->channel_nbr, method);
         amq_peer_method_unlink (&method);
     }
     else
-        ipr_looseref_queue (self->forwards, method);
-    </action>
-</method>
-
-<method name = "start" template = "async function" async = "1">
-    <doc>
-    Start the peering. You must call this method to start the peering.
-    You can send bind methods before or after calling start; the bindings
-    are queued and sent to the peer only when the connection succeeds.
-    </doc>
-    //
-    <action>
-    self->enabled = TRUE;
-    smt_timer_request_delay (self->thread, 100 * 1000, monitor_event);
-    </action>
-</method>
-
-<method name = "stop" template = "async function" async = "1">
-    <doc>
-    Stop the peering. If you want to restart the peering, use the start
-    method.
-    </doc>
-    //
-    <action>
-    self->enabled = FALSE;
+        ipr_looseref_queue (self->messages, method);
     </action>
 </method>
 
@@ -519,8 +516,18 @@ typedef int (amq_peering_return_fn) (
 </method>
 
 <method name = "initialise">
-    //  Load peering configuration data from amq_peering.cfg if present
-    amq_peer_config = amq_peer_config_new ("amq_server_base.cfg", "amq_peering.cfg", FALSE);
+    <local>
+    ipr_bucket_t
+        *bucket;
+    </local>
+    //
+    //  Load configuration data, if any, into the config_table
+    bucket = amq_server_resource_get ("amq_server_base.cfg");
+    amq_peer_config = amq_peer_config_new ();
+    amq_peer_config_load_bucket  (amq_peer_config, bucket);
+    amq_peer_config_load_xmlfile (amq_peer_config, "amq_peering.cfg", FALSE);
+    ipr_bucket_destroy (&bucket);
+
     amq_peer_agent_init ();
 </method>
 
@@ -620,7 +627,7 @@ s_initialise_peering (amq_peering_t *self)
             looseref = ipr_looseref_list_next (&looseref);
         }
         //  Forward all pending messages to remote peer
-        while ((method = (amq_peer_method_t *) ipr_looseref_pop (self->forwards))) {
+        while ((method = (amq_peer_method_t *) ipr_looseref_pop (self->messages))) {
             amq_peer_agent_push (self->peer_agent_thread, self->channel_nbr, method);
             amq_peer_method_unlink (&method);
         }
@@ -742,7 +749,7 @@ s_test_content_handler (
     test_flag = getenv ("AMQ_PEERING_TEST");
     if (test_flag && *test_flag == '1') {
         icl_console_mode (ICL_CONSOLE_DATE, TRUE);
-        amq_server_config = amq_server_config_new ("amq_server_base.cfg", NULL, FALSE);
+        amq_server_config = amq_server_config_new ();
 
         //  Move to some unused port so we can talk to another server
         //  on the real AMQP port (5672)
