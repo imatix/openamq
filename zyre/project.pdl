@@ -28,50 +28,54 @@
 <inherit filename = "ipr_classes.pdl" />
 <inherit filename = "smt_classes.pdl" />
 
-<file name = "version.h"            class = "c version"         >Project version file</file>
-<file name = "libamq_zyre"          class = "public library"    >Object library</file>
+<file name = "version.h"               class = "c version"         >Project version file</file>
+<file name = "libamq_zyre"             class = "public library"    >Object library</file>
 
-<file name = "zyre.c"               class = "main program"      >Zyre main</file>
-<file name = "zyre"                 class = "public command"    >Zyre executable</file>
-<file name = "zyre_main.inc"        class = "private resource"  >Zyre mainline</file>
-<file name = "zyre_config.opf"      class = "gsl data"          >Configuration schema</file>
-<file name = "zyre_config.icl"      class = "icl private class" generated = "1"
-                                                                >Configuration class</file>
-<file name = "zyre_driver_restms.icl" class = "async private"   >RestMS driver module</file>
-<file name = "zyre_peering.icl"     class = "async private"     >Smart link to AMQP server</file>
-<file name = "zyre_uri.icl"         class = "icl private class" >URI parsing</file>
-<file name = "zyre_base.cfg"        class = "public resource"   >Zyre base config file</file>
-<file name = "zyre_test.pl"         class = "private resource"  >Zyre test scenarios</file>
-<file name = "zyre_classes.icl"     class = "icl public data"   >Application classes</file>
+<file name = "zyre.c"                  class = "main program"      >Zyre main</file>
+<file name = "zyre"                    class = "public command"    >Zyre executable</file>
+<file name = "zyre_main.inc"           class = "private resource"  >Zyre mainline</file>
+<file name = "zyre_config.opf"         class = "gsl data"          >Configuration schema</file>
+<file name = "zyre_config.icl"         class = "icl private class"
+                                       generated = "1"             >Configuration class</file>
+<file name = "zyre_backend_module.icl" class = "ipr portal"        >Portal to backend modules</file>
+<file name = "zyre_restms.icl"         class = "async private"     >RestMS driver module</file>
+<file name = "zyre_digest_amqp.icl"    class = "async private"     >Digest-AMQP access module</file>
+<file name = "zyre_backend_amqp.icl"   class = "async private"     >Backend module for AMQP servers</file>
+<file name = "zyre_uri.icl"            class = "icl private class" >URI parsing</file>
+<file name = "zyre_classes.icl"        class = "icl public data"   >Application classes</file>
 
-<file name = "zyre_peer.asl"        class = "gsl data"          >Peering method interface</file>
-<file name = "zyre_peer_method.icl" class = "icl public cont"   >Peering methods, generated</file>
-<file name = "zyre_peer_config.opf" class = "gsl data"          >Peering config syntax</file>
-<file name = "zyre_peer_config.icl" class = "icl private cont"  >Peering config class</file>
-<file name = "zyre_peer_config.txt" class = "generated resource">Peering config docs</file>
-<file name = "zyre_peer_agent.smt"  class = "smt private module" generated = "1"
-                                                                >Peering client agent</file>
+<file name = "zyre_peer.asl"           class = "gsl data"          >Peering method interface</file>
+<file name = "zyre_peer_method.icl"    class = "icl public cont"   >Peering methods, generated</file>
+<file name = "zyre_peer_config.opf"    class = "gsl data"          >Peering config syntax</file>
+<file name = "zyre_peer_config.icl"    class = "icl private cont"  >Peering config class</file>
+<file name = "zyre_peer_config.txt"    class = "generated resource">Peering config docs</file>
+<file name = "zyre_peer_agent.smt"     class = "smt private module"
+                                       generated = "1"             >Peering client agent</file>
 
-<file name = "zyre_join.icl"        class = "icl public class"  >Zyre join class</file>
-<file name = "zyre_join_list.icl"   class = "icl private cont"
-                                    generated = "1"             >Zyre joins per pipe</file>
-<file name = "zyre_nozzle.icl"      class = "icl public class"  >Zyre nozzle class</file>
-<file name = "zyre_nozzle_list.icl" class = "icl private cont"
-                                    generated = "1"             >Zyre nozzles per pipe</file>
-<file name = "zyre_pipe.icl"        class = "icl public class"  >Zyre pipe class</file>
-<file name = "zyre_pipe_table.icl"  class = "icl private cont"
-                                    generated = "1"             >Zyre pipe hash</file>
-<file name = "zyre_feed.icl"        class = "icl public class"  >Zyre feed class</file>
-<file name = "zyre_feed_table.icl"  class = "icl private cont"
-                                    generated = "1"             >Zyre feed hash</file>
+<file name = "zyre_join.icl"           class = "icl public class"  >Zyre join class</file>
+<file name = "zyre_join_list.icl"      class = "icl private cont"
+                                       generated = "1"             >Zyre joins per pipe</file>
+<file name = "zyre_nozzle.icl"         class = "icl public class"  >Zyre nozzle class</file>
+<file name = "zyre_nozzle_list.icl"    class = "icl private cont"
+                                       generated = "1"             >Zyre nozzles per pipe</file>
+<file name = "zyre_pipe.icl"           class = "icl public class"  >Zyre pipe class</file>
+<file name = "zyre_pipe_table.icl"     class = "icl private cont"
+                                       generated = "1"             >Zyre pipe hash</file>
+<file name = "zyre_feed.icl"           class = "icl public class"  >Zyre feed class</file>
+<file name = "zyre_feed_table.icl"     class = "icl private cont"
+                                       generated = "1"             >Zyre feed hash</file>
+
+<file name = "zyre_resource.rc"        class = "ipr rc file"       >Binary resources</file>
+<file name = "zyre_base.cfg"           class = "private resource"  >Base config file</file>
+<file name = "zyre_test.pl"            class = "private resource"  >Zyre test scenarios</file>
 
 <!-- RestMS specifications and interfaces -->
-<file name = "restms.txt"           class = "documentation"     >RestMS specifications</file>
+<file name = "restms.txt"              class = "documentation"     >RestMS specifications</file>
 
 <!-- Web server infrastructure -->
 <directory name = "webpages">
-    <file name = "http_base.css"    class = "public resource"   >Base CSS style sheet</file>
-    <file name = "index.html"       class = "public resource"   >Empty index page</file>
+    <file name = "http_base.css"       class = "public resource"   >Base CSS style sheet</file>
+    <file name = "index.html"          class = "public resource"   >Empty index page</file>
 </directory>
 
 </pdl>

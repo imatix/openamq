@@ -21,7 +21,7 @@
     script   = "asl_gen"
     chassis  = "client"
     basename = "zyre_peer"
-    caller   = "zyre_peering"
+    caller   = "zyre_backend_module"
     broker   = "http_server"
     >
 <!--
@@ -35,25 +35,33 @@
 
 <class name = "connection">
   <action name = "open-ok">
-    zyre_peering_connection_open_ok (caller, self);
+    zyre_backend_module_request_online_partial (caller);
   </action>
   <action name = "close">
-    zyre_peering_connection_close (caller, self);
+    //  If the connection failed due to a hard error, complain loudly and
+    //  shut down the broker.  We really don't want people using servers
+    //  with badly defined peerings.
+    if (ASL_HARD_ERROR (method->reply_code)) {
+        icl_console_print ("E: hard error on peering - fix and restart server");
+        smt_shut_down ();
+    }
   </action>
 </class>
 
 <class name = "channel">
   <action name = "open-ok">
-    zyre_peering_channel_open_ok (caller, self);
+    zyre_backend_module_request_online_final (caller);
   </action>
 </class>
 
 <class name = "basic">
   <action name = "deliver">
-    zyre_peering_basic_deliver (caller, self);
+    //  Send content/consumer_tag directly to portal front-end client
+    zyre_backend_module_response_arrived (caller, content, method->consumer_tag);
   </action>
   <action name = "return">
-    zyre_peering_basic_return (caller, self);
+    //  Send content/consumer_tag directly to portal front-end client
+    zyre_backend_module_response_returned (caller, content);
   </action>
 </class>
 

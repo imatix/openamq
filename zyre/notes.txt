@@ -1,3 +1,46 @@
+x60
+    - prime travel machine
+    - upgrade RAM, extra battery
+macbookair
+    - use for os/x tests & package build
+eee1000hd
+    - second travel machine with extended batteries
+    - backup work machine
+    - upgrade RAM
+ws200901
+    - main office work machine
+    - builds & regressions
+x40
+    - Windows XP build system
+dell
+    - ?
+
+zyre_restms
+    - client for zyre_backend_module
+
+backend_module
+    backend_amqp
+
+
+- unnamed nozzle in retry loop causes zyre to exhaust memory
+- named nozzle uri ending in / is not valid, needs index?
+- memory leak in zyre on getting messages in a loop...
+    - short timeout
+    - get message over and over
+
+RestMS
+    - need to get all feeds from AMQP broker
+    - a feed is:
+        - shared queue
+        - bound to amq.direct with same routing key
+        -> enquire list of feeds
+        -> get notifications of new feeds
+        -> get notifications of deleted feeds
+    - process/ignore returned messages
+    - post to feed always MANDATORY
+    - test scenario is Digest-AMQP client-Restms, service-AMQP
+    - would be easier with options to basic.publish
+
 - restms.digistan.org microsite
 -> restms.org template
 -> restms@digistan.org email list
@@ -10,6 +53,13 @@ define pipe that sends messages back to feed
 define fair queue mechanism that takes input from several feeds but fairly
     - implement natively in openamq?
     - ...?
+
+stream pipe
+nozzles on post messages too
+    post to nozzle - idempotent
+    post to nozzle - idempotent
+    delete nozzle
+
 
 implement exchange logic in zyre and do federation
 

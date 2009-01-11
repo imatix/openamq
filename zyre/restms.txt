@@ -444,6 +444,12 @@ The complete list of URI/method combinations is:
 
 RestMS interoperates with AMQP through some basic conventions, some of which we've already explained.
 
+-- add how to address shared queues, and response queues
+-- via amq.direct
+-- immediate, mandatory headers not needed, feeds are explicit
+-- how to know what feeds exist from AMQP universe?
+    - subscribe to all shared queues via amq.direct?
+
 # In general, AMQP and RestMS applications can freely interoperate, without knowledge of each others' particularities.
 # RestMS publishers can address exchanges, or shared queues by name.  They cannot address shared queues via arbitrary routing keys.
 # RestMS supports all exchanges which route on a single string address, but not currently support the AMQP headers exchange.

@@ -1,8 +1,8 @@
 <?xml?>
 <!--
-    This is a demo Digest-AMQP service that shows how to send a response
-    back to a Digest-AMQP client.  The response is taken from the XML file
-    "digest-amqp-response.xml".
+    This is a demo Digest-AMQP service that shows how to send
+    a response back to a Digest-AMQP client.  The response is
+    hard-coded on the RFC2617 example.
  -->
 <pal script = "amq_pal_gen">
     <session>
@@ -18,8 +18,10 @@
         <repeat>
             <wait />
             <basic_arrived>
-                <set name = "content_type" value = "$content_type" />
-                <if name = "content_type" value = "application/x-Digest-AMQP">
+                <set name = "content_type"
+                    value = "$content_type" />
+                <if name = "content_type"
+                    value = "application/x-Digest-AMQP">
                     <echo>I: received valid request</echo>
                 </if>
                 <else>
@@ -27,9 +29,18 @@
                 </else>
             </basic_arrived>
             <basic_content
-                read = "digest-amqp-response.xml"
-                content_type = "application/x-Digest-AMQP"
-                />
+                content_type = "application/x-Digest-AMQP">
+                &lt;digest-amqp
+                    xmlns=\"http://www.imatix.com/schema/digest-amqp\"
+                    version=\"1.0\"&gt;
+                    &lt;response
+                        user = \"Mufasa\"
+                        realm = \"testrealm@host.com\"
+                        algorithm = \"MD5\"
+                        digest = \"939e7578ed9e3c518a452acee763bce9\"
+                        /&gt;
+                &lt;/digest-amqp&gt;
+            </basic_content>
             <basic_publish
                 exchange = "amq.direct"
                 routing_key = "$reply_to"

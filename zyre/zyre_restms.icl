@@ -16,7 +16,7 @@
     iMatix Corporation.
  -->
 <class
-    name    = "zyre_driver_restms"
+    name    = "zyre_restms"
     comment = "HTTP plugin that maps RestMS to AMQP"
     version = "1.0"
     script  = "smt_object_gen"
@@ -26,8 +26,9 @@
     This class implements a HTTP plugin that maps RestMS requests to AMQP.
     The plugin acts as a portal backend for the Base2/HTTP server.  This
     is an async class that manages a data tree of feeds, pipes, and joins.
-    It communicates changes to this tree to the zyre_peering agent, which
-    handles all communications with the AMQP server.  zyre_peering provides
+    It communicates changes to this tree to the
+    zyre_backend_module_request agent, which handles all communications
+    with the AMQP server.  zyre_backend_module_request provides
     incoming AMQP messages to this agent via the deliver method.
 
     Table of methods that RestMS defines for each URI type:
@@ -43,7 +44,13 @@
     RESTMS_URI_MESSAGE          -       Y       Y       -
 </doc>
 
+<!-- We're a backend for the driver module portal -->
+<!-- Here 'backend' means a class that acts as a portal server -->
 <inherit class = "http_driver_module_back" />
+
+<!-- And we're the front-end for a backend module portal -->
+<!-- Here 'backend' means a server that can speak AMQP or such -->
+<inherit class = "zyre_backend_module_front" />
 
 <import class = "wireapi" />
 <import class = "zyre_classes" />
@@ -53,20 +60,20 @@
 </public>
 
 <context>
+    zyre_backend_module_t
+        *backend;                       //  Backend peering to AMQP
+    Bool
+        connected;                      //  Back-end connection alive?
+    smt_log_t
+        *log;                           //  Log file for warnings
     zyre_uri_t
         *uri;                           //  Parsed URI
-    zyre_peering_t
-        *peering;                       //  Peering to remote server
     zyre_pipe_table_t
         *pipe_table;                    //  Table of defined pipes
     zyre_feed_table_t
         *feed_table;                    //  Table of defined feeds
     ipr_looseref_list_t
         *joins;                         //  Looseref list of joins
-    Bool
-        connected;                      //  Back-end connection alive?
-    smt_log_t
-        *log;                           //  Log file for warnings
 </context>
 
 <method name = "new">
@@ -75,18 +82,14 @@
         *feed;
     </local>
     //
+    self->backend = zyre_backend_amqp__zyre_backend_module_new (NULL);
+    zyre_restms__zyre_backend_module_bind (self, self->backend);
+    zyre_backend_module_request_start (self->backend);
+
     self->uri = zyre_uri_new (NULL);
     self->pipe_table = zyre_pipe_table_new ();
     self->feed_table = zyre_feed_table_new ();
     self->joins = ipr_looseref_list_new ();
-
-    //  Prepare peering to AMQP server
-    self->peering = zyre_peering_new (zyre_config_amqp_hostname (zyre_config),
-                                      zyre_config_amqp_trace (zyre_config));
-    zyre_peering_set_login           (self->peering, "peering");
-    zyre_peering_set_status_handler  (self->peering, s_status_handler, self);
-    zyre_peering_set_content_handler (self->peering, s_content_handler, self);
-    zyre_peering_start               (self->peering);
 
     //  Create pre-defined OpenAMQ feeds
     feed = s_feed_assert (self, NULL, "amq.fanout",  "fanout");
@@ -113,12 +116,12 @@
 
 <method name = "destroy">
     <action>
+    zyre_backend_module_unlink (&self->backend);
+    smt_log_unlink (&self->log);
     ipr_looseref_list_destroy (&self->joins);
     zyre_pipe_table_destroy (&self->pipe_table);
     zyre_feed_table_destroy (&self->feed_table);
-    zyre_peering_destroy (&self->peering);
     zyre_uri_destroy (&self->uri);
-    smt_log_unlink (&self->log);
     </action>
 </method>
 
@@ -138,26 +141,26 @@
 
     switch (zyre_uri_set (self->uri, context->request->pathinfo)) {
         case RESTMS_URI_ROOT:
-            zyre_driver_restms_root_get (self, context);
+            zyre_restms_root_get (self, context);
             break;
         case RESTMS_URI_PIPES:
-            zyre_driver_restms_pipes_get (self, context);
+            zyre_restms_pipes_get (self, context);
             break;
         case RESTMS_URI_PIPE:
-            zyre_driver_restms_pipe_get (self, context);
+            zyre_restms_pipe_get (self, context);
             break;
         case RESTMS_URI_FEEDS:
-            zyre_driver_restms_feeds_get (self, context);
+            zyre_restms_feeds_get (self, context);
             break;
         case RESTMS_URI_FEED:
-            zyre_driver_restms_feed_get (self, context);
+            zyre_restms_feed_get (self, context);
             break;
         case RESTMS_URI_JOIN:
-            zyre_driver_restms_join_get (self, context);
+            zyre_restms_join_get (self, context);
             break;
         case RESTMS_URI_MESSAGE:
             //  This method may decide to return nothing, and wait
-            reply = zyre_driver_restms_message_get (self, context);
+            reply = zyre_restms_message_get (self, context);
             break;
         default:
             http_response_set_error (context->response, HTTP_REPLY_BADREQUEST,
@@ -172,16 +175,16 @@
     <action>
     switch (zyre_uri_set (self->uri, context->request->pathinfo)) {
         case RESTMS_URI_PIPES:
-            zyre_driver_restms_pipes_put (self, context);
+            zyre_restms_pipes_put (self, context);
             break;
         case RESTMS_URI_PIPE:
-            zyre_driver_restms_pipe_put (self, context);
+            zyre_restms_pipe_put (self, context);
             break;
         case RESTMS_URI_FEED:
-            zyre_driver_restms_feed_put (self, context);
+            zyre_restms_feed_put (self, context);
             break;
         case RESTMS_URI_JOIN:
-            zyre_driver_restms_join_put (self, context);
+            zyre_restms_join_put (self, context);
             break;
         default:
             http_response_set_error (context->response, HTTP_REPLY_BADREQUEST,
@@ -195,16 +198,16 @@
     <action>
     switch (zyre_uri_set (self->uri, context->request->pathinfo)) {
         case RESTMS_URI_PIPE:
-            zyre_driver_restms_pipe_delete (self, context);
+            zyre_restms_pipe_delete (self, context);
             break;
         case RESTMS_URI_FEED:
-            zyre_driver_restms_feed_delete (self, context);
+            zyre_restms_feed_delete (self, context);
             break;
         case RESTMS_URI_JOIN:
-            zyre_driver_restms_join_delete (self, context);
+            zyre_restms_join_delete (self, context);
             break;
         case RESTMS_URI_MESSAGE:
-            zyre_driver_restms_message_delete (self, context);
+            zyre_restms_message_delete (self, context);
             break;
         default:
             http_response_set_error (context->response, HTTP_REPLY_BADREQUEST,
@@ -218,7 +221,7 @@
     <action>
     switch (zyre_uri_set (self->uri, context->request->pathinfo)) {
         case RESTMS_URI_ADDRESS:
-            zyre_driver_restms_address_post (self, context);
+            zyre_restms_address_post (self, context);
             break;
         default:
             http_response_set_error (context->response, HTTP_REPLY_BADREQUEST,
@@ -395,7 +398,7 @@
         pipe = zyre_pipe_table_search (self->pipe_table, self->uri->pipe_name);
         if (pipe) {
             if (streq (pipe->class, self->uri->pipe_class)) {
-                zyre_peering_pipe_delete (self->peering, pipe->name);
+                zyre_backend_module_request_pipe_delete (self->backend, pipe->name);
                 zyre_pipe_destroy (&pipe);
             }
             else {
@@ -502,7 +505,7 @@
     feed = zyre_feed_table_search (self->feed_table, self->uri->feed_name);
     if (feed) {
         if (streq (feed->class, self->uri->feed_class)) {
-            zyre_peering_feed_delete (self->peering, feed->name);
+            zyre_backend_module_request_feed_delete (self->backend, feed->name);
             //  Destroy all joins for this feed
             looseref = ipr_looseref_list_first (self->joins);
             while (looseref) {
@@ -697,8 +700,8 @@
                 http_request_get_header (context->request, "RestMS-Reply-To"));
             amq_content_basic_set_message_id (content,
                 http_request_get_header (context->request, "RestMS-Message-Id"));
-            zyre_peering_address_post (
-                self->peering, self->uri->address, self->uri->feed_name, content);
+            zyre_backend_module_request_address_post (
+                self->backend, self->uri->address, self->uri->feed_name, content);
             amq_content_basic_unlink (&content);
             zyre_feed_unlink (&feed);
         }
@@ -780,7 +783,8 @@
             ipr_tree_leaf (tree, "status", "ok");
               ipr_tree_open (tree, "pipe");
                 ipr_tree_leaf (tree, "name", pipe->name);
-                ipr_tree_leaf (tree, "uri", "%s%s/%s", context->response->root_uri, pipe->class, pipe->name);
+                ipr_tree_leaf (tree, "uri", "%s%s/%s",
+                    context->response->root_uri, pipe->class, pipe->name);
                   ipr_tree_open (tree, "nozzle");
                     ipr_tree_leaf (tree, "name", self->uri->nozzle);
                     ipr_tree_leaf (tree, "size", "%d", count);
@@ -799,24 +803,27 @@
             "Zyre does not yet implement stream pipes");
 </method>
 
-<method name = "deliver" template = "async function" async = "1">
-    <doc>
-    Deliver a message to a pipe.  The chain of execution is as follows.  The
-    AMQP server delivers a message to the zyre_peering object across the
-    peering connection (a Basic.Deliver method).  The zyre_peering object
-    passes this to the s_content_handler callback function, still in the
-    same thread.  The s_content_handler sends us (zyre_driver_restms) an asynch
-    method with the message content, so that the message can be pushed onto
-    the appropriate pipe, as defined by the consumer tag.
-    </doc>
-    <argument name = "content" type = "amq_content_basic_t *">Incoming content</argument>
-    <argument name = "consumer tag" type = "char *">Consumer tag for routing</argument>
-    <possess>
-    content = amq_content_basic_link (content);
-    </possess>
-    <release>
-    amq_content_basic_unlink (&content);
-    </release>
+<!-- These are responses coming in via the zyre_backend_module portal -->
+
+<method name = "online">
+    <action>
+    smt_log_print (self->log,
+        "I: RestMS handler now peered to OpenAMQ server on %s",
+        zyre_config_amqp_hostname (zyre_config));
+    self->connected = TRUE;
+    </action>
+</method>
+
+<method name = "offline">
+    <action>
+    smt_log_print (self->log,
+        "I: RestMS handler unpeered from OpenAMQ server at %s",
+        zyre_config_amqp_hostname (zyre_config));
+    self->connected = FALSE;
+    </action>
+</method>
+
+<method name = "arrived">
     <action>
     char
         *pipe_name;
@@ -838,10 +845,16 @@
     </action>
 </method>
 
+<method name = "returned">
+    <action>
+    icl_console_print ("E: RestMS content not routable - abonormal");
+    </action>
+</method>
+
 <private name = "header">
 //  Return XML descriptions on various resources
 static void
-    s_report_feed_class (zyre_driver_restms_t *self,
+    s_report_feed_class (zyre_restms_t *self,
         http_driver_context_t *context, char *feed_class, ipr_tree_t *tree);
 static void
     s_report_pipe (http_driver_context_t *context, zyre_pipe_t *pipe);
@@ -852,26 +865,22 @@ static void
 
 //  Create/assert resources
 static zyre_pipe_t *
-    s_pipe_assert (zyre_driver_restms_t *self, http_driver_context_t *context, char *pipe_name, char *pipe_class);
+    s_pipe_assert (zyre_restms_t *self, http_driver_context_t *context,
+        char *pipe_name, char *pipe_class);
 static zyre_feed_t *
-    s_feed_assert (zyre_driver_restms_t *self, http_driver_context_t *context, char *feed_name, char *feed_class);
+    s_feed_assert (zyre_restms_t *self, http_driver_context_t *context,
+        char *feed_name, char *feed_class);
 static zyre_join_t *
-    s_join_assert (zyre_driver_restms_t *self, http_driver_context_t *context,
+    s_join_assert (zyre_restms_t *self, http_driver_context_t *context,
         zyre_pipe_t *pipe, char *address, zyre_feed_t *feed);
 static void
-    s_join_delete (zyre_driver_restms_t *self, zyre_join_t *join);
-
-//  Callbacks from the zyre_peering agent
-static int s_status_handler (
-    void *caller, zyre_peering_t *peering, Bool connected);
-static int s_content_handler (
-    void *caller, zyre_peering_t *peering, zyre_peer_method_t *method);
+    s_join_delete (zyre_restms_t *self, zyre_join_t *join);
 </private>
 
 <private name = "footer">
 static void
 s_report_feed_class (
-    zyre_driver_restms_t *self,
+    zyre_restms_t *self,
     http_driver_context_t *context,
     char *feed_class,
     ipr_tree_t *tree)
@@ -890,7 +899,8 @@ s_report_feed_class (
             if (streq (feed->class, feed_class)) {
                 ipr_tree_open (tree, "feed");
                     ipr_tree_leaf (tree, "name", feed->name);
-                    ipr_tree_leaf (tree, "uri", "%s%s/%s", context->response->root_uri, feed->class, feed->name);
+                    ipr_tree_leaf (tree, "uri", "%s%s/%s",
+                        context->response->root_uri, feed->class, feed->name);
                 ipr_tree_shut (tree);
             }
             feed = feed->table_next;
@@ -911,7 +921,9 @@ s_report_pipe (http_driver_context_t *context, zyre_pipe_t *pipe)
     ipr_tree_leaf (tree, "status", "ok");
       ipr_tree_open (tree, "pipe");
         ipr_tree_leaf (tree, "name", pipe->name);
-        ipr_tree_leaf (tree, "uri", "%s%s/%s", context->response->root_uri, pipe->class, pipe->name);
+        ipr_tree_leaf (tree, "class", pipe->class);
+        ipr_tree_leaf (tree, "uri", "%s%s/%s",
+            context->response->root_uri, pipe->class, pipe->name);
         ipr_tree_leaf (tree, "size", "%d", amq_content_basic_list_count (pipe->contents));
       ipr_tree_shut (tree);
     http_response_set_from_tree (context->response, tree);
@@ -930,7 +942,9 @@ s_report_feed (http_driver_context_t *context, zyre_feed_t *feed)
     ipr_tree_leaf (tree, "status", "ok");
       ipr_tree_open (tree, "feed");
         ipr_tree_leaf (tree, "name", feed->name);
-        ipr_tree_leaf (tree, "uri", "%s%s/%s", context->response->root_uri, feed->class, feed->name);
+        ipr_tree_leaf (tree, "class", feed->class);
+        ipr_tree_leaf (tree, "uri", "%s%s/%s",
+            context->response->root_uri, feed->class, feed->name);
       ipr_tree_shut (tree);
     http_response_set_from_tree (context->response, tree);
     ipr_tree_destroy (&tree);
@@ -948,7 +962,8 @@ s_report_join (http_driver_context_t *context, zyre_join_t *join)
     ipr_tree_leaf (tree, "status", "ok");
       ipr_tree_open (tree, "pipe");
         ipr_tree_leaf (tree, "name", join->pipe->name);
-        ipr_tree_leaf (tree, "uri", "%s%s/%s", context->response->root_uri, join->pipe->class, join->pipe->name);
+        ipr_tree_leaf (tree, "uri", "%s%s/%s",
+            context->response->root_uri, join->pipe->class, join->pipe->name);
           ipr_tree_open (tree, "join");
             ipr_tree_leaf (tree, "address", join->address);
             ipr_tree_leaf (tree, "feed", join->feed_name);
@@ -968,7 +983,7 @@ s_report_join (http_driver_context_t *context, zyre_join_t *join)
 //  Name is provided explicitly to allow server-named pipes
 static zyre_pipe_t *
 s_pipe_assert (
-    zyre_driver_restms_t *self,
+    zyre_restms_t *self,
     http_driver_context_t *context,
     char *pipe_name,
     char *pipe_class)
@@ -990,7 +1005,7 @@ s_pipe_assert (
     if (*pipe_class) {
         pipe = zyre_pipe_new (self->pipe_table, pipe_class, pipe_name);
         assert (pipe);
-        zyre_peering_pipe_create (self->peering, pipe->class, pipe->name);
+        zyre_backend_module_request_pipe_create (self->backend, pipe->class, pipe->name);
     }
     else
         //  Pipe not found, and can't create, since no class specified
@@ -1003,7 +1018,7 @@ s_pipe_assert (
 //  Assert feed, allow null response
 static zyre_feed_t *
 s_feed_assert (
-    zyre_driver_restms_t *self,
+    zyre_restms_t *self,
     http_driver_context_t *context,
     char *feed_name,
     char *feed_class)
@@ -1024,7 +1039,7 @@ s_feed_assert (
     if (*feed_class) {
         feed = zyre_feed_new (self->feed_table, feed_class, feed_name);
         assert (feed);
-        zyre_peering_feed_create (self->peering, feed->class, feed->name);
+        zyre_backend_module_request_feed_create (self->backend, feed->class, feed->name);
     }
     else
     if (context)
@@ -1037,7 +1052,7 @@ s_feed_assert (
 
 static zyre_join_t *
 s_join_assert (
-    zyre_driver_restms_t *self,
+    zyre_restms_t *self,
     http_driver_context_t *context,
     zyre_pipe_t *pipe,
     char *address,
@@ -1049,8 +1064,8 @@ s_join_assert (
     join = zyre_join_lookup (pipe, address, feed->name);
     if (join == NULL) {
         join = zyre_join_new (pipe, address, feed->name, feed->class);
-        zyre_peering_join_create (
-            self->peering,
+        zyre_backend_module_request_join_create (
+            self->backend,
             pipe->name,
             address,
             feed->name,
@@ -1062,38 +1077,12 @@ s_join_assert (
 }
 
 static void
-s_join_delete (zyre_driver_restms_t *self, zyre_join_t *join)
+s_join_delete (zyre_restms_t *self, zyre_join_t *join)
 {
-    zyre_peering_join_delete (
-        self->peering, join->pipe->name, self->uri->address, self->uri->feed_name);
+    zyre_backend_module_request_join_delete (
+        self->backend, join->pipe->name, self->uri->address, self->uri->feed_name);
     ipr_looseref_destroy (&join->looseref);
     zyre_join_destroy (&join);
-}
-
-static int
-s_status_handler (void *caller, zyre_peering_t *peering, Bool connected)
-{
-    zyre_driver_restms_t
-        *self = caller;
-
-    self->connected = connected;
-    return (0);
-}
-
-static int
-s_content_handler (void *caller, zyre_peering_t *peering, zyre_peer_method_t *method)
-{
-    zyre_driver_restms_t
-        *self = caller;
-    amq_content_basic_t
-        *content;
-
-    assert (method->class_id  == ZYRE_PEER_BASIC);
-    assert (method->method_id == ZYRE_PEER_BASIC_DELIVER);
-
-    content = (amq_content_basic_t *) method->content;
-    zyre_driver_restms_deliver (self, content, method->payload.basic_deliver.consumer_tag);
-    return (0);
 }
 </private>
 

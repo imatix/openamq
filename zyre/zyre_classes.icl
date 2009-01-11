@@ -25,15 +25,17 @@
     >
 <option name = "selftest" value = "0" />
 
+<import class = "zyre_backend_amqp" />
 <import class = "zyre_config" />
-<import class = "zyre_driver_restms" />
+<import class = "zyre_digest_amqp" />
 <import class = "zyre_feed" />
 <import class = "zyre_join" />
 <import class = "zyre_nozzle" />
 <import class = "zyre_peer_agent" />
 <import class = "zyre_peer_config" />
-<import class = "zyre_peering" />
 <import class = "zyre_pipe" />
+<import class = "zyre_resource" />
+<import class = "zyre_restms" />
 <import class = "zyre_uri" />
 
 </class>

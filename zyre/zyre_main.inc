@@ -28,9 +28,7 @@
 #include "ipr.h"
 #include "smt.h"
 #include "http.h"
-#include "zyre_restms.h"
-#include "zyre_config.h"
-#include "zyre_resource.h"
+#include "zyre_classes.h"
 #include "version.h"
 
 static Bool
@@ -226,7 +224,7 @@ s_zyre_initialise (int argc, char *argv [])
 
     //  Now shadow http_config from zyre_config so that we can run the
     //  Xitami core properly
-    http_config = http_config_new (NULL, NULL, FALSE);
+    http_config = http_config_new ();
     http_config_shadow (http_config, zyre_config->config);
 
     //  Set system options from configuration
@@ -272,39 +270,37 @@ s_zyre_initialise (int argc, char *argv [])
     http_server = http_server_new ();
 }
 
+//  Registers a driver module and sends it an announce request
+static void
+s_register_driver_module (http_driver_module_t *module)
+{
+    http_server__http_driver_module_bind (http_server, module);
+    http_driver_module_request_announce (module, http_server->alert_log);
+    http_driver_module_unlink (&module);
+}
+
+//  Registers an access module and sends it an announce request
+static void
+s_register_access_module (http_access_module_t *module)
+{
+    http_server__http_access_module_bind (http_server, module);
+    http_access_module_request_announce (module, http_server->alert_log);
+    http_access_module_unlink (&module);
+}
+
 static void
 s_zyre_execute (void)
 {
-    http_driver_module_t
-        *driver_module;
-    http_access_module_t
-        *access_module;
-
+    smt_log_print (http_server->alert_log, "I: loading web server plugin modules...");
     //  Register driver_modules, in lookup order
-
-    driver_module = zyre_driver_restms_http_driver_module_new (NULL, "/restms");
-    http_server_http_driver_module_bind (http_server, driver_module);
-    http_driver_module_request_announce (driver_module, http_server->alert_log);
-    http_driver_module_unlink (&driver_module);
-
-    driver_module = http_driver_file_http_driver_module_new (NULL, "/");
-    http_server_http_driver_module_bind (http_server, driver_module);
-    http_driver_module_request_announce (driver_module, http_server->alert_log);
-    http_driver_module_unlink (&driver_module);
+    s_register_driver_module (zyre_restms__http_driver_module_new (NULL, "/restms"));
+    s_register_driver_module (http_driver_file__http_driver_module_new (NULL, "/"));
 
     //  Register access modules, in execution order
-
-    //  The policy module checks the request against policies
-    access_module = http_access_policy_http_access_module_new (NULL);
-    http_server_http_access_module_bind (http_server, access_module);
-    http_access_module_request_announce (access_module, http_server->alert_log);
-    http_access_module_unlink (&access_module);
-
-    //  The logger module logs access results & errors
-    access_module = http_access_logger_http_access_module_new (NULL);
-    http_server_http_access_module_bind (http_server, access_module);
-    http_access_module_request_announce (access_module, http_server->alert_log);
-    http_access_module_unlink (&access_module);
+    s_register_access_module (http_access_policy__http_access_module_new (NULL));
+    s_register_access_module (http_access_logger__http_access_module_new (NULL));
+    //  This replaces the http_access_refresh module
+    s_register_access_module (zyre_digest_amqp__http_access_module_new (NULL));
 
     //  Run SMT until finished
     smt_wait (0);
