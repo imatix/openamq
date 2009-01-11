@@ -1,0 +1,47 @@
+<?xml?>
+<!--
+    This is a demo Digest-AMQP client that shows how to send a request
+    to a Digest-AMQP service.  The request is taken from the XML file
+    "digest-amqp-request.xml".
+ -->
+<pal script = "amq_pal_gen">
+    <session>
+        <queue_declare
+            exclusive = "1" />
+        <queue_bind
+            queue = "$queue"
+            exchange = "amq.direct"
+            routing_key = "$queue" />
+        <basic_consume
+            queue = "$queue" />
+        <echo>I: sending Digest-AMQP request...</echo>
+        <basic_content
+            read = "digest-amqp-request.xml"
+            reply_to = "$queue"
+            content_type = "application/x-Digest-AMQP"
+            />
+        <basic_publish
+            exchange = "amq.direct"
+            routing_key = "Digest-AMQP"
+            mandatory = "1"
+            immediate = "1"
+            />
+        <wait
+            timeout = "1000" />
+        <basic_arrived>
+            <set name = "content_type" value = "$content_type" />
+            <if name = "content_type" value = "application/x-Digest-AMQP">
+                <echo>I: received valid response</echo>
+            </if>
+            <else>
+                <echo>E: unrecognised response</echo>
+            </else>
+        </basic_arrived>
+        <empty>
+            <echo>E: no response from Digest-AMQP service</echo>
+        </empty>
+        <basic_returned>
+            <echo>E: Digest-AMQP service is not running</echo>
+        </basic_returned>
+    </session>
+</pal>

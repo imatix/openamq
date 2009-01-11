@@ -1,0 +1,8 @@
+<digest-amqp xmlns="http://www.imatix.com/schema/digest-amqp" version="1.0">
+    <response
+        user = "Mufasa"
+        realm = "testrealm@host.com"
+        algorithm = "MD5"
+        digest = "939e7578ed9e3c518a452acee763bce9"
+        />
+</digest-amqp>
