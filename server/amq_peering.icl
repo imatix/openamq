@@ -286,7 +286,7 @@ typedef int (amq_peering_return_fn) (
     self->return_caller = NULL;
 </method>
 
-<method name = "start" template = "async function" async = "1">
+<method name = "start" template = "async function">
     <doc>
     Start the peering. You must call this method to start the peering.
     You can send bind methods before or after calling start; the bindings
@@ -299,7 +299,7 @@ typedef int (amq_peering_return_fn) (
     </action>
 </method>
 
-<method name = "stop" template = "async function" async = "1">
+<method name = "stop" template = "async function">
     <doc>
     Stop the peering. If you want to restart the peering, use the start
     method.
@@ -310,7 +310,7 @@ typedef int (amq_peering_return_fn) (
     </action>
 </method>
 
-<method name = "bind" template = "async function" async = "1">
+<method name = "bind" template = "async function">
     <doc>
     Sets up a queue binding using the specified queue.bind method. This method
     sends the queue.bind method to the remote server and exchange so that all
@@ -356,7 +356,7 @@ typedef int (amq_peering_return_fn) (
     </action>
 </method>
 
-<method name = "unbind" template = "async function" async = "1">
+<method name = "unbind" template = "async function">
     <doc>
     Removes a queue binding using the specified queue.unbind method. This method
     sends the queue.unbind method to the remote server.  It also removes the
@@ -405,7 +405,7 @@ typedef int (amq_peering_return_fn) (
     </action>
 </method>
 
-<method name = "forward" template = "async function" async = "1">
+<method name = "forward" template = "async function">
     <doc>
     messages a basic content to the remote peer.
     </doc>
@@ -450,7 +450,7 @@ typedef int (amq_peering_return_fn) (
 
 <!-- ********  The following methods are for internal use only  ******** -->
 
-<method name = "protocol handler" template = "async function" async = "1" abstract = "1">
+<method name = "protocol handler" template = "async function" abstract = "1">
     <argument name = "method" type = "amq_peer_method_t *" />
     <possess>
     method = amq_peer_method_link (method);

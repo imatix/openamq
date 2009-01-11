@@ -75,7 +75,7 @@ check the credit to decide whether or not to use the channel's consumers.
     amq_consumer_by_channel_destroy (&self->consumer_list);
 </method>
 
-<method name = "flow" template = "async function" async = "1">
+<method name = "flow" template = "async function">
     <doc>
     Implements the channel.flow method.  When a channel is restarted,
     we dispatch the channel's virtual host.
@@ -99,7 +99,7 @@ check the credit to decide whether or not to use the channel's consumers.
     </action>
 </method>
 
-<method name = "consume" template = "async function" async = "1">
+<method name = "consume" template = "async function">
     <doc>
     Creates a new channel consumer as specified.  Mechanism is as follows:
     server_channel creates consumer, then attaches it to own consumer list
@@ -176,7 +176,7 @@ check the credit to decide whether or not to use the channel's consumers.
     }
 </method>
 
-<method name = "cancel" template = "async function" async = "1" on_shutdown = "1">
+<method name = "cancel" template = "async function" on_shutdown = "1">
     <doc>
     Cancels channel consumer specified by tag.  May be called either
     from method handler - sync true - or from queue agent - sync false.

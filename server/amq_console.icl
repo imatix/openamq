@@ -100,7 +100,7 @@ $(selftype)
     </action>
 </method>
 
-<method name = "register" template = "async function" async = "1">
+<method name = "register" template = "async function">
     <doc>
     Accepts an object registration request.
     </doc>
@@ -134,7 +134,7 @@ $(selftype)
     </action>
 </method>
 
-<method name = "cancel" template = "async function" async = "1">
+<method name = "cancel" template = "async function">
     <doc>
     Accepts an object cancellation request.
     </doc>
@@ -152,7 +152,7 @@ $(selftype)
     </action>
 </method>
 
-<method name = "accept" template = "async function" async = "1">
+<method name = "accept" template = "async function">
     <doc>
     Accepts an AMQ Console message, which must be formatted in CML according
     to the AMQ Console specifications.
@@ -219,7 +219,7 @@ $(selftype)
     </action>
 </method>
 
-<method name = "reply ok" template = "async function" async = "1">
+<method name = "reply ok" template = "async function">
     <doc>
     Generic reply to a request.  If the fields argument is not
     null, the fields are returned to the client.
@@ -284,7 +284,7 @@ $(selftype)
     </action>
 </method>
 
-<method name = "reply error" template = "async function" async = "1">
+<method name = "reply error" template = "async function">
     <doc>
     Generic error reply to a request.
     </doc>

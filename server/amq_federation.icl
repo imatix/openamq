@@ -133,7 +133,7 @@ The compound federations are:
     amq_peering_unlink (&self->peering);
 </method>
 
-<method name = "binding created" template = "async function" async = "1">
+<method name = "binding created" template = "async function">
     <doc>
     Called from amq_binding constructor to notify federation of binding 
     creation.
@@ -163,7 +163,7 @@ The compound federations are:
     </action>
 </method>
 
-<method name = "binding destroyed" template = "async function" async = "1">
+<method name = "binding destroyed" template = "async function">
     <doc>
     Called from amq_binding destructor to notify federation of binding 
     destruction.
@@ -193,7 +193,7 @@ The compound federations are:
     </action>
 </method>
 
-<method name = "message published" template = "async function" async = "1">
+<method name = "message published" template = "async function">
     <doc>
     Called from parent exchange publish method, publishes a message to
     the remote exchange.

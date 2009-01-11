@@ -170,11 +170,22 @@
             if (ipr_str_prefixed (feed_name, "amq."))
                 error_text = "feed_create: new feed name may not start with amq.";
             else {
-                //  Create queue as specified, bind to default exchange
                 queue = amq_queue_new (NULL, feed_name, FALSE, FALSE, auto_delete, NULL);
-                if (queue)
+                if (queue) {
+                    //  Bind to amq.direct
+                    amq_exchange_t
+                        *exchange;
+                    exchange = amq_exchange_table_search (
+                        amq_broker->exchange_table, "amq.direct");
+                    if (exchange) {
+                        amq_exchange_bind_queue (
+                            exchange, NULL, queue, queue->name, NULL);
+                        amq_exchange_unlink (&exchange);
+                    }
+                    //  Now bind to default exchange
                     amq_exchange_bind_queue (amq_broker->default_exchange,
                         NULL, queue, queue->name, NULL);
+                }
                 else
                     error_text = "feed_create: ERROR: could not create queue";
             }

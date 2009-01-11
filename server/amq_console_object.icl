@@ -83,7 +83,7 @@ static amq_console_class_t
     self_inspect (($(selftype) *) (self_v), request);
 </method>
 
-<method name = "inspect" template = "async function" async = "1">
+<method name = "inspect" template = "async function">
     <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
     <possess>
     request = amq_content_basic_link (request);
@@ -153,7 +153,7 @@ static amq_console_class_t
     self_modify (($(selftype) *) (self_v), request, fields);
 </method>
 
-<method name = "modify" template = "async function" async = "1">
+<method name = "modify" template = "async function">
     <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
     <argument name = "fields"  type = "asl_field_list_t *">Fields to modify</argument>
     <possess>
@@ -214,7 +214,7 @@ static amq_console_class_t
     self_method (($(selftype) *) (self_v), method_name, request, fields);
 </method>
 
-<method name = "method" template = "async function" async = "1">
+<method name = "method" template = "async function">
     <argument name = "method name" type = "char *">Method name</argument>
     <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
     <argument name = "fields" type = "asl_field_list_t *">Argument fields</argument>

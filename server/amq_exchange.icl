@@ -418,7 +418,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         name = "(unknown)";
 </method>
 
-<method name = "bind queue" template = "async function" async = "1">
+<method name = "bind queue" template = "async function">
     <doc>
     Bind a queue to the exchange.  The logic is the same for all exchange
     types - we compare all existing bindings and if we find one that
@@ -531,7 +531,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     </action>
 </method>
 
-<method name = "publish" template = "async function" async = "1">
+<method name = "publish" template = "async function">
     <doc>
     Publishes the message to the exchange.  The actual routing mechanism
     is defined in the exchange implementations.
@@ -620,7 +620,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     </action>
 </method>
 
-<method name = "unbind queue" template = "async function" async = "1">
+<method name = "unbind queue" template = "async function">
     <doc>
     Unbind a queue from the exchange.  This method implements the queue.unbind
     protocol command.  We search for the specific binding to unbind, as opposed
@@ -683,7 +683,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     </action>
 </method>
 
-<method name = "broker unbind queue" template = "async function" async = "1">
+<method name = "broker unbind queue" template = "async function">
     <doc>
     Unbind a queue from the exchange. Called when queue is being destroyed.
     All the bindings to specific queue are destroyed.

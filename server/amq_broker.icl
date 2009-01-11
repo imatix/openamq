@@ -253,7 +253,7 @@
     </action>
 </method>
 
-<method name = "unbind queue" template = "async function" async = "1">
+<method name = "unbind queue" template = "async function">
     <doc>
     Unbind a queue from the broker.
     </doc>
@@ -279,7 +279,7 @@
     </action>
 </method>
 
-<method name = "delete queue" template = "async function" async = "1">
+<method name = "delete queue" template = "async function">
     <doc>
     Unbind and delete a queue from the broker.
     </doc>

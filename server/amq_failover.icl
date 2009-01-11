@@ -130,7 +130,7 @@ typedef enum
         smt_log_print (amq_broker->alert_log, "I: no failover defined, READY as stand-alone");
 </method>
 
-<method name = "start_monitoring" template = "async function" async = "1">
+<method name = "start_monitoring" template = "async function">
     <action>
     smt_timer_request_delay (self->thread, self->timeout / 2, monitor_event);
     </action>
