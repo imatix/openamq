@@ -157,7 +157,7 @@
 
     <request name = "address post">
       <doc>
-        Publishes a message to the specified address@feed on the AMQP server.
+        Publishes a message to the specified address@feed on the backend server.
         If the feed is an exchange, the address is used as the message routing
         key and the feed is the exchange for the publish request.  If the feed
         is a shared queue, the address is used as the message id and the default
@@ -181,7 +181,7 @@
 
     <request name = "forward">
       <doc>
-        Forwards a basic content to the remote peer.
+        Forwards a message content to the remote peer.
       </doc>
       <field name = "exchange" type = "char *">Exchange for publish</field>
       <field name = "routing key" type = "char *">Routing key for publish</field>
@@ -220,33 +220,25 @@
 
     <response name = "online">
       <doc>
-        Signals to the client that the back end connection is up and
-        running.
+        Signals to the client that the back end connection is up and running.
+        Provides the client with the name of the backend's reply queue for
+        reply messages.
       </doc>
+      <field name = "reply queue" type = "char *" />
+      <possess>
+        reply_queue = icl_mem_strdup (reply_queue);
+      </possess>
+      <release>
+        icl_mem_strfree (&reply_queue);
+      </release>
     </response>
 
     <response name = "offline">
       <doc>
-        Signals to the client that the back end connection has gone down
-        either due to remote, or local disconnection.
+        Signals to the client that the back end connection has gone down due
+        either to remote, or local disconnection.
       </doc>
     </response>
-
-    $(selftype)
-        *self;
-    amq_content_basic_t
-        *content;
-
-    assert (method->class_id  == ZYRE_PEER_BASIC);
-    assert (method->method_id == ZYRE_PEER_BASIC_DELIVER);
-
-    self = self_link (($(selftype) *) caller);
-    if (self) {
-        content = (amq_content_basic_t *) method->content;
-        zyre_restms_deliver (self, content, method->payload.basic_deliver.consumer_tag);
-        self_unlink (&self);
-    }
-    return (0);
 
     <response name = "arrived">
       <doc>

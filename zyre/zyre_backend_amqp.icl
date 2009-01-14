@@ -56,7 +56,8 @@ link becomes active, and when a message content arrives.
         connected,                      //  We're connected
         offlined;                       //  Peer has gone offline
     icl_shortstr_t
-        host;                           //  Peer host name
+        host,                           //  Peer host name
+        queue;                          //  For replies from services
     icl_longstr_t
         *auth_data;                     //  Authentication data
     int
@@ -80,6 +81,7 @@ link becomes active, and when a message content arrives.
     self->messages = ipr_looseref_list_new ();
     self->pipe_table = zyre_pipe_table_new ();
     self->feed_table = zyre_feed_table_new ();
+    ipr_str_random (self->queue, "ZYRE-AAAAAAAA");
 </method>
 
 <method name = "destroy">
@@ -336,7 +338,7 @@ link becomes active, and when a message content arrives.
     <action>
     zyre_peer_method_t
         *method;                        //  Method to send to peer server
-    //
+
     if (!self->connected) {
         self->connected = TRUE;
         self->offlined = FALSE;
@@ -350,8 +352,18 @@ link becomes active, and when a message content arrives.
             zyre_peer_agent_push (self->peer_agent_thread, self->channel_nbr, method);
             zyre_peer_method_unlink (&method);
         }
+        //  Create private queue on peer and consume off queue
+        zyre_peer_agent_queue_declare (
+            self->peer_agent_thread, self->channel_nbr, 0, self->queue,
+            FALSE, FALSE, TRUE, TRUE, TRUE, NULL);
+        zyre_peer_agent_basic_consume (
+            self->peer_agent_thread, self->channel_nbr, 0, self->queue,
+            NULL, TRUE, TRUE, TRUE, TRUE, NULL);
+        zyre_peer_agent_queue_bind (
+            self->peer_agent_thread, self->channel_nbr, 0, self->queue,
+            "amq.direct", self->queue, TRUE, NULL);
     }
-    zyre_backend_module_response_online (self->portal);
+    zyre_backend_module_response_online (self->portal, self->queue);
     </action>
 </method>
 

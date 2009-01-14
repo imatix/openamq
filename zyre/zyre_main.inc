@@ -294,9 +294,11 @@ s_zyre_execute (void)
     smt_log_print (http_server->alert_log, "I: loading web server plugin modules...");
     //  Register driver_modules, in lookup order
     s_register_driver_module (zyre_restms__http_driver_module_new (NULL, "/restms"));
+    s_register_driver_module (http_driver_null__http_driver_module_new (NULL, "/null"));
     s_register_driver_module (http_driver_file__http_driver_module_new (NULL, "/"));
 
     //  Register access modules, in execution order
+    s_register_access_module (http_access_dos__http_access_module_new (NULL));
     s_register_access_module (http_access_policy__http_access_module_new (NULL));
     s_register_access_module (http_access_logger__http_access_module_new (NULL));
     //  This replaces the http_access_refresh module

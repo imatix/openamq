@@ -9,7 +9,7 @@ use HTTP::Request::Common;
 define_constants ();
 
 $hostname = $ARGV [0];
-$hostname = "localhost" unless $hostname;
+$hostname = "localhost:8080" unless $hostname;
 
 $ua = new LWP::UserAgent;
 $ua->agent ('Zyre tester');

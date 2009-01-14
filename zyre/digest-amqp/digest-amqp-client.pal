@@ -6,17 +6,12 @@
  -->
 <pal script = "amq_pal_gen">
     <session>
-        <queue_declare
-            exclusive = "1" />
-        <queue_bind
-            queue = "$queue"
-            exchange = "amq.direct"
+        <queue_declare exclusive = "1" />
+        <queue_bind queue = "$queue" exchange = "amq.direct"
             routing_key = "$queue" />
-        <basic_consume
-            queue = "$queue" />
+        <basic_consume queue = "$queue" />
         <echo>I: sending Digest-AMQP request...</echo>
-        <basic_content
-            content_type = "application/x-Digest-AMQP">
+        <basic_content content_type = "application/x-Digest-AMQP">
             &lt;digest-amqp
                 xmlns=\"http://www.imatix.com/schema/digest-amqp\"
                 version=\"1.0\"&gt;
@@ -24,24 +19,17 @@
                     user = \"Mufasa\"
                     realm = \"testrealm@host.com\"
                     algorithm = \"MD5\"
-                    reply-to = \"$queue\"
+                    reply_to = \"$queue\"
                     /&gt;
             &lt;/digest-amqp&gt;
         </basic_content>
-        <basic_publish
-            exchange = "amq.direct"
-            routing_key = "Digest-AMQP"
-            mandatory = "1"
-            immediate = "1"
-            />
-        <wait
-            timeout = "1000" />
+        <basic_publish exchange = "amq.direct" routing_key = "Digest-AMQP"
+            mandatory = "1" immediate = "1" />
+        <wait timeout = "1000" />
         <basic_arrived>
-            <set
-                name = "content_type"
-                value = "$content_type" />
-            <if name = "content_type"
-                value = "application/x-Digest-AMQP">
+            <echo>$content_type</echo>
+            <set name = "content_type" value = "$content_type" />
+            <if name = "content_type" value = "application/x-Digest-AMQP">
                 <echo>I: received valid response</echo>
             </if>
             <else>

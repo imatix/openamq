@@ -1,32 +1,37 @@
-x60
-    - prime travel machine
-    - upgrade RAM, extra battery
-macbookair
-    - use for os/x tests & package build
-eee1000hd
-    - second travel machine with extended batteries
-    - backup work machine
-    - upgrade RAM
-ws200901
-    - main office work machine
-    - builds & regressions
-x40
-    - Windows XP build system
-dell
-    - ?
+Zyre issues
 
-zyre_restms
-    - client for zyre_backend_module
+    how to get replies from services
+        digest-amqp is case here
+        need a reply queue name, which comes back to us
+        backend module provides us with reply queue name
+        creates queue
+        can it put queue name on reply-to property?
+            - yes, optionally
+        can it provide us with the reply-to property?
+            - yes, via async portal method
+        -> create private queue at startup
+        -> return that to caller via reply-to method
 
-backend_module
-    backend_amqp
+    - allow whitelisting of ip addresses
+        - proxies, etc.
+    - access_whitelist module
+        - kill any error from previous modules?
+
+    - messages delivered repeatedly
+        testcase is digest_amqp_service.pl starting on clean zyre
+        -> same pipe & nozzle
+        -> maybe limit on number of deliveries?
+        -> name pipe after ip address
+            -> won't work via proxies...
+
+    - messages not delivered reliable
+        testcase is digest_amqp_service.pl restarting on zyre
+        -> always new pipes
+        -> clients need to cache pipe names & reuse
+        -> generated pipe names guaranteed unique
+        -> ip address of last client using pipe
 
 
-- unnamed nozzle in retry loop causes zyre to exhaust memory
-- named nozzle uri ending in / is not valid, needs index?
-- memory leak in zyre on getting messages in a loop...
-    - short timeout
-    - get message over and over
 
 RestMS
     - need to get all feeds from AMQP broker
@@ -96,5 +101,3 @@ RESTful extensions to AMQP
     - Queue.Delete is assertive
         - if queue does not exist, still returns Delete-Ok
         -> Subsumed in restms protocol class
-
-

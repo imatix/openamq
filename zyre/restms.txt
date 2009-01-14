@@ -346,10 +346,11 @@ GET /restms/pipe/my.pipe/my.nozzle/0
 DELETE /restms/pipe/my.pipe/my.nozzle/0
 [[/code]]
 
-An index '/0', or an unspecified index both mean 'get the first message'.  These two methods are equivalent:
+An index of zero, or an unspecified index both mean 'get the first message'.  These three methods are equivalent:
 
 [[code]]
 GET /restms/pipe/my.pipe/my.nozzle
+GET /restms/pipe/my.pipe/my.nozzle/
 GET /restms/pipe/my.pipe/my.nozzle/0
 [[/code]]
 

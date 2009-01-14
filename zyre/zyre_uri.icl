@@ -102,7 +102,7 @@ strings.
 
 //  This regexp matches a message URI with nozzle and index (4 items)
 //                        ( pipe )/(class )/   (nozzle)   /(index)
-#define MESSAGE_REGEXP "^/([^/@]+)/([^/@]+)/(?:([^/@]+)(?:/([0-9]+))?)?$"
+#define MESSAGE_REGEXP "^/([^/@]+)/([^/@]+)/(?:([^/@]+)(?:/([0-9]*))?)?$"
 
 //  This regexp matches a class name and an option item name
 //                        (class )   /( item )

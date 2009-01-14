@@ -42,6 +42,8 @@
         *backend;                       //  Backend peering to AMQP
     Bool
         connected;                      //  AMQP connection alive?
+    icl_shortstr_t
+        reply_queue;                    //  Queue name for replies
     smt_log_t
         *log;                           //  Log file for warnings
 </context>
@@ -101,19 +103,28 @@
     char
         *body;                          //  Formatted message body
 
-    body = ipr_str_format (
-        "&amp;lt;digest-amqp version=\\"1.0\\"&amp;gt;"
-            "&amp;lt;request user=\\"%s\\" realm=\\"%s\\" algorithm=\\"MD5\\"/&amp;gt;"
-        "&amp;lt;/digest-amqp&amp;gt;", user, realm);
+    if (self->connected) {
+        //  we need a private queue for responses back from server...
+        body = ipr_str_format (
+            "&amp;lt;digest-amqp version=\\"1.0\\"&amp;gt;"
+                "&amp;lt;request"
+                " user=\\"%s\\""
+                " realm=\\"%s\\""
+                " algorithm=\\"MD5\\""
+                " reply_to=\\"%s\\""
+                " /&amp;gt;"
+            "&amp;lt;/digest-amqp&amp;gt;", user, realm, self->reply_queue);
 
-    content = amq_content_basic_new ();
-    amq_content_basic_set_body (content, body, strlen (body), icl_mem_free);
-    amq_content_basic_set_message_id (content, "%s:%s", user, realm);
-    amq_content_basic_set_reply_to (content, "NoSuchQueue");
-    zyre_backend_module_request_forward (self->backend,
-        "amq.direct", "Digest-AMQP", content, TRUE, TRUE);
-    amq_content_basic_unlink (&content);
-    smt_log_print (self->log, "I: sent Digest-AMQP request for  '%s:%s'", user, realm);
+        content = amq_content_basic_new ();
+        amq_content_basic_set_body (content, body, strlen (body), icl_mem_free);
+        zyre_backend_module_request_forward (self->backend,
+            "amq.direct", "Digest-AMQP", content, TRUE, TRUE);
+        amq_content_basic_unlink (&content);
+        smt_log_print (self->log, "I: sent Digest-AMQP request for  '%s:%s'", user, realm);
+    }
+    else
+        smt_log_print (self->log, "W: could not send Digest-AMQP request for '%s:%s', not connected",
+            user, realm);
     </action>
 </method>
 
@@ -125,6 +136,7 @@
         "I: Digest-AMQP now peered to OpenAMQ server on %s",
         zyre_config_amqp_hostname (zyre_config));
     self->connected = TRUE;
+    icl_shortstr_cpy (self->reply_queue, reply_queue);
     </action>
 </method>
 
@@ -139,7 +151,36 @@
 
 <method name = "arrived">
     <action>
-    icl_console_print ("I: received response from Digest-AMQP peering...");
+    //  We got a response back from the Digest-AMQP service.  Parse it for
+    //  a username, realm, and digest and ok, send those credentials to the
+    //  http_server.
+    //
+    asl_reader_t
+        reader;                         //  Body reader
+    ipr_bucket_t
+        *bucket;                        //  Body bucket
+    ipr_xml_t
+        *xml_root = NULL,
+        *response;
+    char
+        *user,
+        *realm,
+        *digest;
+
+    amq_content_basic_set_reader (content, &reader, 4096);
+    bucket = amq_content_basic_replay_body (content, &reader);
+    xml_root = ipr_xml_parse_bucket (bucket);
+    response = ipr_xml_find_item (xml_root, "/digest-amqp/response");
+    if (response) {
+        user   = ipr_xml_attr_get (response, "user", NULL);
+        realm  = ipr_xml_attr_get (response, "realm", NULL);
+        digest = ipr_xml_attr_get (response, "digest", NULL);
+        if (user && realm && digest)
+            ;
+        ipr_xml_unlink (&response);
+    }
+    ipr_bucket_unlink (&bucket);
+    ipr_xml_destroy (&xml_root);
     //  send message to http_server
     //  http_server_digest_update (server, key, digest);
     //  update table in memory

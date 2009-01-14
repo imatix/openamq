@@ -695,11 +695,15 @@
         feed = s_feed_assert (self, context, self->uri->feed_name, self->uri->feed_class);
         if (feed) {
             content = amq_content_basic_new ();
-            amq_content_basic_record_body  (content, context->request->content);
-            amq_content_basic_set_reply_to (content,
-                http_request_get_header (context->request, "RestMS-Reply-To"));
-            amq_content_basic_set_message_id (content,
-                http_request_get_header (context->request, "RestMS-Message-Id"));
+            amq_content_basic_record_body (content, context->request->content);
+            amq_content_basic_set_content_type (content, context->request->content_type);
+
+//TODO: reply-to does not need header, can be assumed to go into message body
+//      message id is irrelevant for this work
+//            amq_content_basic_set_reply_to (content,
+//                http_request_get_header (context->request, "RestMS-Reply-To"));
+//            amq_content_basic_set_message_id (content,
+//                http_request_get_header (context->request, "RestMS-Message-Id"));
             zyre_backend_module_request_address_post (
                 self->backend, self->uri->address, self->uri->feed_name, content);
             amq_content_basic_unlink (&content);

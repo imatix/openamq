@@ -76,12 +76,12 @@ The Digest-AMQP request is an XML document with this format:
         user = "user-name"
         realm = "realm"
         algorithm = "algorithm"
-        reply-to = "routing key"
+        reply_to = "routing key"
     />
 </digest-amqp>
 [[/code]]
 
-The user, realm, and algorithm properties have the meaning defined in RFC 2617.  The reply-to property is the name of a queue created by the client.
+The user, realm, and algorithm properties have the meaning defined in RFC 2617.  The reply_to property is the name of a queue created by the client.
 
 The Digest-AMQP response is an XML document with this format:
 
@@ -110,7 +110,7 @@ The AMQP service works as follows:
 * It binds this queue to the "amq.direct" exchange, using the routing key "Digest-AMQP".
 * It consumes from that queue and waits for incoming requests.
 * When it receives a request, it executes it, and prepares a response.
-* It publishes the response to the "amq.direct" exchange using the reply-to property of the request as the routing key.
+* It publishes the response to the "amq.direct" exchange using the reply_to property of the request as the routing key.
 
 The AMQP client works as follows:
 
@@ -127,14 +127,14 @@ Either the client and/or server can be implemented using RestMS rather than AMQP
 * It creates a server-named pipe.
 * It creates a join between its pipe and the Digest-AMQP feed using the address "*@Digest-AMQP".
 * It waits for a request message on the pipe, and when one arrives, it executes it and prepares a response.
-* It posts the response to an address consisting of the reply-to property of the request followed by "@amq.direct".
+* It posts the response to an address consisting of the reply_to property of the request followed by "@amq.direct".
 * It deletes the message from the pipe.
 
 The RestMS client works as follows:
 
 * It creates a server-named pipe, for responses.
 * It creates a join between its pipe and the amq.direct feed using the address "{pipe-name}@amq.direct".
-* It prepares a request, setting the reply-to property to the name of its pipe.
+* It prepares a request, setting the reply_to property to the name of its pipe.
 * It posts the request to the address "request@Digest-AMQP".
 * It waits for a response message on the pipe.
 * When it receives a response, it processes it, and deletes the message from the pipe.
@@ -150,7 +150,6 @@ We use the example from RFC 2617.  The client requests credentials for the user 
 [[code]]
 Exchange: amq.direct
 Routing-key: Digest-AMQP
-Reply-to: queue-0123
 Content-type: application/x-Digest-AMQP
 
 <digest-amqp
@@ -160,11 +159,12 @@ Content-type: application/x-Digest-AMQP
         user = "Mufasa"
         realm = "testrealm@host.com"
         algorithm = "MD5"
+        reply_to = "queue-0123"
         />
 </digest-amqp>
 [[/code]]
 
-The actual format of the request is a binary AMQP Basic.Publish command.  Here we use a simple text format to represent the significant arguments: exchange and routing-key are arguments to Basic.Publish, reply-to and content-type are properties of the content.  The XML is passed as the content body of the Basic.Publish commands.
+The actual format of the request is a binary AMQP Basic.Publish command.  Here we use a simple text format to represent the significant arguments: exchange and routing-key are arguments to Basic.Publish and content-type is a property of the content.  The XML is passed as the content body of the Basic.Publish commands.
 
 The password for this user/realm is "Circle Of Life".  The Digest-AMQP service calculates the hash as MD5("Mufasa:testrealm@host.com:Circle Of Life"), which "939e7578ed9e3c518a452acee763bce9".  It sends this Response:
 
@@ -271,7 +271,7 @@ Here is a corresponding Digest-AMQP client in PAL:
                     user = \"Mufasa\"
                     realm = \"testrealm@host.com\"
                     algorithm = \"MD5\"
-                    reply-to = \"$queue\"
+                    reply_to = \"$queue\"
                     /&gt;
             &lt;/digest-amqp&gt;
         </basic_content>
