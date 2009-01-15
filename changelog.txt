@@ -38,7 +38,6 @@ TODO
     - show connection direct status via amq_shell
     - show last exchange as well as type on amq_shell queue page
     - put debian packaging into release package
-    - reorganize openamq archive to be clean
     - merge amq_queue_basic & amq_queue_base into amq_queue
     - make web-based amq_shell tool using http server
     - fix/remove settle time in server (before/after socket? federation?)
@@ -95,6 +94,16 @@ TODO
         - win32 front-end (maybe portable GUI? Clutter?)
     - redesign queue->consumer->channel using portals
     - also for exchange->binding->queue?
+
+
+2009-01-15
+
+* added: support for Digest-AMQP spec, with full test/demo case.
+
+2009-01-11
+
+* added: lots, in Xitami: access modules, driver modules, password management, digest authentication.
+* added: lots, in Zyre: portal for backend peering, digest-amqp spec and examples.
 
 2009-01-01
 
