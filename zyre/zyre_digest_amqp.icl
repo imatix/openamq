@@ -38,6 +38,8 @@
 <import class = "zyre_classes" />
 
 <context>
+    http_access_module_t
+        *portal;                        //  Portal back to http_server
     zyre_backend_module_t
         *backend;                       //  Backend peering to AMQP
     Bool
@@ -56,6 +58,7 @@
 
 <method name = "destroy">
     <action>
+    self->portal = NULL;
     zyre_backend_module_unlink (&self->backend);
     smt_log_unlink (&self->log);
     </action>
@@ -65,6 +68,14 @@
 
 <method name = "announce">
     <action>
+    //  We  don't link to the portal since the portal wraps this object and
+    //  destroys it.  The portal receives responses back from us when we're
+    //  invoked asynchronously.  Sorry this is kind of complex... in a portal
+    //  request handler, 'portal' is the portal that sent us the request.
+    //  In the 'arrived' method we get a request from one portal and send a
+    //  response to a different one, namely this one back to http_server:
+    self->portal = portal;
+
     self->log = smt_log_link (log);
     smt_log_print (log, "I: Digest-AMQP access module loaded");
     </action>
@@ -120,7 +131,7 @@
         zyre_backend_module_request_forward (self->backend,
             "amq.direct", "Digest-AMQP", content, TRUE, TRUE);
         amq_content_basic_unlink (&content);
-        smt_log_print (self->log, "I: sent Digest-AMQP request for  '%s:%s'", user, realm);
+        smt_log_print (self->log, "I: sent Digest-AMQP request for '%s:%s'", user, realm);
     }
     else
         smt_log_print (self->log, "W: could not send Digest-AMQP request for '%s:%s', not connected",
@@ -175,16 +186,16 @@
         user   = ipr_xml_attr_get (response, "user", NULL);
         realm  = ipr_xml_attr_get (response, "realm", NULL);
         digest = ipr_xml_attr_get (response, "digest", NULL);
-        if (user && realm && digest)
-            ;
+        if (user && realm && digest) {
+            icl_shortstr_t
+                key;
+            icl_shortstr_fmt (key, "%s:%s", user, realm);
+            http_access_module_response_new_password (self->portal, key, digest, TRUE);
+        }
         ipr_xml_unlink (&response);
     }
     ipr_bucket_unlink (&bucket);
     ipr_xml_destroy (&xml_root);
-    //  send message to http_server
-    //  http_server_digest_update (server, key, digest);
-    //  update table in memory
-    //  save table back to disk...
     </action>
 </method>
 
