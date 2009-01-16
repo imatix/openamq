@@ -52,7 +52,7 @@
 #       - empty it if -c (clean) option was specified
 #   * Prepare the BUILD directory
 #       - if clean option used, delete directory
-#   * Checks out products (foreign, base, gsl4, base2, openamq) into BUILD
+#   * Checks out products (foreign, base1, gsl4, base2, openamq) into BUILD
 #       - if clean not specified, leave old sources
 #   * Does boom on each product
 #       - does "boom all", no shortcuts when making a package
@@ -85,7 +85,7 @@ trap 'croak "Quit"' QUIT
 
 #   Set global options for script
 SVN_ROOT=https://svn.imatix.com/imatix
-PRODUCTS="foreign base gsl4 base2 openamq"
+PRODUCTS="foreign base1 gsl4 base2 openamq"
 MANIFEST=manifest.xml
 RUNLOG=/tmp/make_openamq_$$.log
 
