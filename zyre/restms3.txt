@@ -9,26 +9,47 @@ RestMS defines a generic framework by which clients issue HTTP methods to work w
 
 All methods work orthogonally on all types of RestMS resources, whether those resources contain or do not contain other resources.  Not all combinations of methods and resources are meaningful, implemented, or permitted.
 
-This framework was heavily influenced by the design of AtomPub[n].  In this section we use XML as the document language, but the reader may note that RestMS allows a choice of representations for structured data.
+This framework draws heavily on the design of AtomPub[n] and that specification may be helpful as a background to the mechanics of implementing a RESTful dialog over a HTTP transport.
 
-+++ Configured vs. dynamic resources
+In this section we use XML as the document language, but the reader may note that RestMS allows a choice of representations for structured data.
 
-RestMS distinguishes between resources that are created automatically by the server ("configured resources") and resources that are created at runtime by applications.
++++ Resource lifecycles and visibility
 
+RestMS distinguishes between resources that are created automatically by the server ("configured resources") and resources that are created at runtime by applications ("dynamic resources").  It also distinguishes between resources that are named and visible to all applications ("public resources") and resources that are unnamed and accessible only by a (by default) secret hash ("private resources").
+
+The lifecycle and visibility of resources is related, as follows:
+
+* Configured resources are always public while dynamic resources are by default private.
+* Applications can modify and delete dynamic resources, if they know their URIs, while they may not modify or delete configured resources.
+* The URI for a public resource is derived from its type and name, while the URI for a private resource is provided by the server.
+* Public resources are named, and discoverable through navigation of parent resources, while private resources are unnamed, and undiscoverable.
+* Dynamic resources may in some cases be created by the server.
+
+The URI for a public resource is derived from the resource type and name as follows:
+
+[[code]]
+http://{server-name}[:{port}]/restms/{resource type}/{resource name}
+[[/code]]
+
+The URI for a private resource takes this form:
+
+[[code]]
+http://{server-name}[:{port}]/restms/resource/{resource hash}
+[[/code]]
 
 +++ Creating a new resource
 
-The creation of a new resource follows these rules:
+The creation of a new dynamic resource follows these rules:
 
-* The resource is always named by the server, although the client can provide a 'hint' in the form of a Slug: header.
-* The new resource will always be the child of another resource (the 'collection') identified with a URI.
-* The client creates the resource by sending a POST method on the collection URI and providing the specifications for the new resource as the POST content body.
+* The new resource will always be the child of another resource (the 'parent') identified with a URI.
+* The client creates the resource by sending a POST method on the parent URI and providing the specifications for the new resource as the POST content body.
+* The client can request a public or a private resource.  Public resources are named, while private resources are unnamed, and accessible only via a server-generated URI.
 * The server replies, if there was no error, with a "201 Created" reply status, a Location: header that provides a URI to the new resource, and a content body that represents the created resource.
 
 [[code]]
 Client                                     Server
   |                                           |
-  |  1.) POST to Collection URI               |
+  |  1.) POST to parent URI                   |
   |      Resource specifications              |
   |------------------------------------------>|
   |                                           |
@@ -40,10 +61,10 @@ Client                                     Server
 
 Note that the content body of a created resource may be different than the content body provided by the client: the client provides specifications for the resource, while the server provides the actual resulting resource contents.
 
-This is the general form of a client request to create a resource:
+This is the general form of a client request to create a dynamic resource:
 
 [[code]]
-POST /{collection uri} HTTP/1.1
+POST /{parent uri} HTTP/1.1
 Host: {hostname}
 User-Agent: {user agent}
 Authorization: {credentials}
@@ -53,25 +74,27 @@ Slug: {resource title}
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <{resource type}>
+  <{resource type} [name="{resource name"}]>
     {resource specifications}
   </{resource type}>
 </restms>
 [[/code]]
 
-And this is the general form of a server response for a created resource:
+If allowed by the resource type, and if the <resource type> tag has a "name" attribute, the new dynamic resource will be public, otherwise it will be private.
+
+This is the general form of a server response for a created resource:
 
 [[code]]
 HTTP/1.1 201 Created
 Date: {response date}
 Content-Length: {size of content}
 Content-Type: application/restms+xml
-Location: {new resource uri}
+Location: http://{hostname}[{port}]/restms/resource/{hash}
 ETag: "{resource entity tag}"
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <{resource type}>
+  <{resource type} [name="{resource name"}]>
     {resource contents}
   </{resource type}>
 </restms>
@@ -79,9 +102,9 @@ ETag: "{resource entity tag}"
 
 +++ Retrieving a known resource
 
-Retrieving a known resource (a collection or a member) follows these rules:
+Retrieving a known resource follows these rules:
 
-* The client must know the URI of the resource.  If it does not know the URI of the resource, it can discover this by retrieving the collection resource and examining its contents.
+* The client must know the URI of the resource.  If it does not know the URI of the resource, and the resource is public, it can discover this by retrieving the parent resource and examining its contents.  If the resource is private, the client must either have created the resource, or must receive the resource URI by an out-of-band communication (for example a message from an external resource management service application).
 * The client retrieves the resource by sending a GET method on the resource URI.
 * The client can optionally specify headers to control the caching of the resource both by itself and by proxies that sit between it and the server.  We explain caching below.
 * The server either returns a "200 OK" reply with the contents of the resource, or returns a reply code indicating why it did not return the resource contents.
@@ -145,7 +168,7 @@ Date: {response date}
 
 Modifying a known resource follows these rules:
 
-* The client must know the URI of the resource.  If it does not know the URI of the resource, it can discover this by examining the contents of the collection resource.
+* The client must know the URI of the resource.  If it does not know the URI of the resource, it can discover this by examining the contents of the parent resource.
 * The client must have retrieved the resource using GET.
 * The client sends new resource contents by sending a PUT method on the resource URI with a modified resource content.
 * The client can optionally specify headers to control potential conflicts (two clients trying to modify the same resource at the same time).
@@ -213,7 +236,7 @@ Date: {response date}
 
 Deleting a known resource follows these rules:
 
-* The client must know the URI of the resource.  If it does not know the URI of the resource, it can discover this by examining the contents of the collection resource.
+* The client must know the URI of the resource.  If it does not know the URI of the resource, it can discover this by examining the contents of the parent resource.
 * The client sends a DELETE method on the resource URI.
 * The client can optionally specify headers to control potential conflicts.
 * The server either returns a "2xx OK" reply indicating success, or returns a reply code indicating why it did not delete the resource contents.
@@ -221,7 +244,7 @@ Deleting a known resource follows these rules:
 [[code]]
 Client                                     Server
   |                                           |
-  |  1.) DELETE to Member URI                 |
+  |  1.) DELETE to resource URI               |
   |------------------------------------------>|
   |                                           |
   |  2.) 200 OK                               |
@@ -260,6 +283,36 @@ If the resource held by the server has the same ETag (and if there are no other 
 HTTP/1.1 412 Precondition Failed
 Date: {response date}
 [[/code]]
+
++++ Notifications and asynclets
+
+HTTP is generally a synchronous protocol in which a client polls a server for resources.  This is undesirable in many architectures, both from a design and a performance perspective.  RestMS allows for asynchronous notifications with the concept of an "asynchronous resource instance", which we call an "asynclet".
+
+A normal resource is identified in a parent resource by a href attribute, and other attributes:
+
+[[code]]
+    <some-type href="some-URI" ... />
+[[/code]]
+
+An asynclet has the href attribute and a second attribute 'async="1"', telling the client that this resource, though it has a URI, does not in fact yet exist:
+
+[[code]]
+    <some-type href="some-URI" async="1" />
+[[/code]]
+
+When the client retrieves an asynclet, the server waits until a resource of the right type is created, within that parent, and it then responds to the client with the contents of that new resource.
+
+In those cases where asynclets are meaningful, and implemented, the representation for a parent resource will list all existing resources plus a single asynclet:
+
+[[code]]
+    <some-type href="some-URI-1" ... />
+    <some-type href="some-URI-2" ... />
+    <some-type href="some-URI-3" ... />
+    <some-type href="some-URI-4" ... />
+    <some-type href="some-URI-5" async="1" />
+[[/code]]
+
+This gives the client full choice between a synchronous polling dialog (in which it would fetch the parent each time), or an event-driven dialog (in which case it would fetch the asynclet each time).
 
 +++ Cacheing
 

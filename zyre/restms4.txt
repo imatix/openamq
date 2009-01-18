@@ -5,17 +5,17 @@
 RestMS resources form a hierarchy in which resources of certain types can contain resources of other types.  This diagram shows the hierachy, and which resources are containers for others:
 
 [[code]]
-Domain                      The domain is the root resource
-    |
-    o- Feed                 Writers publish messages to a feed
-    |
-    o- Pipe                 Pipes hold messages for readers
-        |
-        o- Join             Joins pull messages into pipes, from feeds
-        |
-        o- Nozzle           Readers access pipes through nozzles
-            |
-            o- Message      Messages are opaque binary payloads
+Resource type       Visibility          Lifecycle
+----------------    ----------------    ----------------
+Domain              Public              Configured
+  |
+  o- Feed           Public, private     Configured, dynamic
+  |
+  o- Pipe           Private             Dynamic
+     |
+     o- Join        Private             Dynamic
+     |
+     o- Message     Private             Dynamic
 [[/code]]
 
 The RestMS resources deliver a loosely-coupled architecture that is comparable to and compatible with AMQP but works in a RESTful manner.  The architecture can be drawn in several ways.  This diagram shows the logical flow of a message from writer to reader (both being RestMS client applications) via the different RestMS resources:
@@ -42,18 +42,13 @@ The RestMS resources deliver a loosely-coupled architecture that is comparable t
     ||
     \/
 .--------.
-| Nozzle |      The nozzle regulates the delivery of
-`--------'      messages to the recipient.
-    ||
-    \/
-.--------.
 | Reader |      The reader retrieves, processes, and
-`--------'      deletes messages from the nozzle.
+`--------'      deletes messages from the pipe.
 [[/code]]
 
 Joins create the loose coupling between writers and readers.  A join is a relationship between a pipe and a feed, and the join's properties tell the feed what messages the pipe needs.  We will look at two scenarios.  The first shows how joins can collect messages from multiple feeds into a single pipe (the "collect" pattern).  The second shows how joins can distribute messages from one feed to many pipes (the "fanout" pattern).
 
-Here is how the collect pattern works.  We have a number of writers, each writing to one or more feeds.  The reader has a pipe, and creates a join to each feed that it wants to collect messages from.  As each feed receives messages it will pass to the pipe those messages selected by the join.  The pipe collects these messages in a FIFO queue and the reader then fetches them in batches, using a nozzle to control when it deletes received messages off the pipe.  The diagram shows how multiple feeds are collected into one pipe:
+Here is how the collect pattern works.  We have a number of writers, each writing to one or more feeds.  The reader has a pipe, and creates a join to each feed that it wants to collect messages from.  As each feed receives messages it will pass to the pipe those messages selected by the join.  The pipe collects these messages in a FIFO queue and the reader then fetches them in batches.  The diagram shows how multiple feeds are collected into one pipe:
 
 [[code]]
 .--------.      .--------.      .--------.
@@ -74,11 +69,6 @@ Here is how the collect pattern works.  We have a number of writers, each writin
                     \/
                 .--------.
                 |  Pipe  |
-                `--------'
-                    ||
-                    \/
-                .--------.
-                | Nozzle |
                 `--------'
                     ||
                     \/
@@ -112,16 +102,21 @@ And here is how the fanout pattern works.  A single writer publishes messages to
     ||              ||              ||
     \/              \/              \/
 .--------.      .--------.      .--------.
-| Nozzle |      | Nozzle |      | Nozzle |
-`--------'      `--------'      `--------'
-    ||              ||              ||
-    \/              \/              \/
-.--------.      .--------.      .--------.
 | Reader |      | Reader |      | Reader |
 `--------'      `--------'      `--------'
 [[/code]]
 
 Different types of feed will route messages in different ways.  For some feed types, messages are routed exclusively to one pipe or another.  For other feed types, messages are copied to each pipe that requests them.  We explain feed types later.
+
++++ Integration with AMQP networks
+
+RestMS is designed to be able to interoperate with AMQP.  This happens as follows:
+
+* RestMS implementations MAY be fully stand-alone, or may implement a federation model.
+* If a RestMS server is federated with an AMQP server, a RestMS domain maps to an AMQP network.  The actual mapping of a domain to an AMQP network (defined as an AMQP server and connection credentials) is a configuration issue.
+* A feed may map to an AMQP exchange or shared queue, depending on the feed type.
+* A message posted by a RestMS application to a mapped feed will be sent to the AMQP server where it can be accessed by AMQP applications via the AMQP mechanims of bindings and queues.
+* A message posted by an AMQP application to a mapped feed will be sent to the RestMS server where it can be accessed by RestMS application via the RestMS mechanisms of joins and pipes.
 
 +++ Domains
 
@@ -136,9 +131,9 @@ http://{server-name}[:{port}]/restms/{domain-name}
 These methods are allowed on a domain URI:
 
 * GET - retrieves the domain description.
-* POST - creates a child resource of a specified type (feed or pipe).
+* POST - creates a new feed or pipe within the domain.
 
-The XML representation of a domain resource is:
+The XML representation of a domain contains all public feeds and pipes:
 
 [[code]]
 <?xml version="1.0"?>
@@ -154,108 +149,80 @@ The domain document does not necessarily list //all// feeds and pipes; applicati
 
 +++ Feeds
 
-A feed represents a stream of messages received from one or more writers.  The messages in a feed are ordered, though this order is stable only for messages from a single writer.  In other words, there are no guarantees of ordering between messages from different writers.  Feeds may store messages for arbitrary durations.  Feeds deliver messages into pipes, according to the set of joins defined on the feed.  The RestMS server may provide configured feeds, and applications can create and destroy feeds for their own use.  Feeds may be public and discoverable, or private.
+A feed represents a first-in, first-out stream of messages received from one or more writers.  The messages in a feed are ordered, though this order is stable only for messages from a single writer.  In other words, there are no guarantees of ordering between messages from different writers.  Feeds may store messages for arbitrary durations.  Feeds deliver messages into pipes, according to the set of joins defined on the feed.  The RestMS server may provide configured feeds, and applications can create and destroy dynamic feeds for their own use.
 
-Configured feeds are always public and applications can The URI for a configured feed is:
+These methods are allowed on a feed URI:
 
-[[code]]
-http://{server-name}[:{port}]/restms/feed/{feed-name}
-[[/code]]
+* GET - retrieves the feed.
+* PUT - updates the feed.
+* DELETE - deletes the feed.
+* POST - sends a message to the feed.
 
-The URI for an application-created feed is:
-
-[[code]]
-http://{server-name}[:{port}]/restms/{uri-hash}
-[[/code]]
-
-
-These methods are allowed on a XX URI:
-
-* GET -
-* PUT -
-* DELETE -
-* POST -
-
-The XML representation of a domain resource is:
+The XML representation of a feed is:
 
 [[code]]
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <domain name="{domain name}">
-    <feed name="{feed name}" href="{feed URI}" />...
-    <pipe name="{pipe name}" href="{pipe URI}" />...
-  </domain>
+  <feed [name="{feed name}"] type="{feed type}" amqp_name="{amqp name}" />
 </restms>
 [[/code]]
 
-The domain document does not necessarily list //all// feeds and pipes; applications may create these as private and thus make them inaccessible through discovery.
+The set of valid feed types is implementation-specific.  The feed type defines the routing semantics of the feed, for example whether it uses literal or wild-card addresses, whether it distributes or fans-out messages, and so on.  RestMS does not define any standard feed types.
 
-
+A feed maps to an AMQP exchange or shared queue.  The amqp_name attribute of a feed is the public name of exchange or shared queue for AMQP applications.  By default this is the same as the feed name, for public feeds.
 
 +++ Pipes
 
-what it is, how it works. lifecycle, discoverability.
+A pipe represents a first-in, first-out stream of messages destined for one or more readers.  The messages in a pipe are ordered, though this order is stable only for messages received from one feed.  Pipes receive messages from feeds according to the joins defined between the pipe and the feed.  They store messages for an arbitrary time.  They deliver messages to a single client.  All pipes are dynamic and private.
 
-The URI for a XXX is:
+These methods are allowed on a pipe URI:
+
+* GET - retrieves the pipe description.
+* PUT - updates the pipe.
+* DELETE - deletes the pipe.
+* POST - creates a new join for the pipe.
+
+The XML representation of a pipe contains all joins, messages, and usually an asynclet that provides a way for the client to wait on new message arrivals:
 
 [[code]]
-http://{server-name}[:{port}]/restms/feed/{feed-name}
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <pipe [name="{pipe name}"] type="{pipe type}" messages="{count}">
+    <join href="{join URI}" filter="{join filter}" feed="{feed URI}" />...
+    <message href="{message URI}" message_id = "{message id}" />...
+    <message href="{message URI}" async="1" />
+  </pipe>
+</restms>
 [[/code]]
 
-These methods are allowed on a XX URI:
+The set of pipe types is implementation-specific.  The pipe type defines the distribution semantics of the pipe, for example whether it delivers one message at a time, or a stream of messages.  RestMS does not define any standard pipe types.
 
-* GET -
-* PUT -
-* DELETE -
-* POST -
+The list of messages in a pipe shows the oldest waiting messages, in order.  It may be limited by the server.  All message metadata is held in the pipe description.
 
 +++ Joins
 
-what it is, how it works. lifecycle, discoverability.
+A join represents a relationship between a feed and a pipe.  The relationship specifies which messages the feed should route to the pipe.  In the current design of RestMS, for compatibility with AMQP, the routing semantics are specified in the feed type rather than in the join.  Joins are always dynamic and always private and accessible only to applications that know the pipe URI.  If either the feed or the pipe for a join is deleted, the join is automatically deleted.
 
-The URI for a XXX is:
+These methods are allowed on a join URI:
 
-[[code]]
-http://{server-name}[:{port}]/restms/feed/{feed-name}
-[[/code]]
+* GET - retrieves the join description.
+* PUT - updates the join.
+* DELETE - deletes the join.
 
-These methods are allowed on a XX URI:
-
-* GET -
-* PUT -
-* DELETE -
-* POST -
-
-
-+++ Nozzles
-
-what it is, how it works. lifecycle, discoverability.
-
-The URI for a XXX is:
+The XML representation of a join is:
 
 [[code]]
-http://{server-name}[:{port}]/restms/feed/{feed-name}
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <join filter="{join filter}" feed="{feed URI}" />
+</restms>
 [[/code]]
-
-These methods are allowed on a XX URI:
-
-* GET -
-* PUT -
-* DELETE -
-* POST -
-
 
 +++ Messages
 
-what it is, how it works. lifecycle, discoverability.
+A message is an opaque binary blob with a content type set by the writer.  Messages are always private, dynamic, and created by the server.  To fetch A reader must retrieve the pipe
 
-The URI for a XXX is:
-
-[[code]]
-http://{server-name}[:{port}]/restms/feed/{feed-name}
-[[/code]]
-
-These methods are allowed on a XX URI:
+These methods are allowed on a message URI:
 
 * GET -
 * PUT -
