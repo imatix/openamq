@@ -1,0 +1,33 @@
+++ Method / resource interactions
+
+Domain
+    GET - gets domain contents (feeds, pipes)
+    PUT - not allowed
+    DELETE - not allowed
+    POST - create new resource in domain (feed, pipe)
+Feed
+    GET - gets feed description
+    PUT - updates feed
+    DELETE - deletes feed
+    POST - sends message to feed
+Pipe
+    GET - gets pipe description (joins, nozzles)
+    PUT - updates pipe
+    DELETE - deletes pipe
+    POST - creates new resource in pipe (join, nozzle)
+Join
+    GET - gets join description
+    PUT - updates join
+    DELETE - deletes join
+    POST - not allowed
+Nozzle
+    GET - gets nozzle description
+    PUT - updates nozzle
+    DELETE - deletes nozzle
+    POST - not allowed
+Message
+    GET - gets message
+    PUT - not allowed
+    DELETE - deletes message
+    POST - not allowed
+

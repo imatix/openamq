@@ -1,0 +1,237 @@
+++ Generic document syntax
+
++++ Overview
+
+RestMS defines a generic document syntax for resources, based on these principles:
+
+* Resources are typed, and the type names form the main element names in the document.
+* A resource may, or may not, be a container for other resources depending on its type.
+* The document syntax is fully neutral with respect to the resource hierarchy.  That is, when the protocol is changed to add new resources, remove resources, or modify resources, nothing in this section will change.
+* There is a single root resource that contains all other resources.
+* Clients can navigate the resource hierarchy with no specific knowledge except the type and URI of the root resource.
+* Documents can include opaque binary resources, which themselves cannot contain further RestMS resources.
+
+Our goals with this design are:
+
+* To define a generic syntax that can be implemented, understood, and reused without needing specific knowledge of the RestMS resources and their semantics.
+* To define a document syntax that is easily mapped to arbitrary representations including XML and JSON.  We document the use of these two representations but do not exclude others.
+* To provide documents that are navigable and discoverable with mimimum prior knowledge.
+* To deliver most of the benefits of structured representations (such as cheap parsing) without the cost of formalised validation.
+* To allow unilateral extensibility of the resource hierarchy by server implementations.
+* To keep things as simple as possible for RestMS users: this means being able to read and create RestMS documents with minimum libraries, extensions, addons, and other complexities.
+* To allow for future evolution in structured data representation.
+
++++ Basic syntax rules
+
+RestMS documents obey these basic rules:
+
+* All RestMS documents have a "document root" element called "restms".
+* This document root contains a single "resource root".
+* The resource root element contains other elements, each which can itself contain elements.
+* All elements except the document root element correspond to RestMS resources.
+* The name of all elements except the document root correspond to the RestMS resource type.
+* All elements except the document root may have attributes, corresponding to resource properties.
+* All elements except the root may repeat 0 or more times.
+
+Further, for XML documents:
+
+* The content type MUST be "application/restms+xml;type={root resource}".
+* The document root has a single property, xmlns="http://www.imatix.com/schema/restms".
+* Elements with values and no attributes are equivalent to attributes of their parent.
+* Elements may not have both values and attributes.
+* The following characters should be escaped in element values:
+ * & (escaped by writing &amp;)
+ * < (escaped by writing &lt;)
+ * > (escaped by writing &gt;)
+* The following character MUST be escaped in attribute values:
+ * " (escaped by writing &quot;)
+
+And for JSON documents:
+
+* The content type MUST be "application/restms+json;type={root resource}".
+* The following character MUST be escaped in value strings:
+ * " (escaped by writing \")
+
+Here is an example of a RestMS document in XML:
+
+[[code]]
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <playlist>
+    <album artist="Echobelly" title="On" released="1995-10-17">
+      <track title="Car Fiction" length="2:31" />
+      <track title="King of the Kerb" length="3:59" />
+      <track title="Great Things" length="3:31" />
+      <track title="Natural Animal" length="3:27" />
+      <track title="Go Away" length="2:44" />
+      <track title="Pantyhose and Roses" length="3:26" />
+      <track title="Something Hot in a Cold Country" length="4:01" />
+      <track title="Four Letter Word" length="2:51" />
+      <track title="Nobody Like You" length="3:52" />
+      <track title="In the Year" length="3:31" />
+      <track title="Dark Therapy" length="5:30" />
+      <track title="Worms and Angels" length="2:38" />
+      <summary>Underrated, bittersweet guitar rock perfection</summary>
+    </album>
+  </playlist>
+</restms>
+[[/code]]
+
+The resource hierarchy in our example is:
+
+[[code]]
+playlist
+    |
+    o- album
+        |
+        o- track
+[[/code]]
+
+Note that the "summary" element is not a resource, but a property. These two fragments of XML are equivalent, and implementations SHOULD treat them as identical:
+
+[[code]]
+<!-- Fragment showing a property as an element -->
+<album
+    artist="Echobelly"
+    title="On"
+    released="1995-10-17">
+    <summary>Underrated, bittersweet guitar rock perfection</summary>
+</album>
+
+<!-- Fragment showing a property as an attribute -->
+<album
+    artist="Echobelly"
+    title="On"
+    released="1995-10-17"
+    summary="Underrated, bittersweet guitar rock perfection"
+    />
+[[/code]]
+
+Here is the same document in JSON, showing that the root resource may occur only once, while all other resources may occur multiple times:
+
+[[code]]
+{
+"restms": {
+  "playlist": [ {
+    "album": { "artist":"Echobelly", "title":"On", "released":"1995-10-17",
+      "track": [
+        { "title":"Car Fiction", "length":"2:31" },
+        { "title":"King of the Kerb", "length":"3:59" },
+        { "title":"Great Things", "length":"3:31" },
+        { "title":"Natural Animal", "length":"3:27" },
+        { "title":"Go Away", "length":"2:44" },
+        { "title":"Pantyhose and Roses", "length":"3:26" },
+        { "title":"Something Hot in a Cold Country", "length":"4:01" },
+        { "title":"Four Letter Word", "length":"2:51" },
+        { "title":"Nobody Like You", "length":"3:52" },
+        { "title":"In the Year", "length":"3:31" },
+        { "title":"Dark Therapy", "length":"5:30" },
+        { "title":"Worms and Angels", "length":"2:38" }
+      ],
+      "summary":"Underrated, bittersweet guitar rock perfection" }
+    } ]
+  }
+}
+[[/code]]
+
++++ Navigation and discovery
+
+RestMS documents use the following rule to allow navigation and discovery:
+
+* The attribute "href", if present, holds the URI for the resource that the element represents.
+* The URI for the root resource is known to both client and server by common agreement.
+* The URIs for all non-root resources are generated by the server and may be stored by the client.
+* URIs may be relative or absolute.
+
+Here is an example of a client retrieving a playlist resource using a HTTP GET method, with the server's response:
+
+[[code]]
+Client:
+GET /playlist HTTP/1.1
+
+Server:
+HTTP/1.1 200 OK
+Date: Mon Jan 12 12:05:01 2009
+Content-Length: 440
+Content-Type: application/restms+xml;type=playlist
+
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <playlist>
+    <album
+        artist="Echobelly"
+        title="On"
+        href="/playlist/A1023" />
+    <album
+        artist="Muse"
+        title="Showbiz"
+        href="/playlist/A0911" />
+    <album
+        artist="Toumani Diabate"
+        title="Djelika"
+        href="/playlist/A0023" />
+  </playlist>
+</restms>
+[[/code]]
+
+To retrieve a specific album, the client uses the URI provided by the server, for example:
+
+[[code]]
+Client:
+GET /playlist/A1023 HTTP/1.1
+
+Server:
+HTTP/1.1 200 OK
+Date: Mon Jan 12 12:05:02 2009
+Content-Length: 1440
+Content-Type: application/restms+xml;type=album
+
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+    <album
+        artist="Echobelly"
+        title="On"
+        released="1995-10-17"
+        summary="Underrated, bittersweet guitar rock perfection"
+      <track title="Car Fiction" length="2:31"
+        href="http://music.host.com/A1023/1" />
+      <track title="King of the Kerb" length="3:59"
+        href="http://music.host.com/A1023/2" />
+      <track title="Great Things" length="3:31"
+        href="http://music.host.com/A1023/3" />
+      <track title="Natural Animal" length="3:27"
+        href="http://music.host.com/A1023/4" />
+      <track title="Go Away" length="2:44"
+        href="http://music.host.com/A1023/5" />
+      <track title="Pantyhose and Roses" length="3:26"
+        href="http://music.host.com/A1023/6" />
+      <track title="Something Hot in a Cold Country" length="4:01"
+        href="http://music.host.com/A1023/7" />
+      <track title="Four Letter Word" length="2:51"
+        href="http://music.host.com/A1023/8" />
+      <track title="Nobody Like You" length="3:52"
+        href="http://music.host.com/A1023/9" />
+      <track title="In the Year" length="3:31"
+        href="http://music.host.com/A1023/10" />
+      <track title="Dark Therapy" length="5:30"
+        href="http://music.host.com/A1023/11" />
+      <track title="Worms and Angels" length="2:38"
+        href="http://music.host.com/A1023/12" />
+    </album>
+</restms>
+[[/code]]
+
+To retrieve a specific track, the client once again uses the URI provided by the server.  Note that in this case the server delivers a content of type "audio/mpeg-3", which the client should process accordingly (and not as RestMS XML or JSON):
+
+[[code]]
+Client:
+GET http://music.host.com/A1023/5 HTTP/1.1
+
+Server:
+HTTP/1.1 200 OK
+Date: Mon Jan 12 12:05:03 2009
+Content-Length: 2870112
+Content-Type: audio/mpeg-3
+
+...opaque binary content...
+[[/code]]

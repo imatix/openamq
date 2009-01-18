@@ -1,0 +1,264 @@
+++ The RestMS resource types
+
++++ Overview of RestMS resources
+
+RestMS resources form a hierarchy in which resources of certain types can contain resources of other types.  This diagram shows the hierachy, and which resources are containers for others:
+
+[[code]]
+Domain                      The domain is the root resource
+    |
+    o- Feed                 Writers publish messages to a feed
+    |
+    o- Pipe                 Pipes hold messages for readers
+        |
+        o- Join             Joins pull messages into pipes, from feeds
+        |
+        o- Nozzle           Readers access pipes through nozzles
+            |
+            o- Message      Messages are opaque binary payloads
+[[/code]]
+
+The RestMS resources deliver a loosely-coupled architecture that is comparable to and compatible with AMQP but works in a RESTful manner.  The architecture can be drawn in several ways.  This diagram shows the logical flow of a message from writer to reader (both being RestMS client applications) via the different RestMS resources:
+
+[[code]]
+.--------.
+| Writer |      The writer POSTs a message to a feed.
+`--------'      Many writers can post to many feeds.
+    ||
+    \/
+.--------.
+|  Feed  |      The feed routes the message to the
+`--------'      set of joins attached to it.
+    ||
+    \/
+.--------.
+|  Join  |      Each join tells a feed "route this
+`--------'      set of messages into my pipe".
+    ||
+    \/
+.--------.
+|  Pipe  |      The pipe holds messages on behalf of
+`--------'      the recipient, in a FIFO queue.
+    ||
+    \/
+.--------.
+| Nozzle |      The nozzle regulates the delivery of
+`--------'      messages to the recipient.
+    ||
+    \/
+.--------.
+| Reader |      The reader retrieves, processes, and
+`--------'      deletes messages from the nozzle.
+[[/code]]
+
+Joins create the loose coupling between writers and readers.  A join is a relationship between a pipe and a feed, and the join's properties tell the feed what messages the pipe needs.  We will look at two scenarios.  The first shows how joins can collect messages from multiple feeds into a single pipe (the "collect" pattern).  The second shows how joins can distribute messages from one feed to many pipes (the "fanout" pattern).
+
+Here is how the collect pattern works.  We have a number of writers, each writing to one or more feeds.  The reader has a pipe, and creates a join to each feed that it wants to collect messages from.  As each feed receives messages it will pass to the pipe those messages selected by the join.  The pipe collects these messages in a FIFO queue and the reader then fetches them in batches, using a nozzle to control when it deletes received messages off the pipe.  The diagram shows how multiple feeds are collected into one pipe:
+
+[[code]]
+.--------.      .--------.      .--------.
+| Writer |      | Writer |      | Writer |
+`--------'      `--------'      `--------'
+    ||              ||              ||
+    \/              \/              \/
+.--------.      .--------.      .--------.
+|  Feed  |      |  Feed  |      |  Feed  |
+`--------'      `--------'      `--------'
+    ||              ||              ||
+    \/              \/              \/
+.--------.      .--------.      .--------.
+|  Join  |      |  Join  |      |  Join  |
+`--------'      `--------'      `--------'
+    ||              ||              ||
+    `===============++==============='
+                    \/
+                .--------.
+                |  Pipe  |
+                `--------'
+                    ||
+                    \/
+                .--------.
+                | Nozzle |
+                `--------'
+                    ||
+                    \/
+                .--------.
+                | Reader |
+                `--------'
+[[/code]]
+
+And here is how the fanout pattern works.  A single writer publishes messages to a single feed (in the typical scenario).  Many readers each create a pipe and join that pipe to the feed using their selection criteria.  As the feed receives messages from the writer, it distributes them to the pipes, according to the joins.  Each pipe then delivers the messages in FIFO fashion to its reader.  This diagram shows how one feed fans-out to many pipes:
+
+[[code]]
+                .--------.
+                | Writer |
+                `--------'
+                    ||
+                    \/
+                .--------.
+                |  Feed  |
+                `--------'
+                    ||
+    .===============++===============.
+    \/              \/              \/
+.--------.      .--------.      .--------.
+|  Join  |      |  Join  |      |  Join  |
+`--------'      `--------'      `--------'
+    ||              ||              ||
+    \/              \/              \/
+.--------.      .--------.      .--------.
+|  Pipe  |      |  Pipe  |      |  Pipe  |
+`--------'      `--------'      `--------'
+    ||              ||              ||
+    \/              \/              \/
+.--------.      .--------.      .--------.
+| Nozzle |      | Nozzle |      | Nozzle |
+`--------'      `--------'      `--------'
+    ||              ||              ||
+    \/              \/              \/
+.--------.      .--------.      .--------.
+| Reader |      | Reader |      | Reader |
+`--------'      `--------'      `--------'
+[[/code]]
+
+Different types of feed will route messages in different ways.  For some feed types, messages are routed exclusively to one pipe or another.  For other feed types, messages are copied to each pipe that requests them.  We explain feed types later.
+
++++ Domains
+
+The domain is a collection of feeds and pipes and the child resources they contain.  The server MAY implement multiple domains and MAY allow routing of messages between domains.  Domains are configured resources: applications do not create or destroy domains.  A typical use for domains is to segregate different back-end networks (for example, "test" and "production").  Domains thus act as namespaces for pipes and feeds.  The RestMS client and server agree in advance on the domains that exist, and their names.
+
+The URI for a domain is:
+
+[[code]]
+http://{server-name}[:{port}]/restms/{domain-name}
+[[/code]]
+
+These methods are allowed on a domain URI:
+
+* GET - retrieves the domain description.
+* POST - creates a child resource of a specified type (feed or pipe).
+
+The XML representation of a domain resource is:
+
+[[code]]
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <domain name="{domain name}">
+    <feed name="{feed name}" href="{feed URI}" />...
+    <pipe name="{pipe name}" href="{pipe URI}" />...
+  </domain>
+</restms>
+[[/code]]
+
+The domain document does not necessarily list //all// feeds and pipes; applications may create these as private and thus make them inaccessible through discovery.
+
++++ Feeds
+
+A feed represents a stream of messages received from one or more writers.  The messages in a feed are ordered, though this order is stable only for messages from a single writer.  In other words, there are no guarantees of ordering between messages from different writers.  Feeds may store messages for arbitrary durations.  Feeds deliver messages into pipes, according to the set of joins defined on the feed.  The RestMS server may provide configured feeds, and applications can create and destroy feeds for their own use.  Feeds may be public and discoverable, or private.
+
+Configured feeds are always public and applications can The URI for a configured feed is:
+
+[[code]]
+http://{server-name}[:{port}]/restms/feed/{feed-name}
+[[/code]]
+
+The URI for an application-created feed is:
+
+[[code]]
+http://{server-name}[:{port}]/restms/{uri-hash}
+[[/code]]
+
+
+These methods are allowed on a XX URI:
+
+* GET -
+* PUT -
+* DELETE -
+* POST -
+
+The XML representation of a domain resource is:
+
+[[code]]
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <domain name="{domain name}">
+    <feed name="{feed name}" href="{feed URI}" />...
+    <pipe name="{pipe name}" href="{pipe URI}" />...
+  </domain>
+</restms>
+[[/code]]
+
+The domain document does not necessarily list //all// feeds and pipes; applications may create these as private and thus make them inaccessible through discovery.
+
+
+
++++ Pipes
+
+what it is, how it works. lifecycle, discoverability.
+
+The URI for a XXX is:
+
+[[code]]
+http://{server-name}[:{port}]/restms/feed/{feed-name}
+[[/code]]
+
+These methods are allowed on a XX URI:
+
+* GET -
+* PUT -
+* DELETE -
+* POST -
+
++++ Joins
+
+what it is, how it works. lifecycle, discoverability.
+
+The URI for a XXX is:
+
+[[code]]
+http://{server-name}[:{port}]/restms/feed/{feed-name}
+[[/code]]
+
+These methods are allowed on a XX URI:
+
+* GET -
+* PUT -
+* DELETE -
+* POST -
+
+
++++ Nozzles
+
+what it is, how it works. lifecycle, discoverability.
+
+The URI for a XXX is:
+
+[[code]]
+http://{server-name}[:{port}]/restms/feed/{feed-name}
+[[/code]]
+
+These methods are allowed on a XX URI:
+
+* GET -
+* PUT -
+* DELETE -
+* POST -
+
+
++++ Messages
+
+what it is, how it works. lifecycle, discoverability.
+
+The URI for a XXX is:
+
+[[code]]
+http://{server-name}[:{port}]/restms/feed/{feed-name}
+[[/code]]
+
+These methods are allowed on a XX URI:
+
+* GET -
+* PUT -
+* DELETE -
+* POST -
+

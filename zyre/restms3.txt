@@ -1,0 +1,288 @@
+++ Generic RESTful framework
+
+RestMS defines a generic framework by which clients issue HTTP methods to work with server-side resources as follows:
+
+* Clients use the GET method to retrieve the representation of a known resource.
+* Clients use the POST method to create a new, dynamically named resource.
+* Clients use the PUT method to edit a known resource (not to create resources).
+* Clients use the DELETE method to remove a known resource.
+
+All methods work orthogonally on all types of RestMS resources, whether those resources contain or do not contain other resources.  Not all combinations of methods and resources are meaningful, implemented, or permitted.
+
+This framework was heavily influenced by the design of AtomPub[n].  In this section we use XML as the document language, but the reader may note that RestMS allows a choice of representations for structured data.
+
++++ Configured vs. dynamic resources
+
+RestMS distinguishes between resources that are created automatically by the server ("configured resources") and resources that are created at runtime by applications.
+
+
++++ Creating a new resource
+
+The creation of a new resource follows these rules:
+
+* The resource is always named by the server, although the client can provide a 'hint' in the form of a Slug: header.
+* The new resource will always be the child of another resource (the 'collection') identified with a URI.
+* The client creates the resource by sending a POST method on the collection URI and providing the specifications for the new resource as the POST content body.
+* The server replies, if there was no error, with a "201 Created" reply status, a Location: header that provides a URI to the new resource, and a content body that represents the created resource.
+
+[[code]]
+Client                                     Server
+  |                                           |
+  |  1.) POST to Collection URI               |
+  |      Resource specifications              |
+  |------------------------------------------>|
+  |                                           |
+  |  2.) 201 Created                          |
+  |      Location: Resource URI               |
+  |<------------------------------------------|
+  |                                           |
+[[/code]]
+
+Note that the content body of a created resource may be different than the content body provided by the client: the client provides specifications for the resource, while the server provides the actual resulting resource contents.
+
+This is the general form of a client request to create a resource:
+
+[[code]]
+POST /{collection uri} HTTP/1.1
+Host: {hostname}
+User-Agent: {user agent}
+Authorization: {credentials}
+Content-Type: application/restms+xml;type={resource type}
+Content-Length: {size of content}
+Slug: {resource title}
+
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <{resource type}>
+    {resource specifications}
+  </{resource type}>
+</restms>
+[[/code]]
+
+And this is the general form of a server response for a created resource:
+
+[[code]]
+HTTP/1.1 201 Created
+Date: {response date}
+Content-Length: {size of content}
+Content-Type: application/restms+xml
+Location: {new resource uri}
+ETag: "{resource entity tag}"
+
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <{resource type}>
+    {resource contents}
+  </{resource type}>
+</restms>
+[[/code]]
+
++++ Retrieving a known resource
+
+Retrieving a known resource (a collection or a member) follows these rules:
+
+* The client must know the URI of the resource.  If it does not know the URI of the resource, it can discover this by retrieving the collection resource and examining its contents.
+* The client retrieves the resource by sending a GET method on the resource URI.
+* The client can optionally specify headers to control the caching of the resource both by itself and by proxies that sit between it and the server.  We explain caching below.
+* The server either returns a "200 OK" reply with the contents of the resource, or returns a reply code indicating why it did not return the resource contents.
+
+[[code]]
+Client                                     Server
+  |                                           |
+  |  1.) GET to Resource URI                  |
+  |------------------------------------------>|
+  |                                           |
+  |  2.) 200 Ok                               |
+  |      Resource representation              |
+  |<------------------------------------------|
+  |                                           |
+[[/code]]
+
+This is the general form of a client request to retrieve a resource:
+
+[[code]]
+GET /{resource uri} HTTP/1.1
+Host: {hostname}
+User-Agent: {user agent}
+Authorization: {credentials}
+[[/code]]
+
+And this is the general form of a server response:
+
+[[code]]
+HTTP/1.1 200 OK
+Date: {response date}
+Content-Length: {size of content}
+Content-Type: application/restms+xml
+Date-Modified: {resource date and time}
+ETag: "{resource entity tag}"
+
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <{resource type}>
+    {resource contents}
+  </{resource type}>
+</restms>
+[[/code]]
+
+If the client has previously retrieved the same resource and still has that ETag, it can use the If-None-Match: header, specifying the ETag value, and/or the If-Modified-Since: to do a conditional GET:
+
+[[code]]
+GET /{resource uri} HTTP/1.1
+...
+If-None-Match: "{resource entity tag}"
+If-Modified-Since: {resource date and time}
+[[/code]]
+
+If the resource has not changed - still has the same ETag and modification date - the server replies with a "304 Not Modified":
+
+[[code]]
+HTTP/1.1 304 Not Modified
+Date: {response date}
+[[/code]]
+
++++ Modifying a known resource
+
+Modifying a known resource follows these rules:
+
+* The client must know the URI of the resource.  If it does not know the URI of the resource, it can discover this by examining the contents of the collection resource.
+* The client must have retrieved the resource using GET.
+* The client sends new resource contents by sending a PUT method on the resource URI with a modified resource content.
+* The client can optionally specify headers to control potential conflicts (two clients trying to modify the same resource at the same time).
+* The server either returns a "2xx OK" reply indicating success, or returns a reply code indicating why it did not modify the resource contents.
+
+[[code]]
+Client                                     Server
+  |                                           |
+  |  1.) GET to Resource URI                  |
+  |------------------------------------------>|
+  |                                           |
+  |  2.) 200 Ok                               |
+  |      Resource representation              |
+  |<------------------------------------------|
+  |                                           |
+  |  3.) PUT to Resource URI                  |
+  |      Modified resource representation     |
+  |------------------------------------------>|
+  |                                           |
+  |  4.) 200 OK                               |
+  |<------------------------------------------|
+[[code]]
+
+This is the general form of a client request to modify a resource:
+
+[[code]]
+PUT /{resource uri} HTTP/1.1
+Host: {hostname}
+User-Agent: {user agent}
+Authorization: {credentials}
+Content-Length: {size of content}
+Content-Type: application/restms+xml
+
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <{resource type}>
+    {resource contents}
+  </{resource type}>
+</restms>
+[[/code]]
+
+And this is the general form of a server response:
+
+[[code]]
+HTTP/1.1 200 OK
+Date: {response date}
+[[/code]]
+
+The client can use the If-Match: header, specifying the resource's ETag value, to do a conditional PUT:
+
+[[code]]
+PUT /{resource uri} HTTP/1.1
+...
+If-Match: "{resource entity tag}"
+[[/code]]
+
+If the resource held by the server has the same ETag (and if there are no other errors), the update will continue and the server will reply with "200 OK".  If the resource has changed at the server, and thus has a different ETag, the server does not update the resource, and replies with a "412 Precondition Failed":
+
+[[code]]
+HTTP/1.1 412 Precondition Failed
+Date: {response date}
+[[/code]]
+
++++ Deleting a known resource
+
+Deleting a known resource follows these rules:
+
+* The client must know the URI of the resource.  If it does not know the URI of the resource, it can discover this by examining the contents of the collection resource.
+* The client sends a DELETE method on the resource URI.
+* The client can optionally specify headers to control potential conflicts.
+* The server either returns a "2xx OK" reply indicating success, or returns a reply code indicating why it did not delete the resource contents.
+
+[[code]]
+Client                                     Server
+  |                                           |
+  |  1.) DELETE to Member URI                 |
+  |------------------------------------------>|
+  |                                           |
+  |  2.) 200 OK                               |
+  |<------------------------------------------|
+  |                                           |
+[[/code]]
+
+This is the general form of a client request to delete a resource:
+
+[[code]]
+DELETE /{resource uri} HTTP/1.1
+Host: {hostname}
+User-Agent: {user agent}
+Authorization: {credentials}
+Content-Type: application/restms+xml
+[[/code]]
+
+And this is the general form of a server response when the resource is successfully deleted:
+
+[[code]]
+HTTP/1.1 200 OK
+Date: {response date}
+[[/code]]
+
+If the client previously read the resource, it can can use the If-Match: header, specifying the resource's ETag value, to do a conditional DELETE:
+
+[[code]]
+DELETE /{resource uri} HTTP/1.1
+...
+If-Match: "{resource entity tag}"
+[[/code]]
+
+If the resource held by the server has the same ETag (and if there are no other errors), the delete will continue and the server will reply with "200 OK".  If the resource has changed at the server, and thus has a different ETag, the server does not delete the resource, and replies with a "412 Precondition Failed":
+
+[[code]]
+HTTP/1.1 412 Precondition Failed
+Date: {response date}
+[[/code]]
+
++++ Cacheing
+
+RestMS assumes that all resources may be cached.  We define two types of cache.  First, the "end cache", is held in the browser or HTTP client layer.  Second, the "proxy cache" is a service that sits between the client and the server.
+
+The server can allow, or disallow, both types of cache from holding content.  It does this by adding a "Cache-Control: No-cache" header to the response.
+
+The client can inform the server or proxy cache that it has cacheable content for a resource by specifying either one of, or both of, the If-Modified-Since and If-None-Match header.  Usually, specifying both headers will give best results.
+
+Note that if a proxy cache is enabled, clients will not be guaranteed to receive the freshest version of a resource for a GET method.  There is no mechanism to push resource updates to proxy servers.
+
++++ Idempotency and side-effects
+
+The GET, PUT, and DELETE methods are idempotent: the client can safely issue these more than once.  The POST method is not idempotent and if issued more than once, will create a corresponding number of new resources.
+
+Idempotency allows the client to safely recover from failures where it did not get a response, yet could not sure the server did not receive the request.  For example, any failure in the network, the client, or an intermediary that happens after the server receives the request but before the client receives the response.  The client recovers by simply reissuing any GET, PUT and DELETE requests that were not completed.
+
+The GET method does not modify the state of any resource on the server.
+
++++ Pipelining
+
+The client may send requests in parallel, which is called "pipelining".  RFC 2616 section 8.1.2.2 says,
+
+> Clients SHOULD NOT pipeline requests using non-idempotent methods or non-idempotent sequences of methods (see section 9.1.2). Otherwise, a premature termination of the transport connection could lead to indeterminate results. A client wishing to send a non-idempotent request SHOULD wait to send that request until it has received the response status for the previous request.
+
+RestMS clients MAY pipeline GET, PUT and DELETE methods, but SHOULD NOT pipeline POST methods.

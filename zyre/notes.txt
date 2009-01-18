@@ -1,86 +1,45 @@
-Zyre work
-    - Vinoski's comments on RestMS
+++ RestMS design overview
+
+RestMS consists of these design aspects, each presented as a section of this specification:
+
+# A generic document syntax.  This section explains how resources are represented as structured documents in both XML and JSON.  While this generic syntax was designed for RestMS, it is reusable in other applications.
+# A generic RESTful framework.  This section explains how HTTP methods are used to create, retrieve, modify, and delete server-side resources.  Like the generic document structure, this generic framework is applicable more widely than RestMS.
+# An explanation of the RestMS resource types.  This section explains the semantics of RestMS, including how the RestMS resources map onto AMQP concepts.
+# A specification for each valid method / resource interaction.  This section acts as the main guide for RestMS implementors and users.
+# A guide to AMQP interoperability and security.  This section is mainly for AMQP implementors who wish to support RestMS in their products.
+# A guide to HTTP interoperability and security.
 
 
-ETag: "somevalue"
-    If new HTTP response contains same Etag as older one, no further downloading is done, the contents are assumed to be the same.
-If-None-Match: "somevalue"
-
-
-If-Match: "entity-tag" | "*"
-    Conditional PUT, update entry if entry still has the same Etag
-    Else 412 Precondition failed, with Date: header
-    If any other error (except 2xx or 412) would happen, must happen anyhow
-    "*" means only if the entity already exists, MUST NOT if the entity does not exist
-If-Modified-Since: date
-    Conditional GET, 304 Not Modified if entry has same or older date
-    If any other error (except 200 or 304) behaviour is as for normal GET
-If-None-Match: "entity-tag" | "*"
-    Conditional GET, get 304 Not Modified if entry has the same Etag
-    "*" means only if entity does not exist, MUST NOT if the entity does exist
-    used to prevent race conditions between PUTs
-If-Range: "entity-tag"
-    Used together with Range: header (for getting files?)
-    Gets 206 Partial Content range if entity matches
-    Gets 200 OK whole content if entity does not match
-If-Unmodified-Since: date
-    Does operation only if entity has not been modified since date
-    Else returns 412 Precondition failed
-    If any other error (except 2xx or 412), behaviour is as if absent
-
-Last-Modified: date
-    Last date of modification
-Location: absolute-uri
-    For 201 Created and for 3xx responses
+-- using RestMS in five minutes
+    - examples, minimal rules
 
 
 
-The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119.
 
-Key words for use in RFCs to Indicate Requirement Levels
-http://tools.ietf.org/html/rfc2119
 
-Terminolgy
+* A "feed" is a named stream of messages that is filled at one end by publishing applications, and used at the other end by subscriber applications.
+* A "pipe" is a named stream of messages that is filled from a feed, and made available to applications.
+* An "address" is where applications send messages to.  Addresses are contained within feeds, and applications can invent addresses arbitrarily.
+* A "join" regulates the flow of messages from a feed into a pipe.  A join says, "route all messages that match this set of addresses, from this feed, into this pipe".
+* A "nozzle" regulates the flow of messages from a pipe to an application.  A nozzle holds a series of messages delivered to one application. Nozzles let multiple applications share a single pipe safely.
 
-Resource - a network-addressable data object or service identified by a URI.
-Collection - A Resource that contains a set of Member Resources. Collections are represented as Atom Feeds. See Section 9.
-Workspace - A named group of Collections. See Section 8.1.
-Service Document - A document that describes the location and capabilities of one or more Collections, grouped into Workspaces. See Section 8.
-Category Document - A document that describes the categories allowed in a Collection. See Section 7.
+                               GET     PUT    DELETE   POST
+Domain                          Y       Y       -       Y
+    |
+    o- Feed                     Y       Y       Y       Y
+    |
+    o- Pipe                     Y       Y       Y       Y
+        |
+        o- Join                 Y       Y       Y       -
+        |
+        o- Nozzle               Y       Y       Y       -
+            |
+            o- Message          Y       -       Y       -
 
-The RestMS Protocol specifies operations for publishing and editing Resources using HTTP. It uses RestMS-formatted representations to describe the state and metadata of those Resources. It defines how Collections of Resources can be organized, and it specifies formats to support their discovery, grouping and categorization.
 
-The Atom Publishing Protocol uses HTTP methods to author Member Resources as follows:
 
-* GET is used to retrieve a representation of a known Resource.
-* POST is used to create a new, dynamically named, Resource. When the client submits non-Atom-Entry representations to a Collection for creation, two Resources are always created -- a Media Entry for the requested Resource, and a Media Link Entry for metadata about the Resource that will appear in the Collection.
-* PUT is used to edit a known Resource. It is not used for Resource creation.
-* DELETE is used to remove a known Resource.
 
-The Atom Protocol only covers the creating, editing, and deleting of Entry and Media Resources. Other Resources could be created, edited, and deleted as the result of manipulating a Collection, but the number of those Resources, their media types, and effects of Atom Protocol operations on them are outside the scope of this specification.
 
-While specific HTTP status codes are shown in the interaction diagrams below, an AtomPub client should be prepared to handle any status code. For example, a PUT to a Member URI could result in the return of a "204 No Content" status code, which still indicates success.
-
-Creating a Resource
-C:POST to collection URI + Content body (member)
-S:201 Created + Location: Member entry URI + Content body (
-
-Editing a Resource
-1. Retrieve
-C:GET to member URI
-S:200 OK + content body
-
-2. Update
-C:PUT to member URI
-S:200 OK
-
-3. Delete
-C:DELETE to member URI
-S:200 OK
-
-6.2 Document Extensibility
-
-Unrecognized markup in an Atom Publishing Protocol document is considered "foreign markup" as defined in Section 6 of the Atom Syndication Format [RFC4287]. Foreign markup can be used anywhere within a Category or Service Document unless it is explicitly forbidden. Processors that encounter foreign markup MUST NOT stop processing and MUST NOT signal an error. Clients SHOULD preserve foreign markup when transmitting such documents.
 
 
 links are 'href' not 'uri'
@@ -101,20 +60,6 @@ Entry document
         href="http://example.org/edit/first-post.atom"/>
 </entry>
 
-Client should GET before modifying with PUT, and should preserve any unknown data that is not intentionally modified.
-
-Implementers are advised to pay attention to cache controls and to make use of the mechanisms available in HTTP when editing Resources, in particular, entity-tags as outlined in [NOTE-detect-lost-update]. Clients are not assured to receive the most recent representations of Collection Members using GET if the server is authorizing intermediaries to cache them.
-
-Mechanism to edit with minimal conflicts
-GET resource
-Before saving
-    GET resource
-    If-None-Match: <etag>
-    -> 200 OK if changed by someone else
-    -> 304 Not Modified if not changed
-Save with check
-    PUT resource
-    If-Match <etag>
 
 Slug -> message ID
     -> pipe name
@@ -164,6 +109,40 @@ nozzles on post messages too
     post to nozzle - idempotent
     post to nozzle - idempotent
     delete nozzle
+
+
+HTTP headers
+
+C:
+If-Match: "entity-tag" | "*"
+    Conditional PUT, update entry if entry still has the same Etag
+    Else 412 Precondition failed, with Date: header
+    If any other error (except 2xx or 412) would happen, must happen anyhow
+    "*" means only if the entity already exists, MUST NOT if the entity does not exist
+If-Modified-Since: date
+    Conditional GET, 304 Not Modified if entry has same or older date
+    If any other error (except 200 or 304) behaviour is as for normal GET
+If-None-Match: "entity-tag" | "*"
+    Conditional GET, get 304 Not Modified if entry has the same Etag
+    "*" means only if entity does not exist, MUST NOT if the entity does exist
+    used to prevent race conditions between PUTs
+If-Range: "entity-tag"
+    Used together with Range: header (for getting files?)
+    Gets 206 Partial Content range if entity matches
+    Gets 200 OK whole content if entity does not match
+If-Unmodified-Since: date
+    Does operation only if entity has not been modified since date
+    Else returns 412 Precondition failed
+    If any other error (except 2xx or 412), behaviour is as if absent
+
+S:
+ETag: "entity-tag"
+    Date-Size-Inode or Date-Size
+Last-Modified: date
+    Last date of modification
+Location: absolute-uri
+    For 201 Created and for 3xx responses
+
 
 
 implement exchange logic in zyre and do federation

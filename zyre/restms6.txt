@@ -1,0 +1,17 @@
+++ AMQP interoperability and security
+
+RESTful extensions to AMQP
+    - RestMS protocol class
+    - * in topics matches empty routing-key
+    - empty topic segments are allowed (".value")
+    - Basic.Consume is assertive, idempotent
+        - note that must not allow same tag on different queues
+        -> Subsumed in restms protocol class
+    - Queue.Declare private queues are scoped per connection
+        - names uniquified on server, automatically
+        - in declare, consume, cancel, bind, delete
+        -> This is not implemented in OpenAMQ yet but should be
+        -> Subsumed in restms protocol class
+    - Queue.Delete is assertive
+        - if queue does not exist, still returns Delete-Ok
+        -> Subsumed in restms protocol class

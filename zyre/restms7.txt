@@ -1,0 +1,4 @@
+++ HTTP interoperability and security
+
+- brute force attacks
+- authentication mechanisms
