@@ -232,6 +232,7 @@
 
 <method name = "destroy">
     <action>
+    {
     amq_exchange_t
         *exchange;
 
@@ -250,6 +251,7 @@
     amq_queue_table_destroy (&self->queue_table);
     amq_queue_list_destroy (&self->queue_list);
     ipr_symbol_table_destroy (&self->shared_queues);
+    }
     </action>
 </method>
 
