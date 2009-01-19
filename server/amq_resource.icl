@@ -59,7 +59,7 @@
     if (strnull (pipe_name))
         error_text = "pipe_create: pipe name may not be empty";
     else
-    if (strneq (pipe_class, "pipe"))
+    if (strneq (pipe_class, "fifo"))
         error_text = "pipe_create: invalid pipe class";
     else {
         queue = amq_queue_table_search (amq_broker->queue_table, pipe_name);
@@ -268,9 +268,9 @@
     </doc>
     <argument name = "pipe class" type = "char *" />
     <argument name = "pipe name" type = "char *" />
-    <argument name = "address" type = "char *" />
-    <argument name = "feed name" type = "char *" />
     <argument name = "feed class" type = "char *" />
+    <argument name = "feed name" type = "char *" />
+    <argument name = "address" type = "char *" />
     <argument name = "channel" type = "amq_server_channel_t *" />
     <local>
     amq_queue_t
@@ -294,7 +294,7 @@
     if (strnull (feed_name))
         error_text = "join_create: feed name may not be empty";
     else
-    if (strneq (pipe_class, "pipe"))
+    if (strneq (pipe_class, "fifo"))
         error_text = "join_create: invalid pipe class";
     else
     if (streq (feed_class, "service") || streq (feed_class, "rotator")) {
@@ -351,8 +351,8 @@
     Deletes a specified join.
     </doc>
     <argument name = "pipe name" type = "char *" />
-    <argument name = "address" type = "char *" />
     <argument name = "feed name" type = "char *" />
+    <argument name = "address" type = "char *" />
     <argument name = "channel" type = "amq_server_channel_t *" />
     <local>
     amq_queue_t

@@ -2,26 +2,15 @@
 <!--
     Copyright (c) 1996-2009 iMatix Corporation
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at
-    your option) any later version.
-
-    This program is distributed in the hope that it will be useful, but
-    WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    General Public License for more details.
-
-    For information on alternative licensing for OEMs, please contact
-    iMatix Corporation.
+    This code is licensed under both the GPLv3 and the IETF licence, in accordance
+    with the terms of the wiki.amqp.org Intellectual Property Policy.
  -->
 <class
     name    = "restms"
     handler = "connection"
     index   = "61501"
   >
-  RestMS resource discovery and management class.
-
+  RestMS resource management class.
 <doc>
     Provides methods to work with server-side resources as defined by
     the RestMS specification.  All methods are request-only, without
@@ -29,9 +18,7 @@
     to the client.  This model is designed to allow a RestMS server to
     push state to the AMQP server, rapidly and without handshaking.
     In future versions we may allow for asynchronous error reporting
-    back to the RestMS server, probably via an AMQP exchange.  The
-    order of fields follows the URI component order for resources
-    (esp. joins, which have complex URI construction).
+    back to the RestMS server, probably via an AMQP exchange.
 </doc>
 
 <doc name = "grammar">
@@ -139,7 +126,7 @@
     Pipe class
     <doc>
     Specifies the class of the pipe, which must match the class of the
-    existing pipe.  The only valid value for this field is "pipe".
+    existing pipe.
     </doc>
   </field>
   <field name = "pipe name" type = "shortstr" >
@@ -148,12 +135,11 @@
     Specifies the name of the pipe, which must exist.
     </doc>
   </field>
-  <field name = "address" type = "shortstr" >
-    Join address
+  <field name = "feed class" type = "shortstr" >
+    Feed class
     <doc>
-    Specifies the address to join.  This is an address literal or
-    pattern who's semantics depend on the feed class.  The address
-    may not contain slashes, spaces, or at signs.
+    Specifies the class of the feed, which must match the class of the
+    existing feed.
     </doc>
   </field>
   <field name = "feed name" type = "shortstr" >
@@ -162,11 +148,12 @@
     Specifies the name of the feed, which must exist.
     </doc>
   </field>
-  <field name = "feed class" type = "shortstr" >
-    Feed class
+  <field name = "address" type = "shortstr" >
+    Join address
     <doc>
-    Specifies the class of the feed, which must match the class of the
-    existing feed.
+    Specifies the address to join.  This is an address literal or
+    pattern who's semantics depend on the feed class.  The address
+    may not contain slashes, spaces, or at signs.
     </doc>
   </field>
 </method>
@@ -185,16 +172,16 @@
     Specifies the name of the pipe, which does not need to exist.
     </doc>
   </field>
-  <field name = "address" type = "shortstr" >
-    Join address
-    <doc>
-    Specifies the join address.
-    </doc>
-  </field>
   <field name = "feed name" type = "shortstr" >
     Name of feed
     <doc>
     Specifies the name of the feed, which does not need to exist.
+    </doc>
+  </field>
+  <field name = "address" type = "shortstr" >
+    Join address
+    <doc>
+    Specifies the join address.
     </doc>
   </field>
 </method>

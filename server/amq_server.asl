@@ -475,14 +475,14 @@
     //  Order of arguments follows join URI syntax
     amq_resource_join_create (
         method->pipe_class, method->pipe_name,
+        method->feed_class, method->feed_name,
         method->address,
-        method->feed_name, method->feed_class,
         channel);
   </action>
   <action name = "join-delete">
     //  Order of arguments follows join URI syntax
     amq_resource_join_delete (
-        method->pipe_name, method->address, method->feed_name,
+        method->pipe_name, method->feed_name, method->address,
         channel);
   </action>
 </class>
