@@ -1,4 +1,4 @@
-++ Generic document syntax
+++ Generic structured document syntax
 
 +++ Overview
 
@@ -35,7 +35,7 @@ RestMS documents obey these basic rules:
 
 Further, for XML documents:
 
-* The content type MUST be "application/restms+xml;type={root resource}".
+* The Content-type MUST be "application/restms+xml;type={root resource}".
 * The document root has a single property, xmlns="http://www.imatix.com/schema/restms".
 * Elements with values and no attributes are equivalent to attributes of their parent.
 * Elements may not have both values and attributes.
@@ -48,7 +48,7 @@ Further, for XML documents:
 
 And for JSON documents:
 
-* The content type MUST be "application/restms+json;type={root resource}".
+* The Content-type MUST be "application/restms+json;type={root resource}".
 * The following character MUST be escaped in value strings:
  * " (escaped by writing \")
 

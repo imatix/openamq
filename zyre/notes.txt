@@ -1,90 +1,10 @@
-++ RestMS design overview
 
-RestMS consists of these design aspects, each presented as a section of this specification:
-
-# A generic document syntax.  This section explains how resources are represented as structured documents in both XML and JSON.  While this generic syntax was designed for RestMS, it is reusable in other applications.
-# A generic RESTful framework.  This section explains how HTTP methods are used to create, retrieve, modify, and delete server-side resources.  Like the generic document structure, this generic framework is applicable more widely than RestMS.
-# An explanation of the RestMS resource types.  This section explains the semantics of RestMS, including how the RestMS resources map onto AMQP concepts.
-# A specification for each valid method / resource interaction.  This section acts as the main guide for RestMS implementors and users.
-# A guide to AMQP interoperability and security.  This section is mainly for AMQP implementors who wish to support RestMS in their products.
-# A guide to HTTP interoperability and security.
-
-
--- using RestMS in five minutes
-    - examples, minimal rules
-
-
-
-
-
-* A "feed" is a named stream of messages that is filled at one end by publishing applications, and used at the other end by subscriber applications.
-* A "pipe" is a named stream of messages that is filled from a feed, and made available to applications.
-* An "address" is where applications send messages to.  Addresses are contained within feeds, and applications can invent addresses arbitrarily.
-* A "join" regulates the flow of messages from a feed into a pipe.  A join says, "route all messages that match this set of addresses, from this feed, into this pipe".
-* A "nozzle" regulates the flow of messages from a pipe to an application.  A nozzle holds a series of messages delivered to one application. Nozzles let multiple applications share a single pipe safely.
-
-                               GET     PUT    DELETE   POST
-Domain                          Y       Y       -       Y
-    |
-    o- Feed                     Y       Y       Y       Y
-    |
-    o- Pipe                     Y       Y       Y       Y
-        |
-        o- Join                 Y       Y       Y       -
-        |
-        o- Nozzle               Y       Y       Y       -
-            |
-            o- Message          Y       -       Y       -
-
-
-
-
-
-
-
-links are 'href' not 'uri'
-
-Entry document
-    - client may specify one
-    - server may specify different/modified one
-    entry = pipe...?
-
-<?xml version="1.0"?>
-<entry xmlns="http://www.w3.org/2005/Atom">
-    <title>Atom-Powered Robots Run Amok</title>
-    <id>urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a</id>
-    <updated>2003-12-13T18:30:02Z</updated>
-    <author><name>John Doe</name></author>
-    <content>Some text.</content>
-    <link rel="edit"
-        href="http://example.org/edit/first-post.atom"/>
-</entry>
-
-
-Slug -> message ID
-    -> pipe name
-    -> feed name
-
-
-8.2 Slug: Header
-
-The value of the Slug entity-header is a "slug", i.e. a short name identifying a resource.
-
-  Slug = "Slug" ":" *TEXT
-
-Resources have modification/creation dates.
-GET has no side effects
-PUT updates a resource
-POST creates a new resource
-
-- use of "Feed" is confusing for Atom people
-
-***********************************************
 
 issues in restms
 
-- If app always invents new pipe and nozzle, will not get message delivered reliably.  Needs to cache pipe name and reuse when starting, example is digest-amqp.pl.
-- If app always requests same pipe/nozzle and fails to delete message, will loop on getting message.  Need to perhaps limit number of deliveries.
+
+- If app always invents new pipe, will not get message delivered reliably as message may go to other pipe.  Needs to cache pipe name and reuse when starting, example is digest-amqp.pl.
+- If app always requests same pipe and fails to delete message, will loop on getting message.  Need to perhaps limit number of deliveries.
 - If service creates feed, requester needs to use service@amq.direct rather than address@service, which is ugly.  To make address@service work, Zyre needs to know what services exist, this needs to come from the AMQP server.  It also needs to get errors if service does not exist (mandatory + returned messages).
 
 

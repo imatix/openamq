@@ -1,33 +1,42 @@
-++ Method / resource interactions
+++ The RestMS feed and pipe types
 
-Domain
-    GET - gets domain contents (feeds, pipes)
-    PUT - not allowed
-    DELETE - not allowed
-    POST - create new resource in domain (feed, pipe)
-Feed
-    GET - gets feed description
-    PUT - updates feed
-    DELETE - deletes feed
-    POST - sends message to feed
-Pipe
-    GET - gets pipe description (joins, nozzles)
-    PUT - updates pipe
-    DELETE - deletes pipe
-    POST - creates new resource in pipe (join, nozzle)
-Join
-    GET - gets join description
-    PUT - updates join
-    DELETE - deletes join
-    POST - not allowed
-Nozzle
-    GET - gets nozzle description
-    PUT - updates nozzle
-    DELETE - deletes nozzle
-    POST - not allowed
-Message
-    GET - gets message
-    PUT - not allowed
-    DELETE - deletes message
-    POST - not allowed
++++ Standard feed types
+
+Implementations SHOULD implement all of these feed types and MAY implement others.  In general a feed routes by doing some kind of matching between the address property of a message (a literal string), and the address property of a join (a pattern).
+
+++++ The fanout feed type
+
+The fanout feed type routes a copy of an incoming message to each join registered with the feed.  The message join filter is not used.
+
+++++ The direct feed type
+
+The fanout feed type routes a copy of an incoming message to each join registered with the feed that has an address pattern that is identical to the message address.
+
+++++ The topic feed type
+
+The topic feed type routes a copy of an incoming message to each join registered with the feed that has an address pattern that matches the message address following AMQP's topic matching rules.
+
+++++ The rotator feed type
+
+The rotator feed type routes a message to exactly one join, using a round-robin algorithm to select the join.  An application can increase its proportion of the messages received by creating multiple joins to the feed.  The feed does not use the join address pattern or message address literal.
+
+++++ The service feed type
+
+The service feed type works as the rotator feed, but has the additional property of self-deleting when the the number of joins registered on it drops from 1 to zero.  This means that the presence or absence of the feed indicates the availability of the "service" it represents.
+
++++ Standard pipe types
+
+Implementations SHOULD implement the fifo pipe type, and MAY implement any of the other pipe types.  If they do implement them, they must conform to the semantics defined here.
+
+++++ The fifo pipe type
+
+The fifo pipe type holds an unspecified (but greater than one) number of messages and delivers these to a client application when asked for them.  It delivers messages one by one and messages remain in the pipe until deleted.
+
+++++ The stream pipe type
+
+The stream pipe delivers messages as multipart contents so that a single GET will retrieve an unending stream of message contents.  This needs to be fully defined.
+
+++++ The ondemand pipe type
+
+This pipe does not fetch a message from the feed until the pipe requests it through an asynclet.  This is designed to prevent messages being "lost" in unused or abandoned pipes, and is meant primarily to be used with service and rotator feeds.
 

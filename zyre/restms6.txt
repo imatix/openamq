@@ -1,17 +1,262 @@
 ++ AMQP interoperability and security
 
-RESTful extensions to AMQP
-    - RestMS protocol class
-    - * in topics matches empty routing-key
-    - empty topic segments are allowed (".value")
-    - Basic.Consume is assertive, idempotent
-        - note that must not allow same tag on different queues
-        -> Subsumed in restms protocol class
-    - Queue.Declare private queues are scoped per connection
-        - names uniquified on server, automatically
-        - in declare, consume, cancel, bind, delete
-        -> This is not implemented in OpenAMQ yet but should be
-        -> Subsumed in restms protocol class
-    - Queue.Delete is assertive
-        - if queue does not exist, still returns Delete-Ok
-        -> Subsumed in restms protocol class
+
+++ RestMS is an evolution of AMQP
+
+While RestMS remains interoperable with existing AMQP networks (via AMQP servers that implement the RestMS extension class), it is intended to be both simpler to understand and use, and more in line with the evolution of AMQP towards an AMQP/1.0 specification.
+
+RestMS deliberately invents new nomenclature but for those familiar with AMQP, a feed corresponds to an exchange and/or shared queue, an address corresponds to a routing key, a pipe is analogous to a private queue, and a join matches an AMQP binding.  If it helps to understand RestMS, these are the main shifts that RestMS makes from the AMQP/0.9.1 semantic model:
+
+* Shared queues are merged into exchanges, and the resulting entity is renamed "feed".  In AMQP, exchanges have no state, while shared queues cannot do routing.  In RestMS, feeds have both state and capacity to route messages.
+* The exclusive queue concept are renamed to "pipe" and moved closer to the client edge.
+* The consumer and transaction concepts are merged, renamed to "nozzle", and moved to the client edge.
+* The binding / routing key concepts are merged into a new concept called "address", which is used both for publishing messages and for joining pipes to feeds.
+
+The main semantic change from AMQP to RestMS is that we do not allow loose coupling of shared queues, i.e. the ability to bind and address a shared queue using arbitrary routing keys.  We consider this AMQP functionality to be confusing and not needed by any common messaging scenarios.  In RestMS, shared queues are addressed directly, as named feeds.  This simplification is a key part of RestMS's overall design.
+
+
++++ Message compatability
+
+RestMS messages are compatible with AMQP messages:
+
+* All AMQP message properties can be represented in the RestMS message document.
+* The
+
++++ Technical interoperability
+
+
+
++++ Message properties
+
+message properties
+
+
+++ AMQP interoperation
+
+RestMS interoperates with AMQP through some basic conventions, some of which we've already explained.
+
+-- add how to address shared queues, and response queues
+-- via amq.direct
+-- immediate, mandatory headers not needed, feeds are explicit
+-- how to know what feeds exist from AMQP universe?
+    - subscribe to all shared queues via amq.direct?
+
+# In general, AMQP and RestMS applications can freely interoperate, without knowledge of each others' particularities.
+# RestMS publishers can address exchanges, or shared queues by name.  They cannot address shared queues via arbitrary routing keys.
+# RestMS supports all exchanges which route on a single string address, but not currently support the AMQP headers exchange.
+# RestMS does not yet support message properties.  So, these will be blank on messages originating from RestMS publishers, and will be ignored by RestMS consumers.
+
+There are several possible architectures for message delivery from an AMQP server to a RestMS server.  The simplest model is a single connection, which carries all messages.  Messages are then distributed to pipes in the RestMS server.  If multiple pipes request the same messagem, the message will be sent multiple times down the connection.  In this model, the consumer-tag on Basic.Deliver methods tells the RestMS server how to route messages to pipes.  The format of the consumer tag is 'prefix:pipe-name' where 'prefix' is a string that does not include the ':' character.  (The prefix may be needed to ensure unique consumer tags.)
+
+An alternative model is to open multiple connections or channels, e.g. one per pipe, and to use these to segment messages per pipes.  Again, the same message may be sent many times if requested by multiple pipes.
+
+The optimal, but most complex model, is to use federation-style normalization.  In this model, the RestMS server maintains its own routing data structures, and forwards binding requests to the AMQP server.  When messages arrive, they are routed not on consumer tag, but according to the message routing key and/or other properties.  This model demands that the RestMS implementation has the same routing capabilities as the AMQP server, i.e. implements exchanges and shared queues in much the same way.  The advantage of this model is that it allows for stand-alone RestMS operation, and is the optimal design for RestMS-to-RestMS interoperation (with no extra hops to and from the AMQP server).
+
+++ Appendix
+
+This is the RestMS class used to provide safe, idempotent access to RestMS resources on an AMQP server:
+
+[[code]]
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<class
+    name    = "restms"
+    handler = "connection"
+    index   = "61501"
+  >
+  RestMS resource discovery and management class.
+
+<doc>
+    Provides methods to work with server-side resources as defined by
+    the RestMS specification.  All methods are request-only, without
+    response.  Errors are logged at the server side and not reported
+    to the client.  This model is designed to allow a RestMS server to
+    push state to the AMQP server, rapidly and without handshaking.
+    In future versions we may allow for asynchronous error reporting
+    back to the RestMS server, probably via an AMQP exchange.  The
+    order of fields follows the URI component order for resources
+    (esp. joins, which have complex URI construction).
+</doc>
+
+<doc name = "grammar">
+    restms              = C:PIPE-CREATE
+                        / C:PIPE-DESTROY
+                        / C:FEED-CREATE
+                        / C:FEED-DESTROY
+                        / C:JOIN-CREATE
+                        / C:JOIN-DESTROY
+</doc>
+
+<chassis name = "server" implement = "MAY" />
+<chassis name = "client" implement = "MAY" />
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+<method name = "pipe-create" index = "10">
+  create a pipe
+  <doc>
+  Creates a pipe of the specified class.  The pipe may already exist,
+  if it has the same class.  Pipe names are unique across all classes.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "pipe class" type = "shortstr" >
+    pipe class
+    <doc>
+    Specifies the class of the pipe to create.  Valid values are: pipe.
+    </doc>
+  </field>
+  <field name = "pipe name" type = "shortstr" >
+    Name of pipe
+    <doc>
+    Specifies the name of the pipe to create.  Pipe names may not contain
+    slashes, spaces, or at signs.
+    </doc>
+  </field>
+</method>
+
+<method name = "pipe-delete" index = "20">
+  delete a pipe
+  <doc>
+  Deletes a specified pipe, if it exists.  Safe to invoke on non-existent
+  or already-deleted pipes.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "pipe name" type = "shortstr" >
+    pipe name
+    <doc>
+    Specifies the name of the pipe to delete.
+    </doc>
+  </field>
+</method>
+
+<method name = "feed-create" index = "30">
+  create a feed
+  <doc>
+  Creates a feed of the specified class.  The feed may already exist,
+  if it has the same class.  Feed names are unique across all classes.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "feed class" type = "shortstr" >
+    Feed class
+    <doc>
+    Specifies the class of the feed to create.  Valid values are: fanout,
+    direct, topic, headers, rotator, and service.
+    </doc>
+  </field>
+  <field name = "feed name" type = "shortstr" >
+    Name of feed
+    <doc>
+    Specifies the name of the feed to create.  Feed names may not contain
+    slashes, spaces, or at signs.
+    </doc>
+  </field>
+</method>
+
+<method name = "feed-delete" index = "40">
+  delete a feed
+  <doc>
+  Deletes a specified feed, if it exists.  Safe to invoke on non-existent
+  or already-deleted feeds.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "feed name" type = "shortstr" >
+    feed name
+    <doc>
+    Specifies the name of the feed to delete.
+    </doc>
+  </field>
+</method>
+
+<method name = "join-create" index = "50">
+  create a join
+  <doc>
+  Creates a join on the specified pipe and feed.  The join may already
+  exist, if it has the same properties.  A join will causes messages to
+  be delivered on the connection.  The consumer-tag property allows
+  messages to be routed into end-application pipes.  Joins on exchange
+  feeds use the consumer tag "x:{pipe-name}" and joins on queue feeds
+  use the consumer tag "q:{pipe-name}".  AMQP does not allow the same
+  tag to be used on multiple queues.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "pipe class" type = "shortstr" >
+    Pipe class
+    <doc>
+    Specifies the class of the pipe, which must match the class of the
+    existing pipe.  The only valid value for this field is "pipe".
+    </doc>
+  </field>
+  <field name = "pipe name" type = "shortstr" >
+    Name of pipe
+    <doc>
+    Specifies the name of the pipe, which must exist.
+    </doc>
+  </field>
+  <field name = "address" type = "shortstr" >
+    Join address
+    <doc>
+    Specifies the address to join.  This is an address literal or
+    pattern who's semantics depend on the feed class.  The address
+    may not contain slashes, spaces, or at signs.
+    </doc>
+  </field>
+  <field name = "feed name" type = "shortstr" >
+    Name of feed
+    <doc>
+    Specifies the name of the feed, which must exist.
+    </doc>
+  </field>
+  <field name = "feed class" type = "shortstr" >
+    Feed class
+    <doc>
+    Specifies the class of the feed, which must match the class of the
+    existing feed.
+    </doc>
+  </field>
+</method>
+
+<method name = "join-delete" index = "60">
+  delete a join
+  <doc>
+  Deletes a specified join, if it exists.  Safe to invoke on non-existent
+  or already-deleted joins, and referring to non-existent pipes and/or
+  feeds.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "pipe name" type = "shortstr" >
+    Name of pipe
+    <doc>
+    Specifies the name of the pipe, which does not need to exist.
+    </doc>
+  </field>
+  <field name = "address" type = "shortstr" >
+    Join address
+    <doc>
+    Specifies the join address.
+    </doc>
+  </field>
+  <field name = "feed name" type = "shortstr" >
+    Name of feed
+    <doc>
+    Specifies the name of the feed, which does not need to exist.
+    </doc>
+  </field>
+</method>
+
+</class>
+[[/code]]
