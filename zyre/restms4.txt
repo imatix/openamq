@@ -300,8 +300,8 @@ A message document specifies the message properties, particularly the message ad
 [[code]]
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <message address="{address literal}" replyto="{address literal}"
-    [next="next asynclet"] ...>
+  <message address="{address literal}" reply_to="{address literal}"
+    [ next="next asynclet" ] ...>
     [ <header name="{header name}" value="{header value}" /> ] ...
     [ <content href="{content URI}" ... /> ] ...
   </message>

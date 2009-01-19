@@ -111,3 +111,19 @@ Differences between RestMS and AMQP
 
 -- using RestMS in five minutes
     - examples, minimal rules
+
+++ RestMS is an evolution of AMQP
+
+While RestMS remains interoperable with existing AMQP networks (via AMQP servers that implement the RestMS extension class), it is intended to be both simpler to understand and use, and more in line with the evolution of AMQP towards an AMQP/1.0 specification.
+
+RestMS deliberately invents new nomenclature but for those familiar with AMQP, a feed corresponds to an exchange and/or shared queue, an address corresponds to a routing key, a pipe is analogous to a private queue, and a join matches an AMQP binding.  If it helps to understand RestMS, these are the main shifts that RestMS makes from the AMQP/0.9.1 semantic model:
+
+* Shared queues are merged into exchanges, and the resulting entity is renamed "feed".  In AMQP, exchanges have no state, while shared queues cannot do routing.  In RestMS, feeds have both state and capacity to route messages.
+* The exclusive queue concept are renamed to "pipe" and moved closer to the client edge.
+* The consumer and transaction concepts are merged, renamed to "nozzle", and moved to the client edge.
+* The binding / routing key concepts are merged into a new concept called "address", which is used both for publishing messages and for joining pipes to feeds.
+
+The main semantic change from AMQP to RestMS is that we do not allow loose coupling of shared queues, i.e. the ability to bind and address a shared queue using arbitrary routing keys.  We consider this AMQP functionality to be confusing and not needed by any common messaging scenarios.  In RestMS, shared queues are addressed directly, as named feeds.  This simplification is a key part of RestMS's overall design.
+
+
+

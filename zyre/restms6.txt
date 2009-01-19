@@ -1,105 +1,53 @@
 ++ AMQP interoperability and security
 
-
-++ RestMS is an evolution of AMQP
-
-While RestMS remains interoperable with existing AMQP networks (via AMQP servers that implement the RestMS extension class), it is intended to be both simpler to understand and use, and more in line with the evolution of AMQP towards an AMQP/1.0 specification.
-
-RestMS deliberately invents new nomenclature but for those familiar with AMQP, a feed corresponds to an exchange and/or shared queue, an address corresponds to a routing key, a pipe is analogous to a private queue, and a join matches an AMQP binding.  If it helps to understand RestMS, these are the main shifts that RestMS makes from the AMQP/0.9.1 semantic model:
-
-* Shared queues are merged into exchanges, and the resulting entity is renamed "feed".  In AMQP, exchanges have no state, while shared queues cannot do routing.  In RestMS, feeds have both state and capacity to route messages.
-* The exclusive queue concept are renamed to "pipe" and moved closer to the client edge.
-* The consumer and transaction concepts are merged, renamed to "nozzle", and moved to the client edge.
-* The binding / routing key concepts are merged into a new concept called "address", which is used both for publishing messages and for joining pipes to feeds.
-
-The main semantic change from AMQP to RestMS is that we do not allow loose coupling of shared queues, i.e. the ability to bind and address a shared queue using arbitrary routing keys.  We consider this AMQP functionality to be confusing and not needed by any common messaging scenarios.  In RestMS, shared queues are addressed directly, as named feeds.  This simplification is a key part of RestMS's overall design.
-
-
-+++ Message compatability
-
-RestMS messages are compatible with AMQP messages:
-
-* All AMQP message properties can be represented in the RestMS message document.
-* The
-
 +++ Technical interoperability
 
+We look at the interoperability of the messaging products, i.e. how to connect a RestMS server to an AMQP server or network.  The main issues we must address are:
 
+* Whether the AMQP server supports the necessary RestMS semantics
+* How the RestMS server mirrors resources to and from the AMQP server
+* How the RestMS server routes messages to and from the AMQP server
 
-+++ Message properties
+++++ The RestMS extension class
 
-message properties
+There are some significant differences between the RESTful model we implement in RestMS, and the AMQP model for resource management.  It would be possible, in theory and in time, to modify the AMQP protocol to become compatible with RestMS.  For example, commands like Queue.Delete would need to become idempotent so that attempting to delete a non-existent queue was safe.  Today, AMQP treats such attempts as fatal errors.
 
+Rather than attempt to modify existing AMQP semantics, we have chosen to definee an AMQP "extension class", which is a mechanism that AMQP allows for experimental extensions.  The advantage of an extension class is that a RestMS server can detect immediately whether its target AMQP server supports it, or not.  There is no ambiguity.
 
-++ AMQP interoperation
+We have used the class index 61501, which falls into the space allotted for extension classes.
 
-RestMS interoperates with AMQP through some basic conventions, some of which we've already explained.
-
--- add how to address shared queues, and response queues
--- via amq.direct
--- immediate, mandatory headers not needed, feeds are explicit
--- how to know what feeds exist from AMQP universe?
-    - subscribe to all shared queues via amq.direct?
-
-# In general, AMQP and RestMS applications can freely interoperate, without knowledge of each others' particularities.
-# RestMS publishers can address exchanges, or shared queues by name.  They cannot address shared queues via arbitrary routing keys.
-# RestMS supports all exchanges which route on a single string address, but not currently support the AMQP headers exchange.
-# RestMS does not yet support message properties.  So, these will be blank on messages originating from RestMS publishers, and will be ignored by RestMS consumers.
-
-There are several possible architectures for message delivery from an AMQP server to a RestMS server.  The simplest model is a single connection, which carries all messages.  Messages are then distributed to pipes in the RestMS server.  If multiple pipes request the same messagem, the message will be sent multiple times down the connection.  In this model, the consumer-tag on Basic.Deliver methods tells the RestMS server how to route messages to pipes.  The format of the consumer tag is 'prefix:pipe-name' where 'prefix' is a string that does not include the ':' character.  (The prefix may be needed to ensure unique consumer tags.)
-
-An alternative model is to open multiple connections or channels, e.g. one per pipe, and to use these to segment messages per pipes.  Again, the same message may be sent many times if requested by multiple pipes.
-
-The optimal, but most complex model, is to use federation-style normalization.  In this model, the RestMS server maintains its own routing data structures, and forwards binding requests to the AMQP server.  When messages arrive, they are routed not on consumer tag, but according to the message routing key and/or other properties.  This model demands that the RestMS implementation has the same routing capabilities as the AMQP server, i.e. implements exchanges and shared queues in much the same way.  The advantage of this model is that it allows for stand-alone RestMS operation, and is the optimal design for RestMS-to-RestMS interoperation (with no extra hops to and from the AMQP server).
-
-++ Appendix
-
-This is the RestMS class used to provide safe, idempotent access to RestMS resources on an AMQP server:
+In order to work with a RestMS server, an AMQP server thus needs to implement this class:
 
 [[code]]
 <?xml version="1.0"?>
 <!--
     Copyright (c) 1996-2009 iMatix Corporation
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at
-    your option) any later version.
-
-    This program is distributed in the hope that it will be useful, but
-    WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    General Public License for more details.
-
-    For information on alternative licensing for OEMs, please contact
-    iMatix Corporation.
+    This code is licensed under both the GPLv3 and the IETF licence, in
+    accordance with the terms of the wiki.amqp.org IP Policy.
  -->
 <class
     name    = "restms"
     handler = "connection"
     index   = "61501"
   >
-  RestMS resource discovery and management class.
-
+  RestMS resource management class.
 <doc>
     Provides methods to work with server-side resources as defined by
     the RestMS specification.  All methods are request-only, without
     response.  Errors are logged at the server side and not reported
     to the client.  This model is designed to allow a RestMS server to
-    push state to the AMQP server, rapidly and without handshaking.
-    In future versions we may allow for asynchronous error reporting
-    back to the RestMS server, probably via an AMQP exchange.  The
-    order of fields follows the URI component order for resources
-    (esp. joins, which have complex URI construction).
+    push state to the AMQP server, and vice versa, rapidly and without
+    handshaking.
 </doc>
 
 <doc name = "grammar">
-    restms              = C:PIPE-CREATE
-                        / C:PIPE-DESTROY
-                        / C:FEED-CREATE
-                        / C:FEED-DESTROY
-                        / C:JOIN-CREATE
-                        / C:JOIN-DESTROY
+    restms              = C:PIPE-CREATE / C:PIPE-DESTROY
+                        / C:FEED-CREATE / C:FEED-DESTROY
+                        / C:JOIN-CREATE / C:JOIN-DESTROY
+                        / S:PIPE-CREATE / S:PIPE-DESTROY
+                        / S:FEED-CREATE / S:FEED-DESTROY
+                        / S:JOIN-CREATE / S:JOIN-DESTROY
 </doc>
 
 <chassis name = "server" implement = "MAY" />
@@ -198,7 +146,7 @@ This is the RestMS class used to provide safe, idempotent access to RestMS resou
     Pipe class
     <doc>
     Specifies the class of the pipe, which must match the class of the
-    existing pipe.  The only valid value for this field is "pipe".
+    existing pipe.
     </doc>
   </field>
   <field name = "pipe name" type = "shortstr" >
@@ -207,12 +155,11 @@ This is the RestMS class used to provide safe, idempotent access to RestMS resou
     Specifies the name of the pipe, which must exist.
     </doc>
   </field>
-  <field name = "address" type = "shortstr" >
-    Join address
+  <field name = "feed class" type = "shortstr" >
+    Feed class
     <doc>
-    Specifies the address to join.  This is an address literal or
-    pattern who's semantics depend on the feed class.  The address
-    may not contain slashes, spaces, or at signs.
+    Specifies the class of the feed, which must match the class of the
+    existing feed.
     </doc>
   </field>
   <field name = "feed name" type = "shortstr" >
@@ -221,11 +168,12 @@ This is the RestMS class used to provide safe, idempotent access to RestMS resou
     Specifies the name of the feed, which must exist.
     </doc>
   </field>
-  <field name = "feed class" type = "shortstr" >
-    Feed class
+  <field name = "address" type = "shortstr" >
+    Join address
     <doc>
-    Specifies the class of the feed, which must match the class of the
-    existing feed.
+    Specifies the address to join.  This is an address literal or
+    pattern who's semantics depend on the feed class.  The address
+    may not contain slashes, spaces, or at signs.
     </doc>
   </field>
 </method>
@@ -244,19 +192,105 @@ This is the RestMS class used to provide safe, idempotent access to RestMS resou
     Specifies the name of the pipe, which does not need to exist.
     </doc>
   </field>
-  <field name = "address" type = "shortstr" >
-    Join address
-    <doc>
-    Specifies the join address.
-    </doc>
-  </field>
   <field name = "feed name" type = "shortstr" >
     Name of feed
     <doc>
     Specifies the name of the feed, which does not need to exist.
     </doc>
   </field>
+  <field name = "address" type = "shortstr" >
+    Join address
+    <doc>
+    Specifies the join address.
+    </doc>
+  </field>
 </method>
 
 </class>
 [[/code]]
+
+++++ Resource synchronisation
+
+The RestMS extension class defined above provides a clean way for the RestMS server to synchronize all its resources with an AMQP server, and vice-versa.  Since the commands are asynchronous and not confirmed, they can be executed very rapidly, so that one server can synchronize its resources on another (for example, after failover) at the rate of tens of thousands of resources per second.
+
+To avoid "storms", a server should track the origin of resources, and synchronise only those which were created by its own local clients.
+
+When a server receives resource specifications from another server, these resources SHOULD be treated as configured and clients SHOULD not be allowed to delete them except on the original server.
+
+Server implementations MAY take any reasonable approach to resources that are "orphaned", i.e. where their original owning server has disconnected and/or gone off line.
+
+++++ Message routing
+
+RestMS does not impose a specific architecture for interconnection with an AMQP network and there are several possibilities which we explain for the benefit of implementors.
+
+In practice, AMQP servers may be paired for high-availability, and/or may be federated themselves into larger AMQP networks.  In this discussion we will assume that the RestMS server speaks to exactly one AMQP server.
+
+The first model relies on the AMQP server to do all routing.  In this case, the RestMS server will synchronise all feeds, pipes, and joins with the AMQP server.  All RestMS pipes and joins are instantiated as private queues and bindings on the AMQP server.  Pipes are implemented in the simplest fashion: each pipe has an exclusive queue with the same name, with a consumer with tag x:{pipe-name}.  When the RestMS server creates joins on the pipe, these are implemented as bindings that bring messages into the private queue.  This is for exchange-based feeds.  For queue-based feeds, the pipe is implemented as a consumer on the shared queue, with tag q:{pipe-name}.  These distinct tags are used by the RestMS server to route messages coming from the AMQP server into separate pipes for end-application delivery.
+
+When a RestMS client posts a message to a feed, the RestMS server forwards that message to the AMQP server.  When an AMQP client publishes a message, this also arrives on the AMQP server.  The AMQP server then routes that to all matching bindings, and thus into private queues.  Message are then delivered to the RestMS server, which uses the consumer tag to sort the messages into their pipes.  RestMS clients can then retrieve their messages from their pipes.
+
+A second model is to open multiple connections or channels, e.g. one per pipe, and to use these to segment messages per pipes.
+
+The advantage of these two model is that they are easy to understand and implement.  The main disadvantage is that messages will be sent redundantly, if they match multiple joins/bindings.  This will waste LAN bandwidth.
+
+The optimal, but most complex model, is to use federation-style normalization.  In this model, the RestMS server maintains its own routing data structures, and forwards binding requests to the AMQP server.  When messages arrive, they are routed not on consumer tag, but according to the message routing key and/or other properties.  This model demands that the RestMS implementation has the same routing capabilities as the AMQP server, i.e. implements exchanges and shared queues in much the same way.  The advantage of this model is that it allows for stand-alone RestMS operation, and is the optimal design for RestMS-to-RestMS interoperation (with no extra hops to and from the AMQP server).
+
++++ Functional interoperability
+
+We look at the interoperability of messaging applications, i.e. how RestMS applications can talk, transparently, to AMQP applications, and vice-versa.  The main issues we must address are:
+
+* How we ensure that messages are semantically compatible with both protocols.
+* How we route messages correctly between applications across the mixed network.
+
+++++ Message semantics
+
+An AMQP message consists of a set of envelopes and an opaque binary payload. There are four AMQP envelopes, though in AMQP/0.9.1 the distinction is not clearly made, and there are overlaps:
+
+# An envelope used for routing inside the AMQP server (exchange, routing-key, headers)
+# An envelope used to define the quality of service for deliveries to a recipient (delivery-mode, priority)
+# An envelope used to communicate between client APIs.(headers, reply-to, correlation-id, expiration, message-id)
+# An envelope used to communicate between client applications.(content-type, timestamp, type, user-id, app-id, sender-id)
+
+In AMQP the envelopes are partially encoded as arguments for commands (the Basic.Publish and Basic.Deliver commands) and partially as properties of messages.
+
+In RestMS, the message envelope and message content are split into two distinct resources.  The RestMS Content-Type and Content-Encoding headers map directly to/from the AMQP content-type and content-encoding properties.  The routing-key is either the address, or the feed name, depending on the type of feed.  The remaining envelope properties are encoded as follows:
+
+[[code]]
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <message address="{address literal}"
+    [ delivery_mode = "{delivery-mode}" ]
+    [ priority = "{priority}" ]
+    [ correlation_id = "{correlation-id}" ]
+    [ reply_to = "{reply-to}" ]
+    [ expiration = "{expiration}" ]
+    [ message_id = "{message-id}" ]
+    [ timestamp = "{timestamp}" ]
+    [ type = "{time}" ]
+    [ user_id = "{user-id}" ]
+    [ app_id = "{app-id}" ]
+    [ sender_id = "{sender-id}" ]
+    >
+    [ <header name="{header name}" value="{header value}" /> ] ...
+  </message>
+</restms>
+[[/code]]
+
+++++ Application to application routing
+
+AMQP assumes, as a working basis, that application agree in advance on the routing model they will use to exchange messages.
+
+Typically, this takes the form of contracts based on the name and type of an exchange, and the allowed values for routing keys used in bindings and messages.
+
+To assure routing between RestMS and AMQP applications we need similar conventions.
+
+-- add how to address shared queues, and response queues
+-- via amq.direct
+-- immediate, mandatory headers not needed, feeds are explicit
+-- how to know what feeds exist from AMQP universe?
+    - subscribe to all shared queues via amq.direct?
+
+
+
+Precisely: if the feed is an exchange, the RestMS server publishes to that exchange with the routing key specified in the message.  If the feed is a shared queue, the RestMS server publishes
+

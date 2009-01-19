@@ -7,6 +7,9 @@ issues in restms
 - If app always requests same pipe and fails to delete message, will loop on getting message.  Need to perhaps limit number of deliveries.
 - If service creates feed, requester needs to use service@amq.direct rather than address@service, which is ugly.  To make address@service work, Zyre needs to know what services exist, this needs to come from the AMQP server.  It also needs to get errors if service does not exist (mandatory + returned messages).
 
+    -> OpenAMQ synch all back onto zyre
+    -> zyre does not need to define own services...
+
 
 
 RestMS
