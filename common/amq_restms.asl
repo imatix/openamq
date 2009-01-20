@@ -83,7 +83,7 @@
     Feed class
     <doc>
     Specifies the class of the feed to create.  Valid values are: fanout,
-    direct, topic, headers, rotator, and service.
+    direct, topic, headers, system, rotator, and service.
     </doc>
   </field>
   <field name = "feed name" type = "shortstr" >
