@@ -1,0 +1,28 @@
+Fosdem presentation
+
+SOA is finally cool
+ =- slashdot quotez
+
+AMQP in 30 seconds
+ = message flow
+ = example apps
+
+OpenAMQ
+ = history, project, goals
+ = challenges
+
+Where to next?
+ = fat belly
+ = easy to use
+ = ... REST
+ => RestMS
+
+- a new web server
+    - secure, easy to configure, scalable, light
+- a new messaging server
+    - RESTful, pure HTTP, XML, JSON
+- a new
+
+REST in 30 seconds
+
+asynclets
