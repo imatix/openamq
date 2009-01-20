@@ -1,12 +1,53 @@
+A RestMS application can be as simple as this fully working "Hello World!" example in Perl:
+
+[[code]]
+#!/usr/bin/perl
+#   Hello World application for RestMS
+#
+use LWP::UserAgent;
+use HTTP::Request::Common;
+
+my $hostname = $ARGV [0]? $ARGV [0]: "localhost";
+my $base = "http://$hostname/restms";
+my $ua = new LWP::UserAgent;
+$ua->agent ('Perl');
+$ua->credentials ($hostname, "RestMS", "guest", "guest");
+
+#   In one step, create a pipe named 'world', create a fanout feed named
+#   'ping', and create a join on all messages, using address string 'hello':
+my $response = $ua->request (PUT "$base/pipe/world/hello\@ping/fanout");
+$response->code == 200 || die;
+
+my $response = $ua->request (POST "$base/hello\@ping",
+    Content => "Hello World!\n");
+$response->code == 200 || die;
+
+#   Message goes into feed and then comes back to our pipe
+my $response = $ua->request (GET "$base/pipe/world/");
+$response->code == 200 || die;
+print $response->content;
+[[/code]]
 
 
-issues in restms
+terminology
+
+* asynclet
+* Resource - a network-addressable data object or service identified by a URI.
+* Domain - a collection of RestMS resources managed by one server or virtual host.
+* Feed - the target for
+document
+element
+property
+attribute
+document root
+resource root
+
+
 
 
 - If app always invents new pipe, will not get message delivered reliably as message may go to other pipe.  Needs to cache pipe name and reuse when starting, example is digest-amqp.pl.
 - If app always requests same pipe and fails to delete message, will loop on getting message.  Need to perhaps limit number of deliveries.
 - If service creates feed, requester needs to use service@amq.direct rather than address@service, which is ugly.  To make address@service work, Zyre needs to know what services exist, this needs to come from the AMQP server.  It also needs to get errors if service does not exist (mandatory + returned messages).
-
     -> OpenAMQ synch all back onto zyre
     -> zyre does not need to define own services...
 

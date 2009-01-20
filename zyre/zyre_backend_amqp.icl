@@ -281,7 +281,7 @@ link becomes active, and when a message content arrives.
     if (feed->as_queue) {
         method = zyre_peer_method_new_basic_publish (
             0,                          //  Ticket
-            "amq.direct",               //  Direct exchange
+            NULL,                       //  Default exchange
             feed_name,                  //  Routing key is queue name
             FALSE,                      //  Not mandatory
             FALSE);                     //  Not immediate
@@ -352,16 +352,17 @@ link becomes active, and when a message content arrives.
             zyre_peer_agent_push (self->peer_agent_thread, self->channel_nbr, method);
             zyre_peer_method_unlink (&method);
         }
-        //  Create private queue on peer and consume off queue
+        //  Create private queue which will be used to receive replies
         zyre_peer_agent_queue_declare (
             self->peer_agent_thread, self->channel_nbr, 0, self->queue,
             FALSE, FALSE, TRUE, TRUE, TRUE, NULL);
         zyre_peer_agent_basic_consume (
             self->peer_agent_thread, self->channel_nbr, 0, self->queue,
             NULL, TRUE, TRUE, TRUE, TRUE, NULL);
+        //  Bind queue to default exchange
         zyre_peer_agent_queue_bind (
             self->peer_agent_thread, self->channel_nbr, 0, self->queue,
-            "amq.direct", self->queue, TRUE, NULL);
+            NULL, self->queue, TRUE, NULL);
     }
     zyre_backend_module_response_online (self->portal, self->queue);
     </action>

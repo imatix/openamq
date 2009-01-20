@@ -9,7 +9,7 @@ RestMS defines a generic framework by which clients issue HTTP methods to work w
 
 All methods work orthogonally on all types of RestMS resources, whether those resources contain or do not contain other resources.  Not all combinations of methods and resources are meaningful, implemented, or permitted.
 
-This framework draws heavily on the design of AtomPub[n] and that specification may be helpful as a background to the mechanics of implementing a RESTful dialog over a HTTP transport.
+This framework draws heavily on the design of AtomPub[((bibcite atompub))] and that specification may be helpful as a background to the mechanics of implementing a RESTful dialog over a HTTP transport.
 
 In this section we use XML as the document language, but the reader may note that RestMS allows a choice of representations for structured data.
 
@@ -22,7 +22,7 @@ The lifecycle and visibility of resources is related, as follows:
 * Configured resources are always public while dynamic resources are by default private.
 * Applications can modify and delete dynamic resources, if they know their URIs, while they may not modify or delete configured resources.
 * The URI for a public resource is derived from its type and name, while the URI for a private resource is provided by the server.
-* Public resources are named, and discoverable through navigation of parent resources, while private resources are unnamed, and undiscoverable.
+* Public resources are named, and discoverable through navigation of parent resources.  The name of a public resource MAY be empty.  Private resources are unnamed, and undiscoverable through navigation.
 * Dynamic resources may in some cases be created by the server.
 
 The URI for a public resource is derived from the resource type and name as follows:
@@ -70,7 +70,6 @@ User-Agent: {user agent}
 Authorization: {credentials}
 Content-Type: application/restms+xml;type={resource type}
 Content-Length: {size of content}
-Slug: {resource title}
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">

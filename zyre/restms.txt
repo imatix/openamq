@@ -11,9 +11,11 @@ This document is licensed under the [http://wiki.amqp.org/main:intellectual-prop
 
 ++ Change Process
 
-This document is governed by the [spec:1|1-COSS@wiki.amqp.org specification].
+This document is governed by the 1-COSS@wiki.amqp.org specification[((bibcite coss))]
 
-++ Goals
+++ Introduction
+
++++ Goals
 
 RestMS aims to:
 
@@ -30,100 +32,1981 @@ And in doing to, hopes to:
 
 This specification is an initial, simple RESTful mapping of AMQP.  It does not claim to be complete, robust, or fast.  Our intention is to demonstrate that RESTful messaging is feasible today.  We also wish to show that a RESTful messaging model - a set of resources clearly identified with URIs and each supporting the appropriate HTTP methods - can be a constructive input into the design of AMQP/1.0.
 
-++ Language
++++ Language
 
-The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119.
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119[((bibcite rfc2119))].
 
-Key words for use in RFCs to Indicate Requirement Levels
-http://tools.ietf.org/html/rfc2119
++++ Terminolgy
 
-++ Terminolgy
+This section is in progress.
 
-* Resource - a network-addressable data object or service identified by a URI.
-* Collection - A Resource that contains a set of Member Resources. Collections are represented as Atom Feeds. See Section 9.
-* Workspace - A named group of Collections. See Section 8.1.
-* Service Document - A document that describes the location and capabilities of one or more Collections, grouped into Workspaces. See Section 8.
-* Category Document - A document that describes the categories allowed in a Collection. See Section 7.
+++ RESTful messaging
 
+> All REST interactions are stateless. That is, each request contains all of the information necessary for a connector to understand the request, independent of any requests that may have preceded it.[((bibcite rest))]
 
-++ Introduction
+RestMS is a RESTful messaging service designed for web applications.
 
-"All REST interactions are stateless. That is, each request contains all of the information necessary for a connector to understand the request, independent of any requests that may have preceded it." -- [http://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm Roy Fielding]
-
-RestMS is a RESTful messaging service designed for web applications.  A RestMS application can be as simple as this fully working "Hello World!" example in Perl:
-
-[[code]]
-#!/usr/bin/perl
-#   Hello World application for RestMS
-#
-use LWP::UserAgent;
-use HTTP::Request::Common;
-
-my $hostname = $ARGV [0]? $ARGV [0]: "localhost";
-my $base = "http://$hostname/restms";
-my $ua = new LWP::UserAgent;
-$ua->agent ('Perl');
-$ua->credentials ($hostname, "RestMS", "guest", "guest");
-
-#   In one step, create a pipe named 'world', create a fanout feed named
-#   'ping', and create a join on all messages, using address string 'hello':
-my $response = $ua->request (PUT "$base/pipe/world/hello\@ping/fanout");
-$response->code == 200 || die;
-
-my $response = $ua->request (POST "$base/hello\@ping",
-    Content => "Hello World!\n");
-$response->code == 200 || die;
-
-#   Message goes into feed and then comes back to our pipe
-my $response = $ua->request (GET "$base/pipe/world/");
-$response->code == 200 || die;
-print $response->content;
-[[/code]]
-
-
-++ Implementation architecture
++++ Implementation architecture
 
 The RestMS software architecture consists of these components:
 
 * A RestMS //server//, which speaks HTTP or HTTPS at one side, and one or more messaging protocols (such as AMQP) at the other.
 * A set of RestMS //client// applications, which use the HTTP protocol to execute RestMS methods, and thus to send and receive messages.
-* One or more messaging infrastructures, for example an AMQP server connected to a set of AMQP client applications.  This infrastructure is invisible to the RestMS clients, except insofar as it exists as a sink for and a source of interesting messages.
+* Zero or more messaging infrastructures, for example an AMQP server connected to a set of AMQP client applications.  This infrastructure is invisible to the RestMS clients, except insofar as it exists as a sink for and a source of interesting messages.
 
 In this document we provide a formal specification for the syntax and semantics of the HTTP conversation carried out between RestMS clients and the RestMS server, with the goal of explaining to developers how to write RestMS client applications, and to implementors how to build conforming RestMS server implementations.
 
-
-++ RestMS design overview
++++ RestMS design overview
 
 RestMS consists of these design aspects, each presented as a section of this specification:
 
 # A generic document syntax.  This section explains how resources are represented as structured documents in both XML and JSON.  While this generic syntax was designed for RestMS, it is reusable in other applications.
 # A generic RESTful framework.  This section explains how HTTP methods are used to create, retrieve, modify, and delete server-side resources.  Like the generic document structure, this generic framework is applicable more widely than RestMS.
 # The RestMS protocol semantics.  This section explains the specific semantics of RestMS, in terms of the RestMS resources and methods.
-# Specifications of the RestMS feed and pipe types.  This section is intended for RestMS users.
-# A guide to AMQP interoperability and security.  This section is intended for AMQP implementors who wish to support RestMS in their products.
+# Specifications for AMQP functional interoperability.  This section is intended for RestMS users.
+# Specifications for AMQP technical interoperability.  This section is intended for AMQP implementors who wish to support RestMS in their products.
 # A guide to HTTP interoperability and security.
 
++++ RestMS compared to AtomPub
 
-Differences between RestMS and AtomPub
-Differences between RestMS and AMQP
+RestMS is inspired by the design of AtomPub[((bibcite atompub))] and that specification may be helpful as a background to the mechanics of implementing a RESTful dialog over a HTTP transport.  The main differences are:
 
+* RestMS provides an event-driven message delivery mechanism (the "asynclet"), while AtomPub requires that applications poll for updates.
+* RestMS allows readers to select messages within the server, by creating "pipes" and "joins" to pull specific messages from one or more feeds.  AtomPub delivers all messages in a feed to all readers of the feed.
+* RestMS provides a mechanisms for service-oriented architectures in which client applications make requests to remote, loosely coupled services.
+* RestMS is designed for high volumes, with message rates of hundreds or thousands per second, while AtomPub is designed for lower message rates.
+* AtomPub carries XML messages, while RestMS also supports JSON.  This makes RestMS easier to use in some web applications.
 
++++ RestMS compared to AMQP
 
--- using RestMS in five minutes
-    - examples, minimal rules
+RestMS is heavily inspired by AMQP, and interoperable with it.  However, it has significant differences:
 
-++ RestMS is an evolution of AMQP
+* AMQP is a binary protocol that is complex to read and write, while RestMS uses plain HTTP.
+* As a consequence, AMQP applications need specialised API layers, while RestMS applications can use any HTTP library, or plain TCP/IP sockets.
+* AMQP is designed for internal network use, while RestMS is based on HTTP and REST and designed for wide-area networks.
+* RestMS does not implement consumers, transactions, acknowledgements, but uses the simpler RESTful model for reliable message creation and delivery.
+* By using standard HTTP, RestMS traffic is easily monitored, shaped, and throttled.
 
-While RestMS remains interoperable with existing AMQP networks (via AMQP servers that implement the RestMS extension class), it is intended to be both simpler to understand and use, and more in line with the evolution of AMQP towards an AMQP/1.0 specification.
+In terms of pure performance, RestMS can match AMQP performance due to its use of raw binary "stream" pipes.  For most naive uses, however, RestMS is more "chatty" and slower than AMQP.
 
-RestMS deliberately invents new nomenclature but for those familiar with AMQP, a feed corresponds to an exchange and/or shared queue, an address corresponds to a routing key, a pipe is analogous to a private queue, and a join matches an AMQP binding.  If it helps to understand RestMS, these are the main shifts that RestMS makes from the AMQP/0.9.1 semantic model:
+++ Worked examples
+
+In this section we take two typical examples - a service-oriented network, and a publish-subscribe network - and we implement them in both AMQP and RestMS.  These examples demonstrate how RestMS works by comparison to AMQP, and the examples are useful starting points for real applications.  AMQP and RestMS applications are fully interoperable.
+
++++ Fortune service example
+
+In this example we show how to implement a service that returns a random message, also called a "fortune cookie".  The fortune service works as follows:
+
+* A client sends a request message to a fortune service.
+* The fortune service responds with something witty.
+
+We will first implement the service and client using AMQP methods.  We will then implement the same service and client using low-level RestMS HTTP methods.  We assume the RestMS server is running on port 80 at host.com, and we show only HTTP headers that are relevant to the example.
+
+Here is the message format used by the fortune service.  The request message takes this form (using the RestMS notation):
+
+[[code]]
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <message reply_to="{reply to}" />
+</restms>
+[[/code]]
+
+And the response message takes this form:
+
+[[code]]
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <message address="reply_to">
+    <header name="fortune" value="{fortune cookie text}" />
+  </message>
+</restms>
+[[/code]]
+
+For simplicity, we do not show the '<?xml version="1.0"?>' entity and the "xmlns" attribute in the later examples, but these are required in actual code.
+
+Note that in this example we are carrying the message data in the message envelope.  RestMS also lets us carry data as separate "contents", but this is more complex and not useful to explain here.
+
+Message routing for this example works as follows:
+
+* Clients send their requests to a service called "fortune"
+* The fortune service responds to the reply-to value of the message.
+* In both cases, messages are routed via the default feed (or default exchange in AMQP terms).
+
+++++ AMQP fortune service
+
+The fortune service starts by creating a shared queue:
+
+[[code]]
+C: Queue.Declare queue="fortune" exclusive="0" auto-delete="1"
+S: Queue.Declare-Ok
+[[/code]]
+
+It does not need to bind the queue, since it will use the default binding.  It consumes from the queue:
+
+[[code]]
+C: Basic.Consume queue="fortune"
+S: Basic.Consume-Ok
+[[/code]]
+
+The message arrives from the server:
+
+[[code]]
+S:Basic.Deliver exchange="" routing_key="fortune" reply_to="RESTMS_B4B4"
+[[/code]]
+
+If we assume we're using the RestMS client that we explained later, the reply_to attribute will be "RESTMS_B4B4".  If the client is an AMQP client, the reply_to attribute will be the name of a private queue owned by that client.
+
+The fortune service formats an AMQP message, setting the headers field 'fortune' to the fortune text it wishes to send.  It then sends the message to the AMQP server:
+
+[[code]]
+C: Basic.Publish exchange="" routing-key="RESTMS_B4B4"
+    headers: { fortune="Complexity is the swamp, simplicity the mountain top" }
+[[/code]]
+
+++++ AMQP fortune client
+
+The fortune client starts by creating an exclusive server-named queue:
+
+[[code]]
+C: Queue.Declare queue="" exclusive="1"
+S: Queue.Declare-Ok queue="auto:0123"
+[[/code]]
+
+It does not need to bind the queue, since it will use the default binding.  It consumes from the queue:
+
+[[code]]
+C: Basic.Consume queue="auto:1023"
+S: Basic.Consume-Ok
+[[/code]]
+
+The client then sends a request message to the fortune service:
+
+[[code]]
+C: Basic.Publish exchange="" routing-key="fortune" reply_to="auto:1023"
+[[/code]]
+
+When the message arrives, the server delivers it to the client:
+
+[[code]]
+S:Basic.Deliver exchange="" routing_key="fortune"
+    headers: { fortune="Complexity is the swamp, simplicity the mountain top" }
+[[/code]]
+
+The client unpacks the headers table and takes the "fortune" field, which contains the response from the fortune service.
+
+++++ RestMS fortune service
+
+First, the fortune service creates a public feed named "fortune", by posting a feed specification to the default domain:
+
+[[code]]
+Client:
+-------------------------------------------------
+POST /restms/domain/
+Content-Type: application/restms+xml;type=feed
+
+<restms>
+  <feed name="fortune" type="service" />
+</restms>
+
+Server:
+-------------------------------------------------
+HTTP/1.1 201 Created
+Content-Type: application/restms+xml;type=feed
+Location: http://host.com/restms/feed/fortune
+
+<restms>
+  <feed name="fortune" type="service" />
+</restms>
+[[/code]]
+
+The fortune service then creates a pipe:
+
+[[code]]
+Client:
+-------------------------------------------------
+POST /restms/domain/
+Content-Type: application/restms+xml;type=pipe
+
+<restms>
+  <pipe type="fifo" />
+</restms>
+
+Server:
+-------------------------------------------------
+HTTP/1.1 201 Created
+Content-Type: application/restms+xml;type=pipe
+Location: http://host.com/restms/resource/C4FE
+
+<restms>
+  <pipe type="fifo" reply_to="RESTMS_C4FE">
+    <!-- All pipes are automatically joined to the default feed -->
+    <join
+        href="http://host.com/restms/resource/BA5F"
+        address="RESTMS_C4FE"
+        feed="http://host.com/restms/feed/" />
+    <!-- All pipes contain an asynclet for the next message -->
+    <message
+        href="http://host.com/restms/resource/F00D"
+        async="1" />
+  </pipe>
+</restms>
+[[/code]]
+
+The fortune service does not expect to be addressed by its reply_to attribute, but rather by the service name "fortune".  It thus creates a join from its pipe to the fortune feed, by POSTing a join specification to the pipe URI.
+
+[[code]]
+Client:
+-------------------------------------------------
+POST /restms/resource/C4FE
+Content-Type: application/restms+xml;type=join
+
+<restms>
+  <join address="*" feed="http://host.com/restms/feed/fortune" />
+</restms>
+
+Server:
+-------------------------------------------------
+HTTP/1.1 201 Created
+Content-Type: application/restms+xml;type=join
+Location: http://host.com/restms/resource/B33F
+
+<restms>
+  <join address="*" feed="http://host.com/restms/feed/fortune" />
+</restms>
+[[/code]]
+
+The fortune service then retrieves the message asynclet, and thus waits for an incoming message:
+
+[[code]]
+Client:
+-------------------------------------------------
+GET /restms/resource/FOOD
+[[/code]]
+
+When a client eventually posts a message to the fortune feed, the RestMS server delivers it to our fortune service, which has been waiting:
+
+[[code]]
+Server:
+-------------------------------------------------
+HTTP/1.1 200 OK
+Content-Type: application/restms+xml;type=join
+
+<restms>
+  <message
+    reply_to="RESTMS_B4B4"
+    feed="http://host.com/restms/feed/fortune"
+    next="http://host.com/restms/resource/DE55" />
+</restms>
+[[/code]]
+
+The fortune service then replies with a suitable fortune cookie, by posting a message to the default feed using the reply_to attribute of the request as the address:
+
+[[code]]
+Client:
+-------------------------------------------------
+POST /restms/feed/
+Content-Type: application/restms+xml;type=message
+
+<restms>
+  <message address="RESTMS_B4B4">
+    <header
+      name="fortune"
+      value="Complexity is the swamp, simplicity the mountain top" />
+  </message>
+</restms>
+
+Server:
+-------------------------------------------------
+HTTP/1.1 200 OK
+[[/code]]
+
+And the fortune service repeats the process by retrieving the next message asynclet, and thus waiting once more for an incoming message:
+
+[[code]]
+Client:
+-------------------------------------------------
+HTTP/1.1 200 OK
+GET /restms/resource/DE55
+[[/code]]
+
+When the fortune service decides to end, it deletes its pipe:
+
+[[code]]
+Client:
+-------------------------------------------------
+DELETE /restms/resource/C4FE
+
+Server:
+-------------------------------------------------
+HTTP/1.1 200 OK
+[[/code]]
+
+++++ RestMS fortune client
+
+The fortune client creates a pipe by posting a pipe specification document to the default domain:
+
+[[code]]
+Client:
+-------------------------------------------------
+POST /restms/domain/
+Content-Type: application/restms+xml;type=pipe
+
+<restms>
+  <pipe type="fifo" />
+</restms>
+
+Server:
+-------------------------------------------------
+HTTP/1.1 201 Created
+Content-Type: application/restms+xml;type=pipe
+Location: http://host.com/restms/resource/B4B4
+
+<restms>
+  <pipe type="fifo" reply_to="RESTMS_B4B4">
+    <join
+        href="http://host.com/restms/resource/00DA"
+        address="RESTMS_B4B4"
+        feed="http://host.com/restms/feed/" />
+    <message
+        href="http://host.com/restms/resource/C137"
+        async="1" />
+  </pipe>
+</restms>
+[[/code]]
+
+The client posts a message to the fortune feed, specifying the reply_to attribute:
+
+[[code]]
+Client:
+-------------------------------------------------
+POST /restms/feed/fortune
+Content-Type: application/restms+xml;type=message
+
+<restms>
+  <message reply_to="RESTMS_B4B4" />
+</restms>
+
+Server:
+-------------------------------------------------
+HTTP/1.1 200 OK
+[[/code]]
+
+The fortune client then retrieves the message asynclet, and thus waits for an incoming message:
+
+[[code]]
+Client:
+-------------------------------------------------
+GET /restms/resource/C137
+[[/code]]
+
+And when the fortune service responds, the client gets its reply message from the server:
+
+[[code]]
+Server:
+-------------------------------------------------
+HTTP/1.1 200 OK
+Content-Type: application/restms+xml;type=message
+
+<restms>
+  <message address="RESTMS_B4B4">
+    <header
+      name="fortune"
+      value="Complexity is the swamp, simplicity the mountain top" />
+  </message>
+</restms>
+[[/code]]
+
+The fortune client then deletes its pipe:
+
+[[code]]
+Client:
+-------------------------------------------------
+DELETE /restms/resource/B4B4
+
+Server:
+-------------------------------------------------
+HTTP/1.1 200 OK
+[[/code]]
+
++++ Newsfeed publish-subscribe example
+
+In this example we show how to implement a topic-based newsfeed service that distributes news articles using a hierarchical categorization structure.  The newsfeed service works as follows:
+
+* A news publisher sends a stream of news covering various categories.
+* Clients subscribe to and receive messages from specific news categories.
+
+We will implement a publisher and a subscriber using AMQP methods.  We will then implement the same publisher and subscriber using low-level RestMS HTTP methods.  We assume the RestMS server is running on port 80 at host.com, and we show only HTTP headers that are relevant to the example.
+
+Here is the message format for the newsfeed:
+
+[[code]]
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <message address="{news category}">
+    <header name="title" value="{news item title}" />
+    <header name="body" value="{news item body}" />
+  </message>
+</restms>
+[[/code]]
+
+For simplicity, we do not show the '<?xml version="1.0"?>' entity and the xmlns attribute in the later examples, but these are required in actual code.
+
+Note that in this example we are carrying the message data in the message envelope.  RestMS also lets us carry data as separate "contents", but this is more complex and not useful to explain here.
+
+As an example we will use this news category tree:
+
+[[code]]
+rec
+   |
+   o- pets
+   |  |
+   |  o- cats
+   |  |
+   |  o- dogs
+   |
+   o- cars
+[[/code]]
+
+News categories are written with periods separating each level, like this: "rec.pets.cats".  Subscribers can request specific categories, or use wildcards: '*' specifies any value for one level, '#' specifies any value for any number of levels.
+
+Our sample news stream contains these news items (we show the news category and the item title):
+
+[[code]]
+rec.pets.dogs   Montreal: Canine Championship series opens
+rec.cars        The oil shock: does it affect you?
+rec.pets.dogs   Steroids: the ugly truth from Montreal
+rec.pets.cats   Cat vs. dog: facts or fictions?
+rec.pets.dogs   Montreal in chaos: winner is a cat!
+rec.cars        Red, white, or blue: what it says about you
+rec.cars        Parking - who, where, why: a new survey
+rec.pets.cats   Superiority: it comes naturally
+[[/code]]
+
+++++ AMQP newsfeed publisher
+
+The news publisher first declares a topic exchange called "newsfeed":
+
+[[code]]
+Exchange.Declare exchange="newsfeed" type="topic"
+[[/code]]
+
+It then publishes news items to the newsfeed exchange (the news item title is a headers field):
+
+[[code]]
+C:Basic.Publish exchange="newsfeed" routing_key="rec.pets.dogs"
+    headers: { title="Montreal: Canine Championship series opens" }
+C:Basic.Publish exchange="newsfeed" routing_key="rec.cars"
+    headers: { title="The oil shock: does it affect you?" }
+C:Basic.Publish exchange="newsfeed" routing_key="rec.pets.dogs"
+    headers: { title="Steroids: the ugly truth from Montreal" }
+C:Basic.Publish exchange="newsfeed" routing_key="rec.pets.cats"
+    headers: { title="Cat vs. dog: facts or fictions?" }
+C:Basic.Publish exchange="newsfeed" routing_key="rec.pets.dogs"
+    headers: { title="Montreal in chaos: winner is a cat!" }
+C:Basic.Publish exchange="newsfeed" routing_key="rec.cars"
+    headers: { title="Red, white, or blue: what it says about you" }
+C:Basic.Publish exchange="newsfeed" routing_key="rec.cars"
+    headers: { title="Parking - who, where, why: a new survey" }
+C:Basic.Publish exchange="newsfeed" routing_key="rec.pets.cats"
+    headers: { title="Superiority: it comes naturally" }
+[[/code]]
+
+++++ AMQP newsfeed subscriber
+
+Our example news subscriber wants all news in "rec.pets".  It starts by creating a private queue:
+
+[[code]]
+C: Queue.Declare queue="" exclusive="1"
+S: Queue.Declare-Ok queue="auto:0021"
+[[/code]]
+
+It creates a binding for "rec.pets.*" and then consumes from the queue:
+
+[[code]]
+C: Queue.Bind queue="auto:0021" exchange="newsfeed" routing_key="rec.pets.*"
+S: Queue.Bind-Ok
+C: Basic.Consume queue="auto:0021"
+S: Basic.Consume-Ok
+[[/code]]
+
+The subscriber then waits for messages, and receives these:
+
+[[code]]
+S:Basic.Deliver exchange="newsfeed" routing_key="rec.pets.dogs"
+    headers: { title="Montreal: Canine Championship series opens" }
+S:Basic.Deliver exchange="newsfeed" routing_key="rec.pets.dogs"
+    headers: { title="Steroids: the ugly truth from Montreal" }
+S:Basic.Deliver exchange="newsfeed" routing_key="rec.pets.cats"
+    headers: { title="Cat vs. dog: facts or fictions?" }
+S:Basic.Deliver exchange="newsfeed" routing_key="rec.pets.dogs"
+    headers: { title="Montreal in chaos: winner is a cat!" }
+S:Basic.Deliver exchange="newsfeed" routing_key="rec.pets.cats"
+    headers: { title="Superiority: it comes naturally" }
+[[/code]]
+
+++++ RestMS newsfeed publisher
+
+The news publisher first declares a public topic feed called "newsfeed", by posting a feed specification to the default domain:
+
+[[code]]
+Client:
+-------------------------------------------------
+POST /restms/domain/
+Content-Type: application/restms+xml;type=feed
+
+<restms>
+  <feed name="newsfeed" type="topic" />
+</restms>
+
+Server:
+-------------------------------------------------
+HTTP/1.1 201 Created
+Content-Type: application/restms+xml;type=feed
+Location: http://host.com/restms/feed/newsfeed
+
+<restms>
+  <feed name="newsfeed" type="topic" />
+</restms>
+[[/code]]
+
+It then publishes a batch of news items to the newsfeed feed:
+
+[[code]]
+Client:
+-------------------------------------------------
+POST /restms/feed/newsfeed
+Content-Type: application/restms+xml;type=message
+
+<restms>
+  <message address="rec.pets.dogs">
+    <header name="title" value="Montreal: Canine Championship series opens" />
+  </message>
+  <message address="rec.cars">
+    <header name="title" value="The oil shock: does it affect you?" />
+  </message>
+  <message address="rec.pets.dogs">
+    <header name="title" value="Steroids: the ugly truth from Montreal" />
+  </message>
+  <message address="rec.pets.cats">
+    <header name="title" value="Cat vs. dog: facts or fictions?" />
+  </message>
+  <message address="rec.pets.dogs">
+    <header name="title" value="Montreal in chaos: winner is a cat!" />
+  </message>
+  <message address="rec.cars">
+    <header name="title" value="Red, white, or blue: what it says about you" />
+  </message>
+  <message address="rec.cars">
+    <header name="title" value="Parking - who, where, why: a new survey" />
+  </message>
+  <message address="rec.pets.cats">
+    <header name="title" value="Superiority: it comes naturally" />
+  </message>
+</restms>
+
+Server:
+-------------------------------------------------
+HTTP/1.1 200 OK
+[[/code]]
+
+++++ RestMS newsfeed subscriber
+
+The subscriber creates a pipe on which to receive news items, and the server responds with a pipe description that includes the asynclet on which the subscriber can wait to get the next incoming message:
+
+[[code]]
+Client:
+-------------------------------------------------
+POST /restms/domain/
+Content-Type: application/restms+xml;type=pipe
+
+<restms>
+  <pipe type="fifo" />
+</restms>
+
+Server:
+-------------------------------------------------
+HTTP/1.1 201 Created
+Content-Type: application/restms+xml;type=pipe
+Location: http://host.com/restms/resource/F33D
+
+<restms>
+  <pipe type="fifo">
+    <message
+        href="http://host.com/restms/resource/33D1"
+        async="1" />
+  </pipe>
+</restms>
+[[/code]]
+
+The subscriber retrieves the message asynclet, and thus waits for an incoming message:
+
+[[code]]
+Client:
+-------------------------------------------------
+GET /restms/resource/33D1
+[[/code]]
+
+And when a news item arrives, the client gets it from the server:
+
+[[code]]
+Server:
+-------------------------------------------------
+HTTP/1.1 200 OK
+Content-Type: application/restms+xml;type=message
+
+<restms>
+  <message address="rec.pets.dogs">
+    <header name="title" value="Montreal: Canine Championship series opens" />
+  </message>
+</restms>
+[[/code]]
+
+When the subscriber has finished, it deletes its pipe:
+
+[[code]]
+Client:
+-------------------------------------------------
+DELETE /restms/resource/F33D
+
+Server:
+-------------------------------------------------
+HTTP/1.1 200 OK
+[[/code]]
+
+++ Generic structured document syntax
+
++++ Overview
+
+RestMS defines a generic document syntax for resources, based on these principles:
+
+* Resources are typed, and the type names form the main element names in the document.
+* A resource may, or may not, be a container for other resources depending on its type.
+* The document syntax is fully neutral with respect to the resource hierarchy.  That is, when the protocol is changed to add new resources, remove resources, or modify resources, nothing in this section will change.
+* There is a single root resource that contains all other resources.
+* Clients can navigate the resource hierarchy with no specific knowledge except the type and URI of the root resource.
+* Documents can include opaque binary resources, which themselves cannot contain further RestMS resources.
+
+Our goals with this design are:
+
+* To define a generic syntax that can be implemented, understood, and reused without needing specific knowledge of the RestMS resources and their semantics.
+* To define a document syntax that is easily mapped to arbitrary representations including XML and JSON.  We document the use of these two representations but do not exclude others.
+* To provide documents that are navigable and discoverable with mimimum prior knowledge.
+* To deliver most of the benefits of structured representations (such as cheap parsing) without the cost of formalised validation.
+* To allow unilateral extensibility of the resource hierarchy by server implementations.
+* To keep things as simple as possible for RestMS users: this means being able to read and create RestMS documents with minimum libraries, extensions, addons, and other complexities.
+* To allow for future evolution in structured data representation.
+
++++ Basic syntax rules
+
+RestMS documents obey these basic rules:
+
+* All RestMS documents have a "document root" element called "restms".
+* This document root contains a single "resource root".
+* The resource root element contains other elements, each which can itself contain elements.
+* All elements except the document root element correspond to RestMS resources.
+* The name of all elements except the document root correspond to the RestMS resource type.
+* All elements except the document root may have attributes, corresponding to resource properties.
+* All elements except the root may repeat 0 or more times.
+
+Further, for XML documents:
+
+* The Content-type MUST be "application/restms+xml;type={root resource}".
+* The document root has a single attribute, xmlns="http://www.imatix.com/schema/restms".
+* Elements with values and no attributes are equivalent to attributes of their parent.
+* Elements may not have both values and attributes.
+* The following characters should be escaped in element values:
+ * & (escaped by writing &amp;)
+ * < (escaped by writing &lt;)
+ * > (escaped by writing &gt;)
+* The following character MUST be escaped in attribute values:
+ * " (escaped by writing &quot;)
+
+And for JSON documents:
+
+* The Content-type MUST be "application/restms+json;type={root resource}".
+* The following character MUST be escaped in value strings:
+ * " (escaped by writing \")
+
+Here is an example of a RestMS document in XML:
+
+[[code]]
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <playlist name="default">
+    <album
+      artist="Echobelly"
+      title="On"
+      released="1995-10-17"
+      summary="Underrated, bittersweet guitar rock perfection">
+      <track title="Car Fiction" length="2:31" />
+      <track title="King of the Kerb" length="3:59" />
+      <track title="Great Things" length="3:31" />
+      <track title="Natural Animal" length="3:27" />
+      <track title="Go Away" length="2:44" />
+      <track title="Pantyhose and Roses" length="3:26" />
+      <track title="Something Hot in a Cold Country" length="4:01" />
+      <track title="Four Letter Word" length="2:51" />
+      <track title="Nobody Like You" length="3:52" />
+      <track title="In the Year" length="3:31" />
+      <track title="Dark Therapy" length="5:30" />
+      <track title="Worms and Angels" length="2:38" />
+    </album>
+  </playlist>
+</restms>
+[[/code]]
+
+The resource hierarchy in our example is:
+
+[[code]]
+playlist
+    |
+    o- album
+        |
+        o- track
+[[/code]]
+
+Here is the same document in JSON, showing that the root resource may occur only once, while all other resources may occur multiple times:
+
+[[code]]
+{
+"restms": {
+  "playlist":  { "name":"default",
+    "album": [ { "artist":"Echobelly", "title":"On", "released":"1995-10-17",
+      "track": [
+        { "title":"Car Fiction", "length":"2:31" },
+        { "title":"King of the Kerb", "length":"3:59" },
+        { "title":"Great Things", "length":"3:31" },
+        { "title":"Natural Animal", "length":"3:27" },
+        { "title":"Go Away", "length":"2:44" },
+        { "title":"Pantyhose and Roses", "length":"3:26" },
+        { "title":"Something Hot in a Cold Country", "length":"4:01" },
+        { "title":"Four Letter Word", "length":"2:51" },
+        { "title":"Nobody Like You", "length":"3:52" },
+        { "title":"In the Year", "length":"3:31" },
+        { "title":"Dark Therapy", "length":"5:30" },
+        { "title":"Worms and Angels", "length":"2:38" }
+      ],
+      "summary":"Underrated, bittersweet guitar rock perfection" }
+    ] }
+  }
+}
+[[/code]]
+
++++ Navigation and discovery
+
+RestMS documents use the following rule to allow navigation and discovery:
+
+* The attribute "href", if present, holds the URI for the resource that the element represents.
+* The URI for the root resource is known to both client and server by common agreement.
+* The URIs for all non-root resources are generated by the server and may be stored by the client.
+* URIs may be relative or absolute.
+
+Here is an example of a client retrieving a public playlist resource using a HTTP GET method, with the server's response:
+
+[[code]]
+Client:
+GET /restms/playlist/default HTTP/1.1
+
+Server:
+HTTP/1.1 200 OK
+Date: Mon Jan 12 12:05:01 2009
+Content-Length: 440
+Content-Type: application/restms+xml;type=playlist
+
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <playlist name="default">
+    <album
+        artist="Echobelly"
+        title="On"
+        href="/resource/A1023" />
+    <album
+        artist="Muse"
+        title="Showbiz"
+        href="/resource/A0911" />
+    <album
+        artist="Toumani Diabate"
+        title="Djelika"
+        href="/resource/A0023" />
+  </playlist>
+</restms>
+[[/code]]
+
+To retrieve a specific album, the client uses the URI provided by the server, for example:
+
+[[code]]
+Client:
+GET /resource/A1023 HTTP/1.1
+
+Server:
+HTTP/1.1 200 OK
+Date: Mon Jan 12 12:05:02 2009
+Content-Length: 1440
+Content-Type: application/restms+xml;type=album
+
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+    <album
+        artist="Echobelly"
+        title="On"
+        released="1995-10-17"
+        summary="Underrated, bittersweet guitar rock perfection"
+      <track title="Car Fiction" length="2:31"
+        href="http://music.host.com/resource/A1023/1" />
+      <track title="King of the Kerb" length="3:59"
+        href="http://music.host.com/resource/A1023/2" />
+      <track title="Great Things" length="3:31"
+        href="http://music.host.com/resource/A1023/3" />
+      <track title="Natural Animal" length="3:27"
+        href="http://music.host.com/resource/A1023/4" />
+      <track title="Go Away" length="2:44"
+        href="http://music.host.com/resource/A1023/5" />
+      <track title="Pantyhose and Roses" length="3:26"
+        href="http://music.host.com/resource/A1023/6" />
+      <track title="Something Hot in a Cold Country" length="4:01"
+        href="http://music.host.com/resource/A1023/7" />
+      <track title="Four Letter Word" length="2:51"
+        href="http://music.host.com/resource/A1023/8" />
+      <track title="Nobody Like You" length="3:52"
+        href="http://music.host.com/resource/A1023/9" />
+      <track title="In the Year" length="3:31"
+        href="http://music.host.com/resource/A1023/10" />
+      <track title="Dark Therapy" length="5:30"
+        href="http://music.host.com/resource/A1023/11" />
+      <track title="Worms and Angels" length="2:38"
+        href="http://music.host.com/resource/A1023/12" />
+    </album>
+</restms>
+[[/code]]
+
+To retrieve a specific track, the client once again uses the URI provided by the server.  Note that in this case the server delivers a content of type "audio/mpeg-3", which the client should process accordingly (and not as RestMS XML or JSON):
+
+[[code]]
+Client:
+GET http://music.host.com/resource/A1023/5 HTTP/1.1
+
+Server:
+HTTP/1.1 200 OK
+Date: Mon Jan 12 12:05:03 2009
+Content-Length: 2870112
+Content-Type: audio/mpeg-3
+
+...opaque binary content...
+[[/code]]
+
+++ Generic RESTful framework
+
+RestMS defines a generic framework by which clients issue HTTP methods to work with server-side resources as follows:
+
+* Clients use the GET method to retrieve the representation of a known resource.
+* Clients use the POST method to create a new, dynamically named resource.
+* Clients use the PUT method to edit a known resource (not to create resources).
+* Clients use the DELETE method to remove a known resource.
+
+All methods work orthogonally on all types of RestMS resources, whether those resources contain or do not contain other resources.  Not all combinations of methods and resources are meaningful, implemented, or permitted.
+
+This framework draws heavily on the design of AtomPub[((bibcite atompub))] and that specification may be helpful as a background to the mechanics of implementing a RESTful dialog over a HTTP transport.
+
+In this section we use XML as the document language, but the reader may note that RestMS allows a choice of representations for structured data.
+
++++ Resource lifecycles and visibility
+
+RestMS distinguishes between resources that are created automatically by the server ("configured resources") and resources that are created at runtime by applications ("dynamic resources").  It also distinguishes between resources that are named and visible to all applications ("public resources") and resources that are unnamed and accessible only by a (by default) secret hash ("private resources").
+
+The lifecycle and visibility of resources is related, as follows:
+
+* Configured resources are always public while dynamic resources are by default private.
+* Applications can modify and delete dynamic resources, if they know their URIs, while they may not modify or delete configured resources.
+* The URI for a public resource is derived from its type and name, while the URI for a private resource is provided by the server.
+* Public resources are named, and discoverable through navigation of parent resources.  The name of a public resource MAY be empty.  Private resources are unnamed, and undiscoverable through navigation.
+* Dynamic resources may in some cases be created by the server.
+
+The URI for a public resource is derived from the resource type and name as follows:
+
+[[code]]
+http://{server-name}[:{port}]/restms/{resource type}/{resource name}
+[[/code]]
+
+The URI for a private resource takes this form:
+
+[[code]]
+http://{server-name}[:{port}]/restms/resource/{resource hash}
+[[/code]]
+
++++ Creating a new resource
+
+The creation of a new dynamic resource follows these rules:
+
+* The new resource will always be the child of another resource (the 'parent') identified with a URI.
+* The client creates the resource by sending a POST method on the parent URI and providing the specifications for the new resource as the POST content body.
+* The client can request a public or a private resource.  Public resources are named, while private resources are unnamed, and accessible only via a server-generated URI.
+* The server replies, if there was no error, with a "201 Created" reply status, a Location: header that provides a URI to the new resource, and a content body that represents the created resource.
+
+[[code]]
+Client                                     Server
+  |                                           |
+  |  1.) POST to parent URI                   |
+  |      Resource specifications              |
+  |------------------------------------------>|
+  |                                           |
+  |  2.) 201 Created                          |
+  |      Location: Resource URI               |
+  |<------------------------------------------|
+  |                                           |
+[[/code]]
+
+Note that the content body of a created resource may be different than the content body provided by the client: the client provides specifications for the resource, while the server provides the actual resulting resource contents.
+
+This is the general form of a client request to create a dynamic resource:
+
+[[code]]
+POST /{parent uri} HTTP/1.1
+Host: {hostname}
+User-Agent: {user agent}
+Authorization: {credentials}
+Content-Type: application/restms+xml;type={resource type}
+Content-Length: {size of content}
+
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <{resource type} [name="{resource name"}]>
+    {resource specifications}
+  </{resource type}>
+</restms>
+[[/code]]
+
+If allowed by the resource type, and if the <resource type> tag has a "name" attribute, the new dynamic resource will be public, otherwise it will be private.
+
+This is the general form of a server response for a created resource:
+
+[[code]]
+HTTP/1.1 201 Created
+Date: {response date}
+Content-Length: {size of content}
+Content-Type: application/restms+xml;type={resource type}
+Location: http://{hostname}[{port}]/restms/resource/{hash}
+ETag: "{resource entity tag}"
+
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <{resource type} [name="{resource name"}]>
+    {resource contents}
+  </{resource type}>
+</restms>
+[[/code]]
+
+Clients may use the following short request form to create a resource - note that there is no content:
+
+[[code]]
+POST /{parent uri} HTTP/1.1
+Host: {hostname}
+User-Agent: {user agent}
+Authorization: {credentials}
+Content-Type: application/restms+xml;type={resource type}
+Content-Length: 0
+
+[[/code]]
+
+This is the general form of a server response for a resource created using the short request form:
+
+[[code]]
+HTTP/1.1 204 No Content
+Date: {response date}
+Content-Length: {size of content}
+Content-Type: application/restms+xml;type={resource type}
+Location: http://{hostname}[{port}]/restms/resource/{hash}
+ETag: "{resource entity tag}"
+
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <{resource type} [name="{resource name"}]>
+    {resource contents}
+  </{resource type}>
+</restms>
+[[/code]]
+
++++ Retrieving a known resource
+
+Retrieving a known resource follows these rules:
+
+* The client must know the URI of the resource.  If it does not know the URI of the resource, and the resource is public, it can discover this by retrieving the parent resource and examining its contents.  If the resource is private, the client must either have created the resource, or must receive the resource URI by an out-of-band communication (for example a message from an external resource management service application).
+* The client retrieves the resource by sending a GET method on the resource URI.
+* The client can optionally specify headers to control the caching of the resource both by itself and by proxies that sit between it and the server.  We explain caching below.
+* The server either returns a "200 OK" reply with the contents of the resource, or returns a reply code indicating why it did not return the resource contents.
+
+[[code]]
+Client                                     Server
+  |                                           |
+  |  1.) GET to Resource URI                  |
+  |------------------------------------------>|
+  |                                           |
+  |  2.) 200 Ok                               |
+  |      Resource representation              |
+  |<------------------------------------------|
+  |                                           |
+[[/code]]
+
+This is the general form of a client request to retrieve a resource:
+
+[[code]]
+GET /{resource uri} HTTP/1.1
+Host: {hostname}
+User-Agent: {user agent}
+Authorization: {credentials}
+[[/code]]
+
+And this is the general form of a server response:
+
+[[code]]
+HTTP/1.1 200 OK
+Date: {response date}
+Content-Length: {size of content}
+Content-Type: application/restms+xml;type={resource type}
+Date-Modified: {resource date and time}
+ETag: "{resource entity tag}"
+
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <{resource type}>
+    {resource contents}
+  </{resource type}>
+</restms>
+[[/code]]
+
+If the client has previously retrieved the same resource and still has that ETag, it can use the If-None-Match: header, specifying the ETag value, and/or the If-Modified-Since: to do a conditional GET:
+
+[[code]]
+GET /{resource uri} HTTP/1.1
+...
+If-None-Match: "{resource entity tag}"
+If-Modified-Since: {resource date and time}
+[[/code]]
+
+If the resource has not changed - still has the same ETag and modification date - the server replies with a "304 Not Modified":
+
+[[code]]
+HTTP/1.1 304 Not Modified
+Date: {response date}
+[[/code]]
+
++++ Modifying a known resource
+
+Modifying a known resource follows these rules:
+
+* The client must know the URI of the resource.  If it does not know the URI of the resource, it can discover this by examining the contents of the parent resource.
+* The client must have retrieved the resource using GET.
+* The client sends new resource contents by sending a PUT method on the resource URI with a modified resource content.
+* The client can optionally specify headers to control potential conflicts (two clients trying to modify the same resource at the same time).
+* The server either returns a "2xx OK" reply indicating success, or returns a reply code indicating why it did not modify the resource contents.
+
+[[code]]
+Client                                     Server
+  |                                           |
+  |  1.) GET to Resource URI                  |
+  |------------------------------------------>|
+  |                                           |
+  |  2.) 200 Ok                               |
+  |      Resource representation              |
+  |<------------------------------------------|
+  |                                           |
+  |  3.) PUT to Resource URI                  |
+  |      Modified resource representation     |
+  |------------------------------------------>|
+  |                                           |
+  |  4.) 200 OK                               |
+  |<------------------------------------------|
+[[/code]]
+
+This is the general form of a client request to modify a resource:
+
+[[code]]
+PUT /{resource uri} HTTP/1.1
+Host: {hostname}
+User-Agent: {user agent}
+Authorization: {credentials}
+Content-Length: {size of content}
+Content-Type: application/restms+xml;type={resource type}
+
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <{resource type}>
+    {resource contents}
+  </{resource type}>
+</restms>
+[[/code]]
+
+And this is the general form of a server response:
+
+[[code]]
+HTTP/1.1 200 OK
+Date: {response date}
+[[/code]]
+
+The client can use the If-Match: header, specifying the resource's ETag value, to do a conditional PUT:
+
+[[code]]
+PUT /{resource uri} HTTP/1.1
+...
+If-Match: "{resource entity tag}"
+[[/code]]
+
+If the resource held by the server has the same ETag (and if there are no other errors), the update will continue and the server will reply with "200 OK".  If the resource has changed at the server, and thus has a different ETag, the server does not update the resource, and replies with a "412 Precondition Failed":
+
+[[code]]
+HTTP/1.1 412 Precondition Failed
+Date: {response date}
+[[/code]]
+
++++ Deleting a known resource
+
+Deleting a known resource follows these rules:
+
+* The client must know the URI of the resource.  If it does not know the URI of the resource, it can discover this by examining the contents of the parent resource.
+* The client sends a DELETE method on the resource URI.
+* The client can optionally specify headers to control potential conflicts.
+* The server either returns a "2xx OK" reply indicating success, or returns a reply code indicating why it did not delete the resource contents.
+
+[[code]]
+Client                                     Server
+  |                                           |
+  |  1.) DELETE to resource URI               |
+  |------------------------------------------>|
+  |                                           |
+  |  2.) 200 OK                               |
+  |<------------------------------------------|
+  |                                           |
+[[/code]]
+
+This is the general form of a client request to delete a resource:
+
+[[code]]
+DELETE /{resource uri} HTTP/1.1
+Host: {hostname}
+User-Agent: {user agent}
+Authorization: {credentials}
+Content-Type: application/restms+xml;type={resource type}
+[[/code]]
+
+And this is the general form of a server response when the resource is successfully deleted:
+
+[[code]]
+HTTP/1.1 200 OK
+Date: {response date}
+[[/code]]
+
+If the client previously read the resource, it can can use the If-Match: header, specifying the resource's ETag value, to do a conditional DELETE:
+
+[[code]]
+DELETE /{resource uri} HTTP/1.1
+...
+If-Match: "{resource entity tag}"
+[[/code]]
+
+If the resource held by the server has the same ETag (and if there are no other errors), the delete will continue and the server will reply with "200 OK".  If the resource has changed at the server, and thus has a different ETag, the server does not delete the resource, and replies with a "412 Precondition Failed":
+
+[[code]]
+HTTP/1.1 412 Precondition Failed
+Date: {response date}
+[[/code]]
+
++++ MIME types
+
+When retrieving a document through the GET method a client MAY specify which MIME types it will accept using the Accept header.  While section 14.1 of RFC 2616 (the HTTP specification) defines a sophisticated format for the Accept header, RestMS currently allows these three possibilities:
+
+* Accept: application/restms+xml
+* Accept: application/restms+json
+* no Accept header, or any other value.
+
+If there is no Accept header, or it is not one of the allowed values, then it is assumed to be "application/restms+xml".
+
+When creating a new resource using the POST method, or when modifying an existing resource using the PUT method, the client SHOULD specify the MIME type of the document that it is sending to the browser, using the Content-Type header.  For RestMS documents this MUST be one of these two:
+
+* Content-Type: application/restms+xml;type={resource type}
+* Content-Type: application/restms+json;type={resource type}
+
+For the DELETE method, neither the Accept nor the Content-Type header have any significance, and if specified by the client, MUST BE ignored by the server.
+
+If a server does not support the structured content type requested or provided by the client, it SHOULD return a response code 501 Not Implemented.
+
++++ Asynchronous access via asynclets
+
+HTTP is generally a synchronous protocol in which a client polls a server for resources.  This is undesirable in many architectures, both from a design and a performance perspective.  RestMS allows for asynchronous retrieval of resources with the concept of an "asynchronous resource instance", which we call an "asynclet".
+
+A normal resource is identified in a parent resource by a href attribute, and other attributes:
+
+[[code]]
+    <some-type href="some-URI" ... />
+[[/code]]
+
+An asynclet has the href attribute and a second attribute 'async="1"', telling the client that this resource, though it has a URI, does not in fact yet exist:
+
+[[code]]
+    <some-type href="some-URI" async="1" />
+[[/code]]
+
+When the client retrieves an asynclet, the server waits until a resource of the right type is created, within that parent, and it then responds to the client with the contents of that new resource.
+
+In those cases where asynclets are meaningful, and implemented, the representation for a parent resource will list all existing resources plus a single asynclet:
+
+[[code]]
+    <some-type href="some-URI-1" ... />
+    <some-type href="some-URI-2" ... />
+    <some-type href="some-URI-3" ... />
+    <some-type href="some-URI-4" ... />
+    <some-type href="some-URI-5" async="1" />
+[[/code]]
+
+When the server returns the document for an asynclet, it always defines an attribute "next" which contains the URI of a new asynclet that represents the next resource which will be created.
+
+At any time, of course, a new resource may 'arrive' and the URI held by a client for an asynclet will then refer to a real existing resource.  This is transparent to the client except that there will be no wait when the client issues a GET on that URI.
+
+The asynclet model gives the client full choice between a synchronous polling dialog (in which it would fetch the parent each time), or an event-driven dialog (in which case it would fetch an asynclet each time).
+
+The asynclet design addresses a similar problem as the Comet "When-Modified-After"[((bibcite comet))] HTTP extension header does, but without extending the HTTP protocol and allowing clients to wait for specific resources within a parent resource context.
+
++++ Cacheing
+
+RestMS assumes that all resources may be cached.  We define two types of cache.  First, the "end cache", is held in the browser or HTTP client layer.  Second, the "proxy cache" is a service that sits between the client and the server.
+
+The server can allow, or disallow, both types of cache from holding content.  It does this by adding a "Cache-Control: No-cache" header to the response.
+
+The client can inform the server or proxy cache that it has cacheable content for a resource by specifying either one of, or both of, the If-Modified-Since and If-None-Match header.  Usually, specifying both headers will give best results.
+
+Note that if a proxy cache is enabled, clients will not be guaranteed to receive the freshest version of a resource for a GET method.  There is no mechanism to push resource updates to proxy servers.
+
++++ Idempotency and side-effects
+
+The GET, PUT, and DELETE methods are idempotent: the client can safely issue these more than once.  The POST method is not idempotent and if issued more than once, will create a corresponding number of new resources.
+
+Idempotency allows the client to safely recover from failures where it did not get a response, yet could not sure the server did not receive the request.  For example, any failure in the network, the client, or an intermediary that happens after the server receives the request but before the client receives the response.  The client recovers by simply reissuing any GET, PUT and DELETE requests that were not completed.
+
+The GET method does not modify the state of any resource on the server.
+
++++ Pipelining
+
+The client may send requests in parallel, which is called "pipelining".  RFC 2616 section 8.1.2.2 says,
+
+> Clients SHOULD NOT pipeline requests using non-idempotent methods or non-idempotent sequences of methods (see section 9.1.2). Otherwise, a premature termination of the transport connection could lead to indeterminate results. A client wishing to send a non-idempotent request SHOULD wait to send that request until it has received the response status for the previous request.
+
+RestMS clients MAY pipeline GET, PUT and DELETE methods, but SHOULD NOT pipeline POST methods.
+
+++ RestMS protocol semantics
+
++++ Overview of RestMS resources
+
+RestMS resources form a hierarchy in which resources of certain types can contain resources of other types.  In RESTful terms these are also called "collections" and "members".  We prefer a "parent/child" nomenclature since resources can be both collections and members.  This diagram shows the hierachy, and the parent-child relationships between resources:
+
+[[code]]
+Resource type           Visibility          Lifecycle
+----------------        ----------------    ----------------
+Domain                  Public              Configured
+  |
+  o- Feed               Public, private     Configured, dynamic
+  |
+  o- Pipe               Private             Dynamic
+     |
+     o- Join            Private             Dynamic
+     |
+     o- Message         Private             Dynamic
+        |
+        o- Content      Private             Dynamic
+[[/code]]
+
+* The domain is a collection of feeds and pipes and the child resources they contain.
+* A feed represents a first-in, first-out stream of messages received from one or more writers.
+* A join represents a relationship between a feed and a pipe.
+* A message is the unit of data carried across a RestMS network.
+* A content is an opaque binary blob with a content type set by the writer.
+
+The RestMS resources deliver a loosely-coupled architecture that is comparable to and compatible with AMQP but works in a RESTful manner.  The architecture can be drawn in several ways.  This diagram shows the logical flow of a message from writer to reader (both being RestMS client applications) via the different RestMS resources:
+
+[[code]]
+.--------.
+| Writer |      The writer POSTs a message to a feed.
+`--------'      Many writers can post to many feeds.
+    ||
+    \/
+.--------.
+|  Feed  |      The feed routes the message to the
+`--------'      set of joins attached to it.
+    ||
+    \/
+.--------.
+|  Join  |      Each join tells a feed "route this
+`--------'      set of messages into my pipe".
+    ||
+    \/
+.--------.
+|  Pipe  |      The pipe holds messages on behalf of
+`--------'      the recipient, in a FIFO queue.
+    ||
+    \/
+.--------.
+| Reader |      The reader retrieves, processes, and
+`--------'      deletes messages from the pipe.
+[[/code]]
+
+Joins create the loose coupling between writers and readers.  A join is a relationship between a pipe and a feed, and the join's properties tell the feed what messages the pipe needs.
+
++++ Common messaging patterns
+
+We will look at common messaging patterns that form the basis of most real life use cases.  These patterns are:
+
+* Several writer sends a message to one feed and one reader (the "request" pattern).
+* Several joins collect messages from multiple feeds into a single pipe (the "collect" pattern).
+* Several joins distribute messages from one feed to many pipes (the "fanout" pattern).
+
+++++ The request pattern
+
+Here is how the request pattern works:
+
+* We have a number of writers, who all write to a single feed
+* The reader has a pipe and creates a join to the feed
+* As the feed receives messages it will pass them to the pipe
+* The pipe collects these messages in a FIFO queue and the reader then fetches them
+
+[[code]]
+.--------.      .--------.      .--------.
+| Writer |      | Writer |      | Writer |
+`--------'      `--------'      `--------'
+    ||              ||              ||
+    `===============++==============='
+                    \/
+                .--------.
+                |  Feed  |
+                `--------'
+                    ||
+                    \/
+                .--------.
+                |  Join  |
+                `--------'
+                    ||
+                    \/
+                .--------.
+                |  Pipe  |
+                `--------'
+                    ||
+                    \/
+                .--------.
+                | Reader |
+                `--------'
+[[/code]]
+
+The request pattern is typically used for a simple service where the feed is the "service".  Requestors send their messages to the feed, without needing to know the details of the reader.  We often see this pattern extended with the fanout pattern so that messages are distributed among multiple servicing readers.
+
+++++ The collect pattern
+
+Here is how the collect pattern works:
+
+* We have a number of writers, each writing to one or more feeds
+* The reader has a pipe, and creates a join to each feed that it wants to collect messages from
+* As each feed receives messages it will pass to the pipe those messages selected by the join
+* The pipe collects these messages in a FIFO queue and the reader then fetches them
+
+[[code]]
+.--------.      .--------.      .--------.
+| Writer |      | Writer |      | Writer |
+`--------'      `--------'      `--------'
+    ||              ||              ||
+    \/              \/              \/
+.--------.      .--------.      .--------.
+|  Feed  |      |  Feed  |      |  Feed  |
+`--------'      `--------'      `--------'
+    ||              ||              ||
+    \/              \/              \/
+.--------.      .--------.      .--------.
+|  Join  |      |  Join  |      |  Join  |
+`--------'      `--------'      `--------'
+    ||              ||              ||
+    `===============++==============='
+                    \/
+                .--------.
+                |  Pipe  |
+                `--------'
+                    ||
+                    \/
+                .--------.
+                | Reader |
+                `--------'
+[[/code]]
+
+++++ The fanout pattern
+
+Here is how the fanout pattern works:
+
+* A writer publishes messages to a feed
+* Many readers each create a pipe and join that pipe to the feed using their selection criteria
+* As the feed receives messages from the writer, it distributes them to the pipes, according to the joins
+* Each pipe then delivers the messages in FIFO fashion to its reader
+
+[[code]]
+                .--------.
+                | Writer |
+                `--------'
+                    ||
+                    \/
+                .--------.
+                |  Feed  |
+                `--------'
+                    ||
+    .===============++===============.
+    \/              \/              \/
+.--------.      .--------.      .--------.
+|  Join  |      |  Join  |      |  Join  |
+`--------'      `--------'      `--------'
+    ||              ||              ||
+    \/              \/              \/
+.--------.      .--------.      .--------.
+|  Pipe  |      |  Pipe  |      |  Pipe  |
+`--------'      `--------'      `--------'
+    ||              ||              ||
+    \/              \/              \/
+.--------.      .--------.      .--------.
+| Reader |      | Reader |      | Reader |
+`--------'      `--------'      `--------'
+[[/code]]
+
+Different types of feed will route messages in different ways.  For some feed types, messages are routed exclusively to one pipe or another.  For other feed types, messages are copied to each pipe that requests them.  We explain feed types later.
+
++++ Integration with AMQP networks
+
+RestMS is designed to be able to interoperate with AMQP.  This happens as follows:
+
+* RestMS implementations MAY be fully stand-alone, or may implement a federation model.
+* If a RestMS server is federated with an AMQP server, a RestMS domain maps to an AMQP network.  The actual mapping of a domain to an AMQP network (defined as an AMQP server and connection credentials) is a configuration issue.
+* A feed may map to an AMQP exchange or shared queue, depending on the feed type.
+* A message posted by a RestMS application to a mapped feed will be sent to the AMQP server where it can be accessed by AMQP applications via the AMQP mechanims of bindings and queues.
+* A message posted by an AMQP application to a mapped feed will be sent to the RestMS server where it can be accessed by RestMS application via the RestMS mechanisms of joins and pipes.
+
++++ Domains
+
+The domain is a public collection of feeds and pipes and the child resources they contain.  The server MAY implement multiple domains and MAY allow routing of messages between domains.  Domains are configured resources: applications do not create or destroy domains.  A typical use for domains is to segregate different back-end networks (for example, "test" and "production").  Domains thus act as namespaces for pipes and feeds.  The RestMS client and server agree in advance on the domains that exist, and their names.
+
+The URI for a domain is:
+
+[[code]]
+http://{server-name}[:{port}]/restms/domain/{domain-name}
+[[/code]]
+
+RestMS servers SHOULD implement a unnamed "default domain". The URI for the default domain is:
+
+[[code]]
+http://{server-name}[:{port}]/restms/domain/
+[[/code]]
+
+These methods are allowed on a domain URI:
+
+* GET - retrieves the domain representation.  This method conforms to the generic model and we do not explain it further.
+* POST - creates a new feed or pipe within the domain.  The two forms of this method are explained in the descriptions of feeds and pipes respectively.
+
+A domain document specifies the domain properties, and has references to all public feeds and pipes that the domain contains.  The XML format of this document is:
+
+[[code]]
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <domain name="{domain name}">
+    [ <feed name="{feed name}" href="{feed URI}" /> ] ...
+    [ <pipe name="{pipe name}" href="{pipe URI}" /> ] ...
+  </domain>
+</restms>
+[[/code]]
+
+The domain document does not necessarily list all feeds and pipes: applications may create these as private and thus make them inaccessible through discovery.
+
++++ Feeds
+
+A feed represents a //write-only// first-in, first-out stream of messages received from one or more writers.  The messages in a feed are ordered, though this order is stable only for messages from a single writer.  In other words, there are no guarantees of ordering between messages from different writers.  Feeds may store messages for arbitrary durations.  Feeds deliver messages into pipes, according to the set of joins defined on the feed.  The RestMS server may provide configured feeds, and applications can create and destroy dynamic feeds for their own use.
+
+These methods are allowed on a feed URI:
+
+* GET - retrieves the feed. This method conforms to the generic model and we do not explain it further.
+* PUT - updates the feed. This method conforms to the generic model and we do not explain it further.
+* DELETE - deletes the feed. This method conforms to the generic model and we do not explain it further.
+* POST - sends a message to the feed. This method is explained in the description of messages.
+
+A feed document specifies the feed properties, and has no child resource references.  The XML format of this document is:
+
+[[code]]
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <feed [name="{feed name}"] type="{feed type}" />
+</restms>
+[[/code]]
+
+To create a new feed the client POSTs a feed document to the domain's URI.  Dynamic feeds may be named or unnamed.  If unnamed, the feed is accessible only to applications that have learned its URI by some out-of-band mechanism.  If named, the feed will be propagated to the AMQP network.  A feed maps to an AMQP exchange or shared queue.
+
+The RestMS server also provides a configured "default feed" with no name that acts as the routing point for service requests and responses.  This feed maps directly to the AMQP "default exchange" and routes on a literal address string.
+
+The feed type defines the routing semantics of the feed, for example whether it uses literal or wild-card address pattern tests, whether it distributes or fans-out messages, and so on.  RestMS defines a set of standard feed types, and implementations can extend this set. Any attempt to create a feed with an unknown type results in a 501 Not Implemented response.
+
++++ Pipes
+
+A pipe represents a //read-only// first-in, first-out stream of messages destined for one or more readers.  The messages in a pipe are ordered, though this order is stable only for messages received from one feed.  Pipes receive messages from feeds according to the joins defined between the pipe and the feed.  They store messages for an arbitrary time.  They deliver messages to a single client.  All pipes are dynamic and private.
+
+These methods are allowed on a pipe URI:
+
+* GET - retrieves the pipe representation. This method conforms to the generic model and we do not explain it further.
+* PUT - updates the pipe. This method conforms to the generic model and we do not explain it further.
+* DELETE - deletes the pipe. This method conforms to the generic model and we do not explain it further.
+* POST - creates a new join for the pipe. This method is explained in the description of joins.
+
+A pipe document specifies the pipe properties, and any joins and messages that the pipe contains.  The XML format of this document is:
+
+[[code]]
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <pipe type="{pipe type}" reply_to="{string}">
+    [ <join href="{join URI}" address="{address pattern}" feed="{feed URI}" /> ] ...
+    [ <message href="{message URI}" address="{address literal}" /> ] ...
+    [ <message href="{message URI}" async="1" /> ]
+  </pipe>
+</restms>
+[[/code]]
+
+To create a new pipe the client POSTs a pipe document, with no join or message elements, to the domain's URI.  Pipes are never named and SHOULD only be accessed by the single application that created them.  The reply_to attribute is generated by the server (and ignored when creating pipes), and clients should use this as the reply_to attribute for messages to which they expect a reply.  Note that every pipe has a default join using the reply_to attribute as address, see below.  All pipes are propagated to the AMQP network.
+
+If more than one application accesses the same pipe, the results will be unpredictable and none of the applications will receive the full set of messages, nor any cleanly defined subset.  The proper way of distributing messages between applications is to create one pipe per application and join all the pipes to the feed.
+
+The pipe type defines the distribution semantics of the pipe, for example whether it delivers one message at a time, or a stream of messages.  RestMS defines a set of standard pipe types, and implementations can extend this set.  Any attempt to create a pipe with an unknown type results in a 501 Not Implemented response.
+
++++ Joins
+
+A join represents a relationship between a feed and a pipe.  The relationship specifies which messages the pipe is interested in.  We say that a join is "registered" with a feed and that a feed "routes a message to a join".  In the current design of RestMS, for compatibility with AMQP, the routing semantics are specified in the feed type rather than in the join.  Joins are always dynamic and always private and accessible only to applications that know the pipe URI.  If either the feed or the pipe for a join is deleted, the join is automatically deleted.
+
+These methods are allowed on a join URI:
+
+* GET - retrieves the join representation. This method conforms to the generic model and we do not explain it further.
+* PUT - updates the join. This method conforms to the generic model and we do not explain it further.
+* DELETE - deletes the join. This method conforms to the generic model and we do not explain it further.
+
+A join document specifies the join properties, and contains no child resource references.  The XML format of this document is:
+
+[[code]]
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <join address="{address pattern}" feed="{feed URI}" />
+</restms>
+[[/code]]
+
+To create a new join the client POSTs a join document to the pipe's URI.  Joins are never named.  The meaning and function of the address pattern depends on the feed type.
+
+Every pipe automatically has a join on the default feed, using the pipe's reply_to attribute as address.  This provides the same utility as default bindings in AMQP: it reduces the work that a client must do to prepare a pipe for the common use case of receiving a specifically addressed message.
+
++++ Messages
+
+A message is a document that carries zero or more contents.  The message can be considered the envelope.  It has properties that let the reader decide whether or not to retrieve the content itself.  Messages are always private, dynamic, and created by the server.  The methods allowed on a message URI are:
+
+* GET - retrieves the message representation. This method conforms to the generic model and we do not explain it further.
+* DELETE - deletes the message and all older messages from the pipe. This method conforms to the generic model and we do not explain it further.
+
+A message document specifies the message properties, particularly the message address, and has resource references to any contents that the message may contain.  The XML format of this document is:
+
+[[code]]
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <message
+    [ address="{address literal}" ]
+    [ reply_to="{address literal}" ]
+    [ feed="{originating feed URI}" ]
+    [ next="next asynclet" ] ... >
+    [ <header name="{header name}" value="{header value}" /> ] ...
+    [ <content href="{content URI}" ... /> ] ...
+  </message> ...
+</restms>
+[[/code]]
+
+Creating a message does not follow the generic POST semantics, for several reasons.  While messages are created as childred of feeds, they are retrieved as children of pipes.  Feeds are write-only, and pipes are read-only.  That means that when an application creates a new message, it //cannot// retrieve the message and modify it.
+
+The second difference is that messages are constructs, consisting of the message resource itself, plus zero or more opaque binary content blobs.
+
+Finally, RestMS allows batching of messages, so that many can be posted in a single POST request.
+
+To create a new message a client does this:
+
+* It POSTs zero or more binary contents to the feeds's URI.  These contents are staged on the server.
+* It POSTs a single message document, with no content elements, to the feed's URI.  This message, plus the contents, if any, are then dispatched using whatever routing semantics the feed implements.
+* The server replies, if there was no error, with a "200 OK" reply status.  It does not return a Location: header, nor a content body.
+
+For example:
+
+[[code]]
+Client                                                           Server
+  |                                                                 |
+  |  1.) POST to feed URI                                           |
+  |      Content-Type: application/octet-stream;type="content"      |
+  |---------------------------------------------------------------->|
+  |                                                                 |
+  |  2.) POST to feed URI                                           |
+  |      Content-Type: application/restms+xml;type="message"        |
+  |---------------------------------------------------------------->|
+  |                                                                 |
+  |  2.) 200 OK                                                     |
+  |<----------------------------------------------------------------|
+  |                                                                 |
+[[/code]]
+
+To create a batch of new messages a client does this:
+
+* It POSTs a single document containing multiple message elements, and no content elements, to the feed's URI.  This message are then dispatched individually using whatever routing semantics the feed implements.
+* The server replies, if there was no error, with a "200 OK" reply status.  It does not return a Location: header, nor a content body.
+
++++ Contents
+
+A content is an opaque binary blob with a content type set by the writer.
+
+These methods are allowed on a content URI:
+
+* GET - retrieve the content. This method conforms to the generic model and we do not explain it further.
+
+++ AMQP functional interoperability
+
+RestMS deliberately invents new nomenclature but for those familiar with AMQP, a feed corresponds to an exchange and/or shared queue, an address corresponds to a routing key, a pipe is analogous to a private queue, and a join to an AMQP binding.  If it helps to understand RestMS, these are the main shifts that RestMS makes from the AMQP/0.9.1 semantic model:
 
 * Shared queues are merged into exchanges, and the resulting entity is renamed "feed".  In AMQP, exchanges have no state, while shared queues cannot do routing.  In RestMS, feeds have both state and capacity to route messages.
 * The exclusive queue concept are renamed to "pipe" and moved closer to the client edge.
-* The consumer and transaction concepts are merged, renamed to "nozzle", and moved to the client edge.
 * The binding / routing key concepts are merged into a new concept called "address", which is used both for publishing messages and for joining pipes to feeds.
 
-The main semantic change from AMQP to RestMS is that we do not allow loose coupling of shared queues, i.e. the ability to bind and address a shared queue using arbitrary routing keys.  We consider this AMQP functionality to be confusing and not needed by any common messaging scenarios.  In RestMS, shared queues are addressed directly, as named feeds.  This simplification is a key part of RestMS's overall design.
+In this section we look at the interoperability of messaging applications, i.e. how RestMS applications can talk, transparently, to AMQP applications, and vice-versa.  The main issues we must address are:
 
+* How the different feed and pipe types map to AMQP exchanges, queues, and bindings.
+* How we ensure that messages are semantically compatible with both protocols.
+* How we route messages correctly between RestMS and AMQP applications.
 
++++ RestMS feed types
 
+Implementations SHOULD implement all of these feed types and MAY implement others:
+
+* The **fanout** feed type routes a copy of an incoming message to each join registered with the feed.  The join address and message address are not used during routing.  Joins made to a fanout feed should always have the address "*".
+
+* The **direct** feed type routes a copy of an incoming message to each join registered with the feed that has an address pattern that is identical to the message address.  The default feed (with URI path "/restms/feed/") is a direct feed.
+
+* The **topic** feed type routes a copy of an incoming message to each join registered with the feed that has an address pattern that matches the message address following AMQP's topic matching rules.
+
+* The **headers** feed type routes a copy of an incoming message to each join registered with the feed that has an address pattern that matches the message address following AMQP's header matching rules.
+
+* The **system** feed type routes incoming messages to internal services, according to the routing key.
+
+* The **rotator** feed type routes a message to exactly one join, using a round-robin algorithm to select the join.  An application can increase its proportion of the messages received by creating multiple joins to the feed.  The feed does not use the join address pattern or message address literal.  Joins made to a rotator feed should always have the address "*".
+
+* The **service** feed type works as the rotator feed, but has the additional property of self-deleting when the the number of joins registered on it drops from 1 to zero.  This means that the presence or absence of the feed indicates the availability of the "service" it represents. Joins made to a service feed should always have the address "*".
+
+A //fanout//, //direct//, //topic//, //headers// or //system// feed maps to an AMQP exchange of the same type.  In general terms these feeds route by doing some kind of matching between the address attribute of a message (a literal string), and the address attribute of a join (a pattern).  If the feed is private, a hashed name is used for the exchange so that it cannot be discovered by AMQP applications, otherwise the feed name is used as the exchange name.  When a RestMS client posts a message to the feed, the RestMS server publishes this message to the corresponding exchange, using as routing-key the //address// attribute of the message envelope.
+
+A //rotator// or //service// feed maps to an AMQP shared queue.  These feeds route by distributing messages to pipes on a round-robin basis.  If the feed is private, a hashed name is used for the queue so that it cannot be discovered by AMQP applications, otherwise the feed name is used as the queue name.  When a RestMS client posts a message to the feed, the server publishes this to the default exchange, using as routing-key the feed name.  If there is an address specified in the message envelope, this is used as the message-id, unless a message-id is also specified, in which case the address is discarded.
+
++++ Standard pipe types
+
+Implementations SHOULD implement the fifo pipe type, and MAY implement any of the other pipe types.  If they do implement them, they must conform to the semantics defined here.
+
+Pipes are propagated to the AMQP network as bindings that use the "reply_to" attribute of the pipe (this pipe attribute is automatically set by the RestMS server on new pipes).  Pipes MAY be implemented as private queues on the AMQP server but this is not the only architecture.
+
+* The **fifo** pipe type holds an unspecified (but greater than one) number of messages and delivers these to a client application when asked for them.  It delivers messages one by one and messages remain in the pipe until deleted.
+
+* The **stream** pipe type delivers messages as multipart contents so that a single GET will retrieve an unending stream of message contents.  This needs to be fully defined.
+
+* The **ondemand** pipe type does not fetch a message from the feed until the pipe requests it through an asynclet.  This is designed to prevent messages being "lost" in unused or abandoned pipes, and is meant primarily to be used with service and rotator feeds.
+
++++ Message semantics
+
+An AMQP message consists of a set of envelopes and an opaque binary payload. There are four AMQP envelopes, though in AMQP/0.9.1 the distinction is not clearly made, and there are overlaps:
+
+# An envelope used for routing inside the AMQP server (exchange, routing-key, headers)
+# An envelope used to define the quality of service for deliveries to a recipient (delivery-mode, priority)
+# An envelope used to communicate between client APIs.(headers, reply-to, correlation-id, expiration, message-id)
+# An envelope used to communicate between client applications.(content-type, timestamp, type, user-id, app-id, sender-id)
+
+In AMQP the envelopes are partially encoded as arguments for commands (the Basic.Publish and Basic.Deliver commands) and partially as properties of messages.
+
+In RestMS, the message envelope and message content are split into two distinct resources.  The RestMS Content-Type and Content-Encoding headers map directly to/from the AMQP content-type and content-encoding properties.  The routing-key is either the address, or the feed name, depending on the type of feed.  The remaining envelope properties are encoded as follows:
+
+[[code]]
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <message address="{address literal}"
+    [ delivery_mode = "{delivery-mode}" ]
+    [ priority = "{priority}" ]
+    [ correlation_id = "{correlation-id}" ]
+    [ reply_to = "{reply-to}" ]
+    [ expiration = "{expiration}" ]
+    [ message_id = "{message-id}" ]
+    [ timestamp = "{timestamp}" ]
+    [ type = "{time}" ]
+    [ user_id = "{user-id}" ]
+    [ app_id = "{app-id}" ]
+    [ sender_id = "{sender-id}" ]
+    >
+    [ <header name="{header name}" value="{header value}" /> ] ...
+  </message>
+</restms>
+[[/code]]
+
++++ RestMS to AMQP application routing
+
+AMQP requires, as a working basis, that application agree in advance on the routing model they will use to exchange messages.  Typically, this takes the form of contracts based on the name and type of an exchange, and the allowed values for routing keys used in bindings and messages.  To assure routing between RestMS and AMQP applications we need similar conventions.
+
+We can break the diversity of service-oriented messaging down into three component scenarios, each of which needs rules for interoperability between RestMS and AMQP applications:
+
+# In which a request is sent to a remote "service", implemented by one or more service applications.
+* In which the response to a service request is sent back to the original requesting application.
+* In which a publisher distributes data to multiple subscribers.
+
+These conventions apply:
+
+* A service MUST correspond to a shared queue in AMQP terms, or a service or rotator feed in RestMS terms.  AMQP service applications MUST consume from the shared queue.  RestMS service applications MUST create a pipe and create a join from the pipe to the feed.  A service MAY be implemented transparently by any mix of AMQP and RestMS applications, with messages being served in a round-robin fashion to each implementing application.
+
+* A request message that needs a reply MUST provide a reply_to attribute.  For AMQP clients this MUST be the name of a private response queue. For RestMS clients this MUST be the reply_to attribute of a pipe.
+
+* Services that wish to send replies MUST use the reply_to attribute of the request message.  If they are AMQP service applications, they MUST publish the reply to the default exchange using the reply_to attribute as routing key.  If they are RestMS service applications, they MUST post the reply to the default feed using the reply_to attribute as address.
+
+* For data distribution, a RestMS fanout, topic, or headers exchange maps to an AMQP exchange, and subscribers can be either RestMS clients or AMQP clients.  RestMS clients create pipes and join them to the feeds they want to consume from, specifying the address pattern in each case.  AMQP clients create private queues and bind them to the exchanges they want to consume from, specifying the routing key in each case.
+
+++ AMQP technical interoperability
+
+We look at the interoperability of the messaging products, i.e. how to connect a RestMS server to an AMQP server or network.  The main issues we must address are:
+
+* Whether the AMQP server supports the necessary RestMS semantics
+* How the RestMS server mirrors resources to and from the AMQP server
+* How the RestMS server routes messages to and from the AMQP server
+
++++ The RestMS extension class
+
+There are some significant differences between the RESTful model we implement in RestMS, and the AMQP model for resource management.  It would be possible, in theory and in time, to modify the AMQP protocol to become compatible with RestMS.  For example, commands like Queue.Delete would need to become idempotent so that attempting to delete a non-existent queue was safe.  Today, AMQP treats such attempts as fatal errors.
+
+Rather than attempt to modify existing AMQP semantics, we have chosen to define an AMQP "extension class", which is a mechanism that AMQP allows for experimental extensions.  The advantage of an extension class is that a RestMS server can detect immediately whether its target AMQP server supports it, or not.  There is no ambiguity.
+
+We have used the class index 61501, which falls into the space allotted for extension classes.
+
+In order to work with a RestMS server, an AMQP server thus needs to implement this class:
+
+[[code]]
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This code is licensed under both the GPLv3 and the IETF licence, in
+    accordance with the terms of the wiki.amqp.org IP Policy.
+ -->
+<class
+    name    = "restms"
+    handler = "connection"
+    index   = "61501"
+  >
+  RestMS resource management class.
+<doc>
+    Provides methods to work with server-side resources as defined by
+    the RestMS specification.  All methods are request-only, without
+    response.  Errors are logged at the server side and not reported
+    to the client.  This model is designed to allow a RestMS server to
+    push state to the AMQP server, and vice versa, rapidly and without
+    handshaking.
+</doc>
+
+<doc name = "grammar">
+    restms              = C:PIPE-CREATE / C:PIPE-DESTROY
+                        / C:FEED-CREATE / C:FEED-DESTROY
+                        / C:JOIN-CREATE / C:JOIN-DESTROY
+                        / S:PIPE-CREATE / S:PIPE-DESTROY
+                        / S:FEED-CREATE / S:FEED-DESTROY
+                        / S:JOIN-CREATE / S:JOIN-DESTROY
+</doc>
+
+<chassis name = "server" implement = "MAY" />
+<chassis name = "client" implement = "MAY" />
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+<method name = "pipe-create" index = "10">
+  create a pipe
+  <doc>
+  Creates a pipe of the specified class.  The pipe may already exist,
+  if it has the same class.  Pipe names are unique across all classes.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "pipe class" type = "shortstr" >
+    pipe class
+    <doc>
+    Specifies the class of the pipe to create.  Valid values are: pipe.
+    </doc>
+  </field>
+  <field name = "pipe name" type = "shortstr" >
+    Name of pipe
+    <doc>
+    Specifies the name of the pipe to create.  Pipe names may not contain
+    slashes, spaces, or at signs.
+    </doc>
+  </field>
+</method>
+
+<method name = "pipe-delete" index = "20">
+  delete a pipe
+  <doc>
+  Deletes a specified pipe, if it exists.  Safe to invoke on non-existent
+  or already-deleted pipes.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "pipe name" type = "shortstr" >
+    pipe name
+    <doc>
+    Specifies the name of the pipe to delete.
+    </doc>
+  </field>
+</method>
+
+<method name = "feed-create" index = "30">
+  create a feed
+  <doc>
+  Creates a feed of the specified class.  The feed may already exist,
+  if it has the same class.  Feed names are unique across all classes.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "feed class" type = "shortstr" >
+    Feed class
+    <doc>
+    Specifies the class of the feed to create.  Valid values are: fanout,
+    direct, topic, headers, system, rotator, and service.
+    </doc>
+  </field>
+  <field name = "feed name" type = "shortstr" >
+    Name of feed
+    <doc>
+    Specifies the name of the feed to create.  Feed names may not contain
+    slashes, spaces, or at signs.
+    </doc>
+  </field>
+</method>
+
+<method name = "feed-delete" index = "40">
+  delete a feed
+  <doc>
+  Deletes a specified feed, if it exists.  Safe to invoke on non-existent
+  or already-deleted feeds.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "feed name" type = "shortstr" >
+    feed name
+    <doc>
+    Specifies the name of the feed to delete.
+    </doc>
+  </field>
+</method>
+
+<method name = "join-create" index = "50">
+  create a join
+  <doc>
+  Creates a join on the specified pipe and feed.  The join may already
+  exist, if it has the same properties.  A join will causes messages to
+  be delivered on the connection.  The consumer-tag property allows
+  messages to be routed into end-application pipes.  Joins on exchange
+  feeds use the consumer tag "x:{pipe-name}" and joins on queue feeds
+  use the consumer tag "q:{pipe-name}".  AMQP does not allow the same
+  tag to be used on multiple queues.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "pipe class" type = "shortstr" >
+    Pipe class
+    <doc>
+    Specifies the class of the pipe, which must match the class of the
+    existing pipe.
+    </doc>
+  </field>
+  <field name = "pipe name" type = "shortstr" >
+    Name of pipe
+    <doc>
+    Specifies the name of the pipe, which must exist.
+    </doc>
+  </field>
+  <field name = "feed class" type = "shortstr" >
+    Feed class
+    <doc>
+    Specifies the class of the feed, which must match the class of the
+    existing feed.
+    </doc>
+  </field>
+  <field name = "feed name" type = "shortstr" >
+    Name of feed
+    <doc>
+    Specifies the name of the feed, which must exist.
+    </doc>
+  </field>
+  <field name = "address" type = "shortstr" >
+    Join address
+    <doc>
+    Specifies the address to join.  This is an address literal or
+    pattern who's semantics depend on the feed class.  The address
+    may not contain slashes, spaces, or at signs.
+    </doc>
+  </field>
+</method>
+
+<method name = "join-delete" index = "60">
+  delete a join
+  <doc>
+  Deletes a specified join, if it exists.  Safe to invoke on non-existent
+  or already-deleted joins, and referring to non-existent pipes and/or
+  feeds.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "pipe name" type = "shortstr" >
+    Name of pipe
+    <doc>
+    Specifies the name of the pipe, which does not need to exist.
+    </doc>
+  </field>
+  <field name = "feed name" type = "shortstr" >
+    Name of feed
+    <doc>
+    Specifies the name of the feed, which does not need to exist.
+    </doc>
+  </field>
+  <field name = "address" type = "shortstr" >
+    Join address
+    <doc>
+    Specifies the join address.
+    </doc>
+  </field>
+</method>
+
+</class>
+[[/code]]
+
++++ Resource synchronisation
+
+The RestMS extension class defined above provides a clean way for the RestMS server to synchronize all its resources with an AMQP server, and vice-versa.  Since the commands are asynchronous and not confirmed, they can be executed very rapidly, so that one server can synchronize its resources on another (for example, after failover) at the rate of tens of thousands of resources per second.
+
+To avoid "storms", a server should track the origin of resources, and synchronise only those which were created by its own local clients.
+
+When a server receives resource specifications from another server, these resources SHOULD be treated as configured and clients SHOULD not be allowed to delete them except on the original server.
+
+Server implementations MAY take any reasonable approach to resources that are "orphaned", i.e. where their original owning server has disconnected and/or gone off line.
+
++++ Message routing
+
+RestMS does not impose a specific architecture for interconnection with an AMQP network and there are several possibilities which we explain for the benefit of implementors.
+
+In practice, AMQP servers may be paired for high-availability, and/or may be federated themselves into larger AMQP networks.  In this discussion we will assume that the RestMS server speaks to exactly one AMQP server.
+
+The first model relies on the AMQP server to do all routing.  In this case, the RestMS server will synchronise all feeds, pipes, and joins with the AMQP server.  All RestMS pipes and joins are instantiated as private queues and bindings on the AMQP server.  Pipes are implemented in the simplest fashion: each pipe has an exclusive queue with the same name, with a consumer with tag x:{pipe-name}.  When the RestMS server creates joins on the pipe, these are implemented as bindings that bring messages into the private queue.  This is for exchange-based feeds.  For queue-based feeds, the pipe is implemented as a consumer on the shared queue, with tag q:{pipe-name}.  These distinct tags are used by the RestMS server to route messages coming from the AMQP server into separate pipes for end-application delivery.
+
+When a RestMS client posts a message to a feed, the RestMS server forwards that message to the AMQP server.  When an AMQP client publishes a message, this also arrives on the AMQP server.  The AMQP server then routes that to all matching bindings, and thus into private queues.  Message are then delivered to the RestMS server, which uses the consumer tag to sort the messages into their pipes.  RestMS clients can then retrieve their messages from their pipes.
+
+A second model is to open multiple connections or channels, e.g. one per pipe, and to use these to segment messages per pipes.
+
+The advantage of these two model is that they are easy to understand and implement.  The main disadvantage is that messages will be sent redundantly, if they match multiple joins/bindings.  This will waste LAN bandwidth.
+
+The optimal, but most complex model, is to use federation-style normalization.  In this model, the RestMS server maintains its own routing data structures, and forwards binding requests to the AMQP server.  When messages arrive, they are routed not on consumer tag, but according to the message routing key and/or other properties.  This model demands that the RestMS implementation has the same routing capabilities as the AMQP server, i.e. implements exchanges and shared queues in much the same way.  The advantage of this model is that it allows for stand-alone RestMS operation, and is the optimal design for RestMS-to-RestMS interoperation (with no extra hops to and from the AMQP server).
+
+Finally, a RestMS server does not need to work with an AMQP network, it can be self-standing.
+
+++ HTTP interoperability and security
+
+This section is being worked on.
+
+++ References
+
+[[bibliography]]
+: rfc2119 : "Key words for use in RFCs to Indicate Requirement Levels" - [http://tools.ietf.org/html/rfc2119 ietf.org]
+: coss : "Consensus Oriented Specification System" - [http://wiki.amqp.org/spec:1 wiki.amqp.org]
+: rest : Roy Fielding, "Representational State Transfer (REST)" [http://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm www.ics.uci.edu]
+: atompub : "The Atom Syndication Format" - [http://www.ietf.org/rfc/rfc4287.txt ietf.org]
+: comet : "A Standards Based Approach to Comet Communication with REST" [http://cometdaily.com/2008/01/17/proposal-for-native-comet-support-for-browsers/ cometdaily.com]
+[[/bibliography]]

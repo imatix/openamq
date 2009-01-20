@@ -128,8 +128,9 @@
 
         content = amq_content_basic_new ();
         amq_content_basic_set_body (content, body, strlen (body), icl_mem_free);
+        //  Send to default exchange, with service name as routing key
         zyre_backend_module_request_forward (self->backend,
-            "amq.direct", "Digest-AMQP", content, TRUE, TRUE);
+            NULL, "Digest-AMQP", content, TRUE, TRUE);
         amq_content_basic_unlink (&content);
         smt_log_print (self->log, "I: sent Digest-AMQP request for '%s:%s'", user, realm);
     }

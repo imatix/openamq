@@ -1,4 +1,3 @@
 ++ HTTP interoperability and security
 
-- brute force attacks
-- authentication mechanisms
+This section is being worked on.

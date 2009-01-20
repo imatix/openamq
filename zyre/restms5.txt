@@ -1,42 +1,101 @@
-++ The RestMS feed and pipe types
+++ AMQP functional interoperability
 
-+++ Standard feed types
+RestMS deliberately invents new nomenclature but for those familiar with AMQP, a feed corresponds to an exchange and/or shared queue, an address corresponds to a routing key, a pipe is analogous to a private queue, and a join to an AMQP binding.  If it helps to understand RestMS, these are the main shifts that RestMS makes from the AMQP/0.9.1 semantic model:
 
-Implementations SHOULD implement all of these feed types and MAY implement others.  In general a feed routes by doing some kind of matching between the address property of a message (a literal string), and the address property of a join (a pattern).
+* Shared queues are merged into exchanges, and the resulting entity is renamed "feed".  In AMQP, exchanges have no state, while shared queues cannot do routing.  In RestMS, feeds have both state and capacity to route messages.
+* The exclusive queue concept are renamed to "pipe" and moved closer to the client edge.
+* The binding / routing key concepts are merged into a new concept called "address", which is used both for publishing messages and for joining pipes to feeds.
 
-++++ The fanout feed type
+In this section we look at the interoperability of messaging applications, i.e. how RestMS applications can talk, transparently, to AMQP applications, and vice-versa.  The main issues we must address are:
 
-The fanout feed type routes a copy of an incoming message to each join registered with the feed.  The message join filter is not used.
+* How the different feed and pipe types map to AMQP exchanges, queues, and bindings.
+* How we ensure that messages are semantically compatible with both protocols.
+* How we route messages correctly between RestMS and AMQP applications.
 
-++++ The direct feed type
++++ RestMS feed types
 
-The fanout feed type routes a copy of an incoming message to each join registered with the feed that has an address pattern that is identical to the message address.
+Implementations SHOULD implement all of these feed types and MAY implement others:
 
-++++ The topic feed type
+* The **fanout** feed type routes a copy of an incoming message to each join registered with the feed.  The join address and message address are not used during routing.  Joins made to a fanout feed should always have the address "*".
 
-The topic feed type routes a copy of an incoming message to each join registered with the feed that has an address pattern that matches the message address following AMQP's topic matching rules.
+* The **direct** feed type routes a copy of an incoming message to each join registered with the feed that has an address pattern that is identical to the message address.  The default feed (with URI path "/restms/feed/") is a direct feed.
 
-++++ The rotator feed type
+* The **topic** feed type routes a copy of an incoming message to each join registered with the feed that has an address pattern that matches the message address following AMQP's topic matching rules.
 
-The rotator feed type routes a message to exactly one join, using a round-robin algorithm to select the join.  An application can increase its proportion of the messages received by creating multiple joins to the feed.  The feed does not use the join address pattern or message address literal.
+* The **headers** feed type routes a copy of an incoming message to each join registered with the feed that has an address pattern that matches the message address following AMQP's header matching rules.
 
-++++ The service feed type
+* The **system** feed type routes incoming messages to internal services, according to the routing key.
 
-The service feed type works as the rotator feed, but has the additional property of self-deleting when the the number of joins registered on it drops from 1 to zero.  This means that the presence or absence of the feed indicates the availability of the "service" it represents.
+* The **rotator** feed type routes a message to exactly one join, using a round-robin algorithm to select the join.  An application can increase its proportion of the messages received by creating multiple joins to the feed.  The feed does not use the join address pattern or message address literal.  Joins made to a rotator feed should always have the address "*".
+
+* The **service** feed type works as the rotator feed, but has the additional property of self-deleting when the the number of joins registered on it drops from 1 to zero.  This means that the presence or absence of the feed indicates the availability of the "service" it represents. Joins made to a service feed should always have the address "*".
+
+A //fanout//, //direct//, //topic//, //headers// or //system// feed maps to an AMQP exchange of the same type.  In general terms these feeds route by doing some kind of matching between the address attribute of a message (a literal string), and the address attribute of a join (a pattern).  If the feed is private, a hashed name is used for the exchange so that it cannot be discovered by AMQP applications, otherwise the feed name is used as the exchange name.  When a RestMS client posts a message to the feed, the RestMS server publishes this message to the corresponding exchange, using as routing-key the //address// attribute of the message envelope.
+
+A //rotator// or //service// feed maps to an AMQP shared queue.  These feeds route by distributing messages to pipes on a round-robin basis.  If the feed is private, a hashed name is used for the queue so that it cannot be discovered by AMQP applications, otherwise the feed name is used as the queue name.  When a RestMS client posts a message to the feed, the server publishes this to the default exchange, using as routing-key the feed name.  If there is an address specified in the message envelope, this is used as the message-id, unless a message-id is also specified, in which case the address is discarded.
 
 +++ Standard pipe types
 
 Implementations SHOULD implement the fifo pipe type, and MAY implement any of the other pipe types.  If they do implement them, they must conform to the semantics defined here.
 
-++++ The fifo pipe type
+Pipes are propagated to the AMQP network as bindings that use the "reply_to" attribute of the pipe (this pipe attribute is automatically set by the RestMS server on new pipes).  Pipes MAY be implemented as private queues on the AMQP server but this is not the only architecture.
 
-The fifo pipe type holds an unspecified (but greater than one) number of messages and delivers these to a client application when asked for them.  It delivers messages one by one and messages remain in the pipe until deleted.
+* The **fifo** pipe type holds an unspecified (but greater than one) number of messages and delivers these to a client application when asked for them.  It delivers messages one by one and messages remain in the pipe until deleted.
 
-++++ The stream pipe type
+* The **stream** pipe type delivers messages as multipart contents so that a single GET will retrieve an unending stream of message contents.  This needs to be fully defined.
 
-The stream pipe delivers messages as multipart contents so that a single GET will retrieve an unending stream of message contents.  This needs to be fully defined.
+* The **ondemand** pipe type does not fetch a message from the feed until the pipe requests it through an asynclet.  This is designed to prevent messages being "lost" in unused or abandoned pipes, and is meant primarily to be used with service and rotator feeds.
 
-++++ The ondemand pipe type
++++ Message semantics
 
-This pipe does not fetch a message from the feed until the pipe requests it through an asynclet.  This is designed to prevent messages being "lost" in unused or abandoned pipes, and is meant primarily to be used with service and rotator feeds.
+An AMQP message consists of a set of envelopes and an opaque binary payload. There are four AMQP envelopes, though in AMQP/0.9.1 the distinction is not clearly made, and there are overlaps:
 
+# An envelope used for routing inside the AMQP server (exchange, routing-key, headers)
+# An envelope used to define the quality of service for deliveries to a recipient (delivery-mode, priority)
+# An envelope used to communicate between client APIs.(headers, reply-to, correlation-id, expiration, message-id)
+# An envelope used to communicate between client applications.(content-type, timestamp, type, user-id, app-id, sender-id)
+
+In AMQP the envelopes are partially encoded as arguments for commands (the Basic.Publish and Basic.Deliver commands) and partially as properties of messages.
+
+In RestMS, the message envelope and message content are split into two distinct resources.  The RestMS Content-Type and Content-Encoding headers map directly to/from the AMQP content-type and content-encoding properties.  The routing-key is either the address, or the feed name, depending on the type of feed.  The remaining envelope properties are encoded as follows:
+
+[[code]]
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <message address="{address literal}"
+    [ delivery_mode = "{delivery-mode}" ]
+    [ priority = "{priority}" ]
+    [ correlation_id = "{correlation-id}" ]
+    [ reply_to = "{reply-to}" ]
+    [ expiration = "{expiration}" ]
+    [ message_id = "{message-id}" ]
+    [ timestamp = "{timestamp}" ]
+    [ type = "{time}" ]
+    [ user_id = "{user-id}" ]
+    [ app_id = "{app-id}" ]
+    [ sender_id = "{sender-id}" ]
+    >
+    [ <header name="{header name}" value="{header value}" /> ] ...
+  </message>
+</restms>
+[[/code]]
+
++++ RestMS to AMQP application routing
+
+AMQP requires, as a working basis, that application agree in advance on the routing model they will use to exchange messages.  Typically, this takes the form of contracts based on the name and type of an exchange, and the allowed values for routing keys used in bindings and messages.  To assure routing between RestMS and AMQP applications we need similar conventions.
+
+We can break the diversity of service-oriented messaging down into three component scenarios, each of which needs rules for interoperability between RestMS and AMQP applications:
+
+# In which a request is sent to a remote "service", implemented by one or more service applications.
+* In which the response to a service request is sent back to the original requesting application.
+* In which a publisher distributes data to multiple subscribers.
+
+These conventions apply:
+
+* A service MUST correspond to a shared queue in AMQP terms, or a service or rotator feed in RestMS terms.  AMQP service applications MUST consume from the shared queue.  RestMS service applications MUST create a pipe and create a join from the pipe to the feed.  A service MAY be implemented transparently by any mix of AMQP and RestMS applications, with messages being served in a round-robin fashion to each implementing application.
+
+* A request message that needs a reply MUST provide a reply_to attribute.  For AMQP clients this MUST be the name of a private response queue. For RestMS clients this MUST be the reply_to attribute of a pipe.
+
+* Services that wish to send replies MUST use the reply_to attribute of the request message.  If they are AMQP service applications, they MUST publish the reply to the default exchange using the reply_to attribute as routing key.  If they are RestMS service applications, they MUST post the reply to the default feed using the reply_to attribute as address.
+
+* For data distribution, a RestMS fanout, topic, or headers exchange maps to an AMQP exchange, and subscribers can be either RestMS clients or AMQP clients.  RestMS clients create pipes and join them to the feeds they want to consume from, specifying the address pattern in each case.  AMQP clients create private queues and bind them to the exchanges they want to consume from, specifying the routing key in each case.

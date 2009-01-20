@@ -1,6 +1,4 @@
-++ AMQP interoperability and security
-
-+++ Technical interoperability
+++ AMQP technical interoperability
 
 We look at the interoperability of the messaging products, i.e. how to connect a RestMS server to an AMQP server or network.  The main issues we must address are:
 
@@ -8,7 +6,7 @@ We look at the interoperability of the messaging products, i.e. how to connect a
 * How the RestMS server mirrors resources to and from the AMQP server
 * How the RestMS server routes messages to and from the AMQP server
 
-++++ The RestMS extension class
++++ The RestMS extension class
 
 There are some significant differences between the RESTful model we implement in RestMS, and the AMQP model for resource management.  It would be possible, in theory and in time, to modify the AMQP protocol to become compatible with RestMS.  For example, commands like Queue.Delete would need to become idempotent so that attempting to delete a non-existent queue was safe.  Today, AMQP treats such attempts as fatal errors.
 
@@ -103,7 +101,7 @@ In order to work with a RestMS server, an AMQP server thus needs to implement th
     Feed class
     <doc>
     Specifies the class of the feed to create.  Valid values are: fanout,
-    direct, topic, headers, rotator, and service.
+    direct, topic, headers, system, rotator, and service.
     </doc>
   </field>
   <field name = "feed name" type = "shortstr" >
@@ -209,7 +207,7 @@ In order to work with a RestMS server, an AMQP server thus needs to implement th
 </class>
 [[/code]]
 
-++++ Resource synchronisation
++++ Resource synchronisation
 
 The RestMS extension class defined above provides a clean way for the RestMS server to synchronize all its resources with an AMQP server, and vice-versa.  Since the commands are asynchronous and not confirmed, they can be executed very rapidly, so that one server can synchronize its resources on another (for example, after failover) at the rate of tens of thousands of resources per second.
 
@@ -219,7 +217,7 @@ When a server receives resource specifications from another server, these resour
 
 Server implementations MAY take any reasonable approach to resources that are "orphaned", i.e. where their original owning server has disconnected and/or gone off line.
 
-++++ Message routing
++++ Message routing
 
 RestMS does not impose a specific architecture for interconnection with an AMQP network and there are several possibilities which we explain for the benefit of implementors.
 
@@ -235,62 +233,4 @@ The advantage of these two model is that they are easy to understand and impleme
 
 The optimal, but most complex model, is to use federation-style normalization.  In this model, the RestMS server maintains its own routing data structures, and forwards binding requests to the AMQP server.  When messages arrive, they are routed not on consumer tag, but according to the message routing key and/or other properties.  This model demands that the RestMS implementation has the same routing capabilities as the AMQP server, i.e. implements exchanges and shared queues in much the same way.  The advantage of this model is that it allows for stand-alone RestMS operation, and is the optimal design for RestMS-to-RestMS interoperation (with no extra hops to and from the AMQP server).
 
-+++ Functional interoperability
-
-We look at the interoperability of messaging applications, i.e. how RestMS applications can talk, transparently, to AMQP applications, and vice-versa.  The main issues we must address are:
-
-* How we ensure that messages are semantically compatible with both protocols.
-* How we route messages correctly between applications across the mixed network.
-
-++++ Message semantics
-
-An AMQP message consists of a set of envelopes and an opaque binary payload. There are four AMQP envelopes, though in AMQP/0.9.1 the distinction is not clearly made, and there are overlaps:
-
-# An envelope used for routing inside the AMQP server (exchange, routing-key, headers)
-# An envelope used to define the quality of service for deliveries to a recipient (delivery-mode, priority)
-# An envelope used to communicate between client APIs.(headers, reply-to, correlation-id, expiration, message-id)
-# An envelope used to communicate between client applications.(content-type, timestamp, type, user-id, app-id, sender-id)
-
-In AMQP the envelopes are partially encoded as arguments for commands (the Basic.Publish and Basic.Deliver commands) and partially as properties of messages.
-
-In RestMS, the message envelope and message content are split into two distinct resources.  The RestMS Content-Type and Content-Encoding headers map directly to/from the AMQP content-type and content-encoding properties.  The routing-key is either the address, or the feed name, depending on the type of feed.  The remaining envelope properties are encoded as follows:
-
-[[code]]
-<?xml version="1.0"?>
-<restms xmlns="http://www.imatix.com/schema/restms">
-  <message address="{address literal}"
-    [ delivery_mode = "{delivery-mode}" ]
-    [ priority = "{priority}" ]
-    [ correlation_id = "{correlation-id}" ]
-    [ reply_to = "{reply-to}" ]
-    [ expiration = "{expiration}" ]
-    [ message_id = "{message-id}" ]
-    [ timestamp = "{timestamp}" ]
-    [ type = "{time}" ]
-    [ user_id = "{user-id}" ]
-    [ app_id = "{app-id}" ]
-    [ sender_id = "{sender-id}" ]
-    >
-    [ <header name="{header name}" value="{header value}" /> ] ...
-  </message>
-</restms>
-[[/code]]
-
-++++ Application to application routing
-
-AMQP assumes, as a working basis, that application agree in advance on the routing model they will use to exchange messages.
-
-Typically, this takes the form of contracts based on the name and type of an exchange, and the allowed values for routing keys used in bindings and messages.
-
-To assure routing between RestMS and AMQP applications we need similar conventions.
-
--- add how to address shared queues, and response queues
--- via amq.direct
--- immediate, mandatory headers not needed, feeds are explicit
--- how to know what feeds exist from AMQP universe?
-    - subscribe to all shared queues via amq.direct?
-
-
-
-Precisely: if the feed is an exchange, the RestMS server publishes to that exchange with the routing key specified in the message.  If the feed is a shared queue, the RestMS server publishes
-
+Finally, a RestMS server does not need to work with an AMQP network, it can be self-standing.
