@@ -38,7 +38,7 @@
 <file name = "amq_server.c"              class = "main program"      >Server main</file>
 <file name = "amq_server_main.inc"       class = "private resource"  >Server main core</file>
 <file name = "amq_server_config.opf"     class = "opf metadata"      >Server configuration</file>
-<file name = "amq_server_agent.smt"      class = "smt private module"
+<file name = "amq_server_agent.smt"      class = "smt public module"
                                          generated = "1"             >Server protocol agent</file>
 <file name = "amq_server_classes.icl"    class = "icl public data"   >Server classes</file>
 <file name = "amq_server_connection.icl" class = "icl private class" >Server connection class</file>
@@ -46,17 +46,17 @@
                                          class = "icl private cont"  >Server connection table</file>
 <file name = "amq_server_connection_list.icl"
                                          class = "icl private cont"  >Server connection table</file>
-<file name = "amq_server_channel.icl"    class = "async private"     >Server channel class</file>
+<file name = "amq_server_channel.icl"    class = "async public"      >Server channel class</file>
 <file name = "amq_server_channel_table.icl"
                                          class = "icl private cont"  >Server channel table</file>
 <file name = "amq_server_resource.rc"    class = "private resource"  >Server resource list</file>
 <file name = "amq_server_resource.icl"   class = "icl private cont"  >Server resource class</file>
-<file name = "amq_broker.icl"            class = "async private"     >Server broker class</file>
-<file name = "amq_peering.icl"           class = "async private"     >Server peering class</file>
+<file name = "amq_broker.icl"            class = "async public"      >Server broker class</file>
+<file name = "amq_peering.icl"           class = "async public"      >Server peering class</file>
 <file name = "amq_peer.asl"              class = "gsl data"          >Peering method interface</file>
 <file name = "amq_peer_method.icl"       class = "icl public cont"   >Peering methods, generated</file>
 <file name = "amq_peer_config.opf"       class = "opf metadata"      >Peering config syntax</file>
-<file name = "amq_peer_agent.smt"        class = "smt private module"
+<file name = "amq_peer_agent.smt"        class = "smt public module"
                                          generated = "1"             >Peering client agent</file>
 <file name = "amq_exchange.icl"          class = "async public"      >Server exchange class</file>
 <file name = "amq_exchange_table.icl"    class = "icl private cont"  >Table of exchanges per broker</file>
@@ -98,21 +98,21 @@
 <file name = "amq_resource.icl"          class = "icl public class"  >AMQP/Rest functionality</file>
 <file name = "amq_server_method.icl"     class = "icl private cont"  >Server method class</file>
 <file name = "amq_server_base.cfg"       class = "public resource"   >Server config file</file>
-<file name = "amq_federation.icl"        class = "async private"     >Federation class</file>
-<file name = "amq_failover.icl"          class = "async private"     >Failover class</file>
+<file name = "amq_federation.icl"        class = "async public"      >Federation class</file>
+<file name = "amq_failover.icl"          class = "async public"      >Failover class</file>
 <file name = "amq_lease.icl"             class = "icl private class" >Server direct lease class</file>
 <file name = "amq_lease_table.icl"       class = "icl private cont"
                                          generated = "1"             >Server lease container</file>
 
 <!-- OpenAMQ Management Console back-end -->
-<file name = "amq_console.icl"           class = "async private"     >Server console class</file>
+<file name = "amq_console.icl"           class = "async public"      >Server console class</file>
 <file name = "amq_console_object.icl"    class = "private resource"  >Console object abstract class</file>
 <file name = "amq_console_class.icl"     class = "icl private class" >Console class definition</file>
 <file name = "amq_console_schema.gsl"    class = "private resource"  >Console generator</file>
 <file name = "amq_console_schema.cml"    class = "generated resource">Console schema</file>
 <file name = "amq_console_schema.xml"    class = "generated resource">Console schema in raw form</file>
 <file name = "amq_console_config.gsl"    class = "private resource"  >OPF plugin for console</file>
-<file name = "amq_console_config.icl"    class = "async private"  
+<file name = "amq_console_config.icl"    class = "async public"  
                                          generated = "1"             >Config wrapper class</file>
 <file name = "amq_cml.icl"               class = "icl public class"  >CML functionality</file>
 
