@@ -228,6 +228,9 @@
 
     //  Initialise failover agent
     self->failover = amq_failover_new ();
+
+    //  Calculate server performance
+    smt_coremark_calculate (self->alert_log, amq_server_config_coremark_cycles (amq_server_config));
 </method>
 
 <method name = "destroy">

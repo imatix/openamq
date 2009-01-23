@@ -220,6 +220,15 @@ $\(selftype)
 </path>
 
 <path name = "tuning">
+    <property name = "coremark cycles" type = "int" default = "250000">
+    Duration of CoreMark test
+    <doc>
+    Defines the duration of the automatic CoreMark performance test, in event
+    cycles.  If 0, no test will be done.  Setting this too high will cause the
+    server to burn CPU at startup.  A good value is between 100k and 1M.
+    </doc>
+    </property>
+
     <property name = "heartbeat" type = "int" default = "2" dynamic = "1">
     Heartbeat timer, seconds
     <doc>

@@ -205,10 +205,18 @@ s_start (int argc, char *argv [])
         printf (COPYRIGHT "\n");
         printf (NOWARRANTY);
     }
+#   if defined (BASE_THREADSAFE)
+    icl_console_print ("I: loading iMatix AMQP engine (multi-core scalable)");
+#   else
+    icl_console_print ("I: loading iMatix AMQP engine (single-core build)");
+#   endif
     //  Set server working directory if necessary
-    if (s_opt_workdir && apr_filepath_set (s_opt_workdir, icl_global_pool) != APR_SUCCESS) {
-        icl_console_print ("E: can't work in '%s' - %s", s_opt_workdir, strerror (errno));
-        exit (EXIT_FAILURE);
+    if (s_opt_workdir) {
+        icl_console_print ("I: switching current directory to %s", s_opt_workdir);
+        if (apr_filepath_set (s_opt_workdir, icl_global_pool) != APR_SUCCESS) {
+            icl_console_print ("E: can't work in '%s' - %s", s_opt_workdir, strerror (errno));
+            exit (EXIT_FAILURE);
+        }
     }
     //  Load configuration data, if any, into the config_table
     amq_server_config = amq_server_config_new ();
@@ -242,9 +250,14 @@ s_start (int argc, char *argv [])
     ipr_config_destroy (&config);
 
     //  Set system options from configuration
+#   if defined (BASE_THREADSAFE)
+    icl_console_print ("I: allocating %d poll threads, %d worker threads",
+        amq_server_config_polling_threads (amq_server_config),
+        amq_server_config_working_threads (amq_server_config));
     smt_set_polling_threads (amq_server_config_polling_threads (amq_server_config));
     smt_set_working_threads (amq_server_config_working_threads (amq_server_config));
-    smt_set_action_limit    (amq_server_config_kernel_limit    (amq_server_config));
+#   endif
+    smt_set_action_limit (amq_server_config_kernel_limit (amq_server_config));
 
     //  Move into the background if so desired
     if (s_opt_bkground) {
