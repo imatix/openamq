@@ -44,8 +44,6 @@ This class implements the RestMS join object.
         feed_name,                      //  Feed name
         feed_class,                     //  Feed class
         uri;                            //  Join URI if any
-    ipr_looseref_t
-        *looseref;                      //  Pointer to loose list
 </context>
 
 <method name = "new">

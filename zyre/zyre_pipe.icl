@@ -41,25 +41,9 @@ This class implements the RestMS pipe object.
 <context>
     icl_shortstr_t
         class,                          //  Pipe class
-        name,                           //  Pipe name
-        uri;                            //  Pipe URI if any
-    amq_content_basic_list_t
-        *contents;                      //  Messages for pipe
+        name;                           //  Pipe name
     zyre_join_list_t
         *join_list;                     //  Joins for pipe
-    zyre_nozzle_list_t
-        *nozzle_list;                   //  Nozzles for pipe
-    apr_time_t
-        time_created,                   //  For house-keeping
-        time_accessed;
-    size_t
-        contents_pending,               //  Messages on pipe
-        contents_served,                //  Messages delivered
-        octets_pending,                 //  Total bytes on pipe
-        octets_served;                  //  Total bytes delivered
-    int
-        top_message_id,                 //  Newest message on pipe
-        cur_message_id;                 //  Last message delivered
 </context>
 
 <method name = "new">
@@ -71,7 +55,6 @@ This class implements the RestMS pipe object.
         index = 0;
     </local>
     //
-    assert (zyre_uri_is_pipe_class (class));
     if (name)
         icl_shortstr_cpy (self->name, name);
     else {
@@ -81,42 +64,10 @@ This class implements the RestMS pipe object.
     icl_shortstr_cpy (self->class, class);
     self->contents = amq_content_basic_list_new ();
     self->join_list = zyre_join_list_new ();
-    self->nozzle_list = zyre_nozzle_list_new ();
 </method>
 
 <method name = "destroy">
-    zyre_nozzle_list_destroy (&self->nozzle_list);
     zyre_join_list_destroy (&self->join_list);
-    amq_content_basic_list_destroy (&self->contents);
-</method>
-
-<method name = "accept" template = "function">
-    <doc>
-    Accept a message content onto the pipe and dispatches messages in as far
-    as possible.
-    </doc>
-    <argument name = "content" type = "amq_content_basic_t *">Content</argument>
-    <local>
-    zyre_nozzle_t
-        *nozzle;
-    </local>
-    //
-    //  Pass message to first waiting nozzle, if any, else queue on pipe
-    nozzle = zyre_nozzle_list_first (self->nozzle_list);
-    while (nozzle) {
-        if (nozzle->waiting) {
-            //  Move nozzle to end of list to implement a round-robin
-            zyre_nozzle_list_queue (self->nozzle_list, nozzle);
-            zyre_nozzle_accept (nozzle, content);
-            break;
-        }
-        nozzle = zyre_nozzle_list_next (&nozzle);
-    }
-    //  Hold on own list if we could not pass the content to a nozzle
-    if (nozzle)
-        zyre_nozzle_unlink (&nozzle);
-    else
-        amq_content_basic_list_queue (self->contents, content);
 </method>
 
 <method name = "selftest">

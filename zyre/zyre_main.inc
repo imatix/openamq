@@ -193,10 +193,18 @@ s_zyre_initialise (int argc, char *argv [])
         printf (COPYRIGHT "\n");
         printf (NOWARRANTY);
     }
+#   if defined (BASE_THREADSAFE)
+    icl_console_print ("I: loading X5 web server engine (multi-core scalable)");
+#   else
+    icl_console_print ("I: loading X5 web server engine (single-core build)");
+#   endif
     //  Set server working directory if necessary
-    if (s_opt_workdir && apr_filepath_set (s_opt_workdir, icl_global_pool) != APR_SUCCESS) {
-        icl_console_print ("E: can't work in '%s' - %s", s_opt_workdir, strerror (errno));
-        exit (EXIT_FAILURE);
+    if (s_opt_workdir) {
+        icl_console_print ("I: switching current directory to %s", s_opt_workdir);
+        if (apr_filepath_set (s_opt_workdir, icl_global_pool) != APR_SUCCESS) {
+            icl_console_print ("E: can't work in '%s' - %s", s_opt_workdir, strerror (errno));
+            exit (EXIT_FAILURE);
+        }
     }
     //  Load configuration data into the config tables
     //  We need to prepare two config objects, zyre_config and http_config,
@@ -212,11 +220,11 @@ s_zyre_initialise (int argc, char *argv [])
     //  The command line is parsed by zyre_config.
     //
     zyre_config = zyre_config_new ();
-    bucket = http_resource_get ("http_base.cfg");
-    zyre_config_load_bucket   (zyre_config, bucket);
+    bucket = http_static_get ("http_base.cfg");
+    zyre_config_load_bucket  (zyre_config, bucket);
     ipr_bucket_destroy (&bucket);
-    bucket = zyre_resource_get ("zyre_base.cfg");
-    zyre_config_load_bucket   (zyre_config, bucket);
+    bucket = zyre_static_get ("zyre_base.cfg");
+    zyre_config_load_bucket  (zyre_config, bucket);
     ipr_bucket_destroy (&bucket);
     zyre_config_load_xmlfile  (zyre_config, "xitami.cfg", FALSE);
     zyre_config_load_xmlfile  (zyre_config, s_opt_config, FALSE);
@@ -228,8 +236,13 @@ s_zyre_initialise (int argc, char *argv [])
     http_config_shadow (http_config, zyre_config->config);
 
     //  Set system options from configuration
+#   if defined (BASE_THREADSAFE)
+    icl_console_print ("I: allocating %d poll threads, %d worker threads",
+        zyre_config_polling_threads (zyre_config),
+        zyre_config_working_threads (zyre_config));
     smt_set_polling_threads (zyre_config_polling_threads (zyre_config));
     smt_set_working_threads (zyre_config_working_threads (zyre_config));
+#   endif
 
     //  Snapshot configuration into debug file, if wanted
     if (s_opt_snapshot) {

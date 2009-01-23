@@ -41,8 +41,7 @@ This class implements the RestMS feed object.
 <context>
     icl_shortstr_t
         class,                          //  Feed class
-        name,                           //  Feed name
-        uri;                            //  Feed URI if any
+        name;                           //  Feed name
     Bool
         as_queue;                       //  Implemented as AMQP queue?
 </context>
@@ -53,7 +52,6 @@ This class implements the RestMS feed object.
     <dismiss argument = "key" value = "self->name">Key is feed name</dismiss>
     //
     assert (name);
-    assert (zyre_uri_is_feed_class (class));
     icl_shortstr_cpy (self->name, name);
     icl_shortstr_cpy (self->class, class);
     self->as_queue = (streq (class, "service") || streq (class, "rotator"));

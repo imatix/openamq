@@ -37,12 +37,12 @@
 <file name = "zyre_config.opf"         class = "gsl data"          >Configuration schema</file>
 <file name = "zyre_config.icl"         class = "icl private class"
                                        generated = "1"             >Configuration class</file>
-<file name = "zyre_backend_module.icl" class = "ipr portal"        >Portal to backend modules</file>
+<file name = "zyre_backend.icl"        class = "ipr portal"        >Portal to backend handler</file>
+<file name = "zyre_resource.icl"       class = "ipr portal"        >Portal to resource handler</file>
+
 <file name = "zyre_restms.icl"         class = "async private"     >RestMS driver module</file>
 <file name = "zyre_digest_amqp.icl"    class = "async private"     >Digest-AMQP access module</file>
 <file name = "zyre_backend_amqp.icl"   class = "async private"     >Backend module for AMQP servers</file>
-<file name = "zyre_uri.icl"            class = "icl private class" >URI parsing</file>
-<file name = "zyre_classes.icl"        class = "icl public data"   >Application classes</file>
 
 <file name = "zyre_peer.asl"           class = "gsl data"          >Peering method interface</file>
 <file name = "zyre_peer_method.icl"    class = "icl public cont"   >Peering methods, generated</file>
@@ -52,20 +52,22 @@
 <file name = "zyre_peer_agent.smt"     class = "smt private module"
                                        generated = "1"             >Peering client agent</file>
 
-<file name = "zyre_join.icl"           class = "icl public class"  >Zyre join class</file>
-<file name = "zyre_join_list.icl"      class = "icl private cont"
-                                       generated = "1"             >Zyre joins per pipe</file>
-<file name = "zyre_nozzle.icl"         class = "icl public class"  >Zyre nozzle class</file>
-<file name = "zyre_nozzle_list.icl"    class = "icl private cont"
-                                       generated = "1"             >Zyre nozzles per pipe</file>
-<file name = "zyre_pipe.icl"           class = "icl public class"  >Zyre pipe class</file>
-<file name = "zyre_pipe_table.icl"     class = "icl private cont"
-                                       generated = "1"             >Zyre pipe hash</file>
-<file name = "zyre_feed.icl"           class = "icl public class"  >Zyre feed class</file>
-<file name = "zyre_feed_table.icl"     class = "icl private cont"
-                                       generated = "1"             >Zyre feed hash</file>
+<file name = "zyre_domain.icl"         class = "icl public class"  >RestMS domain resource</file>
 
-<file name = "zyre_resource.rc"        class = "ipr rc file"       >Binary resources</file>
+<file name = "zyre_feed.icl"           class = "icl public class"  >RestMS feed resource</file>
+<file name = "zyre_feed_table.icl"     class = "icl public cont"   >RestMS feed table </file>
+<file name = "zyre_pipe.icl"           class = "icl public class"  >RestMS pipe resource</file>
+<file name = "zyre_pipe_table.icl"     class = "icl public cont"   >RestMS pipe table </file>
+<file name = "zyre_join.icl"           class = "icl public class"  >RestMS join resource</file>
+<file name = "zyre_join_list.icl"      class = "icl public cont"   >RestMS join list</file>
+<!--
+<file name = "zyre_message.icl"        class = "icl public class"  >RestMS message resource</file>
+<file name = "zyre_content.icl"        class = "icl public class"  >RestMS content resource</file>
+-->
+
+<file name = "zyre_classes.icl"        class = "icl public data"   >Application classes</file>
+
+<file name = "zyre_static.rc"          class = "ipr rc file"       >Static resources</file>
 <file name = "zyre_base.cfg"           class = "private resource"  >Base config file</file>
 <file name = "zyre_test.pl"            class = "private resource"  >Zyre test scenarios</file>
 

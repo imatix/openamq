@@ -45,11 +45,11 @@ Lastly, the peering will invoke callback methods to tell you when the peer
 link becomes active, and when a message content arrives.
 </doc>
 
-<inherit class = "zyre_backend_module_back" />
+<inherit class = "zyre_backend_back" />
 <inherit class = "icl_init" />
 
 <context>
-    zyre_backend_module_t
+    zyre_backend_t
         *portal;                        //  Portal back to client
     Bool
         enabled,                        //  We're active
@@ -352,19 +352,15 @@ link becomes active, and when a message content arrives.
             zyre_peer_agent_push (self->peer_agent_thread, self->channel_nbr, method);
             zyre_peer_method_unlink (&method);
         }
-        //  Create private queue which will be used to receive replies
+        //  Create private queue for internal request-response
         zyre_peer_agent_queue_declare (
             self->peer_agent_thread, self->channel_nbr, 0, self->queue,
             FALSE, FALSE, TRUE, TRUE, TRUE, NULL);
         zyre_peer_agent_basic_consume (
             self->peer_agent_thread, self->channel_nbr, 0, self->queue,
             NULL, TRUE, TRUE, TRUE, TRUE, NULL);
-        //  Bind queue to default exchange
-        zyre_peer_agent_queue_bind (
-            self->peer_agent_thread, self->channel_nbr, 0, self->queue,
-            NULL, self->queue, TRUE, NULL);
     }
-    zyre_backend_module_response_online (self->portal, self->queue);
+    zyre_backend_response_online (self->portal, self->queue);
     </action>
 </method>
 
@@ -435,7 +431,7 @@ s_terminate_peering ($(selftype) *self)
         self->connected = FALSE;
         self->offlined  = TRUE;
         if (self->portal)
-            zyre_backend_module_response_offline (self->portal);
+            zyre_backend_response_offline (self->portal);
     }
 }
 

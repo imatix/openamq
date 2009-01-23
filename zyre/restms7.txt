@@ -1,3 +1,0 @@
-++ HTTP interoperability and security
-
-This section is being worked on.

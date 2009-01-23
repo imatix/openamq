@@ -32,7 +32,7 @@
 
 <!-- And we're the front-end for a backend module portal -->
 <!-- Here 'backend' means a server that can speak AMQP or such -->
-<inherit class = "zyre_backend_module_front" />
+<inherit class = "zyre_backend_front" />
 
 <import class = "wireapi" />
 <import class = "zyre_classes" />
@@ -40,7 +40,7 @@
 <context>
     http_access_module_t
         *portal;                        //  Portal back to http_server
-    zyre_backend_module_t
+    zyre_backend_t
         *backend;                       //  Backend peering to AMQP
     Bool
         connected;                      //  AMQP connection alive?
@@ -51,15 +51,15 @@
 </context>
 
 <method name = "new">
-    self->backend = zyre_backend_amqp__zyre_backend_module_new (NULL);
-    zyre_digest_amqp__zyre_backend_module_bind (self, self->backend);
-    zyre_backend_module_request_start (self->backend);
+    self->backend = zyre_backend_amqp__zyre_backend_new (NULL);
+    zyre_digest_amqp__zyre_backend_bind (self, self->backend);
+    zyre_backend_request_start (self->backend);
 </method>
 
 <method name = "destroy">
     <action>
     self->portal = NULL;
-    zyre_backend_module_unlink (&self->backend);
+    zyre_backend_unlink (&self->backend);
     smt_log_unlink (&self->log);
     </action>
 </method>
@@ -77,7 +77,7 @@
     self->portal = portal;
 
     self->log = smt_log_link (log);
-    smt_log_print (log, "I: Digest-AMQP access module loaded");
+    smt_log_print (log, "I: Zyre Digest-AMQP access module loaded");
     </action>
 </method>
 
@@ -129,7 +129,7 @@
         content = amq_content_basic_new ();
         amq_content_basic_set_body (content, body, strlen (body), icl_mem_free);
         //  Send to default exchange, with service name as routing key
-        zyre_backend_module_request_forward (self->backend,
+        zyre_backend_request_forward (self->backend,
             NULL, "Digest-AMQP", content, TRUE, TRUE);
         amq_content_basic_unlink (&content);
         smt_log_print (self->log, "I: sent Digest-AMQP request for '%s:%s'", user, realm);
@@ -140,7 +140,7 @@
     </action>
 </method>
 
-<!-- These are responses coming in via the zyre_backend_module portal -->
+<!-- These are responses coming in via the zyre_backend portal -->
 
 <method name = "online">
     <action>

@@ -16,14 +16,14 @@
     iMatix Corporation.
  -->
 <class
-    name    = "zyre_backend_module"
-    comment = "Zyre backend module portal"
+    name    = "zyre_backend"
+    comment = "Zyre backend portal"
     script  = "icl_gen"
     >
 <doc>
     This class enables the creation of backend modules that implement RestMS
     on a messaging server.  Modules are portal servers that inherit the
-    zyre_backend_module_back class and implement the requests defined here.
+    zyre_backend_back class and implement the requests defined here.
     The client for a backend module implements the response methods, and must
     be an async class.
 </doc>

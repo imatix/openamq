@@ -21,7 +21,7 @@
     script   = "asl_gen"
     chassis  = "client"
     basename = "zyre_peer"
-    caller   = "zyre_backend_module"
+    caller   = "zyre_backend"
     broker   = "http_server"
     >
 <!--
@@ -35,7 +35,7 @@
 
 <class name = "connection">
   <action name = "open-ok">
-    zyre_backend_module_request_online_partial (caller);
+    zyre_backend_request_online_partial (caller);
   </action>
   <action name = "close">
     //  If the connection failed due to a hard error, complain loudly and
@@ -50,18 +50,18 @@
 
 <class name = "channel">
   <action name = "open-ok">
-    zyre_backend_module_request_online_final (caller);
+    zyre_backend_request_online_final (caller);
   </action>
 </class>
 
 <class name = "basic">
   <action name = "deliver">
     //  Send content/consumer_tag directly to portal front-end client
-    zyre_backend_module_response_arrived (caller, content, method->consumer_tag);
+    zyre_backend_response_arrived (caller, content, method->consumer_tag);
   </action>
   <action name = "return">
     //  Send content/consumer_tag directly to portal front-end client
-    zyre_backend_module_response_returned (caller, content);
+    zyre_backend_response_returned (caller, content);
   </action>
 </class>
 

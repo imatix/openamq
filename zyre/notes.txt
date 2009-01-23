@@ -1,64 +1,106 @@
-A RestMS application can be as simple as this fully working "Hello World!" example in Perl:
+synchronization with AMQP
+    - keep list of pipes
+    - keep list of feeds
+    - keep list of joins
+        - create/destroy instructions from front
+        - based on URI
 
-[[code]]
-#!/usr/bin/perl
-#   Hello World application for RestMS
-#
-use LWP::UserAgent;
-use HTTP::Request::Common;
+    - if amqp provides us with feed
+        - add to list if not already defined
 
-my $hostname = $ARGV [0]? $ARGV [0]: "localhost";
-my $base = "http://$hostname/restms";
-my $ua = new LWP::UserAgent;
-$ua->agent ('Perl');
-$ua->credentials ($hostname, "RestMS", "guest", "guest");
-
-#   In one step, create a pipe named 'world', create a fanout feed named
-#   'ping', and create a join on all messages, using address string 'hello':
-my $response = $ua->request (PUT "$base/pipe/world/hello\@ping/fanout");
-$response->code == 200 || die;
-
-my $response = $ua->request (POST "$base/hello\@ping",
-    Content => "Hello World!\n");
-$response->code == 200 || die;
-
-#   Message goes into feed and then comes back to our pipe
-my $response = $ua->request (GET "$base/pipe/world/");
-$response->code == 200 || die;
-print $response->content;
-[[/code]]
+    pipe
+        pipe_table
+    feed
+        feed_table
+    join
+        join_list
 
 
-terminology
+    zyre_restms_domain
+    zyre_restms_pipe
+    zyre_restms_feed
+    zyre_restms_etc.
 
-* asynclet
-* Resource - a network-addressable data object or service identified by a URI.
-* Domain - a collection of RestMS resources managed by one server or virtual host.
-* Feed - the target for
-document
-element
-property
-attribute
-document root
-resource root
+    //  Create new resource of specified type
+    ipr_looseref_t
+        *looseref;
+    zyre_resource_t
+        *factory,
+        *resource;
+
+    looseref = ipr_looseref_list_first (self->zyre_resource_factory_list);
+    while (looseref) {
+        factory = (ipr_demo_resource_t *) (looseref->object);
+        if (streq (factory->name, "my-type")) {
+            resource = zyre_resource_factory (factory, "item-name");
+            break;                  //  Have a match
+        }
+        looseref = ipr_looseref_list_next (&looseref);
+    }
 
 
 
 
-- If app always invents new pipe, will not get message delivered reliably as message may go to other pipe.  Needs to cache pipe name and reuse when starting, example is digest-amqp.pl.
-- If app always requests same pipe and fails to delete message, will loop on getting message.  Need to perhaps limit number of deliveries.
-- If service creates feed, requester needs to use service@amq.direct rather than address@service, which is ugly.  To make address@service work, Zyre needs to know what services exist, this needs to come from the AMQP server.  It also needs to get errors if service does not exist (mandatory + returned messages).
-    -> OpenAMQ synch all back onto zyre
-    -> zyre does not need to define own services...
+new resource
+    calculate URI
+    look for existing resource
+    if exists
+        200 ok
+    else
+        parse XML
+            when getting request
+            parse json (really?) or xml
+                do json later only
+                document limitation
+            if invalid, 400 Bad request
+            else pass first child item
+            if other content type, don't parse
+                - pass null
+        create object as specified
+        create new resource for URI
+        201 created
+        attach resource to parent
+            add looseref to parent's list
+            set parent in object
+        get resource XML from object
+
+new resource from openamq
+    always public resource
+    always locked
+
+
+domain, feed, pipe, join, message
+    report
+    accept
+
+
+zyre_content class
+    content_type
+    content_encoding
+    bucket (limit content to 2MB for now)
+        overflow to file, later
+        limitation needs to be documented
+
+
+- in openamq, synchronize back with zyre
+    - add method Feed.Sync to class
+    - if server gets this, syncs all exchange & shared queues back to RestMS
 
 
 
-RestMS
 
-- restms.digistan.org microsite
--> restms.org template
--> restms@digistan.org email list
--> examples, wiki, implementations
+    - zyre_resource_new (table,
+
+
+- handle in zyre_restms class:
+    Domain  GET POST (feed, pipe)
+    Feed    GET PUT DELETE POST (message)
+    Pipe    GET PUT DELETE POST (join)
+    Join    GET PUT DELETE
+    Message GET DELETE
+    Content GET DELETE
+
+
 
 
 define pipe that sends messages back to feed
@@ -68,11 +110,6 @@ define fair queue mechanism that takes input from several feeds but fairly
     - implement natively in openamq?
     - ...?
 
-stream pipe
-nozzles on post messages too
-    post to nozzle - idempotent
-    post to nozzle - idempotent
-    delete nozzle
 
 
 HTTP headers
@@ -108,9 +145,7 @@ Location: absolute-uri
     For 201 Created and for 3xx responses
 
 
-
-implement exchange logic in zyre and do federation
-
+Implement exchange logic in zyre and do federation
 
 config
     amqp server name
@@ -119,28 +154,9 @@ config
         - basic auths
         - not same as openamq credentials
 
-- if-modified-since
-- cache-control
-- last-modified-time
-
-=====
-
-Not supported:
-
-* Does not allow binding arguments (headers) yet.
 
 RESTful extensions to AMQP
     - RestMS protocol class
     - * in topics matches empty routing-key
     - empty topic segments are allowed (".value")
-    - Basic.Consume is assertive, idempotent
-        - note that must not allow same tag on different queues
-        -> Subsumed in restms protocol class
-    - Queue.Declare private queues are scoped per connection
-        - names uniquified on server, automatically
-        - in declare, consume, cancel, bind, delete
-        -> This is not implemented in OpenAMQ yet but should be
-        -> Subsumed in restms protocol class
-    - Queue.Delete is assertive
-        - if queue does not exist, still returns Delete-Ok
-        -> Subsumed in restms protocol class
+
