@@ -145,8 +145,10 @@ This class is not threadsafe and may be used from one threadlet only.
     the parent list can already be destroyed then.
     </doc>
     //
+    icl_console_print ("delete self=%pp", self);
     ipr_looseref_destroy (&self->in_parent);
-    self_destroy (&self);
+    ipr_hash_unlink (&self->hash);
+    self_unlink (&self);
 </method>
 
 <method name = "etag" return = "etag">

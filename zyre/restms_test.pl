@@ -89,6 +89,16 @@ $request = HTTP::Request->new (PUT => "http://$hostname/restms/feed/test.service
 $response = $ua->request ($request);
 check_response_code ($response, $REPLY_NOCONTENT);
 
+#   Delete
+$request = HTTP::Request->new (DELETE => "http://$hostname/restms/feed/test.service");
+$response = $ua->request ($request);
+check_response_code ($response, $REPLY_OK);
+
+#   Delete again to make sure
+$request = HTTP::Request->new (DELETE => "http://$hostname/restms/feed/test.service");
+$response = $ua->request ($request);
+check_response_code ($response, $REPLY_OK);
+
 #   Create two unnamed feeds
 $request = HTTP::Request->new (POST => "http://$hostname/restms/domain/");
 $request->content_type('application/restms+xml;type=feed');
