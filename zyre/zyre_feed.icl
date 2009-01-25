@@ -35,6 +35,8 @@ This class implements the RestMS feed object.
         type,                           //  Feed type
         title,                          //  Title text
         license;                        //  License text
+    Bool
+        dynamic;                        //  Feed is dynamic
 </context>
 
 <method name = "new">
@@ -48,6 +50,7 @@ This class implements the RestMS feed object.
     char
         *type;
 
+    self->dynamic = TRUE;
     type = ipr_xml_attr_get (context->xml_item, "type", "topic");
     if (zyre_feed_type_valid (type)) {
         icl_shortstr_cpy (self->type, type);
@@ -84,6 +87,10 @@ This class implements the RestMS feed object.
         *value;
     </local>
     //
+    if (!self->dynamic)
+        http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
+            "Not allowed to modify this feed");
+    else
     if (context->request->content_length == 0)
         http_driver_context_reply_success (context, HTTP_REPLY_NOCONTENT);
     else
@@ -99,8 +106,13 @@ This class implements the RestMS feed object.
 </method>
 
 <method name = "delete">
-    http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-        "The DELETE method is not allowed on this resource");
+    if (!self->dynamic)
+        http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
+            "Not allowed to delete this feed");
+    else {
+        zyre_resource_delete (portal);
+        http_driver_context_reply_success (context, HTTP_REPLY_OK);
+    }
 </method>
 
 <method name = "post">

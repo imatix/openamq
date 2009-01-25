@@ -104,7 +104,6 @@
         *resource;
 
     //  Pathinfo is URI key into resource table
-    icl_console_print ("GET %s", context->request->pathinfo);
     resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
     if (resource) {
         if (zyre_resource_modified (resource, context->request))
@@ -124,7 +123,6 @@
         *resource;
 
     //  Pathinfo is URI key into resource table
-    icl_console_print ("PUT %s", context->request->pathinfo);
     resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
     if (resource) {
         if (zyre_resource_unmodified (resource, context->request))
@@ -145,7 +143,6 @@
         *resource;
 
     //  Pathinfo is URI key into resource table
-    icl_console_print ("DELETE %s", context->request->pathinfo);
     resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
     if (resource) {
         if (zyre_resource_unmodified (resource, context->request))
@@ -155,8 +152,8 @@
             zyre_resource_request_delete (resource, context);
     }
     else
-        http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
-            "The URI does not match a known resource");
+        //  If resource is not present, delete is idempotent
+        http_driver_context_reply_success (context, HTTP_REPLY_OK);
     </action>
 </method>
 
@@ -166,7 +163,6 @@
         *resource;
 
     //  Pathinfo is URI key into resource table
-    icl_console_print ("POST %s", context->request->pathinfo);
     resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
     if (resource)
         zyre_resource_request_post (resource, context);

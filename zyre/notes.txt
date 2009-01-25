@@ -13,8 +13,14 @@ synchronization with AMQP
         - feed: private or public name
 
 delete resource
-    - remove from parent list
-    - ask restms to do deletion
+    - in restms, lookup URI
+    - pass DELETE to resource
+        - resource check whether delete is allowed or not
+        - if allowed
+            - do zyre_resource_delete (portal)
+                - remove from parent's list, if any
+                - remove from hash table
+                - destroy portal, which will destroy resource
 
 new resource from openamq
     always public resource

@@ -106,10 +106,10 @@ This class is not threadsafe and may be used from one threadlet only.
         *parent;                        //  Parent resource
     uint
         type;                           //  Resource type
-    qbyte
-        index;                          //  Resource index
     ipr_looseref_list_t
         *children;                      //  Looseref list of children
+    ipr_hash_t
+        *hash;                          //  Backlink to hash item
     ipr_looseref_t
         *in_parent;                     //  Backlink to parent's list
     apr_time_t
@@ -121,47 +121,32 @@ This class is not threadsafe and may be used from one threadlet only.
     <argument name = "table" type = "ipr_hash_table_t *">Hash by path</argument>
     <argument name = "type" type = "char *">Resource type name</argument>
     <argument name = "path" type = "char *">Resource path</argument>
-    <local>
-    ipr_hash_t
-        *hash;
-    </local>
     //
     self->modified = apr_time_now ();
     self->type = zyre_resource_type_value (type);
     self->children = ipr_looseref_list_new ();
-
-    hash = ipr_hash_new (table, path, self);
-    self->index = hash->table_index;
-    ipr_hash_unlink (&hash);
+    self->hash = ipr_hash_new (table, path, self);
 
     //  Attach as child of parent resource, if any
     if (parent)
-        self->in_parent = zyre_resource_add_as_child (parent, self);
+        self->in_parent = ipr_looseref_queue (parent->children, self);
 </method>
 
 <method name = "destroy">
+    ipr_hash_unlink (&self->hash);
     ipr_looseref_list_destroy (&self->children);
 </method>
 
-<method name = "add as child" return = "looseref">
+<method name = "delete" template = "function">
     <doc>
-    Adds a resource as child.
-    </doc>
-    <argument name = "self" type = "$(selftype) *" />
-    <argument name = "child" type = "$(selftype) *" />
-    <declare name = "looseref" type = "ipr_looseref_t *" />
-    //
-    //  Queue this child resource in parent's list and return
-    //  that list item so the child can destroy it when needed
-    looseref = ipr_looseref_queue (self->children, child);
-</method>
-
-<method name = "remove from parent" template = "function">
-    <doc>
-    Remove parent's reference, if any, to this resource.
+    Deletes the resource by application demand.  This removes the resource
+    from the parent list if any, then destroys the resource.  We can't do
+    this in the destroy method because that is also called at shutdown, and
+    the parent list can already be destroyed then.
     </doc>
     //
-    ipr_looseref_destroy (self->in_parent);
+    ipr_looseref_destroy (&self->in_parent);
+    self_destroy (&self);
 </method>
 
 <method name = "etag" return = "etag">
@@ -175,7 +160,7 @@ This class is not threadsafe and may be used from one threadlet only.
     <declare name = "etag" type = "char *" default = "NULL">ETag to generate</declare>
     //
     etag = ipr_str_format ("%llx-%llx",
-        (long long unsigned int) self->modified, self->index);
+        (long long unsigned int) self->modified, self->hash->table_index);
 </method>
 
 <method name = "modified" template = "function">
@@ -220,8 +205,8 @@ This class is not threadsafe and may be used from one threadlet only.
         *etag = NULL;
     time_t
         if_unmodified;
-      </local>
-
+    </local>
+    //
     assert (request);
     if_unmodified = ipr_time_mime_decode (
         http_request_get_header (request, "if-unmodified-since")) / 1000000;
