@@ -44,8 +44,11 @@ This class is not threadsafe and may be used from one threadlet only.
   <request name = "configure">
     <doc>
     Configure a new resource, the context contains a parsed document.
+    If the resource is synchronized with a backend, this is the time to
+    do that.
     </doc>
     <field name = "context" type = "http_driver_context_t *" />
+    <field name = "backend" type = "zyre_backend_t *" />
   </request>
 
   <request name = "get">
@@ -81,6 +84,7 @@ This class is not threadsafe and may be used from one threadlet only.
     Report properties to parent resource.  This method asks a child to
     report its summary properties to the ipr_tree provided by the parent.
     </doc>
+    <field name = "context" type = "http_driver_context_t *" />
     <field name = "tree" type = "ipr_tree_t *" />
   </request>
 
@@ -117,6 +121,8 @@ This class is not threadsafe and may be used from one threadlet only.
         *in_parent;                     //  Backlink to parent's list
     apr_time_t
         modified;                       //  Date-Modified value
+    icl_shortstr_t
+        path;                           //  Resource path
 </context>
 
 <method name = "new">
@@ -130,6 +136,7 @@ This class is not threadsafe and may be used from one threadlet only.
     self->children  = ipr_looseref_list_new ();
     self->hash      = ipr_hash_new (table, path, self);
     self->in_parent = self_attach_to_parent (self, parent);
+    icl_shortstr_cpy (self->path, path);
 </method>
 
 <method name = "destroy">
@@ -157,7 +164,8 @@ This class is not threadsafe and may be used from one threadlet only.
     parent list can already be destroyed then.
     </doc>
     //
-    ipr_looseref_destroy (&self->in_parent);
+    if (self->in_parent)
+        ipr_looseref_destroy (&self->in_parent);
 </method>
 
 <method name = "etag" return = "etag">

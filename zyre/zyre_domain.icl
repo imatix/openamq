@@ -31,10 +31,13 @@ This class implements the RestMS domain object.
 <inherit class = "zyre_resource_back" />
 
 <context>
+    icl_shortstr_t
+        title;                          //  Title text
 </context>
 
 <method name = "new">
-  <!-- New method is used by portal, does not accept any arguments -->
+    <!-- New method is used by portal, does not accept any arguments -->
+    icl_shortstr_cpy (self->title, "Default domain");
 </method>
 
 <method name = "destroy">
@@ -51,9 +54,11 @@ This class implements the RestMS domain object.
     tree = ipr_tree_new (RESTMS_ROOT);
     ipr_tree_leaf (tree, "xmlns", "http://www.imatix.com/schema/restms");
     ipr_tree_open (tree, "domain");
+    ipr_tree_leaf (tree, "title", self->title);
     looseref = ipr_looseref_list_first (portal->children);
     while (looseref) {
-        zyre_resource_request_report ((zyre_resource_t *) (looseref->object), tree);
+        zyre_resource_request_report (
+            (zyre_resource_t *) (looseref->object), context, tree);
         looseref = ipr_looseref_list_next (&looseref);
     }
     ipr_tree_shut (tree);

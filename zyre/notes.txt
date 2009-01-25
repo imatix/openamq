@@ -8,28 +8,29 @@ synchronization with AMQP
     - when AMQP provides feed,
         - create in restms object if new
 
-    amqp_name
-        - pipe: private name
-        - feed: private or public name
-
-delete resource
-    - in restms, lookup URI
-    - pass DELETE to resource
-        - resource check whether delete is allowed or not
-        - if allowed
-            - do zyre_resource_delete (portal)
-                - remove from parent's list, if any
-                - remove from hash table
-                - destroy portal, which will destroy resource
 
 new resource from openamq
     always public resource
     always locked
 
 
-domain, feed, pipe, join, message
-    report
-    accept
+amqp_name
+    - feed: private or public name
+        slug: my.name
+            -> used for feed name
+        slug: my%name
+            -> "my-name" used for feed name
+        -> clean slug at start
+        slug: (empty)
+            -> generate random value
+            -> use for feed name
+            -> use for path "resource/XXXX"
+        amq_name property
+            is name of feed
+            is generated name resource/xxx
+
+    - pipe: private name
+
 
 
     zyre_backend_request_feed_create (self->backend, "service", "test.service");

@@ -163,6 +163,7 @@
                     //  Since we don't have a link to the resource, grab one
                     //  Otherwise the destructor gets very unhappy
                     resource = zyre_resource_link (resource);
+                    zyre_resource_detach_from_parent (resource);
                     zyre_resource_destroy (&resource);
                     http_driver_context_reply_success (context, HTTP_REPLY_OK);
                 }
@@ -249,19 +250,21 @@
     <argument name = "context" type = "http_driver_context_t *" />
     <local>
     char
+        *slug,                          //  Requested slug, if any
         *type,                          //  Resource type specified
         *path;                          //  Resource URI path
     zyre_resource_t
         *resource = NULL;
     </local>
     //
+    slug = http_request_get_header (context->request, "slug");
     type = ipr_xml_name (context->xml_item);
-    path = zyre_resource_path (type, http_request_get_header (context->request, "slug"));
+    path = zyre_resource_path (type, slug);
 
     if (ipr_hash_lookup (self->resources, path)) {
-        http_driver_context_reply_success (context, HTTP_REPLY_OK);
         http_response_set_header (context->response, "location",
             "%s%s%s", context->response->root_uri, RESTMS_ROOT, path);
+        http_driver_context_reply_success (context, HTTP_REPLY_OK);
     }
     else {
         //  We create the resource and the server object instance
@@ -276,7 +279,7 @@
         if (resource) {
             zyre_restms__zyre_resource_bind (self, resource);
             //  Configure resource with current parsed document
-            zyre_resource_request_configure (resource, context);
+            zyre_resource_request_configure (resource, context, self->backend);
             //  We drop our link to the resource so that it is automatically
             //  destroyed when this object is destroyed, and we don't need to
             //  do anything further.  If we want to prematurely destroy the

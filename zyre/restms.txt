@@ -1547,7 +1547,7 @@ A domain document specifies the domain properties, and has references to all pub
 [[code]]
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <domain>
+  <domain title="{domain description}">
     [ <feed title="{feed description}" type="{feed-type}"
         license="{license}" href="{feed URI}" /> ] ...
     [ <pipe title="{pipe description}" type="{pipe-type}" href="{pipe URI}" /> ] ...

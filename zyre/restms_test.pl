@@ -28,6 +28,7 @@ my $uri = $restms->feed_create ("test.fanout", "fanout", 201);
 $restms->feed_create ("test.fanout", "fanout", 200);
 $restms->put ($uri, '<restms><feed title="Test fanout feed"/></restms>', 200);
 $restms->get ($uri, 200);
+$restms->get ("/domain/", 200);
 $restms->delete ($uri, 200);
 $restms->delete ($uri, 200);
 
@@ -37,6 +38,7 @@ my $uri = $restms->feed_create ("test.service", "service", 201);
 $restms->feed_create ("test.service", "service", 200);
 $restms->put ($uri, '<restms><feed title="Test service feed"/></restms>', 200);
 $restms->get ($uri, 200);
+$restms->get ("/domain/", 200);
 $restms->delete ($uri, 200);
 $restms->delete ($uri, 200);
 

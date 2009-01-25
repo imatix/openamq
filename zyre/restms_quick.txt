@@ -215,7 +215,7 @@ Domain description shows public feeds and pipes:
 [[code]]
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <domain>
+  <domain title="{domain description}">
     [ <feed title="{feed description}" type="{feed-type}"
         license="{license}" href="{feed URI}" /> ] ...
     [ <pipe title="{pipe description}" type="{pipe-type}" href="{pipe URI}" /> ] ...
