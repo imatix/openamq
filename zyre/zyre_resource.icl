@@ -156,6 +156,14 @@ This class is not threadsafe and may be used from one threadlet only.
     looseref = ipr_looseref_queue (self->children, child);
 </method>
 
+<method name = "remove from parent" template = "function">
+    <doc>
+    Remove parent's reference, if any, to this resource.
+    </doc>
+    //
+    ipr_looseref_destroy (self->in_parent);
+</method>
+
 <method name = "etag" return = "etag">
     <doc>
     Calculates an ETag for the resource and returns this as a fresh
