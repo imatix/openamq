@@ -1,0 +1,159 @@
+#!/usr/bin/perl
+#
+#   RestMS class for Perl applications
+#   This script is licensed under the latest version of the
+#   Creative Commons Attribution Share-Alike licence (cc-by-sa)
+#   (c) 2009 iMatix Corporation
+#
+#   Modules we need to use
+use LWP::UserAgent;
+use HTTP::Request::Common;
+#   RestMS class
+#
+package RestMS;
+use XML::Simple;
+
+#   Optional argument to constructor is hostname
+sub new {
+    my $class = shift;
+    my $self = {
+        _host => shift,
+    };
+    $self->{_ua} = new LWP::UserAgent;
+    $self->{_ua}->credentials ($self->{_host}, "RestMS:", "guest", "guest");
+    bless $self, $class;
+    return $self;
+}
+
+sub DESTROY {
+}
+
+#   Get or set hostname
+sub host {
+    my ($self, $host) = @_;
+    $self->{_host} = $host if $host;
+    $self->{_ua} = new LWP::UserAgent;
+    $self->{_ua}->credentials ($self->{_host}, "RestMS:", "guest", "guest");
+    return $self->{_host};
+}
+
+#   Get resource, returns XML document if found
+sub get {
+    my ($self, $path, $expect) = @_;
+    $self->{_request} = HTTP::Request->new (GET => "http://".$self->{_host}."/restms$path");
+    $self->{_request}->header ("Accept" => "application/restms+xml");
+    $self->{_response} = $self->{_ua}->request ($self->{_request});
+    $self->assert ($expect) if $expect;
+    if ($self->code == 200) {
+        return $self->content;
+    }
+}
+
+#   Update resource
+sub put {
+    my ($self, $path, $content, $expect) = @_;
+    $self->{_request} = HTTP::Request->new (PUT => "http://".$self->{_host}."/restms$path");
+    if ($content) {
+        $self->{_request}->content_type ("application/restms+xml");
+        $self->{_request}->content ($content);
+    }
+    $self->{_response} = $self->{_ua}->request ($self->{_request});
+    $self->assert ($expect) if $expect;
+    if ($self->code == 200) {
+        return $self->content;
+    }
+}
+
+#   Delete resource
+sub delete {
+    my ($self, $path, $expect) = @_;
+    $self->{_request} = HTTP::Request->new (DELETE => "http://".$self->{_host}."/restms$path");
+    $self->{_response} = $self->{_ua}->request ($self->{_request});
+    $self->assert ($expect) if $expect;
+    if ($self->code == 200) {
+        return $self->content;
+    }
+}
+
+#   Post new resource to path, returns URI to resource
+sub post {
+    my ($self, $path, $slug, $content, $expect) = @_;
+    $self->{_request} = HTTP::Request->new (POST => "http://".$self->{_host}."/restms$path");
+    $self->{_request}->content_type ("application/restms+xml;type=feed");
+    $self->{_request}->content ($content);
+    $self->{_request}->header (Slug => $slug);
+    $self->{_response} = $self {_ua}->request ($self->{_request});
+    $self->assert ($expect) if $expect;
+    if ($self->code < 300) {
+        return $self->{_response}->header ("Location");
+    }
+}
+
+#   Creates a feed in the default domain, returns feed URI if ok
+sub feed_create {
+    my ($self, $feed, $type, $expect) = @_;
+    return $self->post ("/domain/", $feed, "<restms><feed type=\"$type\" /></restms>", $expect);
+}
+
+#   Creates a pipe in the default domain, returns feed URI if ok
+sub pipe_create {
+    my ($self, $pipe, $type, $expect) = @_;
+    return $self->post ("/domain/", $feed, "<restms><pipe type=\"$type\" /></restms>", $expect);
+}
+
+#   Issue a raw request
+#   method - HTTP method
+#   path - URI following /restms
+#   type - resource type
+#   content - optional XML content
+#   $expect - asserted reply code
+#
+sub raw {
+    my ($self, $method, $path, $type, $content, $expect) = @_;
+    $self->{_request} = HTTP::Request->new ($method => "http://".$self->{_host}."/restms$path");
+    $self->{_response} = $self->{_ua}->request ($self->{_request});
+    if ($content) {
+        $self->{_request}->content_type ("application/restms+xml;type=$type");
+        $self->{_request}->content ($content);
+    }
+    $self->assert ($expect) if $expect;
+    if ($self->code == 200) {
+        return $self->content;
+    }
+}
+
+#   Returns the reply code from the last HTTP request
+sub code {
+    my ($self) = @_;
+    return $self->{_response}->code;
+}
+
+#   Returns the content from the last HTTP request
+sub content {
+    my ($self) = @_;
+    return $self->{_response}->content;
+}
+
+#   Assert return code, complain & exit if it's wrong
+sub assert {
+    my ($self, $code) = @_;
+    if ($self->code != $code) {
+        $self->carp ("Request failed: "
+            . $self->{_request}->method . " "
+            . $self->{_request}->uri . " => "
+            . $self->{_response}->status_line . ", expected $code");
+        if ($self->content =~ /id="error_text">\n    (.*)\n/) {
+            $self->carp ("Error: $1");
+        }
+        exit (1);
+    }
+}
+
+#   Issue message with date/time stamp
+sub carp {
+    my ($self, $string) = @_;
+    ($sec, $min, $hour, $day, $month, $year) = localtime;
+    $date = sprintf ("%04d-%02d-%02d", $year + 1900, $month + 1, $day);
+    $time = sprintf ("%2d:%02d:%02d", $hour, $min, $sec);
+    print "$date $time $string\n";
+}
