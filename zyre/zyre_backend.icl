@@ -118,20 +118,20 @@
         pipe class, this must be done by the caller.
       </doc>
       <field name = "pipe name" type = "char *" />
-      <field name = "address" type = "char *">Address to join</field>
-      <field name = "feed name" type = "char *" />
       <field name = "feed class" type = "char *" />
+      <field name = "feed name" type = "char *" />
+      <field name = "address" type = "char *">Address to join</field>
       <possess>
         pipe_name = icl_mem_strdup (pipe_name);
-        address = icl_mem_strdup (address);
-        feed_name = icl_mem_strdup (feed_name);
         feed_class = icl_mem_strdup (feed_class);
+        feed_name = icl_mem_strdup (feed_name);
+        address = icl_mem_strdup (address);
       </possess>
       <release>
         icl_mem_free (pipe_name);
-        icl_mem_free (address);
-        icl_mem_free (feed_name);
         icl_mem_free (feed_class);
+        icl_mem_free (feed_name);
+        icl_mem_free (address);
       </release>
     </request>
 

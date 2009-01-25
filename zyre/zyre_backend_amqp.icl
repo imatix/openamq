@@ -45,6 +45,11 @@ Lastly, the peering will invoke callback methods to tell you when the peer
 link becomes active, and when a message content arrives.
 </doc>
 
+<todo>
+  Get feed updates from OpenAMQ, if feeds are new here then create via
+  main restms thread.
+</todo>
+
 <inherit class = "zyre_backend_back" />
 <inherit class = "icl_init" />
 
@@ -66,11 +71,9 @@ link becomes active, and when a message content arrives.
         *peer_agent_thread;             //  Active agent thread if any
     dbyte
         channel_nbr;                    //  Active channel number
-
-    zyre_pipe_table_t
-        *pipe_table;                    //  Table of defined pipes
-    zyre_feed_table_t
-        *feed_table;                    //  Table of defined feeds
+    ipr_hash_table_t
+        *pipe_table,                    //  Known pipes
+        *feed_table;                    //  Known feeds
     ipr_looseref_list_t
         *messages;                      //  Messages pending
 </context>
@@ -79,8 +82,8 @@ link becomes active, and when a message content arrives.
 
 <method name = "new">
     self->messages = ipr_looseref_list_new ();
-    self->pipe_table = zyre_pipe_table_new ();
-    self->feed_table = zyre_feed_table_new ();
+    self->pipe_table = ipr_hash_table_new ();
+    self->feed_table = ipr_hash_table_new ();
     ipr_str_random (self->queue, "ZYRE-AAAAAAAA");
 </method>
 
@@ -96,8 +99,10 @@ link becomes active, and when a message content arrives.
     while ((method = (zyre_peer_method_t *) ipr_looseref_pop (self->messages)))
         zyre_peer_method_unlink (&method);
     ipr_looseref_list_destroy (&self->messages);
-    zyre_pipe_table_destroy (&self->pipe_table);
-    zyre_feed_table_destroy (&self->feed_table);
+    ipr_hash_table_apply   (self->feed_table, s_destroy_feed, NULL);
+    ipr_hash_table_apply   (self->pipe_table, s_destroy_pipe, NULL);
+    ipr_hash_table_destroy (&self->pipe_table);
+    ipr_hash_table_destroy (&self->feed_table);
     </action>
 </method>
 
@@ -145,126 +150,111 @@ link becomes active, and when a message content arrives.
 
 <method name = "pipe create">
     <action>
-    zyre_pipe_t
+    zyre_amqp_pipe_t
         *pipe;
 
-    pipe = zyre_pipe_table_search (self->pipe_table, pipe_name);
-    if (pipe)
-        assert (streq (pipe->class, pipe_class));
-    else {
-        pipe = zyre_pipe_new (self->pipe_table, pipe_class, pipe_name);
-        if (self->connected)
-            zyre_peer_agent_restms_pipe_create (
-                self->peer_agent_thread,
-                self->channel_nbr,
-                pipe_class,
-                pipe_name);
-    }
-    zyre_pipe_unlink (&pipe);
+    pipe = zyre_amqp_pipe_new (pipe_class, pipe_name);
+    ipr_hash_insert (self->pipe_table, pipe_name, pipe);
+    if (self->connected)
+        zyre_peer_agent_restms_pipe_create (
+            self->peer_agent_thread,
+            self->channel_nbr,
+            pipe_class, pipe_name);
     </action>
 </method>
 
 <method name = "pipe delete">
     <action>
-    zyre_pipe_t
+    zyre_amqp_pipe_t
         *pipe;
 
-    pipe = zyre_pipe_table_search (self->pipe_table, pipe_name);
+    pipe = ipr_hash_lookup (self->pipe_table, pipe_name);
     assert (pipe);
     if (self->connected)
         zyre_peer_agent_restms_pipe_delete (
             self->peer_agent_thread,
             self->channel_nbr,
             pipe_name);
-    zyre_pipe_destroy (&pipe);
+    zyre_amqp_pipe_destroy (&pipe);
     </action>
 </method>
 
 <method name = "feed create">
     <action>
-    zyre_feed_t
+    zyre_amqp_feed_t
         *feed;
 
-    feed = zyre_feed_table_search (self->feed_table, feed_name);
-    if (feed)
-        assert (streq (feed->class, feed_class));
-    else {
-        feed = zyre_feed_new (self->feed_table, feed_class, feed_name);
-        if (self->connected)
-            zyre_peer_agent_restms_feed_create (
-                self->peer_agent_thread,
-                self->channel_nbr,
-                feed_class,
-                feed_name);
-    }
-    zyre_feed_unlink (&feed);
+    feed = zyre_amqp_feed_new (feed_class, feed_name);
+    ipr_hash_insert (self->feed_table, feed_name, feed);
+    if (self->connected)
+        zyre_peer_agent_restms_feed_create (
+            self->peer_agent_thread,
+            self->channel_nbr,
+            feed_class, feed_name);
     </action>
 </method>
 
 <method name = "feed delete">
     <action>
-    zyre_feed_t
+    zyre_amqp_feed_t
         *feed;
 
-    feed = zyre_feed_table_search (self->feed_table, feed_name);
+    feed = ipr_hash_lookup (self->feed_table, feed_name);
     assert (feed);
     if (self->connected)
         zyre_peer_agent_restms_feed_delete (
             self->peer_agent_thread,
             self->channel_nbr,
             feed_name);
-    zyre_feed_destroy (&feed);
+    zyre_amqp_feed_destroy (&feed);
     </action>
 </method>
 
 <method name = "join create">
     <action>
-    zyre_pipe_t
+    zyre_amqp_pipe_t
         *pipe;
-    zyre_join_t
+    zyre_amqp_join_t
         *join;
 
-    pipe = zyre_pipe_table_search (self->pipe_table, pipe_name);
+    pipe = ipr_hash_lookup (self->pipe_table, pipe_name);
     assert (pipe);
-    join = zyre_join_lookup (pipe, feed_name, address);
+    join = zyre_amqp_pipe_join_lookup (pipe, feed_name, address);
     if (join == NULL) {
-        join = zyre_join_new (pipe, address, feed_name, feed_class);
+        join = zyre_amqp_join_new (feed_name, feed_class, address);
+        ipr_looseref_queue (pipe->joins, join);
         if (self->connected)
             zyre_peer_agent_restms_join_create (
                 self->peer_agent_thread,
                 self->channel_nbr,
                 pipe->class,
                 pipe->name,
-                join->address,
+                join->feed_class,
                 join->feed_name,
-                join->feed_class);
+                join->address);
     }
-    zyre_join_unlink (&join);
-    zyre_pipe_unlink (&pipe);
     </action>
 </method>
 
 <method name = "join delete">
     <action>
-    zyre_pipe_t
+    zyre_amqp_pipe_t
         *pipe;
-    zyre_join_t
+    zyre_amqp_join_t
         *join;
 
-    pipe = zyre_pipe_table_search (self->pipe_table, pipe_name);
-    if (pipe) {
-        join = zyre_join_lookup (pipe, feed_name, address);
-        if (join) {
-            if (self->connected)
-                zyre_peer_agent_restms_join_delete (
-                    self->peer_agent_thread,
-                    self->channel_nbr,
-                    pipe_name,
-                    address,
-                    feed_name);
-            zyre_join_destroy (&join);
-        }
-        zyre_pipe_unlink (&pipe);
+    pipe = ipr_hash_lookup (self->pipe_table, pipe_name);
+    assert (pipe);
+    join = zyre_amqp_pipe_join_lookup (pipe, feed_name, address);
+    if (join) {
+        if (self->connected)
+            zyre_peer_agent_restms_join_delete (
+                self->peer_agent_thread,
+                self->channel_nbr,
+                pipe_name,
+                feed_name,
+                address);
+            zyre_amqp_join_destroy (&join);
     }
     </action>
 </method>
@@ -273,10 +263,10 @@ link becomes active, and when a message content arrives.
     <action>
     zyre_peer_method_t
         *method;
-    zyre_feed_t
+    zyre_amqp_feed_t
         *feed;
 
-    feed = zyre_feed_table_search (self->feed_table, feed_name);
+    feed = ipr_hash_lookup (self->feed_table, feed_name);
     assert (feed);
     if (feed->as_queue) {
         method = zyre_peer_method_new_basic_publish (
@@ -294,7 +284,6 @@ link becomes active, and when a message content arrives.
             FALSE,                      //  Not mandatory
             FALSE);                     //  Not immediate
 
-    zyre_feed_unlink (&feed);
     method->content = amq_content_basic_link (content);
 
     //  We send the message if we can, else we queue it for later
@@ -344,8 +333,8 @@ link becomes active, and when a message content arrives.
         self->offlined = FALSE;
 
         //  Create first feeds, then pipes, then joins on AMQP server
-        zyre_feed_table_apply (self->feed_table, s_synchronize_feed, self);
-        zyre_pipe_table_apply (self->pipe_table, s_synchronize_pipe, self);
+        ipr_hash_table_apply (self->feed_table, s_synchronize_feed, self);
+        ipr_hash_table_apply (self->pipe_table, s_synchronize_pipe, self);
 
         //  Forward all pending messages to AMQP server
         while ((method = (zyre_peer_method_t *) ipr_looseref_pop (self->messages))) {
@@ -412,14 +401,16 @@ link becomes active, and when a message content arrives.
 </event>
 
 <private name = "async header">
-static void s_terminate_peering ($(selftype) *self);
-static void s_synchronize_pipe  (zyre_pipe_t *pipe, void *argument);
-static void s_synchronize_feed  (zyre_feed_t *feed, void *argument);
+static void s_terminate_peering (zyre_backend_amqp_t *self);
+static void s_synchronize_pipe  (ipr_hash_t *hash, void *argument);
+static void s_synchronize_feed  (ipr_hash_t *hash, void *argument);
+static void s_destroy_pipe      (ipr_hash_t *hash, void *argument);
+static void s_destroy_feed      (ipr_hash_t *hash, void *argument);
 </private>
 
 <private name = "async footer">
 static void
-s_terminate_peering ($(selftype) *self)
+s_terminate_peering (zyre_backend_amqp_t *self)
 {
     //  Stop peer agent thread if it's still alive
     if (self->peer_agent_thread) {
@@ -435,12 +426,16 @@ s_terminate_peering ($(selftype) *self)
     }
 }
 
-static void s_synchronize_pipe (zyre_pipe_t *pipe, void *argument)
+static void s_synchronize_pipe (ipr_hash_t *hash, void *argument)
 {
-    zyre_join_t
+    ipr_looseref_t
+        *looseref;
+    zyre_amqp_join_t
         *join;                          //  Each join for pipe
-    $(selftype)
-        *self = ($(selftype) *) argument;
+    zyre_backend_amqp_t
+        *self = (zyre_backend_amqp_t *) argument;
+    zyre_amqp_pipe_t
+        *pipe = (zyre_amqp_pipe_t *) hash->data;
 
     zyre_peer_agent_restms_pipe_create (
         self->peer_agent_thread,
@@ -449,8 +444,9 @@ static void s_synchronize_pipe (zyre_pipe_t *pipe, void *argument)
         pipe->name);
 
     //  Synchronize all joins for this pipe
-    join = zyre_join_list_first (pipe->join_list);
-    while (join) {
+    looseref = ipr_looseref_list_first (pipe->joins);
+    while (looseref) {
+        join = ((zyre_amqp_join_t *) looseref->object);
         zyre_peer_agent_restms_join_create (
             self->peer_agent_thread,
             self->channel_nbr,
@@ -459,20 +455,36 @@ static void s_synchronize_pipe (zyre_pipe_t *pipe, void *argument)
             join->address,
             join->feed_name,
             join->feed_class);
-        join = zyre_join_list_next (&join);
+        looseref = ipr_looseref_list_next (&looseref);
     }
 }
 
-static void s_synchronize_feed (zyre_feed_t *feed, void *argument)
+static void s_synchronize_feed (ipr_hash_t *hash, void *argument)
 {
-    $(selftype)
-        *self = ($(selftype) *) argument;
+    zyre_backend_amqp_t
+        *self = (zyre_backend_amqp_t *) argument;
+    zyre_amqp_feed_t
+        *feed = (zyre_amqp_feed_t *) hash->data;
 
     zyre_peer_agent_restms_feed_create (
         self->peer_agent_thread,
         self->channel_nbr,
         feed->class,
         feed->name);
+}
+
+static void s_destroy_pipe (ipr_hash_t *hash, void *argument)
+{
+    zyre_amqp_pipe_t
+        *pipe = (zyre_amqp_pipe_t *) hash->data;
+    zyre_amqp_pipe_destroy (&pipe);
+}
+
+static void s_destroy_feed (ipr_hash_t *hash, void *argument)
+{
+    zyre_amqp_feed_t
+        *feed = (zyre_amqp_feed_t *) hash->data;
+    zyre_amqp_feed_destroy (&feed);
 }
 </private>
 

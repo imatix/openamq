@@ -40,7 +40,7 @@ MIME types on POST request and on GET/PUT responses:
 
 +++ Create new resource
 
-* Client: POST resource document to parent resource
+* Client: POST resource document, Slug to parent resource
 * Server: 201 Created or 200 OK, Location: + resource document
 * Short form: POST with no resource document, use all defaults.
 
@@ -50,10 +50,11 @@ Client:
 POST /{parent uri} HTTP/1.1
 Content-Type: application/restms+xml;type={resource type}
 Content-Length: {size of content}
+Slug: {resource-name}
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <{resource type} [name="{resource name"}]>
+  <{resource type}>
     {resource specifications}
   </{resource type}>
 </restms>
@@ -69,7 +70,7 @@ ETag: {Etag}
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <{resource type} [name="{resource name"}]>
+  <{resource type}>
     {resource contents}
   </{resource type}>
 </restms>
@@ -210,18 +211,21 @@ Domain                  Public              Configured
 
 +++ Domains
 
+Domain description shows public feeds and pipes:
+
 [[code]]
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <domain name="{domain name}">
-    [ <feed name="{feed name}" href="{feed URI}" /> ] ...
-    [ <pipe name="{pipe name}" href="{pipe URI}" /> ] ...
+  <domain>
+    [ <feed title="{feed description}" type="{feed-type}"
+        license="{license}" href="{feed URI}" /> ] ...
+    [ <pipe title="{pipe description}" type="{pipe-type}" href="{pipe URI}" /> ] ...
   </domain>
 </restms>
 [[/code]]
 
 * GET - retrieve domain.
-* POST - creates a new feed or pipe within the domain.
+* POST - creates a new feed or pipe within the domain, Slug is feed or pipe name.
 * Server creates default domain with URI path "/restms/domain/"
 
 +++ Feeds
@@ -230,8 +234,10 @@ Domain                  Public              Configured
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
   <feed
-  [ name="{feed-name}" ]
-    type="fanout|direct|topic|headers|service|rotator|system" />
+    [ type="fanout|direct|topic|headers|service|rotator|system" ]
+    [ title="{short title}" ]
+    [ license="{license name}" ]
+    />
 </restms>
 [[/code]]
 
@@ -254,7 +260,7 @@ To create feed, post to domain URI.
 </restms>
 [[/code]]
 
-* GET, PUT, DELETE - retrieve, modify, delete pipe.
+* GET, DELETE - retrieve, delete pipe.
 * POST - create join for the pipe.
 
 To create pipe, post to domain URI:
@@ -275,7 +281,7 @@ To create pipe, post to domain URI:
 </restms>
 [[/code]]
 
-* GET, PUT, DELETE - retrieve, modify, delete join.
+* GET, DELETE - retrieve, delete join.
 * Server creates default join for each pipe onto default feed.
 
 To create join, post to pipe URI.

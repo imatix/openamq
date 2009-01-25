@@ -53,17 +53,17 @@
                                        generated = "1"             >Peering client agent</file>
 
 <file name = "zyre_domain.icl"         class = "icl public class"  >RestMS domain resource</file>
-
 <file name = "zyre_feed.icl"           class = "icl public class"  >RestMS feed resource</file>
-<file name = "zyre_feed_table.icl"     class = "icl public cont"   >RestMS feed table </file>
-<file name = "zyre_pipe.icl"           class = "icl public class"  >RestMS pipe resource</file>
-<file name = "zyre_pipe_table.icl"     class = "icl public cont"   >RestMS pipe table </file>
-<file name = "zyre_join.icl"           class = "icl public class"  >RestMS join resource</file>
-<file name = "zyre_join_list.icl"      class = "icl public cont"   >RestMS join list</file>
 <!--
+<file name = "zyre_pipe.icl"           class = "icl public class"  >RestMS pipe resource</file>
+<file name = "zyre_join.icl"           class = "icl public class"  >RestMS join resource</file>
 <file name = "zyre_message.icl"        class = "icl public class"  >RestMS message resource</file>
 <file name = "zyre_content.icl"        class = "icl public class"  >RestMS content resource</file>
 -->
+
+<file name = "zyre_amqp_feed.icl"      class = "icl public class"  >Backend feed cache</file>
+<file name = "zyre_amqp_pipe.icl"      class = "icl public class"  >Backend pipe cache</file>
+<file name = "zyre_amqp_join.icl"      class = "icl public class"  >Backend join cache</file>
 
 <file name = "zyre_classes.icl"        class = "icl public data"   >Application classes</file>
 

@@ -31,8 +31,6 @@ This class implements the RestMS domain object.
 <inherit class = "zyre_resource_back" />
 
 <context>
-    icl_shortstr_t
-        name;                           //  Domain name
 </context>
 
 <method name = "new">
@@ -48,10 +46,9 @@ This class implements the RestMS domain object.
         *tree;
     </local>
     //
-    tree = ipr_tree_new (RESTMS_XML_ROOT);
+    tree = ipr_tree_new (RESTMS_ROOT);
     ipr_tree_leaf (tree, "xmlns", "http://www.imatix.com/schema/restms");
-    ipr_tree_open (tree, zyre_resource_type_name (portal->type));
-    ipr_tree_leaf (tree, "name", self->name);
+    ipr_tree_open (tree, "domain");
     ipr_tree_shut (tree);
     zyre_resource_report (portal, context, tree);
     ipr_tree_destroy (&tree);
@@ -68,8 +65,14 @@ This class implements the RestMS domain object.
 </method>
 
 <method name = "post">
-    http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-        "The POST method is not allowed on this resource");
+    if (zyre_restms_parse_document (context, NULL) == 0) {
+        if (streq (ipr_xml_name (context->xml_item), "pipe")
+        ||  streq (ipr_xml_name (context->xml_item), "feed"))
+            zyre_resource_response_child_add (portal, context);
+        else
+            http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+                "Can only create new pipe or feed resources here");
+    }
 </method>
 
 <method name = "selftest" />

@@ -1,25 +1,44 @@
+JSON parser in C
+new XML parser that is known solid
+
 synchronization with AMQP
-    - keep list of pipes
-    - keep list of feeds
-    - keep list of joins
-        - create/destroy instructions from front
-        - based on URI
+    - what feeds come from OpenAMQ:
+        - shared queues -> feedname
+        - all exchanges
+    - when AMQP provides feed,
+        - create in restms object if new
 
-    - if amqp provides us with feed
-        - add to list if not already defined
+    amqp_name
+        - pipe: private name
+        - feed: private or public name
 
-    pipe
-        pipe_table
-    feed
-        feed_table
-    join
-        join_list
+creating a new resource, e.g. pipe in feed
+    - parse XML and get specification - OK
+    - check if valid child resource
+    - ask restms to create it for us
+    - continue with whatever work is needed
 
+    - we need to check that resource child type is valid
+    - restms can create resource
+    - arguments
+        - context (includes type and XML)
+        - ourselves (as parent)
+    - restms needs to check if resource already exists or not
+        - create with name is idempotent
+        - name is attribute of XML item
+    - restms can create the resource and attach it to the parent
+        - and either pass immediately or send it the XML spec
+        - and then we can respond OK or Created
+    - maybe attach-to-parent can be method
+    - maybe configure-resource can be method
 
-    zyre_restms_domain
-    zyre_restms_pipe
-    zyre_restms_feed
-    zyre_restms_etc.
+    zyre_resource_t
+        *domain_factory;                //  Domain resource factory
+    self->domain_factory = zyre_domain__zyre_resource_factory (NULL, NULL, NULL, NULL);
+    zyre_restms__zyre_resource_bind (self, self->domain_factory);
+    resource = zyre_resource_factory (self->domain_factory, NULL, self->resources, "domain", "");
+    zyre_restms__zyre_resource_bind (self, resource);
+    zyre_resource_unlink (&resource);
 
     //  Create new resource of specified type
     ipr_looseref_t
@@ -38,8 +57,13 @@ synchronization with AMQP
         looseref = ipr_looseref_list_next (&looseref);
     }
 
+- create resource factories at startup
 
 
+POST to URI
+    - parse XML
+    - if missing, ok
+    - if illegal XML, not ok
 
 new resource
     calculate URI
@@ -73,6 +97,14 @@ domain, feed, pipe, join, message
     report
     accept
 
+
+    zyre_backend_request_feed_create (self->backend, "service", "test.service");
+    zyre_backend_request_feed_create (self->backend, "direct", "test.direct");
+    zyre_backend_request_pipe_create (self->backend, "fifo", "test.pipe");
+    zyre_backend_request_join_create (self->backend,
+        "test.pipe", "direct", "test.direct", "routing-key");
+    zyre_backend_request_join_create (self->backend,
+        "test.pipe", "service", "test.service", "*");
 
 zyre_content class
     content_type

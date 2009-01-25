@@ -49,7 +49,7 @@
 <inherit class = "zyre_resource_front" />
 
 <public name = "header">
-#define RESTMS_XML_ROOT     "restms"
+#define RESTMS_ROOT         "restms"
 </public>
 
 <context>
@@ -64,22 +64,21 @@
 </context>
 
 <method name = "new">
+    <local>
     zyre_resource_t
-        *factory,
         *resource;
-
+    </local>
+    //
     self->resources = ipr_hash_table_new ();
     self->backend = zyre_backend_amqp__zyre_backend_new (NULL);
     zyre_restms__zyre_backend_bind (self, self->backend);
     zyre_backend_request_start (self->backend);
 
-    //  Create resource factories and default resources
-    factory = zyre_domain__zyre_resource_factory (NULL, NULL, NULL, "domain");
-    zyre_restms__zyre_resource_bind (self, factory);
-    resource = zyre_resource_factory (factory, NULL, self->resources, factory->name, "");
+    //  Create domain resource
+    resource = zyre_domain__zyre_resource_new (NULL,
+        NULL, self->resources, "domain", "/domain/");
     zyre_restms__zyre_resource_bind (self, resource);
     zyre_resource_unlink (&resource);
-    zyre_resource_unlink (&factory);
 </method>
 
 <method name = "destroy">
@@ -94,26 +93,24 @@
     <action>
     self->log = smt_log_link (log);
     smt_log_print (log, "I: Zyre RestMS driver loaded at '%s'", portal->path);
-    smt_log_print (log, "I: searching for OpenAMQ server at '%s'",
+    smt_log_print (log, "I: - peering with AMQP server at '%s'",
         zyre_config_amqp_hostname (zyre_config));
     </action>
 </method>
 
 <method name = "get">
     <action>
-    ipr_hash_t
-        *hash;                          //  Hash table entry
+    zyre_resource_t
+        *resource;
 
     //  Pathinfo is URI key into resource table
     icl_console_print ("GET %s", context->request->pathinfo);
-    hash = ipr_hash_table_search (self->resources, context->request->pathinfo);
-    if (hash) {
-        if (zyre_resource_modified ((zyre_resource_t *) hash->data, context->request))
-            zyre_resource_request_get ((zyre_resource_t *) hash->data, context);
+    resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
+    if (resource) {
+        if (zyre_resource_modified (resource, context->request))
+            zyre_resource_request_get (resource, context);
         else
             http_driver_context_reply_error (context, HTTP_REPLY_NOTMODIFIED, NULL);
-
-        ipr_hash_unlink (&hash);
     }
     else
         http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
@@ -123,20 +120,18 @@
 
 <method name = "put">
     <action>
-    ipr_hash_t
-        *hash;                          //  Hash table entry
+    zyre_resource_t
+        *resource;
 
     //  Pathinfo is URI key into resource table
     icl_console_print ("PUT %s", context->request->pathinfo);
-    hash = ipr_hash_table_search (self->resources, context->request->pathinfo);
-    if (hash) {
-        if (zyre_resource_unmodified ((zyre_resource_t *) hash->data, context->request))
+    resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
+    if (resource) {
+        if (zyre_resource_unmodified (resource, context->request))
             http_driver_context_reply_error (context, HTTP_REPLY_PRECONDITION,
                 "The resource was modified by another application");
         else
-            zyre_resource_request_put ((zyre_resource_t *) hash->data, context);
-
-        ipr_hash_unlink (&hash);
+            zyre_resource_request_put (resource, context);
     }
     else
         http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
@@ -146,20 +141,18 @@
 
 <method name = "delete">
     <action>
-    ipr_hash_t
-        *hash;                          //  Hash table entry
+    zyre_resource_t
+        *resource;
 
     //  Pathinfo is URI key into resource table
     icl_console_print ("DELETE %s", context->request->pathinfo);
-    hash = ipr_hash_table_search (self->resources, context->request->pathinfo);
-    if (hash) {
-        if (zyre_resource_unmodified ((zyre_resource_t *) hash->data, context->request))
+    resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
+    if (resource) {
+        if (zyre_resource_unmodified (resource, context->request))
             http_driver_context_reply_error (context, HTTP_REPLY_PRECONDITION,
                 "The resource was modified by another application");
         else
-            zyre_resource_request_delete ((zyre_resource_t *) hash->data, context);
-
-        ipr_hash_unlink (&hash);
+            zyre_resource_request_delete (resource, context);
     }
     else
         http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
@@ -169,16 +162,14 @@
 
 <method name = "post">
     <action>
-    ipr_hash_t
-        *hash;                          //  Hash table entry
+    zyre_resource_t
+        *resource;
 
     //  Pathinfo is URI key into resource table
     icl_console_print ("POST %s", context->request->pathinfo);
-    hash = ipr_hash_table_search (self->resources, context->request->pathinfo);
-    if (hash) {
-        zyre_resource_request_post ((zyre_resource_t *) hash->data, context, self->resources);
-        ipr_hash_unlink (&hash);
-    }
+    resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
+    if (resource)
+        zyre_resource_request_post (resource, context);
     else
         http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
             "The URI does not match a known resource");
@@ -236,6 +227,92 @@
     <action>
     icl_console_print ("E: RestMS content not routable - abonormal");
     </action>
+</method>
+
+<!-- These methods are responses from resources -->
+<method name = "child add">
+    <argument name = "context" type = "http_driver_context_t *" />
+    <local>
+    char
+        *type,                          //  Resource type specified
+        *path;                          //  Resource URI path
+    zyre_resource_t
+        *resource = NULL;
+    </local>
+    //
+    type = ipr_xml_name (context->xml_item);
+    path = zyre_resource_path (type, http_request_get_header (context->request, "slug"));
+
+icl_console_print ("ADD CHILD: %s", path);
+    if (ipr_hash_lookup (self->resources, path)) {
+        http_driver_context_reply_success (context, HTTP_REPLY_OK);
+        http_response_set_header (context->response, "location",
+            "%s%s", context->response->root_uri, path);
+    }
+    else {
+        //  We create the resource and the server object instance
+        //  The portal that called us is the parent of this new resource
+        if (streq (type, "feed"))
+            resource = zyre_feed__zyre_resource_new (NULL,
+                portal, self->resources, type, path);
+        else
+            http_driver_context_reply_error (context, HTTP_REPLY_NOTIMPLEMENTED,
+                "Create '%s' not yet implemented", type);
+
+        if (resource) {
+            zyre_restms__zyre_resource_bind (self, resource);
+            //  Configure resource with current parsed document
+            zyre_resource_request_configure (resource, context);
+            zyre_resource_unlink (&resource);
+            if (!context->failed) {
+                http_response_set_header (context->response, "location",
+                    "%s%s%s", RESTMS_ROOT, context->response->root_uri, path);
+                http_driver_context_reply_success (context, HTTP_REPLY_CREATED);
+            }
+        }
+    }
+    icl_mem_strfree (&path);
+</method>
+
+<method name = "child remove">
+    <argument name = "context" type = "http_driver_context_t *" />
+    //
+    //  remove from hash
+    //  destroy portal
+</method>
+
+<!-- Utility functions - general RestMS parsing & processing -->
+
+<method name = "parse document" return = "rc">
+    <doc>
+    From the current HTTP context, parses the document and sets the context
+    xml_root and xml_item properties.  If the required_type is specified, the
+    document must have this type.
+    </doc>
+    <argument name = "context" type = "http_driver_context_t *" />
+    <argument name = "required" type = "char *">Required resource type</argument>
+    <declare name = "rc" type = "int" default = "0" />
+    <local>
+    char
+        *document_type;
+    </local>
+    //
+    //  We accept only "application/restms+xml;type={resource type}"
+    //  JSON support will come later
+    document_type = ipr_str_defix (context->request->content_type, "application/restms+xml;type=");
+    if (document_type == NULL) {
+        http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+            "Content-Type must be 'application/restms+xml;type={entity-type}'");
+        rc = -1;
+    }
+    else
+    if (required && strneq (document_type, required)) {
+        http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+            "Wrong document type for URI - must be %s", required);
+        rc = -1;
+    }
+    else
+        rc = http_driver_context_xml_parse (context, RESTMS_ROOT, document_type);
 </method>
 
 <method name = "selftest" />

@@ -1,5 +1,26 @@
 Fosdem presentation
 
+rules of programming
+    - use short words
+    - give every piece a good name
+    - put every piece in a good place
+    - explain how it fits together
+    - only develop on-demand
+    - publish the specs first
+    - always generalise
+    - complexity is a bug
+    - perfection = simplicity
+    - fix first, then extend
+    - use boring (and safe) tools
+    - make your own (boring) tools
+    - choose competent clients
+    - write for normal readers
+    - publish early and often
+    - learn to touch type
+    - work very, very hard
+    - be annoyed at bad design
+    - learn the physics of people
+
 SOA is finally cool
  =- slashdot quotez
 

@@ -28,16 +28,19 @@
 <!--
 <import class = "zyre_content" />
 <import class = "zyre_message" />
+<import class = "zyre_join" />
+<import class = "zyre_pipe" />
     -->
+<import class = "zyre_amqp_feed" />
+<import class = "zyre_amqp_join" />
+<import class = "zyre_amqp_pipe" />
 <import class = "zyre_backend_amqp" />
 <import class = "zyre_config" />
 <import class = "zyre_digest_amqp" />
 <import class = "zyre_domain" />
 <import class = "zyre_feed" />
-<import class = "zyre_join" />
 <import class = "zyre_peer_agent" />
 <import class = "zyre_peer_config" />
-<import class = "zyre_pipe" />
 <import class = "zyre_resource" />
 <import class = "zyre_restms" />
 <import class = "zyre_static" />

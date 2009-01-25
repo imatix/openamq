@@ -27,12 +27,12 @@
 <doc>
 This class holds all RestMS resources in a generic form, with a pointer to
 the real resource object.  Resources are stored in a hash table where the
-key is the resource URI.  Resources have a looseref list of all children.
+key is the resource path.  Resources have a looseref list of all children.
 This class is not threadsafe and may be used from one threadlet only.
 </doc>
 
 <inherit class = "ipr_portal">
-    <option name = "front_end" value = "async" />
+    <option name = "front_end" value = "sync" />
     <option name = "back_end" value = "sync" />
 </inherit>
 
@@ -40,6 +40,13 @@ This class is not threadsafe and may be used from one threadlet only.
 
 <!-- Resource portal methods -->
 <data>
+  <request name = "configure">
+    <doc>
+    Configure a new resource, the context contains a parsed document.
+    </doc>
+    <field name = "context" type = "http_driver_context_t *" />
+  </request>
+
   <request name = "get">
     <doc>
     Retrieve resource.
@@ -63,11 +70,24 @@ This class is not threadsafe and may be used from one threadlet only.
 
   <request name = "post">
     <doc>
-    Create child resource as specified and hash into table.
+    Create child resource as specified.
     </doc>
     <field name = "context" type = "http_driver_context_t *" />
-    <field name = "table" type = "ipr_hash_table_t *" />
   </request>
+
+  <response name = "child add">
+    <doc>
+    Ask client (restms) to do the child resource creation.
+    </doc>
+    <field name = "context" type = "http_driver_context_t *" />
+  </response>
+
+  <response name = "child remove">
+    <doc>
+    Ask client (restms) to do the child resource deletion.
+    </doc>
+    <field name = "context" type = "http_driver_context_t *" />
+  </response>
 </data>
 
 <public name = "header">
@@ -86,65 +106,54 @@ This class is not threadsafe and may be used from one threadlet only.
         *parent;                        //  Parent resource
     uint
         type;                           //  Resource type
-    icl_shortstr_t
-        name;                           //  Name, if any
     qbyte
         index;                          //  Resource index
     ipr_looseref_list_t
         *children;                      //  Looseref list of children
+    ipr_looseref_t
+        *in_parent;                     //  Backlink to parent's list
     apr_time_t
         modified;                       //  Date-Modified value
 </context>
 
 <method name = "new">
     <argument name = "parent" type = "zyre_resource_t *">Parent resource, or NULL</argument>
-    <argument name = "table" type = "ipr_hash_table_t *">Hash by URI, or NULL</argument>
-    <argument name = "type" type = "char *">Resource type name, or NULL</argument>
-    <argument name = "name" type = "char *">Name, or NULL</argument>
+    <argument name = "table" type = "ipr_hash_table_t *">Hash by path</argument>
+    <argument name = "type" type = "char *">Resource type name</argument>
+    <argument name = "path" type = "char *">Resource path</argument>
     <local>
-    icl_shortstr_t
-        uri;
     ipr_hash_t
         *hash;
     </local>
     //
     self->modified = apr_time_now ();
-    if (name)
-        icl_shortstr_cpy (self->name, name);
+    self->type = zyre_resource_type_value (type);
+    self->children = ipr_looseref_list_new ();
 
-    //  Table is null for factories
-    if (table) {
-        self->type = zyre_resource_type_value (type);
-        self->children = ipr_looseref_list_new ();
-        //  Name is null for private resources
-        if (name)
-            icl_shortstr_fmt (uri, "/%s/%s", type, name);
-        else
-            //  Grab random key
-            //  In fact we should never re-use old hashes
-            ipr_str_random (uri, "/resource/AAAAAAAA");
+    hash = ipr_hash_new (table, path, self);
+    self->index = hash->table_index;
+    ipr_hash_unlink (&hash);
 
-        hash = ipr_hash_new (table, uri, self);
-        self->index = hash->table_index;
-        ipr_hash_unlink (&hash);
-
-        //  Attach as child of parent resource, if any
-        if (parent)
-            zyre_resource_add_as_child (parent, self);
-    }
+    //  Attach as child of parent resource, if any
+    if (parent)
+        self->in_parent = zyre_resource_add_as_child (parent, self);
 </method>
 
 <method name = "destroy">
     ipr_looseref_list_destroy (&self->children);
 </method>
 
-<method name = "add as child" template = "function">
+<method name = "add as child" return = "looseref">
     <doc>
     Adds a resource as child.
     </doc>
-    <argument name = "resource" type = "zyre_resource_t *" />
+    <argument name = "self" type = "$(selftype) *" />
+    <argument name = "child" type = "$(selftype) *" />
+    <declare name = "looseref" type = "ipr_looseref_t *" />
     //
-    ipr_looseref_queue (self->children, resource);
+    //  Queue this child resource in parent's list and return
+    //  that list item so the child can destroy it when needed
+    looseref = ipr_looseref_queue (self->children, child);
 </method>
 
 <method name = "etag" return = "etag">
@@ -216,6 +225,32 @@ This class is not threadsafe and may be used from one threadlet only.
     else
         rc = FALSE;
     icl_mem_free (etag);
+</method>
+
+<method name = "path" return = "path">
+    <doc>
+    Build URI path for specified resource, using resource type and Slug header
+    value, if any.  Caller frees path after use.
+    </doc>
+    <argument name = "type" type = "char *">Resource type</argument>
+    <argument name = "slug" type = "char *">Slug, or ""</argument>
+    <declare name = "path" type = "char *" />
+    <local>
+    char
+        *name_ptr;
+    </local>
+    //
+    path = icl_mem_alloc (ICL_SHORTSTR_MAX + 1);
+    if (slug && *slug) {
+        for (name_ptr = slug; *name_ptr; name_ptr++)
+            if (!isalnum (*name_ptr) && *name_ptr != '.')
+                *name_ptr = '-';
+        icl_shortstr_fmt (path, "/%s/%s", type, slug);
+    }
+    else
+        //  Grab random key
+        //  In fact we should never re-use old hashes
+        ipr_str_random (path, "/resource/AAAAAAAA");
 </method>
 
 <method name = "type name" return = "name">
@@ -315,7 +350,6 @@ This class is not threadsafe and may be used from one threadlet only.
     http_response_set_from_bucket (context->response, bucket, content_type);
     ipr_bucket_unlink (&bucket);
     icl_longstr_destroy (&longstr);
-
 
     //  Set Last-Modified and ETag
     ipr_time_mime (self->modified, mime_date);
