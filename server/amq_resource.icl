@@ -40,7 +40,7 @@
     the front-end to route messages coming from the AMQP server into separate
     pipe queues for end-application delivery.
     </doc>
-    <argument name = "pipe class" type = "char *" />
+    <argument name = "pipe type" type = "char *" />
     <argument name = "pipe name" type = "char *" />
     <argument name = "channel" type = "amq_server_channel_t *" />
     <local>
@@ -59,8 +59,8 @@
     if (strnull (pipe_name))
         error_text = "pipe_create: pipe name may not be empty";
     else
-    if (strneq (pipe_class, "fifo"))
-        error_text = "pipe_create: invalid pipe class";
+    if (strneq (pipe_type, "fifo"))
+        error_text = "pipe_create: invalid pipe type";
     else {
         queue = amq_queue_table_search (amq_broker->queue_table, pipe_name);
         if (queue && !queue->exclusive)
@@ -138,7 +138,7 @@
     Creates the feed, or asserts it exists as specified. Errors are
     logged.
     </doc>
-    <argument name = "feed class" type = "char *" />
+    <argument name = "feed type" type = "char *" />
     <argument name = "feed name" type = "char *" />
     <local>
     amq_queue_t
@@ -154,17 +154,17 @@
     </local>
     //
     queue = amq_queue_table_search (amq_broker->queue_table, feed_name);
-    auto_delete = streq (feed_class, "service");
+    auto_delete = streq (feed_type, "service");
     exchange = amq_exchange_table_search (amq_broker->exchange_table, feed_name);
-    exchange_type = amq_exchange_type_lookup (feed_class);
+    exchange_type = amq_exchange_type_lookup (feed_type);
 
     if (strnull (feed_name))
         error_text = "feed_create: feed name may not be empty";
     else
-    if (streq (feed_class, "service") || streq (feed_class, "rotator")) {
+    if (streq (feed_type, "service") || streq (feed_type, "rotator")) {
         if (exchange
         || (queue && queue->auto_delete != auto_delete))
-            error_text = "feed_create: feed class does not match existing feed";
+            error_text = "feed_create: feed type does not match existing feed";
         else
         if (queue == NULL) {
             if (ipr_str_prefixed (feed_name, "amq."))
@@ -195,7 +195,7 @@
     if (exchange_type >= 0) {
         if (queue
         || (exchange && exchange->type != exchange_type))
-            error_text = "feed_create: feed class does not match existing feed";
+            error_text = "feed_create: feed type does not match existing feed";
         else
         if (exchange == NULL) {
             if (ipr_str_prefixed (feed_name, "amq."))
@@ -209,7 +209,7 @@
         }
     }
     else
-        error_text = "feed_create: invalid feed class";
+        error_text = "feed_create: invalid feed type";
 
     amq_queue_unlink (&queue);
     amq_exchange_unlink (&exchange);
@@ -266,9 +266,9 @@
     <doc>
     Creates the join, or asserts it exists as specified. Errors are logged.
     </doc>
-    <argument name = "pipe class" type = "char *" />
+    <argument name = "pipe type" type = "char *" />
     <argument name = "pipe name" type = "char *" />
-    <argument name = "feed class" type = "char *" />
+    <argument name = "feed type" type = "char *" />
     <argument name = "feed name" type = "char *" />
     <argument name = "address" type = "char *" />
     <argument name = "channel" type = "amq_server_channel_t *" />
@@ -289,22 +289,22 @@
         *error_text = NULL;             //  Error text, if any
     </local>
     //
-    exchange_type = amq_exchange_type_lookup (feed_class);
-    auto_delete = streq (feed_class, "service");
+    exchange_type = amq_exchange_type_lookup (feed_type);
+    auto_delete = streq (feed_type, "service");
     if (strnull (feed_name))
         error_text = "join_create: feed name may not be empty";
     else
-    if (strneq (pipe_class, "fifo"))
-        error_text = "join_create: invalid pipe class";
+    if (strneq (pipe_type, "fifo"))
+        error_text = "join_create: invalid pipe type";
     else
-    if (streq (feed_class, "service") || streq (feed_class, "rotator")) {
+    if (streq (feed_type, "service") || streq (feed_type, "rotator")) {
         queue = amq_queue_table_search (amq_broker->queue_table, feed_name);
         if (queue) {
             if (queue->exclusive)
                 error_text = "join_create: feed queue exists but is exclusive";
             else
             if (queue->auto_delete != auto_delete)
-                error_text = "join_create: feed class does not match existing feed";
+                error_text = "join_create: feed type does not match existing feed";
             else {
                 //  Create consumer, with pipe name as tag, on queue
                 //  On shared queues, we do not implement the address string
@@ -340,7 +340,7 @@
         amq_exchange_unlink (&exchange);
     }
     else
-        error_text = "join_create: invalid feed class";
+        error_text = "join_create: invalid feed type";
 
     if (error_text)
         smt_log_print (amq_broker->alert_log, "W: %s", error_text);

@@ -4,33 +4,33 @@
 
 <pal script = "amq_pal_gen">
     <session timeout = "1000">
-        <!-- Create/delete standard pipe classes -->
-        <invoke macro = "pipe tests"><set name = "class" value = "pipe" /></invoke>
+        <!-- Create/delete standard pipe types -->
+        <invoke macro = "pipe tests"><set name = "type" value = "pipe" /></invoke>
 
-        <!-- Create/delete standard feed classes -->
-        <invoke macro = "feed tests"><set name = "class" value = "fanout" /></invoke>
-        <invoke macro = "feed tests"><set name = "class" value = "direct" /></invoke>
-        <invoke macro = "feed tests"><set name = "class" value = "topic" /></invoke>
-        <invoke macro = "feed tests"><set name = "class" value = "headers" /></invoke>
-        <invoke macro = "feed tests"><set name = "class" value = "rotator" /></invoke>
-        <invoke macro = "feed tests"><set name = "class" value = "service" /></invoke>
+        <!-- Create/delete standard feed types -->
+        <invoke macro = "feed tests"><set name = "type" value = "fanout" /></invoke>
+        <invoke macro = "feed tests"><set name = "type" value = "direct" /></invoke>
+        <invoke macro = "feed tests"><set name = "type" value = "topic" /></invoke>
+        <invoke macro = "feed tests"><set name = "type" value = "headers" /></invoke>
+        <invoke macro = "feed tests"><set name = "type" value = "rotator" /></invoke>
+        <invoke macro = "feed tests"><set name = "type" value = "service" /></invoke>
 
         <!-- Test access to pre-declared feeds -->
-        <restms_feed_create feed_name = "amq.direct" feed_class = "direct" />
+        <restms_feed_create feed_name = "amq.direct" feed_type = "direct" />
 
         <!-- Provoke all possible error cases -->
         <!-- pipe_create: pipe name may not be empty -->
         <restms_pipe_create pipe_name = "" />
 
         <!-- pipe_create: pipe queue exists but is not exclusive -->
-        <restms_feed_create feed_name = "test.1" feed_class = "service" />
-        <restms_pipe_create pipe_name = "test.1" pipe_class = "pipe" />
+        <restms_feed_create feed_name = "test.1" feed_type = "service" />
+        <restms_pipe_create pipe_name = "test.1" pipe_type = "pipe" />
 
         <!-- pipe_create: new pipe name may not start with amq. -->
-        <restms_pipe_create pipe_name = "amq.2" pipe_class = "pipe" />
+        <restms_pipe_create pipe_name = "amq.2" pipe_type = "pipe" />
 
-        <!-- pipe_create: invalid pipe class -->
-        <restms_pipe_create pipe_name = "test.3" pipe_class = "xxxxx" />
+        <!-- pipe_create: invalid pipe type -->
+        <restms_pipe_create pipe_name = "test.3" pipe_type = "xxxxx" />
 
         <!-- pipe_delete: pipe name may not be empty -->
         <restms_pipe_delete pipe_name = "" />
@@ -39,28 +39,28 @@
         <restms_pipe_delete pipe_name = "amq.4" />
 
         <!-- pipe_delete: tried to delete a shared queue -->
-        <restms_feed_create feed_name = "test.5" feed_class = "service" />
+        <restms_feed_create feed_name = "test.5" feed_type = "service" />
         <restms_pipe_delete pipe_name = "test.5" />
 
         <!-- feed_create: feed name may not be empty -->
         <restms_feed_create feed_name = "" />
 
-        <!-- feed_create: feed class does not match existing feed -->
-        <restms_feed_create feed_name = "test.6" feed_class = "service" />
-        <restms_feed_create feed_name = "test.6" feed_class = "rotator" />
+        <!-- feed_create: feed type does not match existing feed -->
+        <restms_feed_create feed_name = "test.6" feed_type = "service" />
+        <restms_feed_create feed_name = "test.6" feed_type = "rotator" />
 
         <!-- feed_create: new feed name may not start with amq. -->
-        <restms_feed_create feed_name = "amq.7" feed_class = "service" />
+        <restms_feed_create feed_name = "amq.7" feed_type = "service" />
 
-        <!-- feed_create: feed class does not match existing feed -->
-        <restms_feed_create feed_name = "test.8" feed_class = "fanout" />
-        <restms_feed_create feed_name = "test.8" feed_class = "direct" />
+        <!-- feed_create: feed type does not match existing feed -->
+        <restms_feed_create feed_name = "test.8" feed_type = "fanout" />
+        <restms_feed_create feed_name = "test.8" feed_type = "direct" />
 
         <!-- feed_create: new feed name may not start with amq. -->
-        <restms_feed_create feed_name = "amq.9" feed_class = "direct" />
+        <restms_feed_create feed_name = "amq.9" feed_type = "direct" />
 
-        <!-- feed_create: invalid feed class -->
-        <restms_feed_create feed_name = "test.10" feed_class = "xxxxx" />
+        <!-- feed_create: invalid feed type -->
+        <restms_feed_create feed_name = "test.10" feed_type = "xxxxx" />
 
         <!-- feed_delete: feed name may not be empty -->
         <restms_feed_delete feed_name = "" />
@@ -69,104 +69,104 @@
         <restms_feed_delete feed_name = "amq.direct" />
 
         <!-- feed_delete: tried to delete a private queue -->
-        <restms_pipe_create pipe_name = "test.11" pipe_class = "pipe" />
+        <restms_pipe_create pipe_name = "test.11" pipe_type = "pipe" />
         <restms_feed_delete feed_name = "test.11" />
 
         <!-- feed_delete: tried to delete an internal exchange -->
         <restms_feed_delete feed_name = "$\\default$\\" />
 
         <!-- join_create: feed name may not be empty -->
-        <restms_pipe_create pipe_name = "test.12" pipe_class = "pipe" />
-        <restms_join_create pipe_name = "test.12" pipe_class = "pipe"
-                            feed_name = "" feed_class = "fanout"
+        <restms_pipe_create pipe_name = "test.12" pipe_type = "pipe" />
+        <restms_join_create pipe_name = "test.12" pipe_type = "pipe"
+                            feed_name = "" feed_type = "fanout"
                             address = "*" />
 
-        <!-- join_create: invalid pipe class -->
-        <restms_feed_create feed_name = "feed.13" feed_class = "fanout" />
-        <restms_join_create pipe_name = "test.13" pipe_class = "piped"
-                            feed_name = "feed.13" feed_class = "fanout"
+        <!-- join_create: invalid pipe type -->
+        <restms_feed_create feed_name = "feed.13" feed_type = "fanout" />
+        <restms_join_create pipe_name = "test.13" pipe_type = "piped"
+                            feed_name = "feed.13" feed_type = "fanout"
                             address = "*" />
 
         <!-- join_create: feed queue exists but is exclusive -->
-        <restms_pipe_create pipe_name = "test.14" pipe_class = "pipe" />
-        <restms_pipe_create pipe_name = "feed.14" pipe_class = "pipe" />
-        <restms_join_create pipe_name = "test.14" pipe_class = "pipe"
-                            feed_name = "feed.14" feed_class = "service"
+        <restms_pipe_create pipe_name = "test.14" pipe_type = "pipe" />
+        <restms_pipe_create pipe_name = "feed.14" pipe_type = "pipe" />
+        <restms_join_create pipe_name = "test.14" pipe_type = "pipe"
+                            feed_name = "feed.14" feed_type = "service"
                             address = "*" />
 
-        <!-- join_create: feed class does not match existing feed -->
-        <restms_pipe_create pipe_name = "test.15" pipe_class = "pipe" />
-        <restms_feed_create feed_name = "feed.15" feed_class = "service" />
-        <restms_join_create pipe_name = "test.15" pipe_class = "pipe"
-                            feed_name = "feed.15" feed_class = "rotator"
+        <!-- join_create: feed type does not match existing feed -->
+        <restms_pipe_create pipe_name = "test.15" pipe_type = "pipe" />
+        <restms_feed_create feed_name = "feed.15" feed_type = "service" />
+        <restms_join_create pipe_name = "test.15" pipe_type = "pipe"
+                            feed_name = "feed.15" feed_type = "rotator"
                             address = "*" />
 
         <!-- join_create: feed queue does not exist -->
-        <restms_pipe_create pipe_name = "test.16" pipe_class = "pipe" />
-        <restms_join_create pipe_name = "test.16" pipe_class = "pipe"
-                            feed_name = "feed.16" feed_class = "service"
+        <restms_pipe_create pipe_name = "test.16" pipe_type = "pipe" />
+        <restms_join_create pipe_name = "test.16" pipe_type = "pipe"
+                            feed_name = "feed.16" feed_type = "service"
                             address = "*" />
 
         <!-- join_create: pipe queue exists but is not exclusive -->
-        <restms_feed_create feed_name = "test.17" feed_class = "service" />
-        <restms_feed_create feed_name = "feed.17" feed_class = "service" />
-        <restms_join_create pipe_name = "test.17" pipe_class = "pipe"
-                            feed_name = "feed.17" feed_class = "fanout"
+        <restms_feed_create feed_name = "test.17" feed_type = "service" />
+        <restms_feed_create feed_name = "feed.17" feed_type = "service" />
+        <restms_join_create pipe_name = "test.17" pipe_type = "pipe"
+                            feed_name = "feed.17" feed_type = "fanout"
                             address = "*" />
 
         <!-- join_create: feed exchange does not exist -->
-        <restms_pipe_create pipe_name = "test.18" pipe_class = "pipe" />
-        <restms_join_create pipe_name = "test.18" pipe_class = "pipe"
-                            feed_name = "feed.18" feed_class = "fanout"
+        <restms_pipe_create pipe_name = "test.18" pipe_type = "pipe" />
+        <restms_join_create pipe_name = "test.18" pipe_type = "pipe"
+                            feed_name = "feed.18" feed_type = "fanout"
                             address = "*" />
 
         <!-- join_create: pipe queue does not exist -->
-        <restms_feed_create feed_name = "feed.19" feed_class = "fanout" />
-        <restms_join_create pipe_name = "test.19" pipe_class = "pipe"
-                            feed_name = "feed.19" feed_class = "fanout"
+        <restms_feed_create feed_name = "feed.19" feed_type = "fanout" />
+        <restms_join_create pipe_name = "test.19" pipe_type = "pipe"
+                            feed_name = "feed.19" feed_type = "fanout"
                             address = "*" />
 
-        <!-- join_create: invalid feed class -->
-        <restms_pipe_create pipe_name = "test.20" pipe_class = "pipe" />
-        <restms_join_create pipe_name = "test.20" pipe_class = "pipe"
-                            feed_name = "feed.20" feed_class = "fanouted"
+        <!-- join_create: invalid feed type -->
+        <restms_pipe_create pipe_name = "test.20" pipe_type = "pipe" />
+        <restms_join_create pipe_name = "test.20" pipe_type = "pipe"
+                            feed_name = "feed.20" feed_type = "fanouted"
                             address = "*" />
 
         <!-- join_delete: feed name may not be empty -->
-        <restms_pipe_create pipe_name = "test.21" pipe_class = "pipe" />
+        <restms_pipe_create pipe_name = "test.21" pipe_type = "pipe" />
         <restms_join_delete pipe_name = "test.21" feed_name = "" address = "*" />
 
         <!-- join_delete: feed queue exists but is exclusive -->
-        <restms_pipe_create pipe_name = "test.22" pipe_class = "pipe" />
-        <restms_pipe_create pipe_name = "feed.22" pipe_class = "pipe" />
+        <restms_pipe_create pipe_name = "test.22" pipe_type = "pipe" />
+        <restms_pipe_create pipe_name = "feed.22" pipe_type = "pipe" />
         <restms_join_delete pipe_name = "test.22" feed_name = "feed.22" address = "*" />
 
         <!-- join_delete: pipe queue exists but is not exclusive -->
-        <restms_feed_create feed_name = "test.23" feed_class = "service" />
-        <restms_feed_create feed_name = "feed.23" feed_class = "fanout" />
+        <restms_feed_create feed_name = "test.23" feed_type = "service" />
+        <restms_feed_create feed_name = "feed.23" feed_type = "fanout" />
         <restms_join_delete pipe_name = "test.23" feed_name = "feed.23" address = "*" />
     </session>
 
     <!-- Macro does set of tests for one valid feed type -->
     <macro name = "pipe tests">
-        <restms_pipe_create pipe_name = "test.$class" pipe_class = "$class" />
-        <restms_pipe_create pipe_name = "test.$class" pipe_class = "$class" />
-        <restms_pipe_delete pipe_name = "test.$class" />
-        <restms_pipe_delete pipe_name = "test.$class" />
+        <restms_pipe_create pipe_name = "test.$type" pipe_type = "$type" />
+        <restms_pipe_create pipe_name = "test.$type" pipe_type = "$type" />
+        <restms_pipe_delete pipe_name = "test.$type" />
+        <restms_pipe_delete pipe_name = "test.$type" />
     </macro>
 
     <!-- Macro does set of tests for one valid feed type -->
     <macro name = "feed tests">
-        <restms_feed_create feed_name = "feed.$class" feed_class = "$class" />
-        <restms_feed_create feed_name = "feed.$class" feed_class = "$class" />
-        <restms_pipe_create pipe_name = "pipe.$class" pipe_class = "pipe" />
-        <restms_join_create pipe_name = "pipe.$class" pipe_class = "pipe"
-                            feed_name = "feed.$class" feed_class = "$class"
+        <restms_feed_create feed_name = "feed.$type" feed_type = "$type" />
+        <restms_feed_create feed_name = "feed.$type" feed_type = "$type" />
+        <restms_pipe_create pipe_name = "pipe.$type" pipe_type = "pipe" />
+        <restms_join_create pipe_name = "pipe.$type" pipe_type = "pipe"
+                            feed_name = "feed.$type" feed_type = "$type"
                             address = "string" />
-        <restms_join_delete pipe_name = "pipe.$class"
-                            feed_name = "feed.$class"
+        <restms_join_delete pipe_name = "pipe.$type"
+                            feed_name = "feed.$type"
                             address = "string" />
-        <restms_feed_delete feed_name = "feed.$class" />
-        <restms_feed_delete feed_name = "feed.$class" />
+        <restms_feed_delete feed_name = "feed.$type" />
+        <restms_feed_delete feed_name = "feed.$type" />
     </macro>
 </pal>

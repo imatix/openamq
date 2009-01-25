@@ -458,32 +458,28 @@
 
 <class name = "restms">
   <action name = "pipe-create">
-    amq_resource_pipe_create (method->pipe_class, method->pipe_name, channel);
+    amq_resource_pipe_create (method->pipe_type, method->pipe_name, channel);
   </action>
   <action name = "pipe-delete">
     amq_resource_pipe_delete (method->pipe_name);
   </action>
 
   <action name = "feed-create">
-    amq_resource_feed_create (method->feed_class, method->feed_name);
+    amq_resource_feed_create (method->feed_type, method->feed_name);
   </action>
   <action name = "feed-delete">
     amq_resource_feed_delete (method->feed_name);
   </action>
 
   <action name = "join-create">
-    //  Order of arguments follows join URI syntax
     amq_resource_join_create (
-        method->pipe_class, method->pipe_name,
-        method->feed_class, method->feed_name,
-        method->address,
-        channel);
+        method->pipe_type, method->pipe_name,
+        method->feed_type, method->feed_name,
+        method->address, channel);
   </action>
   <action name = "join-delete">
-    //  Order of arguments follows join URI syntax
     amq_resource_join_delete (
-        method->pipe_name, method->feed_name, method->address,
-        channel);
+        method->pipe_name, method->feed_name, method->address, channel);
   </action>
 </class>
 
