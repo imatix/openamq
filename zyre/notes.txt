@@ -14,22 +14,21 @@ new resource from openamq
     always locked
 
 
-amqp_name
-    - feed: private or public name
-        slug: my.name
-            -> used for feed name
-        slug: my%name
-            -> "my-name" used for feed name
-        -> clean slug at start
-        slug: (empty)
-            -> generate random value
-            -> use for feed name
-            -> use for path "resource/XXXX"
-        amq_name property
-            is name of feed
-            is generated name resource/xxx
+AMQP synchronization
+    - resource->slug property
+    - resource->private property
 
-    - pipe: private name
+    - slug is defined?
+        / public resource
+        - clean up slug
+        - path = /{type}/{slug}
+        - amqp_name = {slug}
+    - slug is not defined?
+        / private resource
+        - generate slug
+        - path = /{resource}/{slug}
+        - amqp_name = {slug}
+
 
 
 
