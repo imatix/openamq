@@ -53,6 +53,7 @@ This class implements the RestMS domain object.
     ipr_tree_open (tree, "domain");
     looseref = ipr_looseref_list_first (portal->children);
     while (looseref) {
+        zyre_resource_request_report ((zyre_resource_t *) (looseref->object), tree);
         looseref = ipr_looseref_list_next (&looseref);
     }
     ipr_tree_shut (tree);

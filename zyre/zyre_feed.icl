@@ -116,6 +116,16 @@ This class implements the RestMS feed object.
         "The POST method is not allowed on this resource");
 </method>
 
+<method name = "report">
+    ipr_tree_open (tree, "feed");
+    ipr_tree_leaf (tree, "type", self->type);
+    if (*self->title)
+        ipr_tree_leaf (tree, "title", self->title);
+    if (*self->license)
+        ipr_tree_leaf (tree, "license", self->license);
+    ipr_tree_shut (tree);
+</method>
+
 <method name = "type valid" return = "rc">
     <doc>
     Returns TRUE if the specified feed type is valid, else returns FALSE.
