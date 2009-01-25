@@ -38,14 +38,14 @@
 <method name = "pipe-create" index = "10">
   create a pipe
   <doc>
-  Creates a pipe of the specified class.  The pipe may already exist,
-  if it has the same class.  Pipe names are unique across all classes.
+  Creates a pipe of the specified type.  The pipe may already exist,
+  if it has the same type.  Pipe names are unique across all types.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <field name = "pipe class" type = "shortstr" >
-    pipe class
+  <field name = "pipe type" type = "shortstr" >
+    pipe type
     <doc>
-    Specifies the class of the pipe to create.  Valid values are: pipe.
+    Specifies the type of the pipe to create.  Valid values are: pipe.
     </doc>
   </field>
   <field name = "pipe name" type = "shortstr" >
@@ -75,14 +75,14 @@
 <method name = "feed-create" index = "30">
   create a feed
   <doc>
-  Creates a feed of the specified class.  The feed may already exist,
-  if it has the same class.  Feed names are unique across all classes.
+  Creates a feed of the specified type.  The feed may already exist,
+  if it has the same type.  Feed names are unique across all types.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <field name = "feed class" type = "shortstr" >
-    Feed class
+  <field name = "feed type" type = "shortstr" >
+    Feed type
     <doc>
-    Specifies the class of the feed to create.  Valid values are: fanout,
+    Specifies the type of the feed to create.  Valid values are: fanout,
     direct, topic, headers, system, rotator, and service.
     </doc>
   </field>
@@ -122,10 +122,10 @@
   tag to be used on multiple queues.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <field name = "pipe class" type = "shortstr" >
-    Pipe class
+  <field name = "pipe type" type = "shortstr" >
+    Pipe type
     <doc>
-    Specifies the class of the pipe, which must match the class of the
+    Specifies the type of the pipe, which must match the type of the
     existing pipe.
     </doc>
   </field>
@@ -135,10 +135,10 @@
     Specifies the name of the pipe, which must exist.
     </doc>
   </field>
-  <field name = "feed class" type = "shortstr" >
-    Feed class
+  <field name = "feed type" type = "shortstr" >
+    Feed type
     <doc>
-    Specifies the class of the feed, which must match the class of the
+    Specifies the type of the feed, which must match the type of the
     existing feed.
     </doc>
   </field>
@@ -152,7 +152,7 @@
     Join address
     <doc>
     Specifies the address to join.  This is an address literal or
-    pattern who's semantics depend on the feed class.  The address
+    pattern who's semantics depend on the feed type.  The address
     may not contain slashes, spaces, or at signs.
     </doc>
   </field>
