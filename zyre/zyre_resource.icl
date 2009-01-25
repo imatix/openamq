@@ -40,6 +40,7 @@ This class is not threadsafe and may be used from one threadlet only.
 
 <!-- Resource portal methods -->
 <data>
+  <!-- Requests from restms to resource object -->
   <request name = "configure">
     <doc>
     Configure a new resource, the context contains a parsed document.
@@ -75,16 +76,18 @@ This class is not threadsafe and may be used from one threadlet only.
     <field name = "context" type = "http_driver_context_t *" />
   </request>
 
+  <request name = "report">
+    <doc>
+    Report properties to parent resource.  This method asks a child to
+    report its summary properties to the ipr_tree provided by the parent.
+    </doc>
+    <field name = "tree" type = "ipr_tree_t *" />
+  </request>
+
+  <!-- Responses back from resource object to restms -->
   <response name = "child add">
     <doc>
     Ask client (restms) to do the child resource creation.
-    </doc>
-    <field name = "context" type = "http_driver_context_t *" />
-  </response>
-
-  <response name = "child remove">
-    <doc>
-    Ask client (restms) to do the child resource deletion.
     </doc>
     <field name = "context" type = "http_driver_context_t *" />
   </response>
@@ -122,33 +125,39 @@ This class is not threadsafe and may be used from one threadlet only.
     <argument name = "type" type = "char *">Resource type name</argument>
     <argument name = "path" type = "char *">Resource path</argument>
     //
-    self->modified = apr_time_now ();
-    self->type = zyre_resource_type_value (type);
-    self->children = ipr_looseref_list_new ();
-    self->hash = ipr_hash_new (table, path, self);
-
-    //  Attach as child of parent resource, if any
-    if (parent)
-        self->in_parent = ipr_looseref_queue (parent->children, self);
+    self->modified  = apr_time_now ();
+    self->type      = zyre_resource_type_value (type);
+    self->children  = ipr_looseref_list_new ();
+    self->hash      = ipr_hash_new (table, path, self);
+    self->in_parent = self_attach_to_parent (self, parent);
 </method>
 
 <method name = "destroy">
-    ipr_hash_unlink (&self->hash);
+    ipr_hash_destroy (&self->hash);
     ipr_looseref_list_destroy (&self->children);
 </method>
 
-<method name = "delete" template = "function">
+<method name = "attach to parent" return = "looseref">
     <doc>
-    Deletes the resource by application demand.  This removes the resource
-    from the parent list if any, then destroys the resource.  We can't do
-    this in the destroy method because that is also called at shutdown, and
-    the parent list can already be destroyed then.
+    Attaches the resource to its parent, if any, and returns the resulting
+    looseref object.
+    </doc>
+    <argument name = "self" type = "zyre_resource_t *" />
+    <argument name = "parent" type = "zyre_resource_t *" />
+    <declare name = "looseref" type = "ipr_looseref_t *" default = "NULL" />
+    //
+    if (parent)
+        looseref = ipr_looseref_queue (parent->children, self);
+</method>
+
+<method name = "detach from parent" template = "function">
+    <doc>
+    Removes the resource from the parent list if any.  We can't do this in
+    the destroy method because that is also called at shutdown, and the
+    parent list can already be destroyed then.
     </doc>
     //
-    icl_console_print ("delete self=%pp", self);
     ipr_looseref_destroy (&self->in_parent);
-    ipr_hash_unlink (&self->hash);
-    self_unlink (&self);
 </method>
 
 <method name = "etag" return = "etag">

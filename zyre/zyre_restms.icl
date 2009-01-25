@@ -103,17 +103,19 @@
     zyre_resource_t
         *resource;
 
-    //  Pathinfo is URI key into resource table
-    resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
-    if (resource) {
-        if (zyre_resource_modified (resource, context->request))
-            zyre_resource_request_get (resource, context);
+    if (zyre_restms_check_path (context) == 0) {
+        //  Pathinfo is URI key into resource table
+        resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
+        if (resource) {
+            if (zyre_resource_modified (resource, context->request))
+                zyre_resource_request_get (resource, context);
+            else
+                http_driver_context_reply_error (context, HTTP_REPLY_NOTMODIFIED, NULL);
+        }
         else
-            http_driver_context_reply_error (context, HTTP_REPLY_NOTMODIFIED, NULL);
+            http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
+                "The URI does not match a known resource");
     }
-    else
-        http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
-            "The URI does not match a known resource");
     </action>
 </method>
 
@@ -122,18 +124,20 @@
     zyre_resource_t
         *resource;
 
-    //  Pathinfo is URI key into resource table
-    resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
-    if (resource) {
-        if (zyre_resource_unmodified (resource, context->request))
-            http_driver_context_reply_error (context, HTTP_REPLY_PRECONDITION,
-                "The resource was modified by another application");
+    if (zyre_restms_check_path (context) == 0) {
+        //  Pathinfo is URI key into resource table
+        resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
+        if (resource) {
+            if (zyre_resource_unmodified (resource, context->request))
+                http_driver_context_reply_error (context, HTTP_REPLY_PRECONDITION,
+                    "The resource was modified by another application");
+            else
+                zyre_resource_request_put (resource, context);
+        }
         else
-            zyre_resource_request_put (resource, context);
+            http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
+                "The URI does not match a known resource");
     }
-    else
-        http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
-            "The URI does not match a known resource");
     </action>
 </method>
 
@@ -142,18 +146,31 @@
     zyre_resource_t
         *resource;
 
-    //  Pathinfo is URI key into resource table
-    resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
-    if (resource) {
-        if (zyre_resource_unmodified (resource, context->request))
-            http_driver_context_reply_error (context, HTTP_REPLY_PRECONDITION,
-                "The resource was modified by another application");
-        else
-            zyre_resource_request_delete (resource, context);
+    if (zyre_restms_check_path (context) == 0) {
+        //  Pathinfo is URI key into resource table
+        resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
+        if (resource) {
+            if (zyre_resource_unmodified (resource, context->request))
+                http_driver_context_reply_error (context, HTTP_REPLY_PRECONDITION,
+                    "The resource was modified by another application");
+            else {
+                //  The resource is the portal so we can't destroy it from
+                //  within a request, or the request ends up trying to use a
+                //  dead portal.  So we do it here, and the DELETE method
+                //  just needs to verify the legitimacy of the request.
+                zyre_resource_request_delete (resource, context);
+                if (!context->failed) {
+                    //  Since we don't have a link to the resource, grab one
+                    //  Otherwise the destructor gets very unhappy
+                    resource = zyre_resource_link (resource);
+                    zyre_resource_destroy (&resource);
+                    http_driver_context_reply_success (context, HTTP_REPLY_OK);
+                }
+            }
+        }
+        else                            //  Idempotent delete -> OK
+            http_driver_context_reply_success (context, HTTP_REPLY_OK);
     }
-    else
-        //  If resource is not present, delete is idempotent
-        http_driver_context_reply_success (context, HTTP_REPLY_OK);
     </action>
 </method>
 
@@ -162,13 +179,15 @@
     zyre_resource_t
         *resource;
 
-    //  Pathinfo is URI key into resource table
-    resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
-    if (resource)
-        zyre_resource_request_post (resource, context);
-    else
-        http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
-            "The URI does not match a known resource");
+    if (zyre_restms_check_path (context) == 0) {
+        //  Pathinfo is URI key into resource table
+        resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
+        if (resource)
+            zyre_resource_request_post (resource, context);
+        else
+            http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
+                "The URI does not match a known resource");
+    }
     </action>
 </method>
 
@@ -239,11 +258,10 @@
     type = ipr_xml_name (context->xml_item);
     path = zyre_resource_path (type, http_request_get_header (context->request, "slug"));
 
-icl_console_print ("ADD CHILD: %s", path);
     if (ipr_hash_lookup (self->resources, path)) {
         http_driver_context_reply_success (context, HTTP_REPLY_OK);
         http_response_set_header (context->response, "location",
-            "%s%s", context->response->root_uri, path);
+            "%s%s%s", context->response->root_uri, RESTMS_ROOT, path);
     }
     else {
         //  We create the resource and the server object instance
@@ -259,10 +277,14 @@ icl_console_print ("ADD CHILD: %s", path);
             zyre_restms__zyre_resource_bind (self, resource);
             //  Configure resource with current parsed document
             zyre_resource_request_configure (resource, context);
+            //  We drop our link to the resource so that it is automatically
+            //  destroyed when this object is destroyed, and we don't need to
+            //  do anything further.  If we want to prematurely destroy the
+            //  resource we'll need to grab a link back.
             zyre_resource_unlink (&resource);
             if (!context->failed) {
                 http_response_set_header (context->response, "location",
-                    "%s%s%s", RESTMS_ROOT, context->response->root_uri, path);
+                    "%s%s%s", context->response->root_uri, RESTMS_ROOT, path);
                 http_driver_context_reply_success (context, HTTP_REPLY_CREATED);
             }
         }
@@ -270,14 +292,26 @@ icl_console_print ("ADD CHILD: %s", path);
     icl_mem_strfree (&path);
 </method>
 
-<method name = "child remove">
-    <argument name = "context" type = "http_driver_context_t *" />
-    //
-    //  remove from hash
-    //  destroy portal
-</method>
-
 <!-- Utility functions - general RestMS parsing & processing -->
+
+<method name = "check path" return = "rc">
+    <doc>
+    From the current HTTP context, parses the pathinfo and returns an HTTP
+    error reply if the pathinfo is not valid.  In that case, returns -1.
+    </doc>
+    <argument name = "context" type = "http_driver_context_t *" />
+    <declare name = "rc" type = "int" default = "0" />
+    //
+    //  path must be start with /{resource-type}/ or /resource/
+    if (!ipr_str_prefixed (context->request->pathinfo, "/domain/")
+    &&  !ipr_str_prefixed (context->request->pathinfo, "/feed/")
+    &&  !ipr_str_prefixed (context->request->pathinfo, "/pipe/")
+    &&  !ipr_str_prefixed (context->request->pathinfo, "/resource/")) {
+        http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+            "URI path does not refer to a RestMS resource");
+        rc = -1;
+    }
+</method>
 
 <method name = "parse document" return = "rc">
     <doc>
@@ -288,27 +322,16 @@ icl_console_print ("ADD CHILD: %s", path);
     <argument name = "context" type = "http_driver_context_t *" />
     <argument name = "required" type = "char *">Required resource type</argument>
     <declare name = "rc" type = "int" default = "0" />
-    <local>
-    char
-        *document_type;
-    </local>
     //
-    //  We accept only "application/restms+xml;type={resource type}"
+    //  We accept only "application/restms+xml"
     //  JSON support will come later
-    document_type = ipr_str_defix (context->request->content_type, "application/restms+xml;type=");
-    if (document_type == NULL) {
+    if (streq (context->request->content_type, "application/restms+xml"))
+        rc = http_driver_context_xml_parse (context, RESTMS_ROOT, required);
+    else {
         http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-            "Content-Type must be 'application/restms+xml;type={entity-type}'");
+            "Content-Type must be 'application/restms+xml");
         rc = -1;
     }
-    else
-    if (required && strneq (document_type, required)) {
-        http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-            "Wrong document type for URI - must be %s", required);
-        rc = -1;
-    }
-    else
-        rc = http_driver_context_xml_parse (context, RESTMS_ROOT, document_type);
 </method>
 
 <method name = "selftest" />

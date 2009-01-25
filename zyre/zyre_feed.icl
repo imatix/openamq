@@ -106,12 +106,7 @@ This class implements the RestMS feed object.
 </method>
 
 <method name = "delete">
-    if (self->dynamic) {
-    icl_console_print ("resource=%pp", portal);
-        zyre_resource_delete (portal);
-        http_driver_context_reply_success (context, HTTP_REPLY_OK);
-    }
-    else
+    if (!self->dynamic)
         http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
             "Not allowed to delete this feed");
 </method>

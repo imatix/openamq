@@ -226,7 +226,7 @@ We now explain how the same service would work using RestMS semantics.  First, t
 Client:
 -------------------------------------------------
 POST /restms/domain/
-Content-Type: application/restms+xml;type=feed
+Content-Type: application/restms+xml
 Slug: fortune
 
 <?xml version="1.0"?>
@@ -237,7 +237,7 @@ Slug: fortune
 Server:
 -------------------------------------------------
 HTTP/1.1 201 Created
-Content-Type: application/restms+xml;type=feed
+Content-Type: application/restms+xml
 Location: http://host.com/restms/feed/fortune
 
 <?xml version="1.0"?>
@@ -252,7 +252,7 @@ The fortune service then creates a pipe:
 Client:
 -------------------------------------------------
 POST /restms/domain/
-Content-Type: application/restms+xml;type=pipe
+Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
@@ -262,7 +262,7 @@ Content-Type: application/restms+xml;type=pipe
 Server:
 -------------------------------------------------
 HTTP/1.1 201 Created
-Content-Type: application/restms+xml;type=pipe
+Content-Type: application/restms+xml
 Location: http://host.com/restms/resource/C4FE
 
 <?xml version="1.0"?>
@@ -287,7 +287,7 @@ The fortune service does not expect to be addressed by its reply_to attribute, b
 Client:
 -------------------------------------------------
 POST /restms/resource/C4FE
-Content-Type: application/restms+xml;type=join
+Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
@@ -297,7 +297,7 @@ Content-Type: application/restms+xml;type=join
 Server:
 -------------------------------------------------
 HTTP/1.1 201 Created
-Content-Type: application/restms+xml;type=join
+Content-Type: application/restms+xml
 Location: http://host.com/restms/resource/B33F
 
 <?xml version="1.0"?>
@@ -320,7 +320,7 @@ When a client eventually posts a message to the fortune feed, the RestMS server 
 Server:
 -------------------------------------------------
 HTTP/1.1 200 OK
-Content-Type: application/restms+xml;type=join
+Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
@@ -337,7 +337,7 @@ The fortune service then replies with a suitable fortune cookie, by posting a me
 Client:
 -------------------------------------------------
 POST /restms/feed/
-Content-Type: application/restms+xml;type=message
+Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
@@ -382,7 +382,7 @@ The fortune client creates a pipe by posting a pipe specification document to th
 Client:
 -------------------------------------------------
 POST /restms/domain/
-Content-Type: application/restms+xml;type=pipe
+Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
@@ -392,7 +392,7 @@ Content-Type: application/restms+xml;type=pipe
 Server:
 -------------------------------------------------
 HTTP/1.1 201 Created
-Content-Type: application/restms+xml;type=pipe
+Content-Type: application/restms+xml
 Location: http://host.com/restms/resource/B4B4
 
 <?xml version="1.0"?>
@@ -415,7 +415,7 @@ The client posts a message to the fortune feed, specifying the reply_to attribut
 Client:
 -------------------------------------------------
 POST /restms/feed/fortune
-Content-Type: application/restms+xml;type=message
+Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
@@ -441,7 +441,7 @@ And when the fortune service responds, the client gets its reply message from th
 Server:
 -------------------------------------------------
 HTTP/1.1 200 OK
-Content-Type: application/restms+xml;type=message
+Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
@@ -596,7 +596,7 @@ The news publisher first declares a public topic feed called "newsfeed", by post
 Client:
 -------------------------------------------------
 POST /restms/domain/
-Content-Type: application/restms+xml;type=feed
+Content-Type: application/restms+xml
 Slug: newsfeed
 
 <?xml version="1.0"?>
@@ -607,7 +607,7 @@ Slug: newsfeed
 Server:
 -------------------------------------------------
 HTTP/1.1 201 Created
-Content-Type: application/restms+xml;type=feed
+Content-Type: application/restms+xml
 Location: http://host.com/restms/feed/newsfeed
 
 <?xml version="1.0"?>
@@ -622,7 +622,7 @@ It then publishes a batch of news items to the newsfeed feed (for the example, w
 Client:
 -------------------------------------------------
 POST /restms/feed/newsfeed
-Content-Type: application/restms+xml;type=message
+Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
@@ -665,7 +665,7 @@ The subscriber creates a pipe on which to receive news items, and the server res
 Client:
 -------------------------------------------------
 POST /restms/domain/
-Content-Type: application/restms+xml;type=pipe
+Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
@@ -675,7 +675,7 @@ Content-Type: application/restms+xml;type=pipe
 Server:
 -------------------------------------------------
 HTTP/1.1 201 Created
-Content-Type: application/restms+xml;type=pipe
+Content-Type: application/restms+xml
 Location: http://host.com/restms/resource/F33D
 
 <?xml version="1.0"?>
@@ -694,7 +694,7 @@ The subscriber then creates a join from its pipe to the newsfeed, by POSTing a j
 Client:
 -------------------------------------------------
 POST /restms/resource/F33D
-Content-Type: application/restms+xml;type=join
+Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
@@ -704,7 +704,7 @@ Content-Type: application/restms+xml;type=join
 Server:
 -------------------------------------------------
 HTTP/1.1 201 Created
-Content-Type: application/restms+xml;type=join
+Content-Type: application/restms+xml
 Location: http://host.com/restms/resource/8008
 
 <?xml version="1.0"?>
@@ -727,7 +727,7 @@ And when a news item arrives, the server sends it to the waiting subscriber:
 Server:
 -------------------------------------------------
 HTTP/1.1 200 OK
-Content-Type: application/restms+xml;type=message
+Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
@@ -785,14 +785,14 @@ RestMS documents obey these basic rules:
 
 Further, for XML documents:
 
-* The Content-type MUST be "application/restms+xml;type={root resource}".
+* The Content-type MUST be "application/restms+xml".
 * The document root has a single attribute, xmlns="http://www.imatix.com/schema/restms".
 * The following character MUST be escaped in attribute values:
  * " (escaped by writing &quot;)
 
 And for JSON documents:
 
-* The Content-type MUST be "application/restms+json;type={root resource}".
+* The Content-type MUST be "application/restms+json".
 * The following character MUST be escaped in value strings:
  * " (escaped by writing \")
 
@@ -880,7 +880,7 @@ Server:
 HTTP/1.1 200 OK
 Date: Mon Jan 12 12:05:01 2009
 Content-Length: 440
-Content-Type: application/restms+xml;type=playlist
+Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
@@ -911,7 +911,7 @@ Server:
 HTTP/1.1 200 OK
 Date: Mon Jan 12 12:05:02 2009
 Content-Length: 1440
-Content-Type: application/restms+xml;type=album
+Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
@@ -1033,7 +1033,7 @@ POST /{parent uri} HTTP/1.1
 Host: {hostname}
 User-Agent: {user agent}
 Authorization: {credentials}
-Content-Type: application/restms+xml;type={resource type}
+Content-Type: application/restms+xml
 Content-Length: {size of content}
 Slug: {name for public resource}
 
@@ -1051,7 +1051,7 @@ If allowed by the resource type, and if the Slug header is specified, the new dy
 HTTP/1.1 201 Created
 Date: {response date}
 Content-Length: {size of content}
-Content-Type: application/restms+xml;type={resource type}
+Content-Type: application/restms+xml
 Location: http://{hostname}[{port}]/restms/resource/{hash}
 ETag: "{resource entity tag}"
 
@@ -1101,7 +1101,7 @@ And this is the general form of a server response:
 HTTP/1.1 200 OK
 Date: {response date}
 Content-Length: {size of content}
-Content-Type: application/restms+xml;type={resource type}
+Content-Type: application/restms+xml
 Date-Modified: {resource date and time}
 ETag: "{resource entity tag}"
 
@@ -1165,7 +1165,7 @@ Host: {hostname}
 User-Agent: {user agent}
 Authorization: {credentials}
 Content-Length: {size of content}
-Content-Type: application/restms+xml;type={resource type}
+Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
@@ -1227,7 +1227,7 @@ DELETE /{resource uri} HTTP/1.1
 Host: {hostname}
 User-Agent: {user agent}
 Authorization: {credentials}
-Content-Type: application/restms+xml;type={resource type}
+Content-Type: application/restms+xml
 [[/code]]
 
 And this is the general form of a server response when the resource is successfully deleted:
@@ -1264,8 +1264,8 @@ If there is no Accept header, or it is not one of the allowed values, then it is
 
 When creating a new resource using the POST method, or when modifying an existing resource using the PUT method, the client SHOULD specify the MIME type of the document that it is sending to the browser, using the Content-Type header.  For RestMS documents this MUST be one of these two:
 
-* Content-Type: application/restms+xml;type={resource type}
-* Content-Type: application/restms+json;type={resource type}
+* Content-Type: application/restms+xml
+* Content-Type: application/restms+json
 
 For the DELETE method, neither the Accept nor the Content-Type header have any significance, and if specified by the client, MUST BE ignored by the server.
 
@@ -1683,11 +1683,11 @@ For example:
 Client                                                           Server
   |                                                                 |
   |  1.) POST to feed URI                                           |
-  |      Content-Type: application/octet-stream;type="content"      |
+  |      Content-Type: application/octet-stream;type=content        |
   |---------------------------------------------------------------->|
   |                                                                 |
   |  2.) POST to feed URI                                           |
-  |      Content-Type: application/restms+xml;type="message"        |
+  |      Content-Type: application/restms+xml                       |
   |---------------------------------------------------------------->|
   |                                                                 |
   |  2.) 200 OK                                                     |

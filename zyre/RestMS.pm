@@ -2,22 +2,23 @@
 #
 #   RestMS class for Perl applications
 #   This script is licensed under the latest version of the
-#   Creative Commons Attribution Share-Alike licence (cc-by-sa)
+#   Creative Commons Attribution-Share Alike 3.0 (cc-by-sa)
 #   (c) 2009 iMatix Corporation
 #
 #   Modules we need to use
 use LWP::UserAgent;
 use HTTP::Request::Common;
+
 #   RestMS class
 #
 package RestMS;
-use XML::Simple;
 
 #   Optional argument to constructor is hostname
 sub new {
     my $class = shift;
     my $self = {
         _host => shift,
+        _verbose => 0,
     };
     $self->{_ua} = new LWP::UserAgent;
     $self->{_ua}->credentials ($self->{_host}, "RestMS:", "guest", "guest");
@@ -43,6 +44,7 @@ sub get {
     $self->{_request} = HTTP::Request->new (GET => "http://".$self->{_host}."/restms$path");
     $self->{_request}->header ("Accept" => "application/restms+xml");
     $self->{_response} = $self->{_ua}->request ($self->{_request});
+    $self->trace ();
     $self->assert ($expect) if $expect;
     if ($self->code == 200) {
         return $self->content;
@@ -58,6 +60,7 @@ sub put {
         $self->{_request}->content ($content);
     }
     $self->{_response} = $self->{_ua}->request ($self->{_request});
+    $self->trace ();
     $self->assert ($expect) if $expect;
     if ($self->code == 200) {
         return $self->content;
@@ -69,6 +72,7 @@ sub delete {
     my ($self, $path, $expect) = @_;
     $self->{_request} = HTTP::Request->new (DELETE => "http://".$self->{_host}."/restms$path");
     $self->{_response} = $self->{_ua}->request ($self->{_request});
+    $self->trace ();
     $self->assert ($expect) if $expect;
     if ($self->code == 200) {
         return $self->content;
@@ -79,13 +83,22 @@ sub delete {
 sub post {
     my ($self, $path, $slug, $content, $expect) = @_;
     $self->{_request} = HTTP::Request->new (POST => "http://".$self->{_host}."/restms$path");
-    $self->{_request}->content_type ("application/restms+xml;type=feed");
+    $self->{_request}->content_type ("application/restms+xml");
     $self->{_request}->content ($content);
     $self->{_request}->header (Slug => $slug);
-    $self->{_response} = $self {_ua}->request ($self->{_request});
+    $self->{_response} = $self->{_ua}->request ($self->{_request});
+    $self->trace ();
     $self->assert ($expect) if $expect;
     if ($self->code < 300) {
-        return $self->{_response}->header ("Location");
+        #   Get Location: and strip off the URI start
+        my $location = $self->{_response}->header ("Location");
+        if ($location =~ /(\/http:\/\/[^\/+])?\/restms/) {
+            return ($');
+        }
+        else {
+            $self->carp ("malformed Location: $location");
+            exit (0);
+        }
     }
 }
 
@@ -109,13 +122,14 @@ sub pipe_create {
 #   $expect - asserted reply code
 #
 sub raw {
-    my ($self, $method, $path, $type, $content, $expect) = @_;
+    my ($self, $method, $path, $content, $expect) = @_;
     $self->{_request} = HTTP::Request->new ($method => "http://".$self->{_host}."/restms$path");
-    $self->{_response} = $self->{_ua}->request ($self->{_request});
     if ($content) {
-        $self->{_request}->content_type ("application/restms+xml;type=$type");
+        $self->{_request}->content_type ("application/restms+xml");
         $self->{_request}->content ($content);
     }
+    $self->{_response} = $self->{_ua}->request ($self->{_request});
+    $self->trace ();
     $self->assert ($expect) if $expect;
     if ($self->code == 200) {
         return $self->content;
@@ -132,6 +146,28 @@ sub code {
 sub content {
     my ($self) = @_;
     return $self->{_response}->content;
+}
+
+#   Enable/disable verbose output
+sub verbose {
+    my ($self, $verbose) = @_;
+    $self->{_verbose} = $verbose;
+}
+
+#   Trace the request and response, if verbose
+sub trace {
+    my ($self) = @_;
+    if ($self->{_verbose}) {
+        $self->carp ($self->{_request}->method . " "
+            . $self->{_request}->uri . " => "
+            . $self->{_response}->status_line);
+        if ($self->{_response}->content_length
+        &&  $self->{_response}->content_type eq "application/restms+xml") {
+            $self->carp ("Content-Length: "
+                . $self->{_response}->content_length . "\n"
+                . $self->{_response}->content);
+        }
+    }
 }
 
 #   Assert return code, complain & exit if it's wrong
@@ -157,3 +193,5 @@ sub carp {
     $time = sprintf ("%2d:%02d:%02d", $hour, $min, $sec);
     print "$date $time $string\n";
 }
+
+1;

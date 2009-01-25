@@ -1,167 +1,65 @@
 #!/usr/bin/perl
 #
+#   RestMS class for Perl applications
+#   This script is licensed under the latest version of the
+#   Creative Commons Attribution Share-Alike licence (cc-by-sa)
+#   (c) 2009 iMatix Corporation
+#
 #   Modules we need to use
 use LWP::UserAgent;
 use HTTP::Request::Common;
-define_constants ();
+use RestMS;
 
 ($hostname) = @ARGV;
 $hostname = "localhost:8080" unless $hostname;
 
-$ua = new LWP::UserAgent;
-$ua->credentials ($hostname, "Zyre", "guest", "guest");
+$restms = RestMS->new ($hostname);
+$restms->carp ("Running RestMS tests against $hostname...");
+$restms->verbose (1);
 
-$request = HTTP::Request->new (GET => "http://$hostname/restms/domain/");
-$response = $ua->request ($request);
-check_response_code ($response, $REPLY_OK);
+#   Test default domain
+$restms->get    ("/domain/", 200);
+$restms->put    ("/domain/", 400);
+$restms->delete ("/domain/", 400);
 
-$request = HTTP::Request->new (PUT => "http://$hostname/restms/domain/");
-$response = $ua->request ($request);
-check_response_code ($response, $REPLY_BADREQUEST);
+#   Test public service feed
+$restms->delete ("/feed/test.fanout", 200);
+my $uri = $restms->feed_create ("test.fanout", "fanout", 201);
+$restms->feed_create ("test.fanout", "fanout", 200);
+$restms->put ($uri, '<restms><feed title="Test fanout feed"/></restms>', 200);
+$restms->get ($uri, 200);
+$restms->delete ($uri, 200);
+$restms->delete ($uri, 200);
 
-$request = HTTP::Request->new (DELETE => "http://$hostname/restms/domain/");
-$response = $ua->request ($request);
-check_response_code ($response, $REPLY_BADREQUEST);
+#   Test public fanout feed
+$restms->delete ("/feed/test.service", 200);
+my $uri = $restms->feed_create ("test.service", "service", 201);
+$restms->feed_create ("test.service", "service", 200);
+$restms->put ($uri, '<restms><feed title="Test service feed"/></restms>', 200);
+$restms->get ($uri, 200);
+$restms->delete ($uri, 200);
+$restms->delete ($uri, 200);
 
-#-- invalid
+#   Test unnamed topic feed
+my $uri = $restms->feed_create (undef, "topic", 201);
+$restms->delete ($uri, 200);
 
-$request = HTTP::Request->new (POST => "http://$hostname/restms/domain/");
-$request->content_type('application/restms+xml;type=feed');
-$request->content ('<restms/>');
-$response = $ua->request ($request);
-check_response_code ($response, $REPLY_BADREQUEST);
+#   Test broken requests of various kinds
 
-$request = HTTP::Request->new (POST => "http://$hostname/restms/domain/");
-$request->content_type('application/restms+xml;type=feed');
-$request->content ('<restms><fud type="fanout" /></restms>');
-$request->header ("Slug" => "test.fanout");
-$response = $ua->request ($request);
-check_response_code ($response, $REPLY_BADREQUEST);
+#   Invalid URI path
+$restms->raw ("GET",    "/invalid", undef, 400);
+$restms->raw ("PUT",    "/invalid", undef, 400);
+$restms->raw ("DELETE", "/invalid", undef, 400);
+$restms->raw ("POST",   "/invalid", undef, 400);
 
-$request = HTTP::Request->new (POST => "http://$hostname/restms/domain/");
-$request->content_type('application/restms+xml;type=feed');
-$request->content ('<resta><feed type="fanout" /></resta>');
-$request->header ("Slug" => "test.fanout");
-$response = $ua->request ($request);
-check_response_code ($response, $REPLY_BADREQUEST);
+#   Badly structured documents
+$restms->raw ("PUT", "/domain/", '<restms/>', 400);
+$restms->raw ("PUT", "/domain/", '<restmas><feed type="fanout" /></restmas>', 400);
+$restms->raw ("PUT", "/domain/", '<restms><fud type="fanout" /></restms>', 400);
+$restms->raw ("PUT", "/domain/", '<restms><feed type="fanout" />', 400);
 
-$request = HTTP::Request->new (POST => "http://$hostname/restms/domain/");
-$request->content_type('application/restms+xml;type=feed');
-$request->content ('<restms><feed type="fanout" />');
-$request->header ("Slug" => "test.fanout");
-$response = $ua->request ($request);
-check_response_code ($response, $REPLY_BADREQUEST);
+$restms->carp (" -- all tests passed successfully");
+exit 1;
 
-#-- valid
-
-#   Create two named feeds
-$request = HTTP::Request->new (POST => "http://$hostname/restms/domain/");
-$request->content_type('application/restms+xml;type=feed');
-$request->content ('<restms><feed type="fanout" /></restms>');
-$request->header ("Slug" => "test.fanout");
-$response = $ua->request ($request);
-check_response_code ($response, $REPLY_CREATED);
-
-$request = HTTP::Request->new (POST => "http://$hostname/restms/domain/");
-$request->content_type('application/restms+xml;type=feed');
-$request->content ('<restms><feed type="service" /></restms>');
-$request->header ("Slug" => "test.service");
-$response = $ua->request ($request);
-check_response_code ($response, $REPLY_CREATED);
-
-#   Try again with one of the same feeds
-$request = HTTP::Request->new (POST => "http://$hostname/restms/domain/");
-$request->content_type('application/restms+xml;type=feed');
-$request->content ('<restms><feed type="service" /></restms>');
-$request->header ("Slug" => "test.service");
-$response = $ua->request ($request);
-check_response_code ($response, $REPLY_OK);
-
-#   Update with body
-$request = HTTP::Request->new (PUT => "http://$hostname/restms/feed/test.service");
-$request->content_type('application/restms+xml;type=feed');
-$request->content ('<restms><feed title="Test service feed"/></restms>');
-$response = $ua->request ($request);
-check_response_code ($response, $REPLY_OK);
-
-#   Update with no body
-$request = HTTP::Request->new (PUT => "http://$hostname/restms/feed/test.service");
-$response = $ua->request ($request);
-check_response_code ($response, $REPLY_NOCONTENT);
-
-#   Delete
-$request = HTTP::Request->new (DELETE => "http://$hostname/restms/feed/test.service");
-$response = $ua->request ($request);
-check_response_code ($response, $REPLY_OK);
-
-#   Delete again to make sure
-$request = HTTP::Request->new (DELETE => "http://$hostname/restms/feed/test.service");
-$response = $ua->request ($request);
-check_response_code ($response, $REPLY_OK);
-
-#   Create two unnamed feeds
-$request = HTTP::Request->new (POST => "http://$hostname/restms/domain/");
-$request->content_type('application/restms+xml;type=feed');
-$request->content ('<restms><feed/></restms>');
-$response = $ua->request ($request);
-check_response_code ($response, $REPLY_CREATED);
-
-$request = HTTP::Request->new (POST => "http://$hostname/restms/domain/");
-$request->content_type('application/restms+xml;type=feed');
-$request->content ('<restms><feed type="direct"/></restms>');
-$response = $ua->request ($request);
-check_response_code ($response, $REPLY_CREATED);
-
-sub check_response_code {
-    my ($response, $expect) = @_;
-    if ($response->code != $expect) {
-        carp ("Fail: " . $response->status_line . ", expected $expect");
-        if ($response->content =~ /id="error_text">\n    (.*)\n/) {
-            carp ("Error: $1");
-        }
-        exit (1);
-    }
-    if ($response->code == $REPLY_OK) {
-        carp ("Pass: response=" . $response->code . " Content-type=" . $response->content_type);
-        if ($response->content_length) {
-            carp ("Content:");
-            print $response->content;
-        }
-    }
-    else {
-        carp ("Pass: response=" . $response->code);
-    }
-}
-
-sub carp {
-    my ($string) = @_;
-    #   Prepare date and time variables
-    ($sec, $min, $hour, $day, $month, $year) = localtime;
-    $date = sprintf ("%04d-%02d-%02d", $year + 1900, $month + 1, $day);
-    $time = sprintf ("%2d:%02d:%02d", $hour, $min, $sec);
-    print "$date $time $string\n";
-}
-
-sub define_constants {
-    $REPLY_OK             = 200;
-    $REPLY_CREATED        = 201;
-    $REPLY_ACCEPTED       = 202;
-    $REPLY_NOCONTENT      = 204;
-    $REPLY_PARTIAL        = 206;
-    $REPLY_MOVED          = 301;
-    $REPLY_FOUND          = 302;
-    $REPLY_METHOD         = 303;
-    $REPLY_NOTMODIFIED    = 304;
-    $REPLY_BADREQUEST     = 400;
-    $REPLY_UNAUTHORIZED   = 401;
-    $REPLY_PAYEMENT       = 402;
-    $REPLY_FORBIDDEN      = 403;
-    $REPLY_NOTFOUND       = 404;
-    $REPLY_PRECONDITION   = 412;
-    $REPLY_TOOLARGE       = 413;
-    $REPLY_INTERNALERROR  = 500;
-    $REPLY_CLIENTTIMEOUT  = 500;        #   When no message arrives in time
-    $REPLY_NOTIMPLEMENTED = 501;
-    $REPLY_OVERLOADED     = 503;
-    $REPLY_VERSIONUNSUP   = 505;
-}
+#    $data = eval { XMLin ($config_file) };
+#    $pipe = $data->{pipe};
