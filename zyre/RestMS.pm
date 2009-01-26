@@ -96,8 +96,10 @@ sub post {
             return ($');
         }
         else {
-            $self->carp ("malformed Location: $location");
-            exit (0);
+            $self->carp ("malformed Location: $location ".$self->code);
+            $self->verbose (1);
+            $self->trace ();
+            exit (1);
         }
     }
 }

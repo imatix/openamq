@@ -122,7 +122,10 @@ This class is not threadsafe and may be used from one threadlet only.
     apr_time_t
         modified;                       //  Date-Modified value
     icl_shortstr_t
-        path;                           //  Resource path
+        path,                           //  Resource path
+        slug;                           //  Resource slug
+    Bool
+        private;                        //  Server-generated slug
 </context>
 
 <method name = "new">
@@ -239,30 +242,15 @@ This class is not threadsafe and may be used from one threadlet only.
     icl_mem_free (etag);
 </method>
 
-<method name = "path" return = "path">
+<method name = "set properties" template = "function">
     <doc>
-    Build URI path for specified resource, using resource type and Slug header
-    value, if any.  Caller frees path after use.
+    Sets various properties on the resource portal.
     </doc>
-    <argument name = "type" type = "char *">Resource type</argument>
-    <argument name = "slug" type = "char *">Slug, or ""</argument>
-    <declare name = "path" type = "char *" />
-    <local>
-    char
-        *name_ptr;
-    </local>
+    <argument name = "private" type = "Bool">Private resource?</argument>
+    <argument name = "slug" type = "char *">Resource slug</argument>
     //
-    path = icl_mem_alloc (ICL_SHORTSTR_MAX + 1);
-    if (slug && *slug) {
-        for (name_ptr = slug; *name_ptr; name_ptr++)
-            if (!isalnum (*name_ptr) && *name_ptr != '.')
-                *name_ptr = '-';
-        icl_shortstr_fmt (path, "/%s/%s", type, slug);
-    }
-    else
-        //  Grab random key
-        //  In fact we should never re-use old hashes
-        ipr_str_random (path, "/resource/AAAAAAAA");
+    self->private = private;
+    icl_shortstr_cpy (self->slug, slug);
 </method>
 
 <method name = "type name" return = "name">

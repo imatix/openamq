@@ -15,7 +15,8 @@ $hostname = "localhost:8080" unless $hostname;
 
 $restms = RestMS->new ($hostname);
 $restms->carp ("Running RestMS tests against $hostname...");
-$restms->verbose (1);
+$restms->verbose (0);
+while (1) {
 
 #   Test default domain
 $restms->get    ("/domain/", 200);
@@ -61,6 +62,7 @@ $restms->raw ("PUT", "/domain/", '<restms><fud type="fanout" /></restms>', 400);
 $restms->raw ("PUT", "/domain/", '<restms><feed type="fanout" />', 400);
 
 $restms->carp (" -- all tests passed successfully");
+}
 exit 1;
 
 #    $data = eval { XMLin ($config_file) };
