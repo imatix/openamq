@@ -37,19 +37,19 @@
 
 <context>
     icl_shortstr_t
-        class,                          //  Pipe class
+        type,                           //  Pipe type
         name;                           //  Pipe name
     ipr_looseref_list_t
         *joins;                         //  Joins for pipe
 </context>
 
 <method name = "new">
-    <argument name = "class" type = "char *">Pipe class</argument>
+    <argument name = "type" type = "char *">Pipe type</argument>
     <argument name = "name" type = "char *">Pipe name</argument>
     //
     assert (name);
     icl_shortstr_cpy (self->name, name);
-    icl_shortstr_cpy (self->class, class);
+    icl_shortstr_cpy (self->type, type);
     self->joins = ipr_looseref_list_new ();
 </method>
 

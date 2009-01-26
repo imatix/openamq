@@ -54,8 +54,8 @@
 
 <file name = "zyre_domain.icl"         class = "icl public class"  >RestMS domain resource</file>
 <file name = "zyre_feed.icl"           class = "icl public class"  >RestMS feed resource</file>
-<!--
 <file name = "zyre_pipe.icl"           class = "icl public class"  >RestMS pipe resource</file>
+<!--
 <file name = "zyre_join.icl"           class = "icl public class"  >RestMS join resource</file>
 <file name = "zyre_message.icl"        class = "icl public class"  >RestMS message resource</file>
 <file name = "zyre_content.icl"        class = "icl public class"  >RestMS content resource</file>

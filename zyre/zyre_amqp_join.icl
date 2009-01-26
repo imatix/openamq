@@ -37,19 +37,19 @@
 
 <context>
     icl_shortstr_t
-        address,                        //  Join address
+        feed_type,                      //  Feed type
         feed_name,                      //  Feed name
-        feed_class;                     //  Feed class
+        address;                        //  Join address
 </context>
 
 <method name = "new">
+    <argument name = "feed type" type = "char *">Feed type</argument>
     <argument name = "feed name" type = "char *">Feed name</argument>
-    <argument name = "feed class" type = "char *">Feed class</argument>
     <argument name = "address" type = "char *">Join address</argument>
     //
-    icl_shortstr_cpy (self->address, address);
     icl_shortstr_cpy (self->feed_name, feed_name);
-    icl_shortstr_cpy (self->feed_class, feed_class);
+    icl_shortstr_cpy (self->feed_type, feed_type);
+    icl_shortstr_cpy (self->address, address);
 </method>
 
 <method name = "selftest" />

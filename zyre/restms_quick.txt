@@ -216,15 +216,21 @@ Domain description shows public feeds and pipes:
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
   <domain title="{domain description}">
-    [ <feed title="{feed description}" type="{feed-type}"
-        license="{license}" href="{feed URI}" /> ] ...
-    [ <pipe title="{pipe description}" type="{pipe-type}" href="{pipe URI}" /> ] ...
+    [ <feed
+        title="{feed description}"
+        type="{feed-type}"
+        license="{license}"
+        href="{feed URI}" /> ] ...
+    [ <pipe
+        title="{pipe description}"
+        type="{pipe-type}"
+        href="{pipe URI}" /> ] ...
   </domain>
 </restms>
 [[/code]]
 
 * GET - retrieve domain.
-* POST - creates a new feed or pipe within the domain, Slug is feed or pipe name.
+* POST - creates a new feed or pipe within the domain.  Public feeds need "Slug:" header.
 * Server creates default domain with URI path "/restms/domain/"
 
 +++ Feeds

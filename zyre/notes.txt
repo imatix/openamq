@@ -18,14 +18,14 @@ AMQP synchronization
     - resource->slug property
     - resource->private property
 
-    - slug is defined?
-        / public resource
-        - amqp_name = {slug}
-    - slug is not defined?
-        / private resource
-        - amqp_name = {slug}
 
-
+    - slug not stored, not used
+    - pipes need reply_to
+        - implement RESTMS_hash
+    - pipes are always private
+        - enforce
+    - join from pipe to default feed
+        - using reply_to value
 
 
     zyre_backend_request_feed_create (self->backend, "service", "test.service");

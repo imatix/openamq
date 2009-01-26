@@ -54,14 +54,14 @@
         Add a pipe to the set of defined pipes and create the pipe on the
         remote server.
       </doc>
-      <field name = "pipe class" type = "char *" />
+      <field name = "pipe type" type = "char *" />
       <field name = "pipe name" type = "char *" />
       <possess>
-        pipe_class = icl_mem_strdup (pipe_class);
+        pipe_type = icl_mem_strdup (pipe_type);
         pipe_name = icl_mem_strdup (pipe_name);
       </possess>
       <release>
-        icl_mem_free (pipe_class);
+        icl_mem_free (pipe_type);
         icl_mem_free (pipe_name);
       </release>
     </request>
@@ -85,14 +85,14 @@
         Add a feed to the set of defined feeds and create the feed on the
         remote server.
       </doc>
-      <field name = "feed class" type = "char *" />
+      <field name = "feed type" type = "char *" />
       <field name = "feed name" type = "char *" />
       <possess>
-        feed_class = icl_mem_strdup (feed_class);
+        feed_type = icl_mem_strdup (feed_type);
         feed_name = icl_mem_strdup (feed_name);
       </possess>
       <release>
-        icl_mem_free (feed_class);
+        icl_mem_free (feed_type);
         icl_mem_free (feed_name);
       </release>
     </request>
@@ -115,21 +115,21 @@
       <doc>
         Add a join to the set of defined joins and create the join on the remote
         server.  The pipe and feed must already exist.  Does not validate the
-        pipe class, this must be done by the caller.
+        pipe type, this must be done by the caller.
       </doc>
       <field name = "pipe name" type = "char *" />
-      <field name = "feed class" type = "char *" />
+      <field name = "feed type" type = "char *" />
       <field name = "feed name" type = "char *" />
       <field name = "address" type = "char *">Address to join</field>
       <possess>
         pipe_name = icl_mem_strdup (pipe_name);
-        feed_class = icl_mem_strdup (feed_class);
+        feed_type = icl_mem_strdup (feed_type);
         feed_name = icl_mem_strdup (feed_name);
         address = icl_mem_strdup (address);
       </possess>
       <release>
         icl_mem_free (pipe_name);
-        icl_mem_free (feed_class);
+        icl_mem_free (feed_type);
         icl_mem_free (feed_name);
         icl_mem_free (address);
       </release>
@@ -162,7 +162,7 @@
         key and the feed is the exchange for the publish request.  If the feed
         is a shared queue, the address is used as the message id and the default
         exchange is used as the exchange for the publish request.  Does not
-        validate the feed class, this must be done by the caller.
+        validate the feed type, this must be done by the caller.
       </doc>
       <field name = "address" type = "char *" />
       <field name = "feed name" type = "char *" />

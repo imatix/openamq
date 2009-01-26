@@ -113,7 +113,7 @@ sub feed_create {
 #   Creates a pipe in the default domain, returns feed URI if ok
 sub pipe_create {
     my ($self, $pipe, $type, $expect) = @_;
-    return $self->post ("/domain/", $feed, "<restms><pipe type=\"$type\" /></restms>", $expect);
+    return $self->post ("/domain/", $pipe, "<restms><pipe type=\"$type\" /></restms>", $expect);
 }
 
 #   Issue a raw request

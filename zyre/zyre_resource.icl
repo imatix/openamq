@@ -125,7 +125,7 @@ This class is not threadsafe and may be used from one threadlet only.
         path,                           //  Resource path
         slug;                           //  Resource slug
     Bool
-        private;                        //  Server-generated slug
+        private;                        //  Not discoverable
 </context>
 
 <method name = "new">

@@ -132,7 +132,7 @@ Here is the message format used by the fortune service.  The request message tak
 [[code]]
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <message reply_to="{reply to}" />
+  <message reply_to="{pipe reply-to}" />
 </restms>
 [[/code]]
 
@@ -141,7 +141,7 @@ And the response message takes this form:
 [[code]]
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <message address="reply_to">
+  <message address="{request reply-to}">
     <header name="fortune" value="{fortune cookie text}" />
   </message>
 </restms>
@@ -986,14 +986,14 @@ The lifecycle and visibility of resources is related, as follows:
 
 * Configured resources are always public while dynamic resources are by default private.
 * Applications can modify and delete dynamic resources, if they know their URIs, while they may not modify or delete configured resources.
-* The URI for a public resource is derived from its type and name, while the URI for a private resource is provided by the server.
-* Public resources are named, and discoverable through navigation of parent resources.  The name of a public resource MAY be empty.  Private resources are unnamed, and undiscoverable through navigation.
+* The URI for a public resource is derived from its type and slug (which may be empty), while the URI for a private resource is provided by the server.
+* Public resources are named, and discoverable through navigation of parent resources.  Private resources are unnamed, and undiscoverable through navigation.
 * Dynamic resources may in some cases be created by the server.
 
-The URI for a public resource is derived from the resource type and name as follows:
+The URI for a public resource is derived from the resource type and slug as follows:
 
 [[code]]
-http://{server-name}[:{port}]/restms/{resource type}/{resource name}
+http://{server-name}[:{port}]/restms/{resource type}/{resource slug}
 [[/code]]
 
 The URI for a private resource takes this form:
@@ -1001,6 +1001,13 @@ The URI for a private resource takes this form:
 [[code]]
 http://{server-name}[:{port}]/restms/resource/{resource hash}
 [[/code]]
+
++++ Resource propagation
+
+RestMS resources may be propagated to foreign messaging networks (especially AMQP networks).  In this case, these rules apply:
+
+* Public resources are propagated using the resource slug value.  It is responsibility of the client application to ensure that the values used are unique.  Implementations MAY enforce uniqueness, at the cost of interoperability.
+* Private resources are propagated using the resource hash value.  It is the responsibility of the implementation to ensure that these hash values are unique.
 
 +++ Creating a new resource
 
@@ -1057,13 +1064,13 @@ ETag: "{resource entity tag}"
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <{resource type}>
+  <{resource type} ...>
     {resource contents}
   </{resource type}>
 </restms>
 [[/code]]
 
-If the POST request actually created the resource the server responds with "201 Created".  If the resource already existed and the specifications are identical to the existing resource, the server responds with "200 OK". Otherwise the server responds with a "400 Bad Request".
+Private resources can only be accessed through their URI.  If the POST request actually created the resource the server responds with "201 Created".  If the resource already existed and the specifications are identical to the existing resource, the server responds with "200 OK". Otherwise the server responds with a "400 Bad Request".
 
 +++ Retrieving a known resource
 
@@ -1107,7 +1114,7 @@ ETag: "{resource entity tag}"
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <{resource type}>
+  <{resource type} ...>
     {resource contents}
   </{resource type}>
 </restms>
@@ -1169,7 +1176,7 @@ Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <{resource type}>
+  <{resource type} ...>
     {resource contents}
   </{resource type}>
 </restms>
@@ -1548,9 +1555,15 @@ A domain document specifies the domain properties, and has references to all pub
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
   <domain title="{domain description}">
-    [ <feed title="{feed description}" type="{feed-type}"
-        license="{license}" href="{feed URI}" /> ] ...
-    [ <pipe title="{pipe description}" type="{pipe-type}" href="{pipe URI}" /> ] ...
+    [ <feed
+        title="{feed description}"
+        type="{feed type}"
+        license="{license}"
+        href="{feed URI}" /> ] ...
+    [ <pipe
+        title="{pipe description}"
+        type="{pipe type}"
+        href="{pipe URI}" /> ] ...
   </domain>
 </restms>
 [[/code]]
@@ -1568,20 +1581,33 @@ These methods are allowed on a feed URI:
 * DELETE - deletes the feed. This method conforms to the generic model and we do not explain it further.
 * POST - sends a message to the feed or stage a content on the feed. We explain these in the description of messages.
 
-A feed document specifies the feed properties, and has no child resource references.  The XML format of this document is:
+The XML specification provided by the client when creating a new feed has this format:
 
 [[code]]
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
   <feed
-    [ type="{feed type}" ]
-    [ title="{short title}" ]
-    [ license="{license name}" ]
+    [ type="{feed type}" ]                  default is "topic"
+    [ title="{short title}" ]               optional title
+    [ license="{license name}" ]            optional license name
     />
 </restms>
 [[/code]]
 
-To create a new feed the client POSTs a feed document to the domain's URI.  Dynamic feeds may be named or unnamed.  If unnamed, the feed is accessible only to applications that have learned its URI by some out-of-band mechanism.  If named, the feed will be propagated to the AMQP network.  A feed maps to an AMQP exchange or shared queue.
+The XML description of a feed returned by the server has this format:
+
+[[code]]
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <feed
+      type="{feed type}"                    actual feed type
+    [ title="{short title}" ]               title, if specified
+    [ license="{license name}" ]            license, if specified
+    />
+</restms>
+[[/code]]
+
+To create a new feed the client POSTs a feed document to the domain's URI.  Dynamic feeds may be named or unnamed.  If unnamed, the feed is accessible only to applications that have learned its URI by some out-of-band mechanism.  All feeds will be propagated to the AMQP network.  A feed maps to an AMQP exchange or shared queue.  The AMQP exchange or queue names can be derived by convention from the feed URI, as previously explained in the section "Resource propagation".
 
 The RestMS server also provides a configured "default feed" with no name, and type "direct" that acts as the routing point for service requests and responses.  This feed maps directly to the AMQP "default exchange" and routes on a literal address string.
 
@@ -1589,7 +1615,7 @@ The feed type defines the routing semantics of the feed, for example whether it 
 
 +++ Pipes
 
-A pipe represents a //read-only// first-in, first-out stream of messages destined for one or more readers.  The messages in a pipe are ordered, though this order is stable only for messages received from one feed.  Pipes receive messages from feeds according to the joins defined between the pipe and the feed.  They store messages for an arbitrary time.  They deliver messages to a single client.  All pipes are dynamic and private.
+A pipe represents a //read-only// first-in, first-out stream of messages destined for one or more readers.  The messages in a pipe are ordered, though this order is stable only for messages received from one feed.  Pipes receive messages from feeds according to the joins defined between the pipe and the feed.  They store messages for an arbitrary time.  They deliver messages to a single client.  All pipes are dynamic and always private.
 
 These methods are allowed on a pipe URI:
 
@@ -1597,12 +1623,28 @@ These methods are allowed on a pipe URI:
 * DELETE - deletes the pipe. This method conforms to the generic model and we do not explain it further.
 * POST - creates a new join for the pipe. This method is explained in the description of joins.
 
-A pipe document specifies the pipe properties, and any joins and messages that the pipe contains.  The XML format of this document is:
+The XML specification provided by the client when creating a new pipe has this format:
 
 [[code]]
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <pipe type="{pipe type}" reply_to="{string}">
+  <pipe
+    [ type="{pipe type}" ]                  default is "fifo"
+    [ title="{short title}" ]               optional title
+    />
+</restms>
+[[/code]]
+
+The XML description of a pipe returned by the server has this format:
+
+[[code]]
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <pipe
+      type="{pipe type}"                    actual pipe type
+      reply_to="{pipe address}"             pipe reply_to address
+    [ title="{short title}" ]               title, if specified
+    >
     [ <join href="{join URI}" address="{address pattern}" feed="{feed URI}" /> ] ...
     [ <message href="{message URI}" address="{address literal}" /> ] ...
     [ <message href="{message URI}" async="1" /> ]
@@ -1614,7 +1656,7 @@ To create a new pipe the client POSTs a pipe document, with no join or message e
 
 If more than one application accesses the same pipe, the results will be unpredictable and none of the applications will receive the full set of messages, nor any cleanly defined subset.  The proper way of distributing messages between applications is to create one pipe per application and join all the pipes to the feed.
 
-The pipe type defines the distribution semantics of the pipe, for example whether it delivers one message at a time, or a stream of messages.  RestMS defines a set of standard pipe types, and implementations can extend this set.  Any attempt to create a pipe with an unknown type results in a "501 Not Implemented" response.
+The pipe type defines the distribution semantics of the pipe, for example whether it delivers one message at a time, or a stream of messages.  RestMS defines a set of standard pipe types, and implementations can extend this set.  An attempt to create a pipe with an unknown type results in a "501 Not Implemented" response.
 
 Applications should create pipes with care.  This is especially important when working with service and rotator feeds.  If an application creates a new pipe each time it starts, messages can be left unprocessed (and thus lost) in unused pipes.  Applications should therefore record the URI of the pipe they are using, and attempt to use this pipe when re-starting.  If the pipe no longer exists, they should create a new pipe and record that.
 
@@ -1629,14 +1671,19 @@ These methods are allowed on a join URI:
 * GET - retrieves the join representation. This method conforms to the generic model and we do not explain it further.
 * DELETE - deletes the join. This method conforms to the generic model and we do not explain it further.
 
-A join document specifies the join properties, and contains no child resource references.  The XML format of this document is:
+The XML specification provided by the client when creating a new join has this format:
 
 [[code]]
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <join address="{address pattern}" feed="{feed URI}" />
+  <join
+    address="{address pattern}"             depends on feed type
+    feed="{feed URI}"                       the feed to pull from
+    />
 </restms>
 [[/code]]
+
+The XML description of a join returned by the server has the same format.
 
 To create a new join the client POSTs a join document to the pipe's URI.  Joins are never named.  The meaning and function of the address pattern depends on the feed type.
 

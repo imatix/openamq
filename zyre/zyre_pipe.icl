@@ -18,25 +18,22 @@
     iMatix Corporation.
  -->
 <class
-    name      = "zyre_feed"
-    comment   = "Zyre feed entity"
+    name      = "zyre_pipe"
+    comment   = "Zyre pipe entity"
     version   = "1.0"
     script    = "icl_gen"
     license   = "gpl"
     >
 <doc>
-This class implements the RestMS feed object.
+This class implements the RestMS pipe object.
 </doc>
 
 <inherit class = "zyre_resource_back" />
 
 <context>
     icl_shortstr_t
-        type,                           //  Feed type
-        title,                          //  Title text
-        license;                        //  License text
-    Bool
-        dynamic;                        //  Feed is dynamic
+        type,                           //  Pipe type
+        title;                          //  Title if any
     zyre_backend_t
         *backend;                       //  Our protocol backend
 </context>
@@ -53,19 +50,17 @@ This class implements the RestMS feed object.
     char
         *type;
 
-    self->dynamic = TRUE;
     type = ipr_xml_attr_get (context->xml_item, "type", "topic");
-    if (zyre_feed_type_valid (type)) {
+    if (zyre_pipe_type_valid (type)) {
         icl_shortstr_cpy (self->type, type);
         icl_shortstr_cpy (self->title, ipr_xml_attr_get (context->xml_item, "title", ""));
-        icl_shortstr_cpy (self->license, ipr_xml_attr_get (context->xml_item, "license", ""));
     }
     else
         http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-            "Invalid feed type '%s' specified", type);
+            "Invalid pipe type '%s' specified", type);
 
     self->backend = zyre_backend_link (backend);
-    zyre_backend_request_feed_create (self->backend, type, portal->slug);
+    zyre_backend_request_pipe_create (self->backend, type, portal->slug);
 </method>
 
 <method name = "get">
@@ -76,12 +71,10 @@ This class implements the RestMS feed object.
     //
     tree = ipr_tree_new (RESTMS_ROOT);
     ipr_tree_leaf (tree, "xmlns", "http://www.imatix.com/schema/restms");
-    ipr_tree_open (tree, "feed");
+    ipr_tree_open (tree, "pipe");
     ipr_tree_leaf (tree, "type", self->type);
     if (*self->title)
         ipr_tree_leaf (tree, "title", self->title);
-    if (*self->license)
-        ipr_tree_leaf (tree, "license", self->license);
     ipr_tree_leaf (tree, "slug", portal->slug);
     ipr_tree_shut (tree);
     zyre_resource_report (portal, context, tree);
@@ -94,30 +87,19 @@ This class implements the RestMS feed object.
         *value;
     </local>
     //
-    if (!self->dynamic)
-        http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
-            "Not allowed to modify this feed");
-    else
     if (context->request->content_length == 0)
         http_driver_context_reply_success (context, HTTP_REPLY_NOCONTENT);
     else
-    if (zyre_restms_parse_document (context, "feed") == 0) {
+    if (zyre_restms_parse_document (context, "pipe") == 0) {
         value = ipr_xml_attr_get (context->xml_item, "title", NULL);
         if (value)
             icl_shortstr_cpy (self->title, value);
-        value = ipr_xml_attr_get (context->xml_item, "license", NULL);
-        if (value)
-            icl_shortstr_cpy (self->license, value);
         http_driver_context_reply_success (context, HTTP_REPLY_OK);
     }
 </method>
 
 <method name = "delete">
-    if (self->dynamic)
-        zyre_backend_request_feed_delete (self->backend, portal->slug);
-    else
-        http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
-            "Not allowed to delete this feed");
+    zyre_backend_request_pipe_delete (self->backend, portal->slug);
 </method>
 
 <method name = "post">
@@ -126,12 +108,10 @@ This class implements the RestMS feed object.
 </method>
 
 <method name = "report">
-    ipr_tree_open (tree, "feed");
+    ipr_tree_open (tree, "pipe");
     ipr_tree_leaf (tree, "type", self->type);
     if (*self->title)
         ipr_tree_leaf (tree, "title", self->title);
-    if (*self->license)
-        ipr_tree_leaf (tree, "license", self->license);
     ipr_tree_leaf (tree, "href", "%s%s%s",
         context->response->root_uri, RESTMS_ROOT, portal->path);
     ipr_tree_shut (tree);
@@ -139,17 +119,11 @@ This class implements the RestMS feed object.
 
 <method name = "type valid" return = "rc">
     <doc>
-    Returns TRUE if the specified feed type is valid, else returns FALSE.
+    Returns TRUE if the specified pipe type is valid, else returns FALSE.
     </doc>
     <argument name = "type" type = "char *" />
     <declare name = "rc" type = "int" />
-    if (streq (type, "fanout")
-    ||  streq (type, "direct")
-    ||  streq (type, "topic")
-    ||  streq (type, "headers")
-    ||  streq (type, "service")
-    ||  streq (type, "rotator")
-    ||  streq (type, "system"))
+    if (streq (type, "fifo"))
         rc = TRUE;
     else
         rc = FALSE;

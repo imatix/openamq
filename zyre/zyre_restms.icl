@@ -264,6 +264,8 @@
         *resource = NULL;
     static int
         instance = 0;                   //  Resource instance
+    int
+        http_reply = 0;                 //  Reply to HTTP agent thread
     </local>
     //
     //  Clean up the slug and build resource path
@@ -287,13 +289,20 @@
     if (ipr_hash_lookup (self->resources, path) == NULL) {
         //  We create the resource and the server object instance
         //  The portal that called us is the parent of this new resource
-        if (streq (type, "feed")) {
+        if (streq (type, "feed"))
             resource = zyre_feed__zyre_resource_new (NULL,
                 portal, self->resources, type, path);
-            assert (resource);
-            zyre_restms__zyre_resource_bind (self, resource);
+        else
+        if (streq (type, "pipe"))
+            resource = zyre_pipe__zyre_resource_new (NULL,
+                portal, self->resources, type, path);
+        else
+            http_driver_context_reply_error (context, HTTP_REPLY_NOTIMPLEMENTED,
+                "Create '%s' not yet implemented", type);
 
+        if (resource) {
             //  Configure resource with current parsed document
+            zyre_restms__zyre_resource_bind (self, resource);
             zyre_resource_set_properties (resource, private, slug);
             zyre_resource_request_configure (resource, context, self->backend);
 
@@ -302,19 +311,18 @@
             //  do anything further.  If we want to prematurely destroy the
             //  resource we'll need to grab a link back.
             zyre_resource_unlink (&resource);
-
-            http_driver_context_reply_success (context, HTTP_REPLY_CREATED);
+            if (!context->failed)
+                http_reply = HTTP_REPLY_CREATED;
         }
-        else
-            http_driver_context_reply_error (context, HTTP_REPLY_NOTIMPLEMENTED,
-                "Create '%s' not yet implemented", type);
     }
     else
-        http_driver_context_reply_success (context, HTTP_REPLY_OK);
+        http_reply = HTTP_REPLY_OK;
 
-    if (!context->failed)
+    if (http_reply) {
         http_response_set_header (context->response, "location",
             "%s%s%s", context->response->root_uri, RESTMS_ROOT, path);
+        http_driver_context_reply_success (context, http_reply);
+    }
 </method>
 
 <!-- Utility functions - general RestMS parsing & processing -->
@@ -358,7 +366,6 @@
         rc = -1;
     }
 </method>
-
 
 <method name = "load history" template = "function">
     <doc>

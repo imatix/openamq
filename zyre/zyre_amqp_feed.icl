@@ -37,20 +37,20 @@
 
 <context>
     icl_shortstr_t
-        class,                          //  Feed class
+        type,                           //  Feed type
         name;                           //  Feed name
     Bool
         as_queue;                       //  Implemented as AMQP queue?
 </context>
 
 <method name = "new">
-    <argument name = "class" type = "char *">Feed class</argument>
+    <argument name = "type" type = "char *">Feed type</argument>
     <argument name = "name" type = "char *">Feed name</argument>
     //
     assert (name);
     icl_shortstr_cpy (self->name, name);
-    icl_shortstr_cpy (self->class, class);
-    self->as_queue = (streq (class, "service") || streq (class, "rotator"));
+    icl_shortstr_cpy (self->type, type);
+    self->as_queue = (streq (type, "service") || streq (type, "rotator"));
 </method>
 
 <method name = "selftest" />
