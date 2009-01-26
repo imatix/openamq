@@ -55,6 +55,8 @@
 <context>
     zyre_backend_t
         *backend;                       //  Backend peering to AMQP
+    int
+        instance;                       //  Historical instance
     Bool
         connected;                      //  Back-end connection alive?
     smt_log_t
@@ -69,6 +71,8 @@
         *resource;
     </local>
     //
+    self_load_history (self);
+
     self->resources = ipr_hash_table_new ();
     self->backend = zyre_backend_amqp__zyre_backend_new (NULL);
     zyre_restms__zyre_backend_bind (self, self->backend);
@@ -258,6 +262,8 @@
         *type;                          //  Resource type from XML
     zyre_resource_t
         *resource = NULL;
+    static int
+        instance = 0;                   //  Resource instance
     </local>
     //
     //  Clean up the slug and build resource path
@@ -274,8 +280,8 @@
     }
     else {
         private = TRUE;                 //  Private resource
-        ipr_str_random (slug, "AAAA-AAAA-AAAA");
-        icl_shortstr_fmt (path, "/resource/%s", slug);
+        ipr_str_random (slug, "AAAAAAAA");
+        icl_shortstr_fmt (path, "/resource/%d%d-%s", self->instance, ++instance, slug);
     }
     //  Create new resource only if it does not already exist
     if (ipr_hash_lookup (self->resources, path) == NULL) {
@@ -306,11 +312,9 @@
     else
         http_driver_context_reply_success (context, HTTP_REPLY_OK);
 
-    if (!context->failed) {
-        icl_console_print ("Location: %s%s%s", context->response->root_uri, RESTMS_ROOT, path);
+    if (!context->failed)
         http_response_set_header (context->response, "location",
             "%s%s%s", context->response->root_uri, RESTMS_ROOT, path);
-    }
 </method>
 
 <!-- Utility functions - general RestMS parsing & processing -->
@@ -358,19 +362,16 @@
 
 <method name = "load history" template = "function">
     <doc>
-    Loads the
+    Loads historical configuation values from zyre_restms.cfg.
     </doc>
-#if 0
+    <local>
     ipr_xml_t
         *xml_root = NULL,
         *xml_item = NULL;
-    int
-        iteration = 0;
     icl_shortstr_t
-        iteration_str;
-
-    icl_system_initialise (argc, argv);
-
+        instance_str;
+    </local>
+    //
     ipr_xml_load_file (&xml_root, ".", "zyre_restms.cfg", FALSE);
     if (xml_root) {
         xml_item = ipr_xml_first_child (xml_root);
@@ -380,19 +381,14 @@
     else {
         xml_item = ipr_xml_new (xml_root, "config", NULL);
     }
-    iteration = atoi (ipr_xml_attr_get (xml_item, "iteration", "0"));
-    iteration++;
-    icl_shortstr_fmt (iteration_str, "%d", iteration);
-    ipr_xml_attr_set (xml_item, "iteration", iteration_str);
+    self->instance = atoi (ipr_xml_attr_get (xml_item, "instance", "0"));
+    self->instance++;
+    icl_shortstr_fmt (instance_str, "%d", self->instance);
+    ipr_xml_attr_set (xml_item, "instance", instance_str);
 
     ipr_xml_save_file (xml_item, "zyre_restms.cfg");
     ipr_xml_unlink (&xml_item);
     ipr_xml_destroy (&xml_root);
-
-    icl_system_terminate ();            //  Terminate all classes
-    return (EXIT_SUCCESS);
-}
-#endif
 </method>
 
 <method name = "selftest" />

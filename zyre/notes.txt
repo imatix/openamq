@@ -20,13 +20,9 @@ AMQP synchronization
 
     - slug is defined?
         / public resource
-        - clean up slug
-        - path = /{type}/{slug}
         - amqp_name = {slug}
     - slug is not defined?
         / private resource
-        - generate slug
-        - path = /{resource}/{slug}
         - amqp_name = {slug}
 
 

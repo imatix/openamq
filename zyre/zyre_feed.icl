@@ -61,7 +61,7 @@ This class implements the RestMS feed object.
         http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
             "Invalid feed type '%s' specified", type);
 
-    //zyre_backend_request_feed_create (backend, type, amqp_name);
+    zyre_backend_request_feed_create (backend, type, portal->slug);
 </method>
 
 <method name = "get">
@@ -78,6 +78,7 @@ This class implements the RestMS feed object.
         ipr_tree_leaf (tree, "title", self->title);
     if (*self->license)
         ipr_tree_leaf (tree, "license", self->license);
+    ipr_tree_leaf (tree, "slug", portal->slug);
     ipr_tree_shut (tree);
     zyre_resource_report (portal, context, tree);
     ipr_tree_destroy (&tree);
