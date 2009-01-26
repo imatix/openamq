@@ -1,3 +1,14 @@
+- remove slugs, not needed
+- pipes are private only
+- implement reply_to on pipes
+    - shown in detail only
+    - RESTMS_hash
+- implement joins
+- default join from all pipes to default feed
+- join tests & synchronisation
+
+
+
 JSON parser in C
 new XML parser that is known solid
 
@@ -18,14 +29,6 @@ AMQP synchronization
     - resource->slug property
     - resource->private property
 
-
-    - slug not stored, not used
-    - pipes need reply_to
-        - implement RESTMS_hash
-    - pipes are always private
-        - enforce
-    - join from pipe to default feed
-        - using reply_to value
 
 
     zyre_backend_request_feed_create (self->backend, "service", "test.service");
