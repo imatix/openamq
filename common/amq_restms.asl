@@ -122,24 +122,10 @@
   tag to be used on multiple queues.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <field name = "pipe type" type = "shortstr" >
-    Pipe type
-    <doc>
-    Specifies the type of the pipe, which must match the type of the
-    existing pipe.
-    </doc>
-  </field>
   <field name = "pipe name" type = "shortstr" >
     Name of pipe
     <doc>
     Specifies the name of the pipe, which must exist.
-    </doc>
-  </field>
-  <field name = "feed type" type = "shortstr" >
-    Feed type
-    <doc>
-    Specifies the type of the feed, which must match the type of the
-    existing feed.
     </doc>
   </field>
   <field name = "feed name" type = "shortstr" >

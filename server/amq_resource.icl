@@ -74,12 +74,12 @@
                 if (connection) {
                     //  Create private queue for pipe, and consume from it
                     queue = amq_queue_new (
-                        connection,
-                        pipe_name,
-                        FALSE,
-                        TRUE,
-                        TRUE,
-                        NULL);
+                        connection,     //  Server connection
+                        pipe_name,      //  Queue name
+                        FALSE,          //  Durable queue?
+                        TRUE,           //  Exclusive queue?
+                        TRUE,           //  Auto-delete?
+                        NULL);          //  Arguments to declaration
                     if (queue) {
                         //  Consume from queue, using pipe name as consumer tag
                         icl_shortstr_fmt (tag, "x:%s", pipe_name);
@@ -266,9 +266,7 @@
     <doc>
     Creates the join, or asserts it exists as specified. Errors are logged.
     </doc>
-    <argument name = "pipe type" type = "char *" />
     <argument name = "pipe name" type = "char *" />
-    <argument name = "feed type" type = "char *" />
     <argument name = "feed name" type = "char *" />
     <argument name = "address" type = "char *" />
     <argument name = "channel" type = "amq_server_channel_t *" />
@@ -277,35 +275,22 @@
         *queue = NULL;
     amq_exchange_t
         *exchange = NULL;
-    Bool
-        auto_delete;
-    int
-        exchange_type;
-    amq_client_method_t
-        *method;                        //  Consume method
-    icl_shortstr_t
-        tag;                            //  Consumer tag, q:{pipe-name}
     char
         *error_text = NULL;             //  Error text, if any
     </local>
     //
-    exchange_type = amq_exchange_type_lookup (feed_type);
-    auto_delete = streq (feed_type, "service");
     if (strnull (feed_name))
         error_text = "join_create: feed name may not be empty";
-    else
-    if (strneq (pipe_type, "fifo"))
-        error_text = "join_create: invalid pipe type";
-    else
-    if (streq (feed_type, "service") || streq (feed_type, "rotator")) {
+    else {
         queue = amq_queue_table_search (amq_broker->queue_table, feed_name);
         if (queue) {
             if (queue->exclusive)
-                error_text = "join_create: feed queue exists but is exclusive";
-            else
-            if (queue->auto_delete != auto_delete)
-                error_text = "join_create: feed type does not match existing feed";
+                error_text = "join_delete: feed queue exists but is exclusive";
             else {
+                icl_shortstr_t
+                    tag;                //  Consumer tag, q:{pipe-name}
+                amq_client_method_t
+                    *method;            //  Consume method
                 //  Create consumer, with pipe name as tag, on queue
                 //  On shared queues, we do not implement the address string
                 icl_shortstr_fmt (tag, "q:%s", pipe_name);
@@ -317,31 +302,26 @@
             }
             amq_queue_unlink (&queue);
         }
-        else
-            error_text = "join_create: feed queue does not exist";
-    }
-    else
-    if (exchange_type >= 0) {
-        exchange = amq_exchange_table_search (amq_broker->exchange_table, feed_name);
-        queue = amq_queue_table_search (amq_broker->queue_table, pipe_name);
-        if (queue) {
-            if (!queue->exclusive)
-                error_text = "join_create: pipe queue exists but is not exclusive";
+        else {
+            exchange = amq_exchange_table_search (amq_broker->exchange_table, feed_name);
+            queue = amq_queue_table_search (amq_broker->queue_table, pipe_name);
+            if (queue) {
+                if (!queue->exclusive)
+                    error_text = "join_create: pipe queue exists but is not exclusive";
+                else
+                if (exchange)
+                    //  On exchanges, the address string is the routing key
+                    amq_exchange_bind_queue (exchange, channel, queue, address, NULL);
+                else
+                    error_text = "join_create: feed exchange does not exist";
+            }
             else
-            if (exchange)
-                //  On exchanges, the address string is the routing key
-                amq_exchange_bind_queue (exchange, channel, queue, address, NULL);
-            else
-                error_text = "join_create: feed exchange does not exist";
-        }
-        else
-            error_text = "join_create: pipe queue does not exist";
-        amq_queue_unlink (&queue);
-        amq_exchange_unlink (&exchange);
-    }
-    else
-        error_text = "join_create: invalid feed type";
+                error_text = "join_create: pipe queue does not exist";
 
+            amq_queue_unlink (&queue);
+            amq_exchange_unlink (&exchange);
+        }
+    }
     if (error_text)
         smt_log_print (amq_broker->alert_log, "W: %s", error_text);
 </method>
@@ -359,8 +339,6 @@
         *queue = NULL;
     amq_exchange_t
         *exchange = NULL;
-    icl_shortstr_t
-        tag;                            //  Consumer tag, q:{pipe-name}
     char
         *error_text = NULL;             //  Error text, if any
     </local>
@@ -373,6 +351,8 @@
             if (queue->exclusive)
                 error_text = "join_delete: feed queue exists but is exclusive";
             else {
+                icl_shortstr_t
+                    tag;                //  Consumer tag, q:{pipe-name}
                 //  Cancel consumer, with pipe name as tag, on queue
                 icl_shortstr_fmt (tag, "q:%s", pipe_name);
                 amq_server_channel_cancel (channel, tag, TRUE, TRUE);
@@ -380,10 +360,8 @@
             amq_queue_unlink (&queue);
         }
         else {
-            exchange = amq_exchange_table_search (
-                amq_broker->exchange_table, feed_name);
-            queue = amq_queue_table_search (
-                amq_broker->queue_table, pipe_name);
+            exchange = amq_exchange_table_search (amq_broker->exchange_table, feed_name);
+            queue = amq_queue_table_search (amq_broker->queue_table, pipe_name);
             if (exchange && queue) {
                 if (!queue->exclusive)
                     error_text = "join_delete: pipe queue exists but is not exclusive";

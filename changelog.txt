@@ -25,6 +25,9 @@ TODO
         - body
     - document iCL classes like icl_longstr, asl_field_table, etc. for
       WireAPI developers
+    - generate shortref:
+        //  Comment
+        type result = method (argument prototype)
     - in documentation, amq_peering.cfg not mentioned
         - this provides credential for failover connections
         - and also for federation connections

@@ -473,9 +473,7 @@
 
   <action name = "join-create">
     amq_resource_join_create (
-        method->pipe_type, method->pipe_name,
-        method->feed_type, method->feed_name,
-        method->address, channel);
+        method->pipe_name, method->feed_name, method->address, channel);
   </action>
   <action name = "join-delete">
     amq_resource_join_delete (
