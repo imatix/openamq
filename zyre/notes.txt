@@ -1,5 +1,7 @@
-- remove slugs, not needed
+
 - pipes are private only
+- pipe, feed name property
+
 - implement reply_to on pipes
     - shown in detail only
     - RESTMS_hash
@@ -26,10 +28,15 @@ new resource from openamq
 
 
 AMQP synchronization
-    - resource->slug property
     - resource->private property
 
-
+Rainey
+    - JPMC, DJ followup
+    - AMQP WG meetings each week: attend, report
+    - follow issues on openamq.org
+    - assist at FOSDEM
+    - logo for X5
+    - black t-shirts for X5 & FOSDEM
 
     zyre_backend_request_feed_create (self->backend, "service", "test.service");
     zyre_backend_request_feed_create (self->backend, "direct", "test.direct");

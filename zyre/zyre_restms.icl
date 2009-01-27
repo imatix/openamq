@@ -55,8 +55,6 @@
 <context>
     zyre_backend_t
         *backend;                       //  Backend peering to AMQP
-    int
-        instance;                       //  Historical instance
     Bool
         connected;                      //  Back-end connection alive?
     smt_log_t
@@ -71,8 +69,6 @@
         *resource;
     </local>
     //
-    self_load_history (self);
-
     self->resources = ipr_hash_table_new ();
     self->backend = zyre_backend_amqp__zyre_backend_new (NULL);
     zyre_restms__zyre_backend_bind (self, self->backend);
@@ -80,7 +76,7 @@
 
     //  Create domain resource
     resource = zyre_domain__zyre_resource_new (NULL,
-        NULL, self->resources, "domain", "/domain/");
+        NULL, self->resources, "domain", "main");
     zyre_restms__zyre_resource_bind (self, resource);
     zyre_resource_unlink (&resource);
 </method>
@@ -253,76 +249,60 @@
 <method name = "child add">
     <argument name = "context" type = "http_driver_context_t *" />
     <local>
-    icl_shortstr_t
-        slug,                           //  Cleaned / generated slug
-        path;                           //  Computed resource path
-    Bool
-        private;                        //  Private resource?
     char
         *type;                          //  Resource type from XML
     zyre_resource_t
         *resource = NULL;
-    static int
-        instance = 0;                   //  Resource instance
-    int
-        http_reply = 0;                 //  Reply to HTTP agent thread
     </local>
     //
     //  Clean up the slug and build resource path
     type = ipr_xml_name (context->xml_item);
-    icl_shortstr_cpy (slug, http_request_get_header (context->request, "slug"));
-    if (*slug) {
-        char
-            *name_ptr;
-        for (name_ptr = slug; *name_ptr; name_ptr++)
-            if (!isalnum (*name_ptr) && *name_ptr != '.')
-                *name_ptr = '-';
-        private = FALSE;                //  Public resource
-        icl_shortstr_fmt (path, "/%s/%s", type, slug);
+
+    //  We create the resource and the server object instance
+    //  The portal that called us is the parent of this new resource
+    if (streq (type, "feed"))
+        resource = zyre_feed__zyre_resource_new (NULL, portal, self->resources, type,
+            http_request_get_header (context->request, "slug"));
+    else
+    if (streq (type, "pipe"))
+        //  For pipes we ignore the Slug header
+        resource = zyre_pipe__zyre_resource_new (NULL, portal, self->resources, type, "");
+    else {
+        icl_console_print ("E: not implemented: %s", type);
+        assert (FALSE);
+    }
+    zyre_restms__zyre_resource_bind (self, resource);
+
+    //  resource->hash is null if resource already existed with same path
+    if (resource->hash) {
+        //  Configure resource with current parsed document
+        //  This may result in any error reply back to the client
+        context->response->reply_code = HTTP_REPLY_CREATED;
+        zyre_resource_request_configure (resource, context, self->backend);
     }
     else {
-        private = TRUE;                 //  Private resource
-        ipr_str_random (slug, "AAAAAAAA");
-        icl_shortstr_fmt (path, "/resource/%d%d-%s", self->instance, ++instance, slug);
+        //  Destroy the duplicate resource and grab the real one so we can
+        //  report it back to the client application
+        zyre_resource_t
+            *actual;
+        actual = ipr_hash_lookup (self->resources, resource->path);
+        assert (actual);
+        zyre_resource_destroy (&resource);
+        resource = zyre_resource_link (actual);
     }
-    //  Create new resource only if it does not already exist
-    if (ipr_hash_lookup (self->resources, path) == NULL) {
-        //  We create the resource and the server object instance
-        //  The portal that called us is the parent of this new resource
-        if (streq (type, "feed"))
-            resource = zyre_feed__zyre_resource_new (NULL,
-                portal, self->resources, type, path);
-        else
-        if (streq (type, "pipe"))
-            resource = zyre_pipe__zyre_resource_new (NULL,
-                portal, self->resources, type, path);
-        else
-            http_driver_context_reply_error (context, HTTP_REPLY_NOTIMPLEMENTED,
-                "Create '%s' not yet implemented", type);
-
-        if (resource) {
-            //  Configure resource with current parsed document
-            zyre_restms__zyre_resource_bind (self, resource);
-            zyre_resource_set_properties (resource, private, slug);
-            zyre_resource_request_configure (resource, context, self->backend);
-
-            //  We drop our link to the resource so that it is automatically
-            //  destroyed when this object is destroyed, and we don't need to
-            //  do anything further.  If we want to prematurely destroy the
-            //  resource we'll need to grab a link back.
-            zyre_resource_unlink (&resource);
-            if (!context->failed)
-                http_reply = HTTP_REPLY_CREATED;
-        }
-    }
-    else
-        http_reply = HTTP_REPLY_OK;
-
-    if (http_reply) {
+    if (!context->failed) {
+        //  Set Location: header to new or existing resource
         http_response_set_header (context->response, "location",
-            "%s%s%s", context->response->root_uri, RESTMS_ROOT, path);
-        http_driver_context_reply_success (context, http_reply);
+            "%s%s%s", context->response->root_uri, RESTMS_ROOT, resource->path);
+
+        //  Get resource description for client
+        zyre_resource_request_get (resource, context);
     }
+    //  We drop our link to the resource so that it is automatically
+    //  destroyed when this object is destroyed, and we don't need to
+    //  do anything further.  If we want to prematurely destroy the
+    //  resource we'll need to grab a link back.
+    zyre_resource_unlink (&resource);
 </method>
 
 <!-- Utility functions - general RestMS parsing & processing -->
@@ -365,37 +345,6 @@
             "Content-Type must be 'application/restms+xml");
         rc = -1;
     }
-</method>
-
-<method name = "load history" template = "function">
-    <doc>
-    Loads historical configuation values from zyre_restms.cfg.
-    </doc>
-    <local>
-    ipr_xml_t
-        *xml_root = NULL,
-        *xml_item = NULL;
-    icl_shortstr_t
-        instance_str;
-    </local>
-    //
-    ipr_xml_load_file (&xml_root, ".", "zyre_restms.cfg", FALSE);
-    if (xml_root) {
-        xml_item = ipr_xml_first_child (xml_root);
-        if (!xml_item)
-            xml_item = ipr_xml_new (xml_root, "config", NULL);
-    }
-    else {
-        xml_item = ipr_xml_new (xml_root, "config", NULL);
-    }
-    self->instance = atoi (ipr_xml_attr_get (xml_item, "instance", "0"));
-    self->instance++;
-    icl_shortstr_fmt (instance_str, "%d", self->instance);
-    ipr_xml_attr_set (xml_item, "instance", instance_str);
-
-    ipr_xml_save_file (xml_item, "zyre_restms.cfg");
-    ipr_xml_unlink (&xml_item);
-    ipr_xml_destroy (&xml_root);
 </method>
 
 <method name = "selftest" />

@@ -56,8 +56,8 @@ This class implements the RestMS feed object.
     self->dynamic = TRUE;
     type = ipr_xml_attr_get (context->xml_item, "type", "topic");
     if (zyre_feed_type_valid (type)) {
-        icl_shortstr_cpy (self->type, type);
-        icl_shortstr_cpy (self->title, ipr_xml_attr_get (context->xml_item, "title", ""));
+        icl_shortstr_cpy (self->type,    type);
+        icl_shortstr_cpy (self->title,   ipr_xml_attr_get (context->xml_item, "title", ""));
         icl_shortstr_cpy (self->license, ipr_xml_attr_get (context->xml_item, "license", ""));
     }
     else
@@ -65,7 +65,7 @@ This class implements the RestMS feed object.
             "Invalid feed type '%s' specified", type);
 
     self->backend = zyre_backend_link (backend);
-    zyre_backend_request_feed_create (self->backend, type, portal->slug);
+    zyre_backend_request_feed_create (self->backend, type, portal->name);
 </method>
 
 <method name = "get">
@@ -77,12 +77,12 @@ This class implements the RestMS feed object.
     tree = ipr_tree_new (RESTMS_ROOT);
     ipr_tree_leaf (tree, "xmlns", "http://www.imatix.com/schema/restms");
     ipr_tree_open (tree, "feed");
+    ipr_tree_leaf (tree, "name", portal->name);
     ipr_tree_leaf (tree, "type", self->type);
     if (*self->title)
         ipr_tree_leaf (tree, "title", self->title);
     if (*self->license)
         ipr_tree_leaf (tree, "license", self->license);
-    ipr_tree_leaf (tree, "slug", portal->slug);
     ipr_tree_shut (tree);
     zyre_resource_report (portal, context, tree);
     ipr_tree_destroy (&tree);
@@ -114,7 +114,7 @@ This class implements the RestMS feed object.
 
 <method name = "delete">
     if (self->dynamic)
-        zyre_backend_request_feed_delete (self->backend, portal->slug);
+        zyre_backend_request_feed_delete (self->backend, portal->name);
     else
         http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
             "Not allowed to delete this feed");
@@ -127,6 +127,7 @@ This class implements the RestMS feed object.
 
 <method name = "report">
     ipr_tree_open (tree, "feed");
+    ipr_tree_leaf (tree, "name", portal->name);
     ipr_tree_leaf (tree, "type", self->type);
     if (*self->title)
         ipr_tree_leaf (tree, "title", self->title);

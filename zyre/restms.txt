@@ -132,7 +132,7 @@ Here is the message format used by the fortune service.  The request message tak
 [[code]]
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <message reply_to="{pipe reply-to}" />
+  <message reply_to="{pipe name}" />
 </restms>
 [[/code]]
 
@@ -220,12 +220,12 @@ The client unpacks the headers table and takes the "fortune" field, which contai
 
 ++++ RestMS fortune service
 
-We now explain how the same service would work using RestMS semantics.  First, the fortune service creates a public feed named "fortune", by posting a feed specification to the default domain:
+We now explain how the same service would work using RestMS semantics.  First, the fortune service creates a public feed named "fortune", by posting a feed specification to the "main" domain:
 
 [[code]]
 Client:
 -------------------------------------------------
-POST /restms/domain/
+POST /restms/domain/main
 Content-Type: application/restms+xml
 Slug: fortune
 
@@ -242,7 +242,7 @@ Location: http://host.com/restms/feed/fortune
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <feed type="service" />
+  <feed type="service" name="fortune" />
 </restms>
 [[/code]]
 
@@ -251,7 +251,7 @@ The fortune service then creates a pipe:
 [[code]]
 Client:
 -------------------------------------------------
-POST /restms/domain/
+POST /restms/domain/main
 Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
@@ -267,7 +267,7 @@ Location: http://host.com/restms/resource/C4FE
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <pipe type="fifo" reply_to="RESTMS_C4FE">
+  <pipe type="fifo" name="RESTMS_C4FE">
     <!-- All pipes are automatically joined to the default feed -->
     <join
         href="http://host.com/restms/resource/BA5F"
@@ -281,7 +281,7 @@ Location: http://host.com/restms/resource/C4FE
 </restms>
 [[/code]]
 
-The fortune service does not expect to be addressed by its reply_to attribute, but rather by the service name "fortune".  It thus creates a join from its pipe to the fortune feed, by POSTing a join specification to the pipe URI.
+The fortune service wants to get messages into its pipe, via the service name "fortune".  It thus creates a join from its pipe to the fortune feed, by POSTing a join specification to the pipe URI.
 
 [[code]]
 Client:
@@ -376,12 +376,12 @@ HTTP/1.1 200 OK
 
 ++++ RestMS fortune client
 
-The fortune client creates a pipe by posting a pipe specification document to the default domain:
+The fortune client creates a pipe by posting a pipe specification document to the "main" domain:
 
 [[code]]
 Client:
 -------------------------------------------------
-POST /restms/domain/
+POST /restms/domain/main
 Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
@@ -397,7 +397,7 @@ Location: http://host.com/restms/resource/B4B4
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <pipe type="fifo" reply_to="RESTMS_B4B4">
+  <pipe type="fifo" name="RESTMS_B4B4">
     <join
         href="http://host.com/restms/resource/00DA"
         address="RESTMS_B4B4"
@@ -590,12 +590,12 @@ S:Basic.Deliver exchange="newsfeed" routing_key="rec.pets.cats"
 
 ++++ RestMS newsfeed publisher
 
-The news publisher first declares a public topic feed called "newsfeed", by posting a feed specification to the default domain:
+The news publisher first declares a public topic feed called "newsfeed", by posting a feed specification to the "main" domain:
 
 [[code]]
 Client:
 -------------------------------------------------
-POST /restms/domain/
+POST /restms/domain/main
 Content-Type: application/restms+xml
 Slug: newsfeed
 
@@ -612,7 +612,7 @@ Location: http://host.com/restms/feed/newsfeed
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <feed type="topic" />
+  <feed type="topic" name="newsfeed" />
 </restms>
 [[/code]]
 
@@ -664,7 +664,7 @@ The subscriber creates a pipe on which to receive news items, and the server res
 [[code]]
 Client:
 -------------------------------------------------
-POST /restms/domain/
+POST /restms/domain/main
 Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
@@ -680,7 +680,7 @@ Location: http://host.com/restms/resource/F33D
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <pipe type="fifo">
+  <pipe type="fifo" name="RESTMS_F33D" >
     <message
         href="http://host.com/restms/resource/33D1"
         async="1" />
@@ -1004,7 +1004,7 @@ http://{server-name}[:{port}]/restms/resource/{resource hash}
 
 +++ Resource propagation
 
-RestMS resources may be propagated to foreign messaging networks (especially AMQP networks).  In this case, these rules apply:
+RestMS resources may be propagated to foreign messaging networks (particularly AMQP networks).  In this case, these rules apply:
 
 * Public resources are propagated using the resource slug value.  It is responsibility of the client application to ensure that the values used are unique.  Implementations MAY enforce uniqueness, at the cost of interoperability.
 * Private resources are propagated using the resource hash value.  It is the responsibility of the implementation to ensure that these hash values are unique.
@@ -1015,7 +1015,7 @@ The creation of a new dynamic resource follows these rules:
 
 * The new resource will always be the child of another resource (the 'parent') identified with a URI.
 * The client creates the resource by sending a POST method on the parent URI and providing the specifications for the new resource as the POST content body.
-* The client can request a public or a private resource.  Public resources are created with a Slug, while private resources are accessible only via the server-generated URI.
+* The client can request a public or a private resource.  Public resources are named by a Slug header, while private resources named by a server-generated hash.
 * The server replies, if there was no error, with a "200 OK" or "201 Created" reply status, a Location: header that provides a URI to the new resource, and a content body that represents the created resource.
 
 [[code]]
@@ -1064,13 +1064,13 @@ ETag: "{resource entity tag}"
 
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
-  <{resource type} ...>
+  <{resource type} name="{resource name}"...>
     {resource contents}
   </{resource type}>
 </restms>
 [[/code]]
 
-Private resources can only be accessed through their URI.  If the POST request actually created the resource the server responds with "201 Created".  If the resource already existed and the specifications are identical to the existing resource, the server responds with "200 OK". Otherwise the server responds with a "400 Bad Request".
+Private resources are accessed through their URI.  If the POST request actually created the resource the server responds with "201 Created".  If the resource already existed, and the specifications are correct, the server responds with "200 OK".  Otherwise the server responds with a "400 Bad Request".
 
 +++ Retrieving a known resource
 
@@ -1538,10 +1538,10 @@ The URI for a domain is:
 http://{server-name}[:{port}]/restms/domain/{domain-name}
 [[/code]]
 
-RestMS servers SHOULD implement a unnamed "default domain". The URI for the default domain is:
+RestMS servers SHOULD implement a default public domain named "main". The URI for the "main" domain is as expected:
 
 [[code]]
-http://{server-name}[:{port}]/restms/domain/
+http://{server-name}[:{port}]/restms/domain/main
 [[/code]]
 
 These methods are allowed on a domain URI:
@@ -1556,11 +1556,13 @@ A domain document specifies the domain properties, and has references to all pub
 <restms xmlns="http://www.imatix.com/schema/restms">
   <domain title="{domain description}">
     [ <feed
+        name="{feed name}"
         title="{feed description}"
         type="{feed type}"
         license="{license}"
         href="{feed URI}" /> ] ...
     [ <pipe
+        name="{pipe name}"
         title="{pipe description}"
         type="{pipe type}"
         href="{pipe URI}" /> ] ...
@@ -1600,6 +1602,7 @@ The XML description of a feed returned by the server has this format:
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
   <feed
+      name="{feed name}"                    Slug or hash
       type="{feed type}"                    actual feed type
     [ title="{short title}" ]               title, if specified
     [ license="{license name}" ]            license, if specified
@@ -1641,8 +1644,8 @@ The XML description of a pipe returned by the server has this format:
 <?xml version="1.0"?>
 <restms xmlns="http://www.imatix.com/schema/restms">
   <pipe
+      name="{pipe name}"                    server hash
       type="{pipe type}"                    actual pipe type
-      reply_to="{pipe address}"             pipe reply_to address
     [ title="{short title}" ]               title, if specified
     >
     [ <join href="{join URI}" address="{address pattern}" feed="{feed URI}" /> ] ...
@@ -1652,7 +1655,7 @@ The XML description of a pipe returned by the server has this format:
 </restms>
 [[/code]]
 
-To create a new pipe the client POSTs a pipe document, with no join or message elements, to the domain's URI.  Pipes are never named and SHOULD only be accessed by the single application that created them.  The reply_to attribute is generated by the server (and ignored when creating pipes), and clients should use this as the reply_to attribute for messages to which they expect a reply.  Note that every pipe has a default join using the reply_to attribute as address, see below.  All pipes are propagated to the AMQP network.
+To create a new pipe the client POSTs a pipe document, with no join or message elements, to the domain's URI.  Pipes are never named and SHOULD only be accessed by the single application that created them.  The name attribute is generated by the server (and ignored when creating pipes), and clients should use this as the reply_to attribute for messages to which they expect a reply.  Note that every pipe has a default join using its name as address, see below.  All pipes are propagated to the AMQP network.
 
 If more than one application accesses the same pipe, the results will be unpredictable and none of the applications will receive the full set of messages, nor any cleanly defined subset.  The proper way of distributing messages between applications is to create one pipe per application and join all the pipes to the feed.
 
@@ -1687,7 +1690,7 @@ The XML description of a join returned by the server has the same format.
 
 To create a new join the client POSTs a join document to the pipe's URI.  Joins are never named.  The meaning and function of the address pattern depends on the feed type.
 
-Every pipe automatically has a join on the default feed, using the pipe's reply_to attribute as address.  This provides the same utility as default bindings in AMQP: it reduces the work that a client must do to prepare a pipe for the common use case of receiving a specifically addressed message.
+Every pipe automatically has a join on the default feed, using the pipe's name attribute as address.  This provides the same utility as default bindings in AMQP: it reduces the work that a client must do to prepare a pipe for the common use case of receiving a specifically addressed message.
 
 +++ Messages
 
@@ -1795,7 +1798,7 @@ A //rotator// or //service// feed maps to an AMQP shared queue.  These feeds rou
 
 Implementations SHOULD implement the fifo pipe type, and MAY implement any of the other pipe types.  If they do implement them, they must conform to the semantics defined here.
 
-Pipes are propagated to the AMQP network as bindings that use the "reply_to" attribute of the pipe (this pipe attribute is automatically set by the RestMS server on new pipes).  Pipes MAY be implemented as private queues on the AMQP server but this is not the only architecture.
+Pipes are propagated to the AMQP network as bindings that use the name attribute of the pipe (this pipe attribute is automatically set by the RestMS server on new pipes).  Pipes MAY be implemented as private queues on the AMQP server but this is not the only architecture.
 
 * The **fifo** pipe type holds an unspecified (but greater than one) number of messages and delivers these to a client application when asked for them.  It delivers messages one by one and messages remain in the pipe until deleted.
 
@@ -1851,7 +1854,7 @@ These conventions apply:
 
 * A service MUST correspond to a shared queue in AMQP terms, or a service or rotator feed in RestMS terms.  AMQP service applications MUST consume from the shared queue.  RestMS service applications MUST create a pipe and create a join from the pipe to the feed.  A service MAY be implemented transparently by any mix of AMQP and RestMS applications, with messages being served in a round-robin fashion to each implementing application.
 
-* A request message that needs a reply MUST provide a reply_to attribute.  For AMQP clients this MUST be the name of a private response queue. For RestMS clients this MUST be the reply_to attribute of a pipe.
+* A request message that needs a reply MUST provide a reply_to attribute.  For AMQP clients this MUST be the name of a private response queue. For RestMS clients this MUST be the name attribute of a pipe.
 
 * Services that wish to send replies MUST use the reply_to attribute of the request message.  If they are AMQP service applications, they MUST publish the reply to the default exchange using the reply_to attribute as routing key.  If they are RestMS service applications, they MUST post the reply to the default feed using the reply_to attribute as address.
 

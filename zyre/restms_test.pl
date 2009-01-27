@@ -23,9 +23,9 @@ $restms->verbose (1);
 
 #   --------- Domains ---------------
 #   Test default domain
-$restms->get    ("/domain/", 200);
-$restms->put    ("/domain/", 400);
-$restms->delete ("/domain/", 400);
+$restms->get    ("/domain/main", 200);
+$restms->put    ("/domain/main", 400);
+$restms->delete ("/domain/main", 400);
 
 #   --------- Feeds -----------------
 #   Test public service feed
@@ -34,7 +34,7 @@ my $uri = $restms->feed_create ("test.fanout", "fanout", 201);
 $restms->feed_create ("test.fanout", "fanout", 200);
 $restms->put ($uri, '<restms><feed title="Test fanout feed"/></restms>', 200);
 $restms->get ($uri, 200);
-$restms->get ("/domain/", 200);
+$restms->get ("/domain/main", 200);
 $restms->delete ($uri, 200);
 $restms->delete ($uri, 200);
 
@@ -44,7 +44,7 @@ my $uri = $restms->feed_create ("test.service", "service", 201);
 $restms->feed_create ("test.service", "service", 200);
 $restms->put ($uri, '<restms><feed title="Test service feed"/></restms>', 200);
 $restms->get ($uri, 200);
-$restms->get ("/domain/", 200);
+$restms->get ("/domain/main", 200);
 $restms->delete ($uri, 200);
 $restms->delete ($uri, 200);
 
@@ -52,26 +52,16 @@ $restms->delete ($uri, 200);
 my $uri = $restms->feed_create (undef, "topic", 201);
 $restms->put ($uri, '<restms><feed title="Test private feed"/></restms>', 200);
 $restms->get ($uri, 200);
-$restms->get ("/domain/", 200);
+$restms->get ("/domain/main", 200);
 $restms->delete ($uri, 200);
 $restms->delete ($uri, 200);
 
 #   --------- Pipes -----------------
-#   Test public pipe
-$restms->delete ("/pipe/test.pipe", 200);
-my $uri = $restms->pipe_create ("test.pipe", "fifo", 201);
-$restms->pipe_create ("test.pipe", "fifo", 200);
-$restms->put ($uri, '<restms><pipe title="Test public pipe"/></restms>', 200);
-$restms->get ($uri, 200);
-$restms->get ("/domain/", 200);
-$restms->delete ($uri, 200);
-$restms->delete ($uri, 200);
-
 #   Test private pipe
-my $uri = $restms->pipe_create (undef, "fifo", 201);
+my $uri = $restms->pipe_create ("fifo", 201);
 $restms->put ($uri, '<restms><pipe title="Test private pipe"/></restms>', 200);
 $restms->get ($uri, 200);
-$restms->get ("/domain/", 200);
+$restms->get ("/domain/main", 200);
 $restms->delete ($uri, 200);
 $restms->delete ($uri, 200);
 
@@ -83,10 +73,14 @@ $restms->raw ("DELETE", "/invalid", undef, 400);
 $restms->raw ("POST",   "/invalid", undef, 400);
 
 #   Badly structured documents
-$restms->raw ("PUT", "/domain/", '<restms/>', 400);
-$restms->raw ("PUT", "/domain/", '<restmas>< type="fanout" /></restmas>', 400);
-$restms->raw ("PUT", "/domain/", '<restms><fud type="fanout" /></restms>', 400);
-$restms->raw ("PUT", "/domain/", '<restms><feed type="fanout" />', 400);
+$restms->raw ("PUT", "/domain/main", '<restms/>', 400);
+$restms->raw ("PUT", "/domain/main", '<restmas>< type="fanout" /></restmas>', 400);
+$restms->raw ("PUT", "/domain/main", '<restms><fud type="fanout" /></restms>', 400);
+$restms->raw ("PUT", "/domain/main", '<restms><feed type="fanout" />', 400);
+
+#   Bad pipe types
+my $uri = $restms->pipe_create ("fido", 400);
+my $uri = $restms->pipe_create (undef, 400);
 
 $restms->carp (" -- all tests passed successfully");
 

@@ -18,8 +18,11 @@ rules of programming
     - publish early and often
     - learn to touch type
     - work very, very hard
-    - be annoyed at bad design
-    - learn the physics of people
+    - bad design should offend
+    - it's a social science
+    - design for the long run
+    - exploit Heironymous' Law
+
 
 SOA is finally cool
  =- slashdot quotez

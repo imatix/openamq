@@ -54,6 +54,7 @@ This class implements the RestMS domain object.
     tree = ipr_tree_new (RESTMS_ROOT);
     ipr_tree_leaf (tree, "xmlns", "http://www.imatix.com/schema/restms");
     ipr_tree_open (tree, "domain");
+    ipr_tree_leaf (tree, "name", portal->name);
     ipr_tree_leaf (tree, "title", self->title);
     looseref = ipr_looseref_list_first (portal->children);
     while (looseref) {

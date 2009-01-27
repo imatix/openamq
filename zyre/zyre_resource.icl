@@ -35,6 +35,7 @@ This class is not threadsafe and may be used from one threadlet only.
     <option name = "front_end" value = "sync" />
     <option name = "back_end" value = "sync" />
 </inherit>
+<inherit class = "icl_init" />
 
 <import class = "zyre_classes" />
 
@@ -108,38 +109,71 @@ This class is not threadsafe and may be used from one threadlet only.
 #define RESTMS_RESOURCE_VALID(t)    ((t) > 0 && (t) < 6)
 </public>
 
+<private name = "header">
+#define S_CONFIG_FILE       "zyre_restms.cfg"
+//  This counter lets us generate unique resource hashes - we bump it each time
+//  we initialise the class, and save the new value in S_CONFIG_FILE
+static long int
+    s_instance,                         //  Execution instance
+    s_current;                          //  Resources created so far
+</private>
+
 <context>
     $(selftype)
         *parent;                        //  Parent resource
     uint
         type;                           //  Resource type
-    ipr_looseref_list_t
-        *children;                      //  Looseref list of children
+    icl_shortstr_t
+        name,                           //  Resource slug or hash
+        path;                           //  Resource path
+    Bool
+        private;                        //  Not discoverable
     ipr_hash_t
         *hash;                          //  Backlink to hash item
+    ipr_looseref_list_t
+        *children;                      //  Looseref list of children
     ipr_looseref_t
         *in_parent;                     //  Backlink to parent's list
     apr_time_t
         modified;                       //  Date-Modified value
-    icl_shortstr_t
-        path,                           //  Resource path
-        slug;                           //  Resource slug
-    Bool
-        private;                        //  Not discoverable
 </context>
 
 <method name = "new">
+    <doc>
+    Create new resource.  If the resource already exists (path already defined)
+    the resource->hash will be null, and the resource should be destroyed by
+    the caller.
+    </doc>
     <argument name = "parent" type = "zyre_resource_t *">Parent resource, or NULL</argument>
     <argument name = "table" type = "ipr_hash_table_t *">Hash by path</argument>
     <argument name = "type" type = "char *">Resource type name</argument>
-    <argument name = "path" type = "char *">Resource path</argument>
+    <argument name = "slug" type = "char *">Resource slug, or empty</argument>
     //
-    self->modified  = apr_time_now ();
-    self->type      = zyre_resource_type_value (type);
-    self->children  = ipr_looseref_list_new ();
-    self->hash      = ipr_hash_new (table, path, self);
-    self->in_parent = self_attach_to_parent (self, parent);
-    icl_shortstr_cpy (self->path, path);
+    if (*slug) {
+        //  If we have a slug, clean it up and use it as name
+        char
+            *name_ptr;
+        icl_shortstr_cpy (self->name, slug);
+        for (name_ptr = self->name; *name_ptr; name_ptr++)
+            if (!isalnum (*name_ptr) && *name_ptr != '.')
+                *name_ptr = '-';
+        icl_shortstr_fmt (self->path, "/%s/%s", type, self->name);
+        self->private = FALSE;          //  Public resource
+    }
+    else {
+        //  Else generate a new unique hash as name
+        ipr_str_random (self->name, "ZYRE-AAAAAAAA");
+        icl_shortstr_fmt (self->name + strlen (self->name), "-%d%d", s_instance, ++s_current);
+        icl_shortstr_fmt (self->path, "/resource/%s", self->name);
+        self->private = TRUE;           //  Private resource
+    }
+    self->hash = ipr_hash_new (table, self->path, self);
+    if (self->hash) {
+        self->type      = zyre_resource_type_value (type);
+        self->children  = ipr_looseref_list_new ();
+        self->in_parent = self_attach_to_parent (self, parent);
+        self->modified  = apr_time_now ();
+    }
 </method>
 
 <method name = "destroy">
@@ -240,17 +274,6 @@ This class is not threadsafe and may be used from one threadlet only.
     else
         rc = FALSE;
     icl_mem_free (etag);
-</method>
-
-<method name = "set properties" template = "function">
-    <doc>
-    Sets various properties on the resource portal.
-    </doc>
-    <argument name = "private" type = "Bool">Private resource?</argument>
-    <argument name = "slug" type = "char *">Resource slug</argument>
-    //
-    self->private = private;
-    icl_shortstr_cpy (self->slug, slug);
 </method>
 
 <method name = "type name" return = "name">
@@ -359,6 +382,34 @@ This class is not threadsafe and may be used from one threadlet only.
     icl_mem_free (etag);
 
     http_driver_context_reply (context);
+</method>
+
+<method name = "initialise">
+    <local>
+    ipr_xml_t
+        *xml_root = NULL,
+        *xml_item = NULL;
+    icl_shortstr_t
+        instance_str;
+    </local>
+    //
+    ipr_xml_load_file (&xml_root, ".", S_CONFIG_FILE, FALSE);
+    if (xml_root) {
+        xml_item = ipr_xml_first_child (xml_root);
+        if (!xml_item)
+            xml_item = ipr_xml_new (xml_root, "config", NULL);
+    }
+    else {
+        xml_item = ipr_xml_new (xml_root, "config", NULL);
+    }
+    s_instance = atoi (ipr_xml_attr_get (xml_item, "instance", "0"));
+    s_instance++;
+    s_current = 0;
+    icl_shortstr_fmt (instance_str, "%d", s_instance);
+    ipr_xml_attr_set (xml_item, "instance", instance_str);
+    ipr_xml_save_file (xml_item, S_CONFIG_FILE);
+    ipr_xml_unlink (&xml_item);
+    ipr_xml_destroy (&xml_root);
 </method>
 
 <method name = "selftest" />

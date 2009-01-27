@@ -52,7 +52,7 @@ This class implements the RestMS pipe object.
 
     type = ipr_xml_attr_get (context->xml_item, "type", "topic");
     if (zyre_pipe_type_valid (type)) {
-        icl_shortstr_cpy (self->type, type);
+        icl_shortstr_cpy (self->type,  type);
         icl_shortstr_cpy (self->title, ipr_xml_attr_get (context->xml_item, "title", ""));
     }
     else
@@ -60,7 +60,7 @@ This class implements the RestMS pipe object.
             "Invalid pipe type '%s' specified", type);
 
     self->backend = zyre_backend_link (backend);
-    zyre_backend_request_pipe_create (self->backend, type, portal->slug);
+    zyre_backend_request_pipe_create (self->backend, type, portal->name);
 </method>
 
 <method name = "get">
@@ -72,10 +72,10 @@ This class implements the RestMS pipe object.
     tree = ipr_tree_new (RESTMS_ROOT);
     ipr_tree_leaf (tree, "xmlns", "http://www.imatix.com/schema/restms");
     ipr_tree_open (tree, "pipe");
+    ipr_tree_leaf (tree, "name", portal->name);
     ipr_tree_leaf (tree, "type", self->type);
     if (*self->title)
         ipr_tree_leaf (tree, "title", self->title);
-    ipr_tree_leaf (tree, "slug", portal->slug);
     ipr_tree_shut (tree);
     zyre_resource_report (portal, context, tree);
     ipr_tree_destroy (&tree);
@@ -99,7 +99,7 @@ This class implements the RestMS pipe object.
 </method>
 
 <method name = "delete">
-    zyre_backend_request_pipe_delete (self->backend, portal->slug);
+    zyre_backend_request_pipe_delete (self->backend, portal->name);
 </method>
 
 <method name = "post">
@@ -109,6 +109,7 @@ This class implements the RestMS pipe object.
 
 <method name = "report">
     ipr_tree_open (tree, "pipe");
+    ipr_tree_leaf (tree, "name", portal->name);
     ipr_tree_leaf (tree, "type", self->type);
     if (*self->title)
         ipr_tree_leaf (tree, "title", self->title);
