@@ -184,7 +184,7 @@
         //  Pathinfo is URI key into resource table
         resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
         if (resource)
-            zyre_resource_request_post (resource, context);
+            zyre_resource_request_post (resource, context, self->resources);
         else
             http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
                 "The URI does not match a known resource");
@@ -267,6 +267,10 @@
     if (streq (type, "pipe"))
         //  For pipes we ignore the Slug header
         resource = zyre_pipe__zyre_resource_new (NULL, portal, self->resources, type, "");
+    else
+    if (streq (type, "join"))
+        //  For joins we ignore the Slug header
+        resource = zyre_join__zyre_resource_new (NULL, portal, self->resources, type, "");
     else {
         icl_console_print ("E: not implemented: %s", type);
         assert (FALSE);
@@ -275,10 +279,9 @@
 
     //  resource->hash is null if resource already existed with same path
     if (resource->hash) {
-        //  Configure resource with current parsed document
-        //  This may result in any error reply back to the client
+        //  Configure action must be safe, all checking has already been done
+        zyre_resource_request_configure (resource, context, self->resources, self->backend);
         context->response->reply_code = HTTP_REPLY_CREATED;
-        zyre_resource_request_configure (resource, context, self->backend);
     }
     else {
         //  Destroy the duplicate resource and grab the real one so we can

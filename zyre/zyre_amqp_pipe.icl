@@ -54,13 +54,7 @@
 </method>
 
 <method name = "destroy">
-    <local>
-    zyre_amqp_join_t
-        *join;
-    </local>
-    //
-    while ((join = (zyre_amqp_join_t *) ipr_looseref_pop (self->joins)))
-        zyre_amqp_join_destroy (&join);
+    //  Any joins on the pipe must have been destroyed already
     ipr_looseref_list_destroy (&self->joins);
 </method>
 

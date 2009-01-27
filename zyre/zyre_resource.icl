@@ -49,7 +49,8 @@ This class is not threadsafe and may be used from one threadlet only.
     do that.
     </doc>
     <field name = "context" type = "http_driver_context_t *" />
-    <field name = "backend" type = "zyre_backend_t *" />
+    <field name = "table"   type = "ipr_hash_table_t *">Resource hash</field>
+    <field name = "backend" type = "zyre_backend_t *">Synchronize with</field>
   </request>
 
   <request name = "get">
@@ -78,6 +79,7 @@ This class is not threadsafe and may be used from one threadlet only.
     Create child resource as specified.
     </doc>
     <field name = "context" type = "http_driver_context_t *" />
+    <field name = "table"   type = "ipr_hash_table_t *">Resource hash</field>
   </request>
 
   <request name = "report">
@@ -87,6 +89,27 @@ This class is not threadsafe and may be used from one threadlet only.
     </doc>
     <field name = "context" type = "http_driver_context_t *" />
     <field name = "tree" type = "ipr_tree_t *" />
+  </request>
+
+  <!-- Requests from one resource to another resource object -->
+  <request name = "attach">
+    <doc>
+    Attach the sender as a child of the target.  Provides a void * argument
+    who's semantics depend on the relationship.  To be used when configuring
+    the child.
+    </doc>
+    <field name = "resource" type = "zyre_resource_t *">Child resource</field>
+    <field name = "argument" type = "void *">Argument</field>
+  </request>
+
+  <request name = "detach">
+    <doc>
+    Detach the sender as a child of the target.  Provides a void * argument
+    who's semantics depend on the relationship.  To be used when deleting
+    the child.
+    </doc>
+    <field name = "resource" type = "zyre_resource_t *">Child resource</field>
+    <field name = "argument" type = "void *">Argument</field>
   </request>
 
   <!-- Responses back from resource object to restms -->
@@ -170,15 +193,17 @@ static long int
     self->hash = ipr_hash_new (table, self->path, self);
     if (self->hash) {
         self->type      = zyre_resource_type_value (type);
+        self->parent    = parent;
         self->children  = ipr_looseref_list_new ();
-        self->in_parent = self_attach_to_parent (self, parent);
         self->modified  = apr_time_now ();
+        self_attach_to_parent (self, parent);
     }
 </method>
 
 <method name = "destroy">
     ipr_hash_destroy (&self->hash);
-    ipr_looseref_list_destroy (&self->children);
+    if (self->children)
+        ipr_looseref_list_destroy (&self->children);
 </method>
 
 <method name = "attach to parent" return = "looseref">
@@ -191,7 +216,7 @@ static long int
     <declare name = "looseref" type = "ipr_looseref_t *" default = "NULL" />
     //
     if (parent)
-        looseref = ipr_looseref_queue (parent->children, self);
+        self->in_parent = ipr_looseref_queue (parent->children, self);
 </method>
 
 <method name = "detach from parent" template = "function">
@@ -201,8 +226,7 @@ static long int
     parent list can already be destroyed then.
     </doc>
     //
-    if (self->in_parent)
-        ipr_looseref_destroy (&self->in_parent);
+    ipr_looseref_destroy (&self->in_parent);
 </method>
 
 <method name = "etag" return = "etag">
@@ -282,7 +306,9 @@ static long int
     </doc>
     <argument name = "type" type = "int" />
     <declare name = "name" type = "char *" />
-    assert (RESTMS_RESOURCE_VALID (type));
+//    assert (RESTMS_RESOURCE_VALID (type));
+if (!RESTMS_RESOURCE_VALID (type))
+    icl_console_print ("**************** TYPE:%d", type);
     if (type == RESTMS_RESOURCE_DOMAIN)
         name = "domain";
     else
@@ -382,6 +408,29 @@ static long int
     icl_mem_free (etag);
 
     http_driver_context_reply (context);
+</method>
+
+<method name = "parse uri" return = "resource">
+    <doc>
+    Given a resource URI, returns the resource if it exists.  If the URI is
+    invalid or the resource does not exist, returns NULL. Resource URIs take
+    this form: http://hostname[:port]/restms/{path-info}
+    </doc>
+    <argument name = "context" type = "http_driver_context_t *" />
+    <argument name = "table"   type = "ipr_hash_table_t *" />
+    <argument name = "uri"     type = "char *" />
+    <declare name = "resource" type = "zyre_resource_t *" default = "NULL" />
+    <local>
+    char
+        *path;
+    </local>
+    //
+    path = ipr_str_defix (uri, context->response->root_uri);
+    if (path) {
+        path = ipr_str_defix (path, RESTMS_ROOT);
+        if (path)
+            resource = ipr_hash_lookup (table, path);
+    }
 </method>
 
 <method name = "initialise">

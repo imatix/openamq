@@ -36,31 +36,35 @@ This class implements the RestMS pipe object.
         title;                          //  Title if any
     zyre_backend_t
         *backend;                       //  Our protocol backend
+    ipr_looseref_list_t
+        *joins;                         //  Joins for pipe
 </context>
 
 <method name = "new">
-  <!-- New method is used by portal, does not accept any arguments -->
+    <!-- New method is used by portal, does not accept any arguments -->
+    self->joins = ipr_looseref_list_new ();
 </method>
 
 <method name = "destroy">
+    <local>
+    ipr_looseref_t
+        *looseref;
+    </local>
+    //
+    //  Free any references to joins that we still hold (no links)
+    while ((looseref = ipr_looseref_list_pop (self->joins))) {
+        icl_mem_free (looseref->argument);
+        ipr_looseref_destroy (&looseref);
+    }
+    ipr_looseref_list_destroy (&self->joins);
     zyre_backend_unlink (&self->backend);
 </method>
 
 <method name = "configure">
-    char
-        *type;
-
-    type = ipr_xml_attr_get (context->xml_item, "type", "topic");
-    if (zyre_pipe_type_valid (type)) {
-        icl_shortstr_cpy (self->type,  type);
-        icl_shortstr_cpy (self->title, ipr_xml_attr_get (context->xml_item, "title", ""));
-    }
-    else
-        http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-            "Invalid pipe type '%s' specified", type);
-
+    icl_shortstr_cpy (self->type, ipr_xml_attr_get (context->xml_item, "type", "topic"));
+    icl_shortstr_cpy (self->title, ipr_xml_attr_get (context->xml_item, "title", ""));
     self->backend = zyre_backend_link (backend);
-    zyre_backend_request_pipe_create (self->backend, type, portal->name);
+    zyre_backend_request_pipe_create (self->backend, self->type, portal->name);
 </method>
 
 <method name = "get">
@@ -99,12 +103,63 @@ This class implements the RestMS pipe object.
 </method>
 
 <method name = "delete">
+    <local>
+    zyre_resource_t
+        *resource;
+    ipr_looseref_t
+        *looseref;
+    </local>
+    //
+    while ((looseref = ipr_looseref_list_first (self->joins))) {
+        //  Since we don't have a link to the resource, grab one
+        resource = zyre_resource_link ((zyre_resource_t *) looseref->object);
+        zyre_resource_request_delete (resource, context);
+        zyre_resource_destroy (&resource);
+    }
     zyre_backend_request_pipe_delete (self->backend, portal->name);
 </method>
 
 <method name = "post">
-    http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-        "The POST method is not allowed on this resource");
+    if (zyre_restms_parse_document (context, NULL) == 0) {
+        if (streq (ipr_xml_name (context->xml_item), "join")) {
+            //  We validate the join here so that we can return the existing
+            //  join, or complain about an error, or go ahead and create the
+            //  join properly.  It's not sensible to do the validation after
+            //  we created the join resource (at configure time).
+            char
+                *feed_uri = ipr_xml_attr_get (context->xml_item, "feed", ""),
+                *address = ipr_xml_attr_get (context->xml_item, "address", "*");
+            zyre_resource_t
+                *resource;
+            icl_shortstr_t
+                join_key;
+
+            resource = zyre_resource_parse_uri (context, table, feed_uri);
+            if (resource && resource->type == RESTMS_RESOURCE_FEED) {
+                //  Check if we already have same join, key is address@feed
+                ipr_looseref_t
+                    *looseref;
+
+                icl_shortstr_fmt (join_key, "%s@%s", address, resource->path);
+                looseref = ipr_looseref_list_first (self->joins);
+                while (looseref) {
+                    if (streq ((char *) looseref->argument, join_key))
+                        break;
+                    looseref = ipr_looseref_list_next (&looseref);
+                }
+                if (looseref)
+                    icl_console_print ("DUPJOIN: %s", join_key);
+                else
+                    zyre_resource_response_child_add (portal, context);
+            }
+            else
+                http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+                    "Specified feed '%s' does not exist", feed_uri);
+        }
+        else
+            http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+                "Can only create new join resources here");
+    }
 </method>
 
 <method name = "report">
@@ -118,16 +173,51 @@ This class implements the RestMS pipe object.
     ipr_tree_shut (tree);
 </method>
 
-<method name = "type valid" return = "rc">
+<method name = "attach">
+    <local>
+    ipr_looseref_t
+        *looseref;
+    </local>
+    //
+    looseref = ipr_looseref_queue (self->joins, resource);
+    looseref->argument = icl_mem_strdup ((char *) argument);
+</method>
+
+<method name = "detach">
+    <local>
+    ipr_looseref_t
+        *looseref;
+    </local>
+    //
+    looseref = ipr_looseref_list_first (self->joins);
+    while (looseref) {
+        if (streq ((char *) looseref->argument, argument)) {
+            icl_mem_free (looseref->argument);
+            ipr_looseref_destroy (&looseref);
+            break;
+        }
+        looseref = ipr_looseref_list_next (&looseref);
+    }
+</method>
+
+<method name = "spec valid" return = "rc">
     <doc>
-    Returns TRUE if the specified pipe type is valid, else returns FALSE.
+    Returns TRUE if the specified pipe specification is valid, else
+    sends an error reply and returns FALSE.
     </doc>
-    <argument name = "type" type = "char *" />
-    <declare name = "rc" type = "int" />
-    if (streq (type, "fifo"))
+    <argument name = "context" type = "http_driver_context_t *" />
+    <declare name = "rc" type = "int" default = "FALSE" />
+    <local>
+    char
+        *type;
+    </local>
+    //
+    type = ipr_xml_attr_get (context->xml_item, "type", "");
+    if (strnull (type) || streq (type, "fifo"))
         rc = TRUE;
     else
-        rc = FALSE;
+        http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+            "Invalid pipe type '%s' specified", type);
 </method>
 
 <method name = "selftest" />

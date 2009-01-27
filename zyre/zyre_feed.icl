@@ -39,33 +39,37 @@ This class implements the RestMS feed object.
         dynamic;                        //  Feed is dynamic
     zyre_backend_t
         *backend;                       //  Our protocol backend
+    ipr_looseref_list_t
+        *joins;                         //  Joins for feed
 </context>
 
 <method name = "new">
-  <!-- New method is used by portal, does not accept any arguments -->
+    <!-- New method is used by portal, does not accept any arguments -->
+    self->joins = ipr_looseref_list_new ();
 </method>
 
 <method name = "destroy">
+    <local>
+    ipr_looseref_t
+        *looseref;
+    </local>
+    //
+    //  Free any references to joins that we still hold (no links)
+    while ((looseref = ipr_looseref_list_pop (self->joins))) {
+        icl_mem_free (looseref->argument);
+        ipr_looseref_destroy (&looseref);
+    }
+    ipr_looseref_list_destroy (&self->joins);
     zyre_backend_unlink (&self->backend);
 </method>
 
 <method name = "configure">
-    char
-        *type;
-
     self->dynamic = TRUE;
-    type = ipr_xml_attr_get (context->xml_item, "type", "topic");
-    if (zyre_feed_type_valid (type)) {
-        icl_shortstr_cpy (self->type,    type);
-        icl_shortstr_cpy (self->title,   ipr_xml_attr_get (context->xml_item, "title", ""));
-        icl_shortstr_cpy (self->license, ipr_xml_attr_get (context->xml_item, "license", ""));
-    }
-    else
-        http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-            "Invalid feed type '%s' specified", type);
-
+    icl_shortstr_cpy (self->type, ipr_xml_attr_get (context->xml_item, "type", "topic"));
+    icl_shortstr_cpy (self->title, ipr_xml_attr_get (context->xml_item, "title", ""));
+    icl_shortstr_cpy (self->license, ipr_xml_attr_get (context->xml_item, "license", ""));
     self->backend = zyre_backend_link (backend);
-    zyre_backend_request_feed_create (self->backend, type, portal->name);
+    zyre_backend_request_feed_create (self->backend, self->type, portal->name);
 </method>
 
 <method name = "get">
@@ -113,8 +117,22 @@ This class implements the RestMS feed object.
 </method>
 
 <method name = "delete">
-    if (self->dynamic)
+    <local>
+    zyre_resource_t
+        *resource;
+    ipr_looseref_t
+        *looseref;
+    </local>
+    //
+    if (self->dynamic) {
+        while ((looseref = ipr_looseref_list_first (self->joins))) {
+            //  Since we don't have a link to the resource, grab one
+            resource = zyre_resource_link ((zyre_resource_t *) looseref->object);
+            zyre_resource_request_delete (resource, context);
+            zyre_resource_destroy (&resource);
+        }
         zyre_backend_request_feed_delete (self->backend, portal->name);
+    }
     else
         http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
             "Not allowed to delete this feed");
@@ -138,13 +156,48 @@ This class implements the RestMS feed object.
     ipr_tree_shut (tree);
 </method>
 
-<method name = "type valid" return = "rc">
+<method name = "attach">
+    <local>
+    ipr_looseref_t
+        *looseref;
+    </local>
+    //
+    looseref = ipr_looseref_queue (self->joins, resource);
+    looseref->argument = icl_mem_strdup ((char *) argument);
+</method>
+
+<method name = "detach">
+    <local>
+    ipr_looseref_t
+        *looseref;
+    </local>
+    //
+    looseref = ipr_looseref_list_first (self->joins);
+    while (looseref) {
+        if (streq ((char *) looseref->argument, argument)) {
+            icl_mem_free (looseref->argument);
+            ipr_looseref_destroy (&looseref);
+            break;
+        }
+        looseref = ipr_looseref_list_next (&looseref);
+    }
+</method>
+
+<method name = "spec valid" return = "rc">
     <doc>
-    Returns TRUE if the specified feed type is valid, else returns FALSE.
+    Returns TRUE if the specified feed specification is valid, else
+    sends an error reply and returns FALSE.
     </doc>
-    <argument name = "type" type = "char *" />
-    <declare name = "rc" type = "int" />
-    if (streq (type, "fanout")
+    <argument name = "context" type = "http_driver_context_t *" />
+    <declare name = "rc" type = "int" default = "FALSE" />
+    <local>
+    char
+        *type;
+    </local>
+    //
+    type = ipr_xml_attr_get (context->xml_item, "type", "");
+    if (strnull (type)
+    ||  streq (type, "fanout")
     ||  streq (type, "direct")
     ||  streq (type, "topic")
     ||  streq (type, "headers")
@@ -153,7 +206,8 @@ This class implements the RestMS feed object.
     ||  streq (type, "system"))
         rc = TRUE;
     else
-        rc = FALSE;
+        http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+            "Invalid feed type '%s' specified", type);
 </method>
 
 <method name = "selftest" />

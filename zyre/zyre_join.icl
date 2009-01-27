@@ -25,7 +25,14 @@
     license   = "gpl"
     >
 <doc>
-This class implements the RestMS join object.
+This class implements the RestMS join object.  Joins are children of both
+pipes and feeds which makes management complex.  We can delete joins in 3
+ways: directly, by deleting parent pipe, or by deleting parent feed.  We
+use a symmetric model so that the logic works the same whether we delete
+via the pipe or the feed.  Pipes and feeds hold a list of joins, which is
+updated via attach/detach requests from new/deleting joins.  When a pipe or
+feed is deleted, it deletes all its joins.  When a join is deleted it
+detaches from its pipe and feed.
 </doc>
 
 <inherit class = "zyre_resource_back" />
@@ -34,6 +41,7 @@ This class implements the RestMS join object.
     icl_shortstr_t
         address;                        //  Address pattern
     zyre_resource_t
+        *pipe,                          //  Pipe resource portal
         *feed;                          //  Feed resource portal
     zyre_backend_t
         *backend;                       //  Our protocol backend
@@ -48,15 +56,28 @@ This class implements the RestMS join object.
 </method>
 
 <method name = "configure">
-    char
-        *feed;
-
-    feed = ipr_xml_attr_get (context->xml_item, "feed", NULL);
-        http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-            "No feed specified");
-
+    <local>
+    icl_shortstr_t
+        join_key;
+    </local>
+    //
+    self->pipe = portal->parent;
+    self->feed = zyre_resource_parse_uri (context, table,
+        ipr_xml_attr_get (context->xml_item, "feed", NULL));
     self->backend = zyre_backend_link (backend);
- //   zyre_backend_request_join_create (self->backend, type, portal->name);
+    assert (self->feed);
+    icl_shortstr_cpy (self->address, ipr_xml_attr_get (context->xml_item, "address", "*"));
+
+    //  Attach to pipe, key is address@feed
+    icl_shortstr_fmt (join_key, "%s@%s", self->address, self->feed->path);
+    zyre_resource_request_attach (self->pipe, portal, join_key);
+
+    //  Attach to feed, key is address@pipe
+    icl_shortstr_fmt (join_key, "%s@%s", self->address, self->pipe->path);
+    zyre_resource_request_attach (self->feed, portal, join_key);
+
+    zyre_backend_request_join_create (
+        self->backend, self->pipe->name, self->feed->name, self->address);
 </method>
 
 <method name = "get">
@@ -69,7 +90,8 @@ This class implements the RestMS join object.
     ipr_tree_leaf (tree, "xmlns", "http://www.imatix.com/schema/restms");
     ipr_tree_open (tree, "join");
     ipr_tree_leaf (tree, "address", self->address);
-    ipr_tree_leaf (tree, "feed", "?");
+    ipr_tree_leaf (tree, "feed", "%s%s%s",
+        context->response->root_uri, RESTMS_ROOT, self->feed->path);
     ipr_tree_shut (tree);
     zyre_resource_report (portal, context, tree);
     ipr_tree_destroy (&tree);
@@ -81,7 +103,21 @@ This class implements the RestMS join object.
 </method>
 
 <method name = "delete">
-    zyre_backend_request_join_delete (self->backend, portal->name);
+    <local>
+    icl_shortstr_t
+        join_key;
+    </local>
+    //
+    //  Detach from pipe, key is address@feed
+    icl_shortstr_fmt (join_key, "%s@%s", self->address, self->feed->path);
+    zyre_resource_request_detach (self->pipe, portal, join_key);
+
+    //  Detach from feed, key is address@pipe
+    icl_shortstr_fmt (join_key, "%s@%s", self->address, self->pipe->path);
+    zyre_resource_request_detach (self->feed, portal, join_key);
+
+    zyre_backend_request_join_delete (
+        self->backend, self->pipe->name, self->feed->name, self->address);
 </method>
 
 <method name = "post">
@@ -92,7 +128,8 @@ This class implements the RestMS join object.
 <method name = "report">
     ipr_tree_open (tree, "join");
     ipr_tree_leaf (tree, "address", self->address);
-    ipr_tree_leaf (tree, "feed", "?");
+    ipr_tree_leaf (tree, "feed", "%s%s%s",
+        context->response->root_uri, RESTMS_ROOT, self->feed->path);
     ipr_tree_leaf (tree, "href", "%s%s%s",
         context->response->root_uri, RESTMS_ROOT, portal->path);
     ipr_tree_shut (tree);

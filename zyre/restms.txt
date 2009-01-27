@@ -1786,7 +1786,7 @@ Implementations SHOULD implement all of these feed types and MAY implement other
 
 * The **system** feed type routes incoming messages to internal services, according to the routing key.
 
-* The **rotator** feed type routes a message to exactly one join, using a round-robin algorithm to select the join.  An application can increase its proportion of the messages received by creating multiple joins to the feed.  The feed does not use the join address pattern or message address literal.  Joins made to a rotator feed should always have the address "*".
+* The **rotator** feed type routes a message to exactly one join, using a round-robin algorithm to select the join.  The feed does not use the join address pattern or message address literal.  Joins made to a rotator feed should always have the address "*".
 
 * The **service** feed type works as the rotator feed, but has the additional property of self-deleting when the the number of joins registered on it drops from 1 to zero.  This means that the presence or absence of the feed indicates the availability of the "service" it represents. Joins made to a service feed should always have the address "*".
 
@@ -2001,24 +2001,10 @@ Rather than attempt to modify existing AMQP semantics, we define an AMQP "extens
   tag to be used on multiple queues.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <field name = "pipe type" type = "shortstr" >
-    Pipe type
-    <doc>
-    Specifies the type of the pipe, which must match the type of the
-    existing pipe.
-    </doc>
-  </field>
   <field name = "pipe name" type = "shortstr" >
     Name of pipe
     <doc>
     Specifies the name of the pipe, which must exist.
-    </doc>
-  </field>
-  <field name = "feed type" type = "shortstr" >
-    Feed type
-    <doc>
-    Specifies the type of the feed, which must match the type of the
-    existing feed.
     </doc>
   </field>
   <field name = "feed name" type = "shortstr" >

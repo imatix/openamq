@@ -1,13 +1,11 @@
-
-- pipes are private only
-- pipe, feed name property
-
-- implement reply_to on pipes
-    - shown in detail only
-    - RESTMS_hash
 - implement joins
+    OK
+- catch duplicate joins
+    OK
+- catch other errors during configuration
+    OK
 - default join from all pipes to default feed
-- join tests & synchronisation
+
 
 
 
@@ -37,14 +35,6 @@ Rainey
     - assist at FOSDEM
     - logo for X5
     - black t-shirts for X5 & FOSDEM
-
-    zyre_backend_request_feed_create (self->backend, "service", "test.service");
-    zyre_backend_request_feed_create (self->backend, "direct", "test.direct");
-    zyre_backend_request_pipe_create (self->backend, "fifo", "test.pipe");
-    zyre_backend_request_join_create (self->backend,
-        "test.pipe", "direct", "test.direct", "routing-key");
-    zyre_backend_request_join_create (self->backend,
-        "test.pipe", "service", "test.service", "*");
 
 zyre_content class
     content_type
@@ -82,39 +72,6 @@ define fair queue mechanism that takes input from several feeds but fairly
     - implement natively in openamq?
     - ...?
 
-
-
-HTTP headers
-
-C:
-If-Match: "entity-tag" | "*"
-    Conditional PUT, update entry if entry still has the same Etag
-    Else 412 Precondition failed, with Date: header
-    If any other error (except 2xx or 412) would happen, must happen anyhow
-    "*" means only if the entity already exists, MUST NOT if the entity does not exist
-If-Modified-Since: date
-    Conditional GET, 304 Not Modified if entry has same or older date
-    If any other error (except 200 or 304) behaviour is as for normal GET
-If-None-Match: "entity-tag" | "*"
-    Conditional GET, get 304 Not Modified if entry has the same Etag
-    "*" means only if entity does not exist, MUST NOT if the entity does exist
-    used to prevent race conditions between PUTs
-If-Range: "entity-tag"
-    Used together with Range: header (for getting files?)
-    Gets 206 Partial Content range if entity matches
-    Gets 200 OK whole content if entity does not match
-If-Unmodified-Since: date
-    Does operation only if entity has not been modified since date
-    Else returns 412 Precondition failed
-    If any other error (except 2xx or 412), behaviour is as if absent
-
-S:
-ETag: "entity-tag"
-    Date-Size-Inode or Date-Size
-Last-Modified: date
-    Last date of modification
-Location: absolute-uri
-    For 201 Created and for 3xx responses
 
 
 Implement exchange logic in zyre and do federation

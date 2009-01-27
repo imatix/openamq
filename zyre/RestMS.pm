@@ -40,8 +40,9 @@ sub host {
 
 #   Get resource, returns XML document if found
 sub get {
-    my ($self, $path, $expect) = @_;
-    $self->{_request} = HTTP::Request->new (GET => "http://".$self->{_host}."/restms$path");
+    my ($self, $uri, $expect) = @_;
+    $uri = "http://".$self->{_host}.$uri unless ($uri =~ /^http:\/\//);
+    $self->{_request} = HTTP::Request->new (GET => $uri);
     $self->{_request}->header ("Accept" => "application/restms+xml");
     $self->{_response} = $self->{_ua}->request ($self->{_request});
     $self->trace ();
@@ -53,8 +54,9 @@ sub get {
 
 #   Update resource
 sub put {
-    my ($self, $path, $content, $expect) = @_;
-    $self->{_request} = HTTP::Request->new (PUT => "http://".$self->{_host}."/restms$path");
+    my ($self, $uri, $content, $expect) = @_;
+    $uri = "http://".$self->{_host}.$uri unless ($uri =~ /^http:\/\//);
+    $self->{_request} = HTTP::Request->new (PUT => $uri);
     if ($content) {
         $self->{_request}->content_type ("application/restms+xml");
         $self->{_request}->content ($content);
@@ -69,8 +71,9 @@ sub put {
 
 #   Delete resource
 sub delete {
-    my ($self, $path, $expect) = @_;
-    $self->{_request} = HTTP::Request->new (DELETE => "http://".$self->{_host}."/restms$path");
+    my ($self, $uri, $expect) = @_;
+    $uri = "http://".$self->{_host}.$uri unless ($uri =~ /^http:\/\//);
+    $self->{_request} = HTTP::Request->new (DELETE => $uri);
     $self->{_response} = $self->{_ua}->request ($self->{_request});
     $self->trace ();
     $self->assert ($expect) if $expect;
@@ -81,8 +84,9 @@ sub delete {
 
 #   Post new resource to path, returns URI to resource
 sub post {
-    my ($self, $path, $slug, $content, $expect) = @_;
-    $self->{_request} = HTTP::Request->new (POST => "http://".$self->{_host}."/restms$path");
+    my ($self, $uri, $slug, $content, $expect) = @_;
+    $uri = "http://".$self->{_host}.$uri unless ($uri =~ /^http:\/\//);
+    $self->{_request} = HTTP::Request->new (POST => $uri);
     $self->{_request}->content_type ("application/restms+xml");
     $self->{_request}->content ($content);
     $self->{_request}->header (Slug => $slug);
@@ -92,11 +96,11 @@ sub post {
     if ($self->code < 300) {
         #   Get Location: and strip off the URI start
         my $location = $self->{_response}->header ("Location");
-        if ($location =~ /(\/http:\/\/[^\/+])?\/restms/) {
-            return ($');
+        if ($location) {
+            return ($location);
         }
         else {
-            $self->carp ("malformed Location: $location ".$self->code);
+            $self->carp ("Location: missing from response");
             $self->verbose (1);
             $self->trace ();
             exit (1);
@@ -107,13 +111,19 @@ sub post {
 #   Creates a feed in the default domain, returns feed URI if ok
 sub feed_create {
     my ($self, $feed, $type, $expect) = @_;
-    return $self->post ("/domain/main", $feed, "<restms><feed type=\"$type\" /></restms>", $expect);
+    return $self->post ("/restms/domain/main", $feed, "<restms><feed type=\"$type\" /></restms>", $expect);
 }
 
 #   Creates a pipe in the default domain, returns feed URI if ok
 sub pipe_create {
     my ($self, $type, $expect) = @_;
-    return $self->post ("/domain/main", "", "<restms><pipe type=\"$type\" /></restms>", $expect);
+    return $self->post ("/restms/domain/main", "", "<restms><pipe type=\"$type\" /></restms>", $expect);
+}
+
+#   Creates a pipe in the default domain, returns feed URI if ok
+sub join_create {
+    my ($self, $pipe, $feed, $address, $expect) = @_;
+    return $self->post ($pipe, "", "<restms><join feed=\"$feed\" address=\"$address\"/></restms>", $expect);
 }
 
 #   Issue a raw request
@@ -124,8 +134,9 @@ sub pipe_create {
 #   $expect - asserted reply code
 #
 sub raw {
-    my ($self, $method, $path, $content, $expect) = @_;
-    $self->{_request} = HTTP::Request->new ($method => "http://".$self->{_host}."/restms$path");
+    my ($self, $method, $uri, $content, $expect) = @_;
+    $uri = "http://".$self->{_host}.$uri unless ($uri =~ /^http:\/\//);
+    $self->{_request} = HTTP::Request->new ($method => $uri);
     if ($content) {
         $self->{_request}->content_type ("application/restms+xml");
         $self->{_request}->content ($content);
@@ -180,6 +191,9 @@ sub assert {
             . $self->{_request}->method . " "
             . $self->{_request}->uri . " => "
             . $self->{_response}->status_line . ", expected $code");
+        if ($self->{_request}->content) {
+            $self->carp ("\n" . $self->{_request}->content);
+        }
         if ($self->content =~ /id="error_text">\n    (.*)\n/) {
             $self->carp ("Error: $1");
         }

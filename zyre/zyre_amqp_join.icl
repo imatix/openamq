@@ -37,18 +37,20 @@
 
 <context>
     icl_shortstr_t
-        feed_type,                      //  Feed type
+        pipe_name,                      //  Pipe name
         feed_name,                      //  Feed name
         address;                        //  Join address
+    ipr_looseref_t
+        *pipe_ref;                      //  Backlink to pipe
 </context>
 
 <method name = "new">
-    <argument name = "feed type" type = "char *">Feed type</argument>
+    <argument name = "pipe name" type = "char *">Pipe name</argument>
     <argument name = "feed name" type = "char *">Feed name</argument>
     <argument name = "address" type = "char *">Join address</argument>
     //
+    icl_shortstr_cpy (self->pipe_name, pipe_name);
     icl_shortstr_cpy (self->feed_name, feed_name);
-    icl_shortstr_cpy (self->feed_type, feed_type);
     icl_shortstr_cpy (self->address, address);
 </method>
 
