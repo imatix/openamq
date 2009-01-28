@@ -80,6 +80,7 @@ This class is not threadsafe and may be used from one threadlet only.
     </doc>
     <field name = "context" type = "http_driver_context_t *" />
     <field name = "table"   type = "ipr_hash_table_t *">Resource hash</field>
+    <field name = "backend" type = "zyre_backend_t *">Synchronize with</field>
   </request>
 
   <request name = "report">
@@ -306,9 +307,7 @@ static long int
     </doc>
     <argument name = "type" type = "int" />
     <declare name = "name" type = "char *" />
-//    assert (RESTMS_RESOURCE_VALID (type));
-if (!RESTMS_RESOURCE_VALID (type))
-    icl_console_print ("**************** TYPE:%d", type);
+    assert (RESTMS_RESOURCE_VALID (type));
     if (type == RESTMS_RESOURCE_DOMAIN)
         name = "domain";
     else

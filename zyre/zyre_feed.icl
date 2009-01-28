@@ -31,12 +31,12 @@ This class implements the RestMS feed object.
 <inherit class = "zyre_resource_back" />
 
 <context>
+    Bool
+        dynamic;                        //  Dynamic resource?
     icl_shortstr_t
         type,                           //  Feed type
         title,                          //  Title text
         license;                        //  License text
-    Bool
-        dynamic;                        //  Feed is dynamic
     zyre_backend_t
         *backend;                       //  Our protocol backend
     ipr_looseref_list_t
@@ -64,12 +64,22 @@ This class implements the RestMS feed object.
 </method>
 
 <method name = "configure">
-    self->dynamic = TRUE;
-    icl_shortstr_cpy (self->type, ipr_xml_attr_get (context->xml_item, "type", "topic"));
-    icl_shortstr_cpy (self->title, ipr_xml_attr_get (context->xml_item, "title", ""));
-    icl_shortstr_cpy (self->license, ipr_xml_attr_get (context->xml_item, "license", ""));
-    self->backend = zyre_backend_link (backend);
-    zyre_backend_request_feed_create (self->backend, self->type, portal->name);
+    //  If the context is null, configure a default feed
+    assert (backend);
+    if (context) {
+        self->dynamic = TRUE;
+        self->backend = zyre_backend_link (backend);
+        icl_shortstr_cpy (self->type, ipr_xml_attr_get (context->xml_item, "type", "topic"));
+        icl_shortstr_cpy (self->title, ipr_xml_attr_get (context->xml_item, "title", ""));
+        icl_shortstr_cpy (self->license, ipr_xml_attr_get (context->xml_item, "license", ""));
+        zyre_backend_request_feed_create (self->backend, self->type, portal->name);
+    }
+    else {
+        //  Default feed is not visible to backend
+        self->dynamic = FALSE;
+        icl_shortstr_cpy (self->type, "direct");
+        icl_shortstr_cpy (self->title, "Default feed");
+    }
 </method>
 
 <method name = "get">
@@ -81,8 +91,8 @@ This class implements the RestMS feed object.
     tree = ipr_tree_new (RESTMS_ROOT);
     ipr_tree_leaf (tree, "xmlns", "http://www.imatix.com/schema/restms");
     ipr_tree_open (tree, "feed");
-    ipr_tree_leaf (tree, "name", portal->name);
     ipr_tree_leaf (tree, "type", self->type);
+    ipr_tree_leaf (tree, "name", portal->name);
     if (*self->title)
         ipr_tree_leaf (tree, "title", self->title);
     if (*self->license)
@@ -117,21 +127,21 @@ This class implements the RestMS feed object.
 </method>
 
 <method name = "delete">
-    <local>
-    zyre_resource_t
-        *resource;
-    ipr_looseref_t
-        *looseref;
-    </local>
-    //
-    if (self->dynamic) {
+    //  We can delete configured resources internally, context will be null
+    if (self->dynamic || context == NULL) {
+        zyre_resource_t
+            *resource;
+        ipr_looseref_t
+            *looseref;
+
         while ((looseref = ipr_looseref_list_first (self->joins))) {
             //  Since we don't have a link to the resource, grab one
             resource = zyre_resource_link ((zyre_resource_t *) looseref->object);
             zyre_resource_request_delete (resource, context);
             zyre_resource_destroy (&resource);
         }
-        zyre_backend_request_feed_delete (self->backend, portal->name);
+        if (self->backend)
+            zyre_backend_request_feed_delete (self->backend, portal->name);
     }
     else
         http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
@@ -139,14 +149,61 @@ This class implements the RestMS feed object.
 </method>
 
 <method name = "post">
-    http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-        "The POST method is not allowed on this resource");
+    if (streq (context->request->content_type, "application/restms+xml")) {
+        if (http_driver_context_xml_parse (context, RESTMS_ROOT, "message") == 0) {
+            //  s_post_message
+            amq_content_basic_t
+                *content;               //  Content to post
+
+            content = amq_content_basic_new ();
+            //  get contents from feed (?)
+            //  amq_content_basic_record_body  (content, context->request->content);
+
+            amq_content_basic_set_delivery_mode  (content, atoi (
+                ipr_xml_attr_get (context->xml_item, "delivery_mode", "0")));
+            amq_content_basic_set_priority       (content, atoi (
+                ipr_xml_attr_get (context->xml_item, "priority", "")));
+            amq_content_basic_set_correlation_id (content,
+                ipr_xml_attr_get (context->xml_item, "correlation_id", ""));
+            amq_content_basic_set_reply_to       (content,
+                ipr_xml_attr_get (context->xml_item, "reply_to", ""));
+            amq_content_basic_set_expiration     (content,
+                ipr_xml_attr_get (context->xml_item, "expiration", ""));
+            amq_content_basic_set_message_id     (content,
+                ipr_xml_attr_get (context->xml_item, "message_id", ""));
+            amq_content_basic_set_timestamp      (content, (int64_t) ipr_time_mime_decode (
+                ipr_xml_attr_get (context->xml_item, "timestamp", "")));
+            amq_content_basic_set_type           (content,
+                ipr_xml_attr_get (context->xml_item, "type", ""));
+            amq_content_basic_set_user_id        (content,
+                ipr_xml_attr_get (context->xml_item, "user_id", ""));
+            amq_content_basic_set_app_id         (content,
+                ipr_xml_attr_get (context->xml_item, "app_id", ""));
+            amq_content_basic_set_sender_id      (content,
+                ipr_xml_attr_get (context->xml_item, "sender_id", ""));
+
+            zyre_backend_request_address_post (
+                backend,
+                ipr_xml_attr_get (context->xml_item, "address", ""),
+                streq (portal->name, "default")? "": portal->name,
+                content);
+
+            amq_content_basic_unlink (&content);
+            http_driver_context_reply_success (context, HTTP_REPLY_OK);
+        }
+    }
+    else {
+        //
+        icl_console_print ("HAVE CONTENT WILL TRAVEL");
+        http_driver_context_reply_error (context, HTTP_REPLY_NOTIMPLEMENTED,
+            "Try Again Later, much later");
+    }
 </method>
 
 <method name = "report">
     ipr_tree_open (tree, "feed");
-    ipr_tree_leaf (tree, "name", portal->name);
     ipr_tree_leaf (tree, "type", self->type);
+    ipr_tree_leaf (tree, "name", portal->name);
     if (*self->title)
         ipr_tree_leaf (tree, "title", self->title);
     if (*self->license)

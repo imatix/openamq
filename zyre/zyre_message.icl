@@ -18,55 +18,43 @@
     iMatix Corporation.
  -->
 <class
-    name      = "zyre_domain"
-    comment   = "Zyre domain entity"
+    name      = "zyre_message"
+    comment   = "Zyre message entity"
     version   = "1.0"
     script    = "icl_gen"
     license   = "gpl"
     >
 <doc>
-This class implements the RestMS domain object.
+This class implements the RestMS message object.
 </doc>
 
-<inherit class = "zyre_resource_module_back" />
+<inherit class = "zyre_resource_back" />
 
 <context>
     icl_shortstr_t
-        name;                           //  Domain name
-    zyre_resource_t
-        *resource;                      //  Resource wrapper
+        address,                        //  Destination address
+        reply_to;                       //  Reply-to property
 </context>
 
 <method name = "new">
-    <argument name = "name" type = "char *">Pipe name</argument>
-    <argument name = "resource" type = "zyre_resource_t *">Resource wrapper</argument>
-    //
-    icl_shortstr_cpy (self->name, name);
-    self->resource = resource;
 </method>
 
-<method name = "destroy">
+<method name = "configure">
 </method>
 
-<method name = "report" template = "function">
-    <doc>
-    Adds XML description of the object to the provided ipr_tree.
-    </doc>
-    <argument name = "tree" type = "ipr_tree_t *" />
-    //
-    assert (tree);
-    ipr_tree_open (tree, "domain");
-    ipr_tree_leaf (tree, "name", self->name);
-    ipr_tree_shut (tree);
+<method name = "get">
 </method>
 
-<method name = "modify" template = "function">
-    <doc>
-    Modify the object from the provided XML element.
-    </doc>
-    <argument name = "xml_item" type = "ipr_xml_t *" />
-    //
-    assert (FALSE);                     //  Not possible
+<method name = "put">
+</method>
+
+<method name = "delete">
+</method>
+
+<method name = "post">
+</method>
+
+<method name = "report">
 </method>
 
 <method name = "selftest" />

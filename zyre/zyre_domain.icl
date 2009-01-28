@@ -31,6 +31,8 @@ This class implements the RestMS domain object.
 <inherit class = "zyre_resource_back" />
 
 <context>
+    Bool
+        dynamic;                        //  Dynamic resource?
     icl_shortstr_t
         title;                          //  Title text
 </context>
@@ -38,9 +40,18 @@ This class implements the RestMS domain object.
 <method name = "new">
     <!-- New method is used by portal, does not accept any arguments -->
     icl_shortstr_cpy (self->title, "Default domain");
+    self->dynamic = FALSE;              //  Later, set in configure
 </method>
 
 <method name = "destroy">
+</method>
+
+<method name = "configure">
+    //  If the context is null, configure a default domain
+    if (context)
+        self->dynamic = TRUE;
+    else
+        self->dynamic = FALSE;
 </method>
 
 <method name = "get">
@@ -70,13 +81,21 @@ This class implements the RestMS domain object.
 </method>
 
 <method name = "put">
-    http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-        "The PUT method is not allowed on this resource");
+    if (self->dynamic)
+        http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
+            "Still not allowed to modify this domain");
+    else
+        http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
+            "Not allowed to modify this domain");
 </method>
 
 <method name = "delete">
-    http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-        "The DELETE method is not allowed on this resource");
+    if (self->dynamic || context == NULL)
+        http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
+            "Still not allowed to delete this domain");
+    else
+        http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
+            "Not allowed to delete this domain");
 </method>
 
 <method name = "post">

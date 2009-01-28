@@ -66,7 +66,8 @@
 <method name = "new">
     <local>
     zyre_resource_t
-        *resource;
+        *domain,
+        *feed;
     </local>
     //
     self->resources = ipr_hash_table_new ();
@@ -75,10 +76,18 @@
     zyre_backend_request_start (self->backend);
 
     //  Create domain resource
-    resource = zyre_domain__zyre_resource_new (NULL,
-        NULL, self->resources, "domain", "main");
-    zyre_restms__zyre_resource_bind (self, resource);
-    zyre_resource_unlink (&resource);
+    domain = zyre_domain__zyre_resource_new (NULL,
+        NULL, self->resources, "domain", "default");
+    zyre_restms__zyre_resource_bind (self, domain);
+
+    //  Create default feed
+    feed = zyre_feed__zyre_resource_new (NULL,
+        domain, self->resources, "feed", "default");
+    zyre_restms__zyre_resource_bind (self, feed);
+    zyre_resource_request_configure (feed, NULL, self->resources, self->backend);
+
+    zyre_resource_unlink (&feed);
+    zyre_resource_unlink (&domain);
 </method>
 
 <method name = "destroy">
@@ -184,7 +193,7 @@
         //  Pathinfo is URI key into resource table
         resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
         if (resource)
-            zyre_resource_request_post (resource, context, self->resources);
+            zyre_resource_request_post (resource, context, self->resources, self->backend);
         else
             http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
                 "The URI does not match a known resource");
@@ -245,7 +254,9 @@
     </action>
 </method>
 
-<!-- These methods are responses from resources -->
+<!-- These methods are responses from resources
+     Everything happens synchronously between restms and its resource tree
+     -->
 <method name = "child add">
     <argument name = "context" type = "http_driver_context_t *" />
     <local>
@@ -345,7 +356,7 @@
         rc = http_driver_context_xml_parse (context, RESTMS_ROOT, required);
     else {
         http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-            "Content-Type must be 'application/restms+xml");
+            "Content-Type must be 'application/restms+xml'");
         rc = -1;
     }
 </method>

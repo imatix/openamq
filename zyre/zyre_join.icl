@@ -38,6 +38,8 @@ detaches from its pipe and feed.
 <inherit class = "zyre_resource_back" />
 
 <context>
+    Bool
+        dynamic;                        //  Dynamic resource?
     icl_shortstr_t
         address;                        //  Address pattern
     zyre_resource_t
@@ -61,12 +63,26 @@ detaches from its pipe and feed.
         join_key;
     </local>
     //
+    assert (backend);
     self->pipe = portal->parent;
-    self->feed = zyre_resource_parse_uri (context, table,
-        ipr_xml_attr_get (context->xml_item, "feed", NULL));
-    self->backend = zyre_backend_link (backend);
+    //  If the context is null, configure a default join
+    if (context) {
+        self->backend = zyre_backend_link (backend);
+        self->dynamic = TRUE;
+        self->feed = zyre_resource_parse_uri (context, table,
+            ipr_xml_attr_get (context->xml_item, "feed", NULL));
+        icl_shortstr_cpy (self->address,
+            ipr_xml_attr_get (context->xml_item, "address", "*"));
+        zyre_backend_request_join_create (
+            self->backend, self->pipe->name, self->feed->name, self->address);
+    }
+    else {
+        //  Default feed is not visible to backend
+        self->dynamic = FALSE;
+        self->feed = ipr_hash_lookup (table, "/feed/default");
+        icl_shortstr_cpy (self->address, self->pipe->name);
+    }
     assert (self->feed);
-    icl_shortstr_cpy (self->address, ipr_xml_attr_get (context->xml_item, "address", "*"));
 
     //  Attach to pipe, key is address@feed
     icl_shortstr_fmt (join_key, "%s@%s", self->address, self->feed->path);
@@ -75,9 +91,6 @@ detaches from its pipe and feed.
     //  Attach to feed, key is address@pipe
     icl_shortstr_fmt (join_key, "%s@%s", self->address, self->pipe->path);
     zyre_resource_request_attach (self->feed, portal, join_key);
-
-    zyre_backend_request_join_create (
-        self->backend, self->pipe->name, self->feed->name, self->address);
 </method>
 
 <method name = "get">
@@ -98,26 +111,35 @@ detaches from its pipe and feed.
 </method>
 
 <method name = "put">
-    http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-        "The PUT method is not allowed on this resource");
+    if (self->dynamic)
+        http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+            "The PUT method is still not allowed on this resource");
+    else
+        http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+            "The PUT method is not allowed on this resource");
 </method>
 
 <method name = "delete">
-    <local>
-    icl_shortstr_t
-        join_key;
-    </local>
-    //
-    //  Detach from pipe, key is address@feed
-    icl_shortstr_fmt (join_key, "%s@%s", self->address, self->feed->path);
-    zyre_resource_request_detach (self->pipe, portal, join_key);
+    //  We can delete configured resources internally, context will be null
+    if (self->dynamic || context == NULL) {
+        icl_shortstr_t
+            join_key;
 
-    //  Detach from feed, key is address@pipe
-    icl_shortstr_fmt (join_key, "%s@%s", self->address, self->pipe->path);
-    zyre_resource_request_detach (self->feed, portal, join_key);
+        //  Detach from pipe, key is address@feed
+        icl_shortstr_fmt (join_key, "%s@%s", self->address, self->feed->path);
+        zyre_resource_request_detach (self->pipe, portal, join_key);
 
-    zyre_backend_request_join_delete (
-        self->backend, self->pipe->name, self->feed->name, self->address);
+        //  Detach from feed, key is address@pipe
+        icl_shortstr_fmt (join_key, "%s@%s", self->address, self->pipe->path);
+        zyre_resource_request_detach (self->feed, portal, join_key);
+
+        if (self->backend)
+            zyre_backend_request_join_delete (
+                self->backend, self->pipe->name, self->feed->name, self->address);
+    }
+    else
+        http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
+            "Not allowed to delete this join");
 </method>
 
 <method name = "post">

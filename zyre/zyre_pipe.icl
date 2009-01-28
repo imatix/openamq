@@ -31,6 +31,8 @@ This class implements the RestMS pipe object.
 <inherit class = "zyre_resource_back" />
 
 <context>
+    Bool
+        dynamic;                        //  Dynamic resource?
     icl_shortstr_t
         type,                           //  Pipe type
         title;                          //  Title if any
@@ -61,25 +63,52 @@ This class implements the RestMS pipe object.
 </method>
 
 <method name = "configure">
+    <local>
+    zyre_resource_t
+        *join;
+    </local>
+    //
+    //  If the context is null, configure a default domain
+    if (context)
+        self->dynamic = TRUE;
+    else
+        self->dynamic = FALSE;
+
     icl_shortstr_cpy (self->type, ipr_xml_attr_get (context->xml_item, "type", "topic"));
     icl_shortstr_cpy (self->title, ipr_xml_attr_get (context->xml_item, "title", ""));
     self->backend = zyre_backend_link (backend);
     zyre_backend_request_pipe_create (self->backend, self->type, portal->name);
+
+    //  Create join from pipe to default feed
+    join = zyre_join__zyre_resource_new (NULL, portal, table, "join", "");
+    zyre_restms__zyre_resource_bind ((zyre_restms_t *) (portal->client_object), join);
+    zyre_resource_request_configure (join, NULL, table, self->backend);
+    zyre_resource_unlink (&join);
 </method>
 
 <method name = "get">
     <local>
     ipr_tree_t
         *tree;
+    ipr_looseref_t
+        *looseref;
     </local>
     //
     tree = ipr_tree_new (RESTMS_ROOT);
     ipr_tree_leaf (tree, "xmlns", "http://www.imatix.com/schema/restms");
     ipr_tree_open (tree, "pipe");
-    ipr_tree_leaf (tree, "name", portal->name);
     ipr_tree_leaf (tree, "type", self->type);
+    ipr_tree_leaf (tree, "name", portal->name);
     if (*self->title)
         ipr_tree_leaf (tree, "title", self->title);
+
+    looseref = ipr_looseref_list_first (portal->children);
+    while (looseref) {
+        zyre_resource_t
+            *resource = (zyre_resource_t *) looseref->object;
+        zyre_resource_request_report (resource, context, tree);
+        looseref = ipr_looseref_list_next (&looseref);
+    }
     ipr_tree_shut (tree);
     zyre_resource_report (portal, context, tree);
     ipr_tree_destroy (&tree);
@@ -91,6 +120,10 @@ This class implements the RestMS pipe object.
         *value;
     </local>
     //
+    if (!self->dynamic)
+        http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
+            "Not allowed to modify this pipe");
+    else
     if (context->request->content_length == 0)
         http_driver_context_reply_success (context, HTTP_REPLY_NOCONTENT);
     else
@@ -103,20 +136,24 @@ This class implements the RestMS pipe object.
 </method>
 
 <method name = "delete">
-    <local>
-    zyre_resource_t
-        *resource;
-    ipr_looseref_t
-        *looseref;
-    </local>
-    //
-    while ((looseref = ipr_looseref_list_first (self->joins))) {
-        //  Since we don't have a link to the resource, grab one
-        resource = zyre_resource_link ((zyre_resource_t *) looseref->object);
-        zyre_resource_request_delete (resource, context);
-        zyre_resource_destroy (&resource);
+    //  We can delete configured resources internally, context will be null
+    if (self->dynamic || context == NULL) {
+        zyre_resource_t
+            *resource;
+        ipr_looseref_t
+            *looseref;
+
+        while ((looseref = ipr_looseref_list_first (self->joins))) {
+            //  Since we don't have a link to the resource, grab one
+            resource = zyre_resource_link ((zyre_resource_t *) looseref->object);
+            zyre_resource_request_delete (resource, NULL);
+            zyre_resource_destroy (&resource);
+        }
+        zyre_backend_request_pipe_delete (self->backend, portal->name);
     }
-    zyre_backend_request_pipe_delete (self->backend, portal->name);
+    else
+        http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
+            "Not allowed to delete this pipe");
 </method>
 
 <method name = "post">
@@ -147,9 +184,15 @@ This class implements the RestMS pipe object.
                         break;
                     looseref = ipr_looseref_list_next (&looseref);
                 }
-                if (looseref)
-                    icl_console_print ("DUPJOIN: %s", join_key);
+                if (looseref) {
+                    //  We have an existing join that matches so report that
+                    resource = (zyre_resource_t *) looseref->object;
+                    http_response_set_header (context->response, "location",
+                        "%s%s%s", context->response->root_uri, RESTMS_ROOT, resource->path);
+                    zyre_resource_request_get (resource, context);
+                }
                 else
+                    //  Ok, join is valid and new, so create it
                     zyre_resource_response_child_add (portal, context);
             }
             else
@@ -164,8 +207,8 @@ This class implements the RestMS pipe object.
 
 <method name = "report">
     ipr_tree_open (tree, "pipe");
-    ipr_tree_leaf (tree, "name", portal->name);
     ipr_tree_leaf (tree, "type", self->type);
+    ipr_tree_leaf (tree, "name", portal->name);
     if (*self->title)
         ipr_tree_leaf (tree, "title", self->title);
     ipr_tree_leaf (tree, "href", "%s%s%s",

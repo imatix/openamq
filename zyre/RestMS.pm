@@ -46,8 +46,8 @@ sub get {
     $self->{_request}->header ("Accept" => "application/restms+xml");
     $self->{_response} = $self->{_ua}->request ($self->{_request});
     $self->trace ();
-    $self->assert ($expect) if $expect;
-    if ($self->code == 200) {
+    $self->check ($expect);
+    if ($self->code < 300) {
         return $self->content;
     }
 }
@@ -63,8 +63,8 @@ sub put {
     }
     $self->{_response} = $self->{_ua}->request ($self->{_request});
     $self->trace ();
-    $self->assert ($expect) if $expect;
-    if ($self->code == 200) {
+    $self->check ($expect);
+    if ($self->code < 300) {
         return $self->content;
     }
 }
@@ -76,8 +76,8 @@ sub delete {
     $self->{_request} = HTTP::Request->new (DELETE => $uri);
     $self->{_response} = $self->{_ua}->request ($self->{_request});
     $self->trace ();
-    $self->assert ($expect) if $expect;
-    if ($self->code == 200) {
+    $self->check ($expect);
+    if ($self->code < 300) {
         return $self->content;
     }
 }
@@ -89,10 +89,10 @@ sub post {
     $self->{_request} = HTTP::Request->new (POST => $uri);
     $self->{_request}->content_type ("application/restms+xml");
     $self->{_request}->content ($content);
-    $self->{_request}->header (Slug => $slug);
+    $self->{_request}->header (Slug => $slug) if $slug;
     $self->{_response} = $self->{_ua}->request ($self->{_request});
     $self->trace ();
-    $self->assert ($expect) if $expect;
+    $self->check ($expect);
     if ($self->code < 300) {
         #   Get Location: and strip off the URI start
         my $location = $self->{_response}->header ("Location");
@@ -111,13 +111,13 @@ sub post {
 #   Creates a feed in the default domain, returns feed URI if ok
 sub feed_create {
     my ($self, $feed, $type, $expect) = @_;
-    return $self->post ("/restms/domain/main", $feed, "<restms><feed type=\"$type\" /></restms>", $expect);
+    return $self->post ("/restms/domain/default", $feed, "<restms><feed type=\"$type\" /></restms>", $expect);
 }
 
 #   Creates a pipe in the default domain, returns feed URI if ok
 sub pipe_create {
     my ($self, $type, $expect) = @_;
-    return $self->post ("/restms/domain/main", "", "<restms><pipe type=\"$type\" /></restms>", $expect);
+    return $self->post ("/restms/domain/default", "", "<restms><pipe type=\"$type\" /></restms>", $expect);
 }
 
 #   Creates a pipe in the default domain, returns feed URI if ok
@@ -126,12 +126,64 @@ sub join_create {
     return $self->post ($pipe, "", "<restms><join feed=\"$feed\" address=\"$address\"/></restms>", $expect);
 }
 
+#   Stage MIME-typed content on server for following send() method
+#   We allow a single stage per send
+
+sub stage {
+    my ($self, $uri, $content, $content_type, $expect) = @_;
+    if ($self->{_content}) {
+        $self->carp ("Attempted to stage multiple contents, not supported");
+    }
+    else {
+        $uri = "http://".$self->{_host}.$uri unless ($uri =~ /^http:\/\//);
+        $self->{_request} = HTTP::Request->new (POST => $uri);
+        $self->{_request}->content_type ($content_type);
+        $self->{_request}->content ($content);
+        $self->{_response} = $self->{_ua}->request ($self->{_request});
+        $self->trace ();
+        $self->check ($expect);
+        if ($self->code < 300) {
+            #   Get Location: and strip off the URI start
+            my $location = $self->{_response}->header ("Location");
+            if ($location) {
+                $self->{_content} = $location;
+            }
+            else {
+                $self->carp ("Location: missing from response");
+                $self->verbose (1);
+                $self->trace ();
+                exit (1);
+            }
+        }
+    }
+}
+
+#   Message send function: to send content, use stage(), then send()
+sub send {
+    my ($self, $feed, $address, %properties, %headers) = @_;
+    my $xml = "<restms><message address=\"$address\"";
+    foreach my $key (keys %properties) {
+        $xml .= " $key=\"".$properties {$key}."\"";
+    }
+    $xml .= ">";
+    foreach my $key (keys %headers) {
+        $xml .= "<header name=\"$key\" value=\"".$headers {$key}."\" />";
+    }
+    if ($self->{_content}) {
+        $xml .= "<content href=\"".$self->{_content}."\" />";
+        $self->{_content} = undef;
+    }
+    $xml .= "</message></restms>";
+    $self->carp ($xml);
+    return $self->post ($feed, "", $xml, $expect);
+}
+
 #   Issue a raw request
 #   method - HTTP method
 #   path - URI following /restms
 #   type - resource type
 #   content - optional XML content
-#   $expect - asserted reply code
+#   $expect - checked reply code
 #
 sub raw {
     my ($self, $method, $uri, $content, $expect) = @_;
@@ -143,8 +195,8 @@ sub raw {
     }
     $self->{_response} = $self->{_ua}->request ($self->{_request});
     $self->trace ();
-    $self->assert ($expect) if $expect;
-    if ($self->code == 200) {
+    $self->check ($expect);
+    if ($self->code < 300) {
         return $self->content;
     }
 }
@@ -184,15 +236,16 @@ sub trace {
 }
 
 #   Assert return code, complain & exit if it's wrong
-sub assert {
+sub check {
     my ($self, $code) = @_;
-    if ($self->code != $code) {
+    $code = 399 unless $code;
+    if ($self->code > $code) {
         $self->carp ("Request failed: "
             . $self->{_request}->method . " "
             . $self->{_request}->uri . " => "
             . $self->{_response}->status_line . ", expected $code");
         if ($self->{_request}->content) {
-            $self->carp ("\n" . $self->{_request}->content);
+            $self->carp ("Content: ". $self->{_request}->content);
         }
         if ($self->content =~ /id="error_text">\n    (.*)\n/) {
             $self->carp ("Error: $1");

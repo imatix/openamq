@@ -1,13 +1,32 @@
 - implement joins
-    OK
 - catch duplicate joins
-    OK
+- report duplicate join
 - catch other errors during configuration
-    OK
+- create default feed
 - default join from all pipes to default feed
+- filter default feed & joins in backend
+- pipe report joins
+    OK
+
+- message class
+    - address
+    - reply_to
+    - list of contents
+    - feed (originating)
+
+- post to feed
+    - create content and send immediately to backend
+    - do not create a message
+    - send immediately to back-end
+    - no creation of resource
+
+how to handle multiple contents in one message:
+    - send as separate messages
+    - collect & normalise as single message again
 
 
-
+- RestMS class needs to fix error handling
+    - if $expect undefined, should assert at error
 
 JSON parser in C
 new XML parser that is known solid
@@ -23,6 +42,11 @@ synchronization with AMQP
 new resource from openamq
     always public resource
     always locked
+
+- in openamq, synchronize back with zyre
+    - add method Feed.Sync to class
+    - if server gets this, syncs all exchange & shared queues back to RestMS
+
 
 
 AMQP synchronization
@@ -42,27 +66,6 @@ zyre_content class
     bucket (limit content to 2MB for now)
         overflow to file, later
         limitation needs to be documented
-
-
-- in openamq, synchronize back with zyre
-    - add method Feed.Sync to class
-    - if server gets this, syncs all exchange & shared queues back to RestMS
-
-
-
-
-    - zyre_resource_new (table,
-
-
-- handle in zyre_restms class:
-    Domain  GET POST (feed, pipe)
-    Feed    GET PUT DELETE POST (message)
-    Pipe    GET PUT DELETE POST (join)
-    Join    GET PUT DELETE
-    Message GET DELETE
-    Content GET DELETE
-
-
 
 
 define pipe that sends messages back to feed

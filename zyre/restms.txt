@@ -220,12 +220,12 @@ The client unpacks the headers table and takes the "fortune" field, which contai
 
 ++++ RestMS fortune service
 
-We now explain how the same service would work using RestMS semantics.  First, the fortune service creates a public feed named "fortune", by posting a feed specification to the "main" domain:
+We now explain how the same service would work using RestMS semantics.  First, the fortune service creates a public feed named "fortune", by posting a feed specification to the default domain:
 
 [[code]]
 Client:
 -------------------------------------------------
-POST /restms/domain/main
+POST /restms/domain/default
 Content-Type: application/restms+xml
 Slug: fortune
 
@@ -251,7 +251,7 @@ The fortune service then creates a pipe:
 [[code]]
 Client:
 -------------------------------------------------
-POST /restms/domain/main
+POST /restms/domain/default
 Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
@@ -272,7 +272,7 @@ Location: http://host.com/restms/resource/C4FE
     <join
         href="http://host.com/restms/resource/BA5F"
         address="RESTMS_C4FE"
-        feed="http://host.com/restms/feed/" />
+        feed="http://host.com/restms/feed/default" />
     <!-- All pipes contain an asynclet for the next message -->
     <message
         href="http://host.com/restms/resource/F00D"
@@ -336,7 +336,7 @@ The fortune service then replies with a suitable fortune cookie, by posting a me
 [[code]]
 Client:
 -------------------------------------------------
-POST /restms/feed/
+POST /restms/feed/default
 Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
@@ -376,12 +376,12 @@ HTTP/1.1 200 OK
 
 ++++ RestMS fortune client
 
-The fortune client creates a pipe by posting a pipe specification document to the "main" domain:
+The fortune client creates a pipe by posting a pipe specification document to the default domain:
 
 [[code]]
 Client:
 -------------------------------------------------
-POST /restms/domain/main
+POST /restms/domain/default
 Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
@@ -401,7 +401,7 @@ Location: http://host.com/restms/resource/B4B4
     <join
         href="http://host.com/restms/resource/00DA"
         address="RESTMS_B4B4"
-        feed="http://host.com/restms/feed/" />
+        feed="http://host.com/restms/feed/default" />
     <message
         href="http://host.com/restms/resource/C137"
         async="1" />
@@ -590,12 +590,12 @@ S:Basic.Deliver exchange="newsfeed" routing_key="rec.pets.cats"
 
 ++++ RestMS newsfeed publisher
 
-The news publisher first declares a public topic feed called "newsfeed", by posting a feed specification to the "main" domain:
+The news publisher first declares a public topic feed called "newsfeed", by posting a feed specification to the default domain:
 
 [[code]]
 Client:
 -------------------------------------------------
-POST /restms/domain/main
+POST /restms/domain/default
 Content-Type: application/restms+xml
 Slug: newsfeed
 
@@ -664,7 +664,7 @@ The subscriber creates a pipe on which to receive news items, and the server res
 [[code]]
 Client:
 -------------------------------------------------
-POST /restms/domain/main
+POST /restms/domain/default
 Content-Type: application/restms+xml
 
 <?xml version="1.0"?>
@@ -1538,10 +1538,10 @@ The URI for a domain is:
 http://{server-name}[:{port}]/restms/domain/{domain-name}
 [[/code]]
 
-RestMS servers SHOULD implement a default public domain named "main". The URI for the "main" domain is as expected:
+RestMS servers SHOULD implement a default public domain named "default". The URI for the default domain is as expected:
 
 [[code]]
-http://{server-name}[:{port}]/restms/domain/main
+http://{server-name}[:{port}]/restms/domain/default
 [[/code]]
 
 These methods are allowed on a domain URI:
@@ -1612,7 +1612,7 @@ The XML description of a feed returned by the server has this format:
 
 To create a new feed the client POSTs a feed document to the domain's URI.  Dynamic feeds may be named or unnamed.  If unnamed, the feed is accessible only to applications that have learned its URI by some out-of-band mechanism.  All feeds will be propagated to the AMQP network.  A feed maps to an AMQP exchange or shared queue.  The AMQP exchange or queue names can be derived by convention from the feed URI, as previously explained in the section "Resource propagation".
 
-The RestMS server also provides a configured "default feed" with no name, and type "direct" that acts as the routing point for service requests and responses.  This feed maps directly to the AMQP "default exchange" and routes on a literal address string.
+The RestMS server SHOULD also provide a configured default feed with type "direct" that acts as the routing point for service requests and responses.  This feed maps directly to the AMQP default exchange and routes on a literal address string.
 
 The feed type defines the routing semantics of the feed, for example whether it uses literal or wild-card address pattern tests, whether it distributes or fans-out messages, and so on.  RestMS defines a set of standard feed types, and implementations can extend this set. If the client attempts to create a feed with an unknown type, the server responds with "400 Bad Request".  If the client does not specify a feed type, the type defaults to "topic".
 
@@ -1699,7 +1699,23 @@ A message is a document that carries zero or more contents.  The message can be 
 * GET - retrieves the message representation. This method conforms to the generic model and we do not explain it further.
 * DELETE - deletes the message and all older messages from the pipe. This method conforms to the generic model and we do not explain it further.
 
-A message document specifies the message properties, particularly the message address, and has resource references to any contents that the message may contain.  The XML format of this document is:
+The XML specification provided by the client when posting a message to a feed has this format:
+
+[[code]]
+<?xml version="1.0"?>
+<restms xmlns="http://www.imatix.com/schema/restms">
+  <message
+    [ address="{address literal}" ]
+    [ reply_to="{address literal}" ]
+    [ <header name="{header name}" value="{header value}" /> ] ...
+    [ <content href="{content URI}" /> ] ...
+  </message> ...
+</restms>
+[[/code]]
+
+The full set of message properties is explained later in the "Message Semantics" section.  For RestMS interoperability the address and reply-to are used.  For AMQP interoperability, other properties may be used.
+
+The XML description of a message returned by the server has this format:
 
 [[code]]
 <?xml version="1.0"?>
@@ -1711,7 +1727,7 @@ A message document specifies the message properties, particularly the message ad
     [ next="next asynclet" ] ... >
     [ <header name="{header name}" value="{header value}" /> ] ...
     [ <content href="{content URI}" ... /> ] ...
-  </message> ...
+  </message>
 </restms>
 [[/code]]
 
@@ -1719,7 +1735,7 @@ Creating a message does not follow the generic POST semantics, for several reaso
 
 The second difference is that messages are constructs, consisting of the message resource itself, plus zero or more opaque binary content blobs.
 
-Finally, RestMS allows batching of messages, so that many can be posted in a single POST request.
+Finally, RestMS permits clients to send multiple messages can be posted in a single POST request, by defining 1 or more <message> elements in the document.
 
 To create a new message a client does this:
 
@@ -1747,7 +1763,8 @@ Client                                                           Server
 
 To create a batch of new messages a client does this:
 
-* It POSTs a single document containing multiple message elements, and no content elements, to the feed's URI.  This message are then dispatched individually using whatever routing semantics the feed implements.
+* It POSTs zero or more binary contents to the feeds's URI.  These contents are staged on the server.  The server returns a Location: header for each posted content.
+* It POSTs a single document containing multiple message elements to the feed's URI.  This message are then dispatched individually using whatever routing semantics the feed implements.
 * The server replies, if there was no error, with a "200 OK" reply status.  It does not return a Location: header, nor a content body.
 
 +++ Contents
@@ -1778,7 +1795,7 @@ Implementations SHOULD implement all of these feed types and MAY implement other
 
 * The **fanout** feed type routes a copy of an incoming message to each join registered with the feed.  The join address and message address are not used during routing.  Joins made to a fanout feed should always have the address "*".
 
-* The **direct** feed type routes a copy of an incoming message to each join registered with the feed that has an address pattern that is identical to the message address.  The default feed (with URI path "/restms/feed/") is a direct feed.
+* The **direct** feed type routes a copy of an incoming message to each join registered with the feed that has an address pattern that is identical to the message address.  The default feed (with URI path "/restms/feed/default") is a configured direct feed.
 
 * The **topic** feed type routes a copy of an incoming message to each join registered with the feed that has an address pattern that matches the message address following AMQP's topic matching rules.
 
@@ -1840,6 +1857,9 @@ In RestMS, the message envelope and message content are split into two distinct 
 </restms>
 [[/code]]
 
+* The priority is a value from 0 to 9.
+* The timestamp is formatted according to the HTTP/1.1 specifications for date/time formats.[((bibcite rfc2616))]
+
 +++ RestMS to AMQP application routing
 
 AMQP requires, as a working basis, that application agree in advance on the routing model they will use to exchange messages.  Typically, this takes the form of contracts based on the name and type of an exchange, and the allowed values for routing keys used in bindings and messages.  To assure routing between RestMS and AMQP applications we need similar conventions.
@@ -1867,6 +1887,7 @@ We look at the interoperability of the messaging products, i.e. how to connect a
 * Whether the AMQP server supports the necessary RestMS semantics
 * How the RestMS server mirrors resources to and from the AMQP server
 * How the RestMS server routes messages to and from the AMQP server
+* How the RestMS server exchanges multi-content messages with AMQP.
 
 +++ The RestMS extension class
 
@@ -2082,6 +2103,15 @@ The optimal, but most complex model, is to use federation-style normalization.  
 
 Finally, a RestMS server does not need to work with an AMQP network, it can be self-standing.
 
++++ Multicontent messages
+
+Multicontent messages provide applications with a way to:
+
+* Send different types of content, e.g. a video, a subtitles file, and images, as a single message.
+* Group messages together so they will be routed and delivered together, or not at all.
+
+AMQP currently does not implement multicontent messages.  RestMS implementations MAY for the purposes of interoperability with AMQP restrict the number of contents per message to one.
+
 ++ HTTP interoperability and security
 
 This section is being worked on.
@@ -2090,6 +2120,7 @@ This section is being worked on.
 
 [[bibliography]]
 : rfc2119 : "Key words for use in RFCs to Indicate Requirement Levels" - [http://tools.ietf.org/html/rfc2119 ietf.org]
+: rfc2616 : "HTTP/1.1 Protocol Parameters" - http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html w3.org]
 : coss : "Consensus Oriented Specification System" - [http://wiki.amqp.org/spec:1 wiki.amqp.org]
 : rest : Roy Fielding, "Representational State Transfer (REST)" [http://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm www.ics.uci.edu]
 : atompub : "The Atom Syndication Format" - [http://www.ietf.org/rfc/rfc4287.txt ietf.org]

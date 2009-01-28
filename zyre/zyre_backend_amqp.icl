@@ -153,7 +153,6 @@ link becomes active, and when a message content arrives.
     zyre_amqp_pipe_t
         *pipe;
 
-    icl_console_print ("pipe create: pipe=%s", pipe_name);
     assert (ipr_hash_lookup (self->pipe_table, pipe_name) == NULL);
     pipe = zyre_amqp_pipe_new (pipe_type, pipe_name);
     ipr_hash_insert (self->pipe_table, pipe_name, pipe);
@@ -170,7 +169,6 @@ link becomes active, and when a message content arrives.
     zyre_amqp_pipe_t
         *pipe;
 
-    icl_console_print ("pipe delete: pipe=%s", pipe_name);
     pipe = ipr_hash_lookup (self->pipe_table, pipe_name);
     assert (pipe);
     if (self->connected)
@@ -188,7 +186,6 @@ link becomes active, and when a message content arrives.
     zyre_amqp_feed_t
         *feed;
 
-    icl_console_print ("feed create: feed=%s", feed_name);
     assert (ipr_hash_lookup (self->feed_table, feed_name) == NULL);
     feed = zyre_amqp_feed_new (feed_type, feed_name);
     ipr_hash_insert (self->feed_table, feed_name, feed);
@@ -205,7 +202,6 @@ link becomes active, and when a message content arrives.
     zyre_amqp_feed_t
         *feed;
 
-    icl_console_print ("feed delete: feed=%s", feed_name);
     feed = ipr_hash_lookup (self->feed_table, feed_name);
     assert (feed);
     if (self->connected)
@@ -225,8 +221,6 @@ link becomes active, and when a message content arrives.
     zyre_amqp_join_t
         *join;
 
-    icl_console_print ("join create: pipe=%s feed=%s address=%s",
-        pipe_name, feed_name, address);
     pipe = ipr_hash_lookup (self->pipe_table, pipe_name);
     assert (pipe);
     assert (zyre_amqp_pipe_join_lookup (pipe, feed_name, address) == NULL);
@@ -247,8 +241,6 @@ link becomes active, and when a message content arrives.
     zyre_amqp_join_t
         *join;
 
-    icl_console_print ("join delete: pipe=%s feed=%s address=%s",
-        pipe_name, feed_name, address);
     pipe = ipr_hash_lookup (self->pipe_table, pipe_name);
     assert (pipe);
     join = zyre_amqp_pipe_join_lookup (pipe, feed_name, address);
@@ -273,8 +265,10 @@ link becomes active, and when a message content arrives.
         *feed;
 
     feed = ipr_hash_lookup (self->feed_table, feed_name);
-    assert (feed);
-    if (feed->as_queue) {
+    if (*feed_name)
+        assert (feed);                  //  Default feed is not defined
+
+    if (*feed_name && feed->as_queue) {
         method = zyre_peer_method_new_basic_publish (
             0,                          //  Ticket
             NULL,                       //  Default exchange
