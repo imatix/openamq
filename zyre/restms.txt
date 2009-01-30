@@ -1352,6 +1352,8 @@ Resource type           Visibility          Lifecycle
 Domain                  Public              Configured
   |
   o- Feed               Public, private     Configured, dynamic
+  |  |
+  |  o- Content         Private             Dynamic
   |
   o- Pipe               Private             Dynamic
      |
@@ -1708,7 +1710,8 @@ The XML specification provided by the client when posting a message to a feed ha
     [ address="{address literal}" ]
     [ reply_to="{address literal}" ]
     [ <header name="{header name}" value="{header value}" /> ] ...
-    [ <content href="{content URI}" /> ] ...
+    [ <content href="{content URI}" ... />
+    | <content type="{MIME type} encoding="{encoding}">{content value}</content> ]
   </message> ...
 </restms>
 [[/code]]
@@ -1726,7 +1729,8 @@ The XML description of a message returned by the server has this format:
     [ feed="{originating feed URI}" ]
     [ next="next asynclet" ] ... >
     [ <header name="{header name}" value="{header value}" /> ] ...
-    [ <content href="{content URI}" ... /> ] ...
+    [ <content href="{content URI}" ... />
+    | <content type="{MIME type} encoding="{encoding}">{content value}</content> ]
   </message>
 </restms>
 [[/code]]
@@ -1769,6 +1773,7 @@ To create a batch of new messages a client does this:
 
 +++ Contents
 
+Contents
 A content is an opaque binary blob with a content type set by the writer.
 
 These methods are allowed on a content URI:

@@ -34,7 +34,7 @@ This class implements the RestMS content object.
     icl_shortstr_t
         type;                           //  MIME type
     size_t
-        *length;                        //  Content length
+        length;                         //  Content length
     ipr_bucket_t
         *bucket;                        //  Uploaded bucket
 </context>
@@ -50,6 +50,7 @@ This class implements the RestMS content object.
 <method name = "configure">
     icl_shortstr_cpy (self->type, context->request->content_type);
     self->bucket = ipr_bucket_link (context->request->content);
+    self->length = context->request->content_length;
 </method>
 
 <method name = "get">

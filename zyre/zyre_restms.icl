@@ -244,7 +244,24 @@
 
 <method name = "arrived">
     <action>
-    //  See old code
+    char
+        *pipe_name;
+    zyre_pipe_t
+        *pipe;
+
+    //  The consumer tag should be in the form prefix:pipe-name
+    pipe_name = strchr (consumer_tag, ':');
+    if (pipe_name) {
+        pipe_name++;                    //  Point to start of pipe name
+        _icp ("MESSAGE FOR: %s", pipe_name);
+ //       pipe = zyre_resource_table_search (self->resource_table, pipe_name);
+ //       if (pipe) {
+ //           zyre_pipe_accept (pipe, content);
+ //           zyre_pipe_unlink (&pipe);
+ //       }
+ //       else
+ //           smt_log_print (self->log, "W: undeliverable message ('%s')", consumer_tag);
+    }
     </action>
 </method>
 

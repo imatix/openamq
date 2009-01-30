@@ -149,30 +149,24 @@ This class implements the RestMS feed object.
 </method>
 
 <method name = "post">
-icl_console_print ("Feed post");
     if (streq (context->request->content_type, "application/restms+xml")) {
-icl_console_print (" -- have document");
         //  If we got a RestMS document, it must contain message elements
         if (http_driver_context_xml_parse (context, RESTMS_ROOT, "message") == 0) {
             //  Send a message for each XML item
             ipr_xml_t
                 *message = ipr_xml_link (context->xml_item);
             while (message) {
-icl_console_print (" -- send message");
                 s_send_message (message, context, table, portal->name, backend);
                 message = ipr_xml_next_sibling (&message);
             }
-            if (!context->failed) {
-icl_console_print (" -- looks ok");
+            if (!context->failed)
                 http_driver_context_reply_success (context, HTTP_REPLY_OK);
-            }
         }
     }
     else {
         //  Create a content and attach to feed
         zyre_resource_t
             *content;
-icl_console_print (" -- have typed content");
 
         //  We do not use the Slug: header for contents
         //  Create a new content resource and attach to the feed resource
@@ -188,7 +182,6 @@ icl_console_print (" -- have typed content");
         //  Set Location: header to location of content
         http_response_set_header (context->response, "location",
             "%s%s%s", context->response->root_uri, RESTMS_ROOT, content->path);
-icl_console_print (" -- location: %s%s%s", context->response->root_uri, RESTMS_ROOT, content->path);
 
         //  Get content description for client
         zyre_resource_request_get (content, context);
@@ -289,6 +282,10 @@ s_send_message (
         *element;                       //  content element of message
     char
         *address;                       //  Address to use for routing
+    asl_field_list_t
+        *headers_list;                  //  Message headers as list
+    icl_longstr_t
+        *headers_table;                 //  Message headers as table
 
     //  Grab a new content to work with
     content = amq_content_basic_new ();
@@ -299,9 +296,10 @@ s_send_message (
         char
             *uri = ipr_xml_attr_get (element, "href", NULL);
         if (uri) {
+            //  Set content from staged content resource
             zyre_resource_t
                 *resource;              //  Resource portal for content
-            resource = ipr_hash_lookup (table, uri);
+            resource = zyre_resource_parse_uri (context, table, uri);
             if (resource) {
                 //  Reach through the portal to grab the content properties
                 //  Kind of ugly but it's the simplest way to get these
@@ -315,9 +313,23 @@ s_send_message (
                 zyre_resource_detach_from_parent (resource);
                 zyre_resource_destroy (&resource);
             }
+            else
+                http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
+                    "Content resource does not exist");
         }
         else {
-            icl_console_print ("Normally we'd want to use the element value here, and decode it.");
+            //  Set content from embedded element value
+            char
+                *value = ipr_xml_text (element),
+                *type = ipr_xml_attr_get (element, "type", NULL),
+                *encoding = ipr_xml_attr_get (element, "encoding", NULL);
+
+            amq_content_basic_set_body (content, value, strlen (value), icl_mem_free);
+            if (type)
+                amq_content_basic_set_content_type (content, type);
+            //  We should try to decode if Base64 and send as binary
+            if (encoding)
+                amq_content_basic_set_content_encoding (content, encoding);
         }
         ipr_xml_unlink (&element);
     }
@@ -344,6 +356,22 @@ s_send_message (
         ipr_xml_attr_get (message, "app_id", ""));
     amq_content_basic_set_sender_id      (content,
         ipr_xml_attr_get (message, "sender_id", ""));
+
+    //  Process message headers
+    headers_list = asl_field_list_new (NULL);
+    element = ipr_xml_find_item (message, "header");
+    while (element) {
+        char *name = ipr_xml_attr_get (element, "name", NULL);
+        char *value = ipr_xml_attr_get (element, "value", NULL);
+        if (name && value)
+            asl_field_new_string (headers_list, name, value);
+        element = ipr_xml_next_item (&element);
+    }
+    //  Save headers field table into content
+    headers_table = asl_field_list_flatten (headers_list);
+    asl_field_list_unlink (&headers_list);
+    amq_content_basic_set_headers (content, headers_table);
+    icl_longstr_destroy (&headers_table);
 
     //  Calculate the feed and address
     //  Map the default feed to AMQP's "" exchange

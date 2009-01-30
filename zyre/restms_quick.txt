@@ -304,7 +304,8 @@ For RestMS applications:
     [ feed="{originating feed URI}" ]
     [ next="next asynclet" ] ... >
     [ <header name="{header name}" value="{header value}" /> ] ...
-    [ <content href="{content URI}" ... /> ] ...
+    [ <content href="{content URI}" ... />
+    | <content type="{MIME type} encoding="{encoding}">{content value}</content> ]
   </message> ...
 </restms>
 [[/code]]

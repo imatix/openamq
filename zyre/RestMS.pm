@@ -41,12 +41,12 @@ sub host {
 #   Get resource, returns XML document if found
 sub get {
     my ($self, $uri, $expect) = @_;
-    $uri = "http://".$self->{_host}.$uri unless ($uri =~ /^http:\/\//);
+    $uri = "http://".$self->{_host}.$uri unless $uri =~ /^http:\/\//;
     $self->{_request} = HTTP::Request->new (GET => $uri);
     $self->{_request}->header ("Accept" => "application/restms+xml");
     $self->{_response} = $self->{_ua}->request ($self->{_request});
     $self->trace ();
-    $self->check ($expect);
+    $self->assert ($expect);
     if ($self->code < 300) {
         return $self->content;
     }
@@ -55,7 +55,7 @@ sub get {
 #   Update resource
 sub put {
     my ($self, $uri, $content, $expect) = @_;
-    $uri = "http://".$self->{_host}.$uri unless ($uri =~ /^http:\/\//);
+    $uri = "http://".$self->{_host}.$uri unless $uri =~ /^http:\/\//;
     $self->{_request} = HTTP::Request->new (PUT => $uri);
     if ($content) {
         $self->{_request}->content_type ("application/restms+xml");
@@ -63,7 +63,7 @@ sub put {
     }
     $self->{_response} = $self->{_ua}->request ($self->{_request});
     $self->trace ();
-    $self->check ($expect);
+    $self->assert ($expect);
     if ($self->code < 300) {
         return $self->content;
     }
@@ -72,11 +72,11 @@ sub put {
 #   Delete resource
 sub delete {
     my ($self, $uri, $expect) = @_;
-    $uri = "http://".$self->{_host}.$uri unless ($uri =~ /^http:\/\//);
+    $uri = "http://".$self->{_host}.$uri unless $uri =~ /^http:\/\//;
     $self->{_request} = HTTP::Request->new (DELETE => $uri);
     $self->{_response} = $self->{_ua}->request ($self->{_request});
     $self->trace ();
-    $self->check ($expect);
+    $self->assert ($expect);
     if ($self->code < 300) {
         return $self->content;
     }
@@ -90,15 +90,15 @@ sub post {
 
 #   Posts content, returns Location URI
 sub post_raw {
-    my ($uri, $slug, $content, $content_type, $expect) = @_;
-    $uri = "http://".$self->{_host}.$uri unless ($uri =~ /^http:\/\//);
+    my ($self, $uri, $slug, $content, $content_type, $expect) = @_;
+    $uri = "http://".$self->{_host}.$uri unless $uri =~ /^http:\/\//;
     $self->{_request} = HTTP::Request->new (POST => $uri);
     $self->{_request}->header (Slug => $slug) if $slug;
-    $self->{_request}->content ($content);
-    $self->{_request}->content_type ($content_type);
+    $self->{_request}->content ($content) if $content;
+    $self->{_request}->content_type ($content_type) if $content_type;
     $self->{_response} = $self->{_ua}->request ($self->{_request});
     $self->trace ();
-    $self->check ($expect);
+    $self->assert ($expect);
     if ($self->code < 300) {
         #   Get Location: and strip off the URI start
         my $location = $self->{_response}->header ("Location");
@@ -142,12 +142,16 @@ sub stage {
     }
     else {
         $self->{_content} = $self->post_raw ($uri, undef, $content, $content_type, $expect);
+        return $self->{_content};
     }
 }
 
-#   Message send function: to send content, use stage(), then send()
+#   Message send function: to send content, use stage() or content(), then send()
 sub send {
-    my ($self, $uri, $address, %properties, %headers) = @_;
+    my ($self, $uri, $address) = @_;
+    my %properties = %{$_[3]};
+    my %headers = %{$_[4]};
+
     my $content = "<restms><message address=\"$address\"";
     foreach my $key (keys %properties) {
         $content .= " $key=\"".$properties {$key}."\"";
@@ -160,16 +164,21 @@ sub send {
         $content .= "<content href=\"".$self->{_content}."\" />";
         $self->{_content} = undef;
     }
+    elsif ($self->{_content_text}) {
+        $content .= "<content";
+        $content .= " type = \"".$self->{_content_type}."\"" if $self->{_content_type};
+        $content .= " encoding=\"".$self->{_encoding}."\"" if $self->{_encoding};
+        $content .= ">".$self->{_content_text}."</content>";
+    }
     $content .= "</message></restms>";
-    $self->carp ($content);
 
-    $uri = "http://".$self->{_host}.$uri unless ($uri =~ /^http:\/\//);
+    $uri = "http://".$self->{_host}.$uri unless $uri =~ /^http:\/\//;
     $self->{_request} = HTTP::Request->new (POST => $uri);
     $self->{_request}->content_type ("application/restms+xml");
     $self->{_request}->content ($content);
     $self->{_response} = $self->{_ua}->request ($self->{_request});
     $self->trace ();
-    $self->check ($expect);
+    $self->assert ($expect);
 }
 
 #   Issue a raw request
@@ -181,7 +190,7 @@ sub send {
 #
 sub raw {
     my ($self, $method, $uri, $content, $expect) = @_;
-    $uri = "http://".$self->{_host}.$uri unless ($uri =~ /^http:\/\//);
+    $uri = "http://".$self->{_host}.$uri unless $uri =~ /^http:\/\//;
     $self->{_request} = HTTP::Request->new ($method => $uri);
     if ($content) {
         $self->{_request}->content_type ("application/restms+xml");
@@ -189,7 +198,7 @@ sub raw {
     }
     $self->{_response} = $self->{_ua}->request ($self->{_request});
     $self->trace ();
-    $self->check ($expect);
+    $self->assert ($expect);
     if ($self->code < 300) {
         return $self->content;
     }
@@ -201,9 +210,15 @@ sub code {
     return $self->{_response}->code;
 }
 
-#   Returns the content from the last HTTP request
+#   Returns the content from the last HTTP request, or set the content
+#   for the next message
 sub content {
-    my ($self) = @_;
+    my ($self, $content, $content_type, $encoding) = @_;
+    if ($content) {
+        $self->{_content_text} = $content;
+        $self->{_content_type} = $content_type;
+        $self->{_encoding}     = $encoding;
+    }
     return $self->{_response}->content;
 }
 
@@ -230,10 +245,11 @@ sub trace {
 }
 
 #   Assert return code, complain & exit if it's wrong
-sub check {
+
+sub assert {
     my ($self, $code) = @_;
-    $code = 399 unless $code;
-    if ($self->code > $code) {
+    if (($code && $self->code != $code)
+    || (!$code && $self->code >= 300)) {
         $self->carp ("Request failed: "
             . $self->{_request}->method . " "
             . $self->{_request}->uri . " => "

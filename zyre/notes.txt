@@ -9,7 +9,57 @@
     OK
 - RestMS class needs to fix error handling
     OK
+- multiple messages
+    OK
+    <message ... />
+- no content, headers only
+    OK
+    <message ...>
+        <content href="{staged content uri}" />
+    </message>
+- if no such content, 404
+- else deletes content on sending
+    OK
+    <message ...>
+        <content type="{mime type}" encoding="{text encoding}">content body</content>
+    </message>
+    OK
+- DELETE content on feed
+    OK
+- GET content on feed
+<?xml version="1.0"?>
+<restms xmlns = "http://www.imatix.com/schema/restms">
+    <content type = "text/plain" length = "19" />
+</restms>
+    OK
+    - server MAY decode content before sending if encoding is "base64"
+    The Base16, Base32, and Base64 Data Encodings
+    http://tools.ietf.org/html/rfc4648
 
+
+incoming message
+    - always make separate content
+    - create content resource
+    - pass bucket of content & type
+    - create message resource
+    - attach content to message
+    - attach message to pipe
+
+get pipe
+    - list messages
+    - add asynclet
+
+get message
+    - if synchronous,
+        get message details
+    - if asynchronous
+        wait until message arrives
+    - list content, plus size etc.
+
+get asynclet
+
+
+        amq_content_basic_list_queue (self->contents, content);
 
 - message class
     - address
@@ -17,34 +67,8 @@
     - list of contents
     - feed (originating)
 
-- post to feed
-    - create content and send immediately to backend
-    - do not create a message
-    - send immediately to back-end
-    - no creation of resource
 
-how to handle multiple contents in one message:
-    - send as separate messages
-    - collect & normalise as single message again
 
-post content
-    type + body
-server responds with
-    XML body
-can stage many contents
-
-    <message ... />
-
-    <message ...>
-        <content href="{staged content uri}" />
-    </message>
-
-    <message ...>
-        <content type="{mime type}" encoding="{text encoding}">content body</content>
-    </message>
-
-delete content OK
-    - done automatically too
 
 get content from feed
     if know URI
