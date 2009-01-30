@@ -35,11 +35,19 @@ $restms->verbose (1);
 
 #   --------- Messages --------------
 #   Test simple sends
+
+#   Stage a series of contents
+$content {1} = $restms->stage ("/restms/feed/default", "Message body 1", "text/plain", 201);
+$content {2} = $restms->stage ("/restms/feed/default", "Message body 2", "text/plain", 201);
+$content {3} = $restms->stage ("/restms/feed/default", "Message body 3", "text/plain", 201);
+$content {4} = $restms->stage ("/restms/feed/default", "Message body 4", "text/plain", 201);
+$content {5} = $restms->stage ("/restms/feed/default", "Message body 5", "text/plain", 201);
+
+#   Send some messages with contents
 $restms->send ("/restms/feed/default", "test address",
     (reply_to => 'reply address', message_id => 'with content'),
     (header_name => 'header value'));
 
-$restms->stage ("/restms/feed/default", "This is a string, ring a ding a ding", "text/plain");
 $restms->send ("/restms/feed/default", "test address",
     (reply_to => 'reply address', message_id => 'with content'),
     (header_name => 'header value'));

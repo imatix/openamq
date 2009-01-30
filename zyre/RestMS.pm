@@ -82,14 +82,20 @@ sub delete {
     }
 }
 
-#   Post new resource to path, returns URI to resource
+#   Post new resource document to path, returns Location URI
 sub post {
     my ($self, $uri, $slug, $content, $expect) = @_;
+    return $self->post_raw ($uri, $slug, $content, "application/restms+xml", $expect);
+}
+
+#   Posts content, returns Location URI
+sub post_raw {
+    my ($uri, $slug, $content, $content_type, $expect) = @_;
     $uri = "http://".$self->{_host}.$uri unless ($uri =~ /^http:\/\//);
     $self->{_request} = HTTP::Request->new (POST => $uri);
-    $self->{_request}->content_type ("application/restms+xml");
-    $self->{_request}->content ($content);
     $self->{_request}->header (Slug => $slug) if $slug;
+    $self->{_request}->content ($content);
+    $self->{_request}->content_type ($content_type);
     $self->{_response} = $self->{_ua}->request ($self->{_request});
     $self->trace ();
     $self->check ($expect);
@@ -129,36 +135,13 @@ sub join_create {
 }
 
 #   Stage MIME-typed content on server for following send() method
-#   We allow a single stage per send
-
 sub stage {
     my ($self, $uri, $content, $content_type, $expect) = @_;
     if ($self->{_content}) {
         $self->carp ("Attempted to stage multiple contents, not supported");
     }
     else {
-        $uri = "http://".$self->{_host}.$uri unless ($uri =~ /^http:\/\//);
-        $self->{_request} = HTTP::Request->new (POST => $uri);
-        $self->{_request}->content_type ($content_type);
-        $self->{_request}->content ($content);
-        $self->{_response} = $self->{_ua}->request ($self->{_request});
-        $self->trace ();
-        $self->check ($expect);
-        if ($self->code < 300) {
-            #   Get Location: and strip off the URI start
-            my $location = $self->{_response}->header ("Location");
-            if ($location) {
-                $self->{_content} = $location;
-            }
-            else {
-                $self->carp ("Location: missing from response");
-                if (!$self->{_verbose}) {
-                    $self->verbose (1);
-                    $self->trace ();
-                }
-                exit (1);
-            }
-        }
+        $self->{_content} = $self->post_raw ($uri, undef, $content, $content_type, $expect);
     }
 }
 

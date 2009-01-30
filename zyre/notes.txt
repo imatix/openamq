@@ -44,6 +44,21 @@ can stage many contents
     </message>
 
 delete content OK
+    - done automatically too
+
+get content from feed
+    if know URI
+
+need to learn GIT and make gitub for restms work
+    - specs, sample code
+    - addons
+    restms.org
+
+zyre.com
+    - documentation
+    - examples
+    - binaries, packages
+
 
 JSON parser in C
 new XML parser that is known solid

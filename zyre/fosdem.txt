@@ -43,9 +43,10 @@ Where to next?
 
 - a new web server
     - secure, easy to configure, scalable, light
+- a new messaging architecture
 - a new messaging server
     - RESTful, pure HTTP, XML, JSON
-- a new
+- a new wtf?
 
 REST in 30 seconds
 
