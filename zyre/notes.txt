@@ -7,6 +7,9 @@
 - filter default feed & joins in backend
 - pipe report joins
     OK
+- RestMS class needs to fix error handling
+    OK
+
 
 - message class
     - address
@@ -24,9 +27,23 @@ how to handle multiple contents in one message:
     - send as separate messages
     - collect & normalise as single message again
 
+post content
+    type + body
+server responds with
+    XML body
+can stage many contents
 
-- RestMS class needs to fix error handling
-    - if $expect undefined, should assert at error
+    <message ... />
+
+    <message ...>
+        <content href="{staged content uri}" />
+    </message>
+
+    <message ...>
+        <content type="{mime type}" encoding="{text encoding}">content body</content>
+    </message>
+
+delete content OK
 
 JSON parser in C
 new XML parser that is known solid

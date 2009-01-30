@@ -38,6 +38,7 @@ $restms->verbose (1);
 $restms->send ("/restms/feed/default", "test address",
     (reply_to => 'reply address', message_id => 'with content'),
     (header_name => 'header value'));
+
 $restms->stage ("/restms/feed/default", "This is a string, ring a ding a ding", "text/plain");
 $restms->send ("/restms/feed/default", "test address",
     (reply_to => 'reply address', message_id => 'with content'),

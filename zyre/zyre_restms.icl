@@ -258,6 +258,10 @@
      Everything happens synchronously between restms and its resource tree
      -->
 <method name = "child add">
+    <doc>
+    Creates a resource from an XML document.  Classes that create resources
+    in other ways have to do the hard work themselves.
+    </doc>
     <argument name = "context" type = "http_driver_context_t *" />
     <local>
     char

@@ -130,7 +130,8 @@ This class is not threadsafe and may be used from one threadlet only.
 #define RESTMS_RESOURCE_JOIN        4
 #define RESTMS_RESOURCE_MESSAGE     5
 #define RESTMS_RESOURCE_CONTENT     6
-#define RESTMS_RESOURCE_VALID(t)    ((t) > 0 && (t) < 6)
+#define RESTMS_RESOURCE_TOP         7
+#define RESTMS_RESOURCE_VALID(t)    ((t) > 0 && (t) < RESTMS_RESOURCE_TOP)
 </public>
 
 <private name = "header">

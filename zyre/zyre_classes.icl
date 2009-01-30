@@ -25,14 +25,12 @@
     >
 <option name = "selftest" value = "0" />
 
-<!--
-<import class = "zyre_content" />
-    -->
 <import class = "zyre_amqp_feed" />
 <import class = "zyre_amqp_join" />
 <import class = "zyre_amqp_pipe" />
 <import class = "zyre_backend_amqp" />
 <import class = "zyre_config" />
+<import class = "zyre_content" />
 <import class = "zyre_digest_amqp" />
 <import class = "zyre_domain" />
 <import class = "zyre_feed" />

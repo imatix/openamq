@@ -28,39 +28,58 @@
 This class implements the RestMS content object.
 </doc>
 
-<inherit class = "zyre_resource_module_back" />
+<inherit class = "zyre_resource_back" />
 
 <context>
-    //  content type, encoding
-    //  bucket of data
+    icl_shortstr_t
+        type;                           //  MIME type
+    size_t
+        *length;                        //  Content length
+    ipr_bucket_t
+        *bucket;                        //  Uploaded bucket
 </context>
 
 <method name = "new">
-    <argument name = "resource" type = "zyre_resource_t *">Resource wrapper</argument>
-    //
-    icl_shortstr_cpy (self->name, name);
-    self->resource = resource;
+    <!-- New method is used by portal, does not accept any arguments -->
 </method>
 
 <method name = "destroy">
+    ipr_bucket_unlink (&self->bucket);
 </method>
 
-<method name = "report" template = "function">
-    <doc>
-    Adds XML description of the object to the provided ipr_tree.
-    </doc>
-    <argument name = "tree" type = "ipr_tree_t *" />
-    //
-    assert (FALSE);                     //  Not possible
+<method name = "configure">
+    icl_shortstr_cpy (self->type, context->request->content_type);
+    self->bucket = ipr_bucket_link (context->request->content);
 </method>
 
-<method name = "modify" template = "function">
-    <doc>
-    Modify the object from the provided XML element.
-    </doc>
-    <argument name = "xml_item" type = "ipr_xml_t *" />
+<method name = "get">
+    <local>
+    ipr_tree_t
+        *tree;
+    </local>
     //
-    assert (FALSE);                     //  Not possible
+    tree = ipr_tree_new (RESTMS_ROOT);
+    ipr_tree_leaf (tree, "xmlns", "http://www.imatix.com/schema/restms");
+    ipr_tree_open (tree, "content");
+    ipr_tree_leaf (tree, "type", self->type);
+    ipr_tree_leaf (tree, "length", "%ld", self->length);
+    ipr_tree_shut (tree);
+    zyre_resource_report (portal, context, tree);
+    ipr_tree_destroy (&tree);
+</method>
+
+<method name = "put">
+    http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
+        "Not allowed to modify contents");
+</method>
+
+<method name = "delete">
+    //  OK, allowed to delete contents
+</method>
+
+<method name = "post">
+    http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
+        "POST method is not allowed on contents");
 </method>
 
 <method name = "selftest" />

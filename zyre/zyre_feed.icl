@@ -149,54 +149,52 @@ This class implements the RestMS feed object.
 </method>
 
 <method name = "post">
+icl_console_print ("Feed post");
     if (streq (context->request->content_type, "application/restms+xml")) {
+icl_console_print (" -- have document");
+        //  If we got a RestMS document, it must contain message elements
         if (http_driver_context_xml_parse (context, RESTMS_ROOT, "message") == 0) {
-            //  s_post_message
-            amq_content_basic_t
-                *content;               //  Content to post
-
-            content = amq_content_basic_new ();
-            //  get contents from feed (?)
-            //  amq_content_basic_record_body  (content, context->request->content);
-
-            amq_content_basic_set_delivery_mode  (content, atoi (
-                ipr_xml_attr_get (context->xml_item, "delivery_mode", "0")));
-            amq_content_basic_set_priority       (content, atoi (
-                ipr_xml_attr_get (context->xml_item, "priority", "")));
-            amq_content_basic_set_correlation_id (content,
-                ipr_xml_attr_get (context->xml_item, "correlation_id", ""));
-            amq_content_basic_set_reply_to       (content,
-                ipr_xml_attr_get (context->xml_item, "reply_to", ""));
-            amq_content_basic_set_expiration     (content,
-                ipr_xml_attr_get (context->xml_item, "expiration", ""));
-            amq_content_basic_set_message_id     (content,
-                ipr_xml_attr_get (context->xml_item, "message_id", ""));
-            amq_content_basic_set_timestamp      (content, (int64_t) ipr_time_mime_decode (
-                ipr_xml_attr_get (context->xml_item, "timestamp", "")));
-            amq_content_basic_set_type           (content,
-                ipr_xml_attr_get (context->xml_item, "type", ""));
-            amq_content_basic_set_user_id        (content,
-                ipr_xml_attr_get (context->xml_item, "user_id", ""));
-            amq_content_basic_set_app_id         (content,
-                ipr_xml_attr_get (context->xml_item, "app_id", ""));
-            amq_content_basic_set_sender_id      (content,
-                ipr_xml_attr_get (context->xml_item, "sender_id", ""));
-
-            zyre_backend_request_address_post (
-                backend,
-                ipr_xml_attr_get (context->xml_item, "address", ""),
-                streq (portal->name, "default")? "": portal->name,
-                content);
-
-            amq_content_basic_unlink (&content);
-            http_driver_context_reply_success (context, HTTP_REPLY_OK);
+            //  Send a message for each XML item
+            ipr_xml_t
+                *message = ipr_xml_link (context->xml_item);
+            while (message) {
+icl_console_print (" -- send message");
+                s_send_message (message, context, table, portal->name, backend);
+                message = ipr_xml_next_sibling (&message);
+            }
+            if (!context->failed) {
+icl_console_print (" -- looks ok");
+                http_driver_context_reply_success (context, HTTP_REPLY_OK);
+            }
         }
     }
     else {
-        //
-        icl_console_print ("HAVE CONTENT WILL TRAVEL");
-        http_driver_context_reply_error (context, HTTP_REPLY_NOTIMPLEMENTED,
-            "Try Again Later, much later");
+        //  Create a content and attach to feed
+        zyre_resource_t
+            *content;
+icl_console_print (" -- have typed content");
+
+        //  We do not use the Slug: header for contents
+        //  Create a new content resource and attach to the feed resource
+        content = zyre_content__zyre_resource_new (NULL, portal, table, "content", "");
+        zyre_restms__zyre_resource_bind ((zyre_restms_t *) (portal->client_object), content);
+        //  Allow the content resource to configure itself from the HTTP context
+        zyre_resource_request_configure (content, context, table, backend);
+        if (context->request->content)
+            context->response->reply_code = HTTP_REPLY_CREATED;
+        else
+            context->response->reply_code = HTTP_REPLY_NOCONTENT;
+
+        //  Set Location: header to location of content
+        http_response_set_header (context->response, "location",
+            "%s%s%s", context->response->root_uri, RESTMS_ROOT, content->path);
+icl_console_print (" -- location: %s%s%s", context->response->root_uri, RESTMS_ROOT, content->path);
+
+        //  Get content description for client
+        zyre_resource_request_get (content, context);
+
+        //  Drop our link to it, it's now a child of the feed
+        zyre_resource_unlink (&content);
     }
 </method>
 
@@ -266,6 +264,100 @@ This class implements the RestMS feed object.
         http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
             "Invalid feed type '%s' specified", type);
 </method>
+
+<private name = "header">
+static void
+s_send_message (ipr_xml_t *message, http_driver_context_t *context,
+    ipr_hash_table_t *table, char *feed_name, zyre_backend_t *backend);
+</private>
+
+<private name = "footer">
+//  XML item is message
+//  Table lets us find the content resource by href
+//  Backend is where we send the message to
+static void
+s_send_message (
+    ipr_xml_t *message,
+    http_driver_context_t *context,
+    ipr_hash_table_t *table,
+    char *feed_name,
+    zyre_backend_t *backend)
+{
+    amq_content_basic_t
+        *content;                       //  Content to post
+    ipr_xml_t
+        *element;                       //  content element of message
+    char
+        *address;                       //  Address to use for routing
+
+    //  Grab a new content to work with
+    content = amq_content_basic_new ();
+
+    //  Parse content element if any
+    element = ipr_xml_find_item (message, "content");
+    if (element) {
+        char
+            *uri = ipr_xml_attr_get (element, "href", NULL);
+        if (uri) {
+            zyre_resource_t
+                *resource;              //  Resource portal for content
+            resource = ipr_hash_lookup (table, uri);
+            if (resource) {
+                //  Reach through the portal to grab the content properties
+                //  Kind of ugly but it's the simplest way to get these
+                amq_content_basic_record_body (content,
+                    ((zyre_content_t *) (resource->server_object))->bucket);
+                amq_content_basic_set_content_type (content,
+                    ((zyre_content_t *) (resource->server_object))->type);
+
+                //  Destroy the content resource now
+                resource = zyre_resource_link (resource);
+                zyre_resource_detach_from_parent (resource);
+                zyre_resource_destroy (&resource);
+            }
+        }
+        else {
+            icl_console_print ("Normally we'd want to use the element value here, and decode it.");
+        }
+        ipr_xml_unlink (&element);
+    }
+    //  Set AMQP properties on the message
+    amq_content_basic_set_delivery_mode  (content, atoi (
+        ipr_xml_attr_get (message, "delivery_mode", "0")));
+    amq_content_basic_set_priority       (content, atoi (
+        ipr_xml_attr_get (message, "priority", "")));
+    amq_content_basic_set_correlation_id (content,
+        ipr_xml_attr_get (message, "correlation_id", ""));
+    amq_content_basic_set_reply_to       (content,
+        ipr_xml_attr_get (message, "reply_to", ""));
+    amq_content_basic_set_expiration     (content,
+        ipr_xml_attr_get (message, "expiration", ""));
+    amq_content_basic_set_message_id     (content,
+        ipr_xml_attr_get (message, "message_id", ""));
+    amq_content_basic_set_timestamp      (content, (int64_t) ipr_time_mime_decode (
+        ipr_xml_attr_get (message, "timestamp", "")));
+    amq_content_basic_set_type           (content,
+        ipr_xml_attr_get (message, "type", ""));
+    amq_content_basic_set_user_id        (content,
+        ipr_xml_attr_get (message, "user_id", ""));
+    amq_content_basic_set_app_id         (content,
+        ipr_xml_attr_get (message, "app_id", ""));
+    amq_content_basic_set_sender_id      (content,
+        ipr_xml_attr_get (message, "sender_id", ""));
+
+    //  Calculate the feed and address
+    //  Map the default feed to AMQP's "" exchange
+    if (streq (feed_name, "default"))
+        feed_name = "";
+    address = ipr_xml_attr_get (message, "address", "");
+
+    //  Send it off to the backend
+    zyre_backend_request_address_post (backend, address, feed_name, content);
+
+    //  And drop our reference, we're done here
+    amq_content_basic_unlink (&content);
+}
+</private>
 
 <method name = "selftest" />
 

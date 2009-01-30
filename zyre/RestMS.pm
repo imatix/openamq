@@ -101,8 +101,10 @@ sub post {
         }
         else {
             $self->carp ("Location: missing from response");
-            $self->verbose (1);
-            $self->trace ();
+            if (!$self->{_verbose}) {
+                $self->verbose (1);
+                $self->trace ();
+            }
             exit (1);
         }
     }
@@ -150,8 +152,10 @@ sub stage {
             }
             else {
                 $self->carp ("Location: missing from response");
-                $self->verbose (1);
-                $self->trace ();
+                if (!$self->{_verbose}) {
+                    $self->verbose (1);
+                    $self->trace ();
+                }
                 exit (1);
             }
         }
@@ -160,22 +164,29 @@ sub stage {
 
 #   Message send function: to send content, use stage(), then send()
 sub send {
-    my ($self, $feed, $address, %properties, %headers) = @_;
-    my $xml = "<restms><message address=\"$address\"";
+    my ($self, $uri, $address, %properties, %headers) = @_;
+    my $content = "<restms><message address=\"$address\"";
     foreach my $key (keys %properties) {
-        $xml .= " $key=\"".$properties {$key}."\"";
+        $content .= " $key=\"".$properties {$key}."\"";
     }
-    $xml .= ">";
+    $content .= ">";
     foreach my $key (keys %headers) {
-        $xml .= "<header name=\"$key\" value=\"".$headers {$key}."\" />";
+        $content .= "<header name=\"$key\" value=\"".$headers {$key}."\" />";
     }
     if ($self->{_content}) {
-        $xml .= "<content href=\"".$self->{_content}."\" />";
+        $content .= "<content href=\"".$self->{_content}."\" />";
         $self->{_content} = undef;
     }
-    $xml .= "</message></restms>";
-    $self->carp ($xml);
-    return $self->post ($feed, "", $xml, $expect);
+    $content .= "</message></restms>";
+    $self->carp ($content);
+
+    $uri = "http://".$self->{_host}.$uri unless ($uri =~ /^http:\/\//);
+    $self->{_request} = HTTP::Request->new (POST => $uri);
+    $self->{_request}->content_type ("application/restms+xml");
+    $self->{_request}->content ($content);
+    $self->{_response} = $self->{_ua}->request ($self->{_request});
+    $self->trace ();
+    $self->check ($expect);
 }
 
 #   Issue a raw request
