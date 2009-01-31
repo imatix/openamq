@@ -36,7 +36,6 @@
     The Base16, Base32, and Base64 Data Encodings
     http://tools.ietf.org/html/rfc4648
 
-
 incoming message
     - always make separate content
     - create content resource

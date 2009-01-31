@@ -244,24 +244,37 @@
 
 <method name = "arrived">
     <action>
+    zyre_resource_t
+        *pipe = NULL;
+    icl_shortstr_t
+        pipe_path;
     char
         *pipe_name;
-    zyre_pipe_t
-        *pipe;
 
     //  The consumer tag should be in the form prefix:pipe-name
     pipe_name = strchr (consumer_tag, ':');
     if (pipe_name) {
         pipe_name++;                    //  Point to start of pipe name
-        _icp ("MESSAGE FOR: %s", pipe_name);
- //       pipe = zyre_resource_table_search (self->resource_table, pipe_name);
- //       if (pipe) {
- //           zyre_pipe_accept (pipe, content);
- //           zyre_pipe_unlink (&pipe);
- //       }
- //       else
- //           smt_log_print (self->log, "W: undeliverable message ('%s')", consumer_tag);
+        icl_shortstr_fmt (pipe_path, "/resource/%s", pipe_name);
+        pipe = ipr_hash_lookup (self->resources, pipe_path);
     }
+    if (pipe) {
+        zyre_resource_t
+            *message;
+
+        //  Create new message resource as child of pipe
+        message = zyre_message__zyre_resource_new (NULL, pipe, self->resources, "message", "");
+        zyre_restms__zyre_resource_bind (self, message);
+
+        //  We provide the new message resource with the AMQP content so the
+        //  message can create and configure a content resource.  This is not
+        //  really what 'attach' was meant for but it's nicer than making a
+        //  new portal method just for this specific case.
+        zyre_resource_request_attach (message, NULL, content);
+        zyre_resource_unlink (&message);
+    }
+    else
+        smt_log_print (self->log, "W: undeliverable message (tag='%s')", consumer_tag);
     </action>
 </method>
 

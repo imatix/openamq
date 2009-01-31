@@ -44,9 +44,8 @@ This class is not threadsafe and may be used from one threadlet only.
   <!-- Requests from restms to resource object -->
   <request name = "configure">
     <doc>
-    Configure a new resource, the context contains a parsed document.
-    If the resource is synchronized with a backend, this is the time to
-    do that.
+    Configure a new resource, the context contains a parsed document. If the
+    resource is synchronized with a backend, this is the time to do that.
     </doc>
     <field name = "context" type = "http_driver_context_t *" />
     <field name = "table"   type = "ipr_hash_table_t *">Resource hash</field>

@@ -57,6 +57,22 @@ This class implements the RestMS message object.
 <method name = "report">
 </method>
 
+<method name = "attach">
+    <local>
+    zyre_resource_t
+        *content;
+    </local>
+    //
+    //  Create new content resource as child of message and pass it the
+    //  argument, which holds the AMQP content
+    content = zyre_message__zyre_resource_new (NULL, message, self->resources, "content", "");
+    icl_shortstr_cpy (self->type, context->request->content_type);
+    self->bucket = ipr_bucket_link (context->request->content);
+    self->length = context->request->content_length;
+    zyre_resource_unlink (&content);
+
+</method>
+
 <method name = "selftest" />
 
 </class>
