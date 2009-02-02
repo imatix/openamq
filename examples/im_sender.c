@@ -60,8 +60,8 @@ int main (int argc, char *argv [])
 
         //  Create the message itself
         content = amq_content_basic_new ();
-        amq_content_basic_set_body (content, message_body,
-            strlen (message_body), free);
+//        amq_content_basic_set_body (content, message_body,
+  //          strlen (message_body), free);
 
         //  Send the message
         amq_client_session_basic_publish (

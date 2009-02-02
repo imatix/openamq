@@ -32,17 +32,34 @@
     <content type = "text/plain" length = "19" />
 </restms>
     OK
-    - server MAY decode content before sending if encoding is "base64"
+- set private properly on resources
+    OK
+- get content
+    - return bucket of data and type
+    OK
+- get content headers into message resource
+    OK
+- report message headers at get
+    OK
+- get feed, address fields from Basic.Deliver
+    OK
+
+- document message sending & receiving in detail
+- document use case for RestMS
+- document: server MAY decode content before sending if encoding is "base64"
     The Base16, Base32, and Base64 Data Encodings
     http://tools.ietf.org/html/rfc4648
 
-incoming message
-    - always make separate content
-    - create content resource
-    - pass bucket of content & type
-    - create message resource
-    - attach content to message
-    - attach message to pipe
+
+asynclets
+    - generate message resource with no content and 'waiting'
+    - when get that message, don't respond
+        - mark pipe as waiting point to asynclet
+    - when content arrives,
+        - if pipe is waiting, get asynclet
+        - configure with message data
+        - respond to client thread
+            - save portal in message
 
 get pipe
     - list messages
@@ -52,25 +69,36 @@ get message
     - if synchronous,
         get message details
     - if asynchronous
+        - do not
         wait until message arrives
-    - list content, plus size etc.
-
-get asynclet
-
-
-        amq_content_basic_list_queue (self->contents, content);
-
-- message class
-    - address
-    - reply_to
-    - list of contents
-    - feed (originating)
+        get method does not reply immediately
 
 
 
+RestMS classes
 
-get content from feed
-    if know URI
+    $restms = RestMS->new (hostname)
+
+    $resource = $restms->resource_new ()
+    RestMS::Resource->new ($restms)
+
+
+    $domain = $restms->new_domain ();
+
+    $domain = RestMS::Domain->new ($restms);
+    ->get
+    ->put
+    ->delete
+    -> return reply code
+    ->
+
+    create object: by posting to parent
+    new needs to specify parent
+    and also name
+    tries to fetch object
+
+    ->new (parent, name)
+
 
 need to learn GIT and make gitub for restms work
     - specs, sample code

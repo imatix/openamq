@@ -358,14 +358,17 @@ static long int
         type = RESTMS_RESOURCE_INVALID;
 </method>
 
-<method name = "report" template = "function">
+<method name = "to document" template = "function">
     <doc>
-    Accepts a resource object tree, formats that as a structured document and
-    returns it to the browser client.
+    Accepts a resource object tree, reports all children, formats tree as a
+    structured document and returns it to the browser client.  Destroys the
+    tree afterwards.
     </doc>
     <argument name = "context" type = "http_driver_context_t *" />
-    <argument name = "tree" type = "ipr_tree_t *" />
+    <argument name = "p_tree" type = "ipr_tree_t **" />
     <local>
+    ipr_looseref_t
+        *looseref;
     icl_longstr_t
         *longstr;                       //  Serialized data as string
     ipr_bucket_t
@@ -380,17 +383,29 @@ static long int
         *etag;
     </local>
     //
+    looseref = ipr_looseref_list_first (self->children);
+    while (looseref) {
+        zyre_resource_t
+            *resource = (zyre_resource_t *) looseref->object;
+        if (!resource->private)
+            zyre_resource_request_report (resource, context, *p_tree);
+        looseref = ipr_looseref_list_next (&looseref);
+    }
+    ipr_tree_shut (*p_tree);
+    ipr_tree_leaf (*p_tree, "xmlns", "http://www.imatix.com/schema/restms");
+
     //  Format content and set Content-Type
     accept = http_request_get_header (context->request, "accept");
     if (ipr_str_prefixed (accept, "application/restms+json")) {
-        longstr = ipr_tree_save_json (tree);
+        longstr = ipr_tree_save_json (*p_tree);
         icl_shortstr_fmt (content_type, "application/restms+json;type=");
     }
     else {
-        longstr = ipr_tree_save_xml (tree);
+        longstr = ipr_tree_save_xml (*p_tree);
         icl_shortstr_fmt (content_type, "application/restms+xml;type=");
     }
     icl_shortstr_cat (content_type, self_type_name (self->type));
+    ipr_tree_destroy (p_tree);
 
     //  Save string in bucket and pass as response bucket
     bucket = ipr_bucket_new (longstr->cur_size);

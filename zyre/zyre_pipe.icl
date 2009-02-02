@@ -90,28 +90,15 @@ This class implements the RestMS pipe object.
     <local>
     ipr_tree_t
         *tree;
-    ipr_looseref_t
-        *looseref;
     </local>
     //
     tree = ipr_tree_new (RESTMS_ROOT);
-    ipr_tree_leaf (tree, "xmlns", "http://www.imatix.com/schema/restms");
     ipr_tree_open (tree, "pipe");
     ipr_tree_leaf (tree, "type", self->type);
     ipr_tree_leaf (tree, "name", portal->name);
     if (*self->title)
         ipr_tree_leaf (tree, "title", self->title);
-
-    looseref = ipr_looseref_list_first (portal->children);
-    while (looseref) {
-        zyre_resource_t
-            *resource = (zyre_resource_t *) looseref->object;
-        zyre_resource_request_report (resource, context, tree);
-        looseref = ipr_looseref_list_next (&looseref);
-    }
-    ipr_tree_shut (tree);
-    zyre_resource_report (portal, context, tree);
-    ipr_tree_destroy (&tree);
+    zyre_resource_to_document (portal, context, &tree);
 </method>
 
 <method name = "put">
@@ -131,7 +118,6 @@ This class implements the RestMS pipe object.
         value = ipr_xml_attr_get (context->xml_item, "title", NULL);
         if (value)
             icl_shortstr_cpy (self->title, value);
-        http_driver_context_reply_success (context, HTTP_REPLY_OK);
     }
 </method>
 

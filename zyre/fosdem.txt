@@ -1,5 +1,10 @@
 Fosdem presentation
 
+something controversial
+    90% of software is crap
+    so why this is not...
+
+start with some wisdom / jokes...
 rules of programming
     - use short words
     - give every piece a good name
@@ -22,7 +27,16 @@ rules of programming
     - it's a social science
     - design for the long run
     - exploit Heironymous' Law
+    - if it needs ten cups of coffee to understand, it's too complex: rewrite it
+    - if you can (still) understand it when you're drunk, it's probably simple enough
 
+explain SOA
+    - what, why
+explain AMQP
+    - what, why
+simplicity
+    - belly, enterprise, SOAP, WS.
+KISS - REST
 
 SOA is finally cool
  =- slashdot quotez

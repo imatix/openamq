@@ -5,17 +5,15 @@
 #   Creative Commons Attribution Share-Alike licence (cc-by-sa)
 #   (c) 2009 iMatix Corporation
 #
-#   Modules we need to use
-use LWP::UserAgent;
-use HTTP::Request::Common;
 use RestMS;
 
 ($hostname) = @ARGV;
 $hostname = "localhost:8080" unless $hostname;
 
-$restms = RestMS->new ($hostname);
+my $message = RestMS::Message->new ();
+my $restms = RestMS->new ($hostname);
 $restms->carp ("Running RestMS tests against $hostname...");
-$restms->verbose (0);
+$restms->verbose (1);
 
 #system "./zyre&";
 #system "sleep 2";
@@ -23,77 +21,77 @@ $restms->verbose (0);
 
 #   --------- Domains ---------------
 #   Test default domain
-$restms->get    ("/restms/domain/default", 200);
+$restms->get    ("/restms/domain/default");
 $restms->put    ("/restms/domain/default", '<restms><domain title="New title"/></restms>', 403);
 $restms->delete ("/restms/domain/default", 403);
 
 #   --------- Feeds -----------------
 #   Test default feed
-$restms->get    ("/restms/feed/default", 200);
+$restms->get    ("/restms/feed/default");
 $restms->put    ("/restms/feed/default", '<restms><feed title="New title"/></restms>', 403);
 $restms->delete ("/restms/feed/default", 403);
 
 #   Test public fanout feed
-$restms->delete ("/restms/feed/test.fanout", 200);
-my $feed = $restms->feed_create ("test.fanout", "fanout", 201);
-$restms->feed_create ("test.fanout", "fanout", 200);
-$restms->put ($feed, '<restms><feed title="Test fanout feed"/></restms>', 200);
-$restms->get ($feed, 200);
-$restms->get ("/restms/domain/default", 200);
-$restms->delete ($feed, 200);
-$restms->delete ($feed, 200);
+$restms->delete ("/restms/feed/test.fanout");
+my $feed = $restms->feed_create ("test.fanout", "fanout");
+$restms->feed_create ("test.fanout", "fanout");
+$restms->put ($feed, '<restms><feed title="Test fanout feed"/></restms>');
+$restms->get ($feed);
+$restms->get ("/restms/domain/default");
+$restms->delete ($feed);
+$restms->delete ($feed);
 
 #   Test public service feed
-$restms->delete ("/restms/feed/test.service", 200);
-my $feed = $restms->feed_create ("test.service", "service", 201);
-$restms->feed_create ("test.service", "service", 200);
-$restms->put ($feed, '<restms><feed title="Test service feed"/></restms>', 200);
-$restms->get ($feed, 200);
-$restms->get ("/restms/domain/default", 200);
-$restms->delete ($feed, 200);
-$restms->delete ($feed, 200);
+$restms->delete ("/restms/feed/test.service");
+my $feed = $restms->feed_create ("test.service", "service");
+$restms->feed_create ("test.service", "service");
+$restms->put ($feed, '<restms><feed title="Test service feed"/></restms>');
+$restms->get ($feed);
+$restms->get ("/restms/domain/default");
+$restms->delete ($feed);
+$restms->delete ($feed);
 
 #   Test private topic feed
-my $feed = $restms->feed_create (undef, "topic", 201);
-$restms->put ($feed, '<restms><feed title="Test private feed"/></restms>', 200);
-$restms->get ($feed, 200);
-$restms->get ("/restms/domain/default", 200);
-$restms->delete ($feed, 200);
-$restms->delete ($feed, 200);
+my $feed = $restms->feed_create (undef, "topic");
+$restms->put ($feed, '<restms><feed title="Test private feed"/></restms>');
+$restms->get ($feed);
+$restms->get ("/restms/domain/default");
+$restms->delete ($feed);
+$restms->delete ($feed);
 
 #   --------- Pipes -----------------
 #   Test private pipe
-my $pipe = $restms->pipe_create ("fifo", 201);
-$restms->put ($pipe, '<restms><pipe title="Test private pipe"/></restms>', 200);
-$restms->get ($pipe, 200);
-$restms->get ("/restms/domain/default", 200);
-$restms->delete ($pipe, 200);
-$restms->delete ($pipe, 200);
+my $pipe = $restms->pipe_create ("fifo");
+$restms->put ($pipe, '<restms><pipe title="Test private pipe"/></restms>');
+$restms->get ($pipe);
+$restms->get ("/restms/domain/default");
+$restms->delete ($pipe);
+$restms->delete ($pipe);
 
-my $pipe = $restms->pipe_create (undef, 201);
-$restms->put ($pipe, '<restms><pipe title="Test default pipe type"/></restms>', 200);
-$restms->get ($pipe, 200);
-$restms->get ("/restms/domain/default", 200);
-$restms->delete ($pipe, 200);
-$restms->delete ($pipe, 200);
+my $pipe = $restms->pipe_create (undef);
+$restms->put ($pipe, '<restms><pipe title="Test default pipe type"/></restms>');
+$restms->get ($pipe);
+$restms->get ("/restms/domain/default");
+$restms->delete ($pipe);
+$restms->delete ($pipe);
 
 #   --------- Joins -----------------
 #
-my $feed = $restms->feed_create ("test.fanout", "fanout", 201);
-my $pipe = $restms->pipe_create ("fifo", 201);
-my $join = $restms->join_create ($pipe, $feed, "*", 201);
-my $join = $restms->join_create ($pipe, $feed, "*", 200);
-$restms->delete ($pipe, 200);
-$restms->delete ($feed, 200);
-$restms->delete ($join, 200);
+my $feed = $restms->feed_create ("test.fanout", "fanout");
+my $pipe = $restms->pipe_create ("fifo");
+my $join = $restms->join_create ($pipe, $feed, "*");
+my $join = $restms->join_create ($pipe, $feed, "*");
+$restms->delete ($pipe);
+$restms->delete ($feed);
+$restms->delete ($join);
 
-my $feed = $restms->feed_create ("test.service", "service", 201);
-my $pipe = $restms->pipe_create ("fifo", 201);
-my $join = $restms->join_create ($pipe, $feed, "*", 201);
-my $join = $restms->join_create ($pipe, $feed, "*", 200);
-$restms->delete ($feed, 200);
-$restms->delete ($pipe, 200);
-$restms->delete ($join, 200);
+my $feed = $restms->feed_create ("test.service", "service");
+my $pipe = $restms->pipe_create ("fifo");
+my $join = $restms->join_create ($pipe, $feed, "*");
+my $join = $restms->join_create ($pipe, $feed, "*");
+$restms->delete ($feed);
+$restms->delete ($pipe);
+$restms->delete ($join);
 
 #   --------- Messages --------------
 #   Test simple sends
@@ -105,7 +103,7 @@ $restms->delete ($join, 200);
 $restms->send ("/restms/feed/default", "test address", \%properties, \%headers);
 
 #   Message with staged content
-$restms->stage ("/restms/feed/default", "Message body 1", "text/plain", 201);
+$restms->stage ("/restms/feed/default", "Message body 1", "text/plain");
 $restms->send ("/restms/feed/default", "test address", \%properties, \%headers);
 
 #   Message with embedded content
@@ -130,33 +128,42 @@ my $content = <<EOF;
   </message>
 </restms>
 EOF
-$restms->raw ("POST", "/restms/feed/default", $content, 200);
+$restms->raw ("POST", "/restms/feed/default", $content);
 
 #   Test stage and delete content
-my $content = $restms->stage ("/restms/feed/default", "Conditional message", "text/plain", 201);
-$restms->get    ($content, 200);
-$restms->delete ($content, 200);
+my $content = $restms->stage ("/restms/feed/default", "Conditional message", "text/plain");
+$restms->get    ($content);
+$restms->delete ($content);
 $restms->get    ($content, 404);
 $restms->{_content} = undef;
 
 #   --------- Service request/response
 #
 #   Test public service feed
-my $feed = $restms->feed_create ("test.service", "service", 201);
-my $pipe = $restms->pipe_create ("fifo", 201);
-my $join = $restms->join_create ($pipe, $feed, "*", 201);
+my $feed = $restms->feed_create ("test.service", "service");
+my $pipe = $restms->pipe_create ("fifo");
+my $join = $restms->join_create ($pipe, $feed, "*");
 
-$restms->carp ("Pipe=$pipe");
 $restms->content ("This is a request", "text/plain");
 $restms->send ($feed);
+$message = $restms->recv ($pipe);
 
-$restms->delete ($feed, 200);
-$restms->delete ($pipe, 200);
-$restms->delete ($join, 200);
+$restms->carp ($message);
+
+# post, put content -> 400
+# get content
+# delete content
+# post, put message -> 400
+# get message
+# delete message
+
+$restms->delete ($feed);
+$restms->delete ($pipe);
+$restms->delete ($join);
 
 #   --------- Topic publish/subscribe
-#
 
+#
 #   --------- Errors ----------------
 #   Invalid URI path
 $restms->raw ("GET",    "/restms/invalid", undef, 400);
@@ -170,7 +177,7 @@ $restms->raw ("PUT",  "/restms/pipe/nosuch", undef, 404);
 $restms->raw ("POST", "/restms/feed/nosuch", undef, 404);
 
 #   Badly structured documents
-my $feed = $restms->feed_create ("test.service", "service", 201);
+my $feed = $restms->feed_create ("test.service", "service");
 $restms->raw ("PUT", $feed, '<restms/>', 400);
 $restms->raw ("PUT", $feed, '<restmas><type="fanout" /></restmas>', 400);
 $restms->raw ("PUT", $feed, '<restms><fud type="fanout" /></restms>', 400);
@@ -183,21 +190,21 @@ $restms->pipe_create ("fido", 400);
 $restms->feed_create ("test.fanin", "fanin", 400);
 $restms->get    ("/restms/feed/test.fanin", 404);
 $restms->put    ("/restms/feed/test.fanin", '<restms><domain title="New title"/></restms>', 404);
-$restms->delete ("/restms/feed/test.fanin", 200);
-$feed = $restms->feed_create ("test.fanin", "fanout", 201);
-$restms->delete ($feed, 200);
+$restms->delete ("/restms/feed/test.fanin");
+$feed = $restms->feed_create ("test.fanin", "fanout");
+$restms->delete ($feed);
 
 #   Bad feed types
 my $feed = $restms->feed_create ("test.fanout", "fanin", 400);
 
 #   Invalid joins
-my $feed = $restms->feed_create ("test.fanout", "fanout", 201);
-my $pipe = $restms->pipe_create ("fifo", 201);
+my $feed = $restms->feed_create ("test.fanout", "fanout");
+my $pipe = $restms->pipe_create ("fifo");
 $restms->join_create ($pipe, "", "*", 400);
 $restms->join_create ($pipe, "/restms/feed/unknown", "*", 400);
 $restms->join_create ("/restms/pipe/unknown", $feed, "*", 404);
-$restms->delete ($feed, 200);
-$restms->delete ($pipe, 200);
+$restms->delete ($feed);
+$restms->delete ($pipe);
 
 $restms->carp (" -- all tests passed successfully");
 

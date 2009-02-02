@@ -179,8 +179,8 @@
         *realm,
         *digest;
 
-    amq_content_basic_set_reader (content, &reader, 4096);
-    bucket = amq_content_basic_replay_body (content, &reader);
+    amq_content_basic_set_reader (method->content, &reader, 4096);
+    bucket = amq_content_basic_replay_body (method->content, &reader);
     xml_root = ipr_xml_parse_bucket (bucket);
     response = ipr_xml_find_item (xml_root, "/digest-amqp/response");
     if (response) {

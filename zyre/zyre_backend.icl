@@ -239,17 +239,15 @@
 
     <response name = "arrived">
       <doc>
-        Delivers an arrived content to the client.
+        Delivers an arrived content to the client.  Provides the whole method
+        so we can access both the content and its envelope.
       </doc>
-      <field name = "content" type = "amq_content_basic_t *" />
-      <field name = "consumer tag" type = "char *" />
+      <field name = "method" type = "zyre_peer_method_t *" />
       <possess>
-        content = amq_content_basic_link (content);
-        consumer_tag = icl_mem_strdup (consumer_tag);
+        method = zyre_peer_method_link (method);
       </possess>
       <release>
-        amq_content_basic_unlink (&content);
-        icl_mem_strfree (&consumer_tag);
+        zyre_peer_method_unlink (&method);
       </release>
     </response>
 
@@ -257,12 +255,12 @@
       <doc>
         Delivers a returned (failed) content to the client.
       </doc>
-      <field name = "content" type = "amq_content_basic_t *" />
+      <field name = "method" type = "zyre_peer_method_t *" />
       <possess>
-        content = amq_content_basic_link (content);
+        method = zyre_peer_method_link (method);
       </possess>
       <release>
-        amq_content_basic_unlink (&content);
+        zyre_peer_method_unlink (&method);
       </release>
     </response>
 </data>

@@ -48,25 +48,17 @@ This class implements the RestMS content object.
 </method>
 
 <method name = "configure">
+    <doc>
+    We process a content uploaded via the HTTP connection.
+    </doc>
+    portal->private = TRUE;             //  Not discoverable via feed
     icl_shortstr_cpy (self->type, context->request->content_type);
     self->bucket = ipr_bucket_link (context->request->content);
     self->length = context->request->content_length;
 </method>
 
 <method name = "get">
-    <local>
-    ipr_tree_t
-        *tree;
-    </local>
-    //
-    tree = ipr_tree_new (RESTMS_ROOT);
-    ipr_tree_leaf (tree, "xmlns", "http://www.imatix.com/schema/restms");
-    ipr_tree_open (tree, "content");
-    ipr_tree_leaf (tree, "type", self->type);
-    ipr_tree_leaf (tree, "length", "%ld", self->length);
-    ipr_tree_shut (tree);
-    zyre_resource_report (portal, context, tree);
-    ipr_tree_destroy (&tree);
+    http_response_set_from_bucket (context->response, self->bucket, self->type);
 </method>
 
 <method name = "put">
@@ -81,6 +73,37 @@ This class implements the RestMS content object.
 <method name = "post">
     http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
         "POST method is not allowed on contents");
+</method>
+
+<method name = "report">
+    ipr_tree_open (tree, "content");
+    ipr_tree_leaf (tree, "type", self->type);
+    ipr_tree_leaf (tree, "length", "%ld", self->length);
+    ipr_tree_leaf (tree, "href", "%s%s%s",
+        context->response->root_uri, RESTMS_ROOT, portal->path);
+    ipr_tree_shut (tree);
+</method>
+
+<method name = "attach">
+    <doc>
+    We process an AMQP content coming in via the back-end.
+    </doc>
+    <local>
+    zyre_peer_method_t
+        *method;                        //  Peer method object
+    amq_content_basic_t
+        *content;
+    asl_reader_t
+        reader;
+    </local>
+    //
+    method  = (zyre_peer_method_t *) argument;
+    content = (amq_content_basic_t *) method->content;
+    amq_content_basic_set_reader (content, &reader, IPR_BUCKET_MAX_SIZE);
+    icl_shortstr_cpy (self->type, content->content_type);
+    self->bucket = amq_content_basic_replay_body (content, &reader);
+    self->length = (size_t) content->body_size;
+    portal->private = FALSE;            //  Discoverable via messages
 </method>
 
 <method name = "selftest" />

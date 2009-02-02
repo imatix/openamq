@@ -58,26 +58,13 @@ This class implements the RestMS domain object.
     <local>
     ipr_tree_t
         *tree;
-    ipr_looseref_t
-        *looseref;
     </local>
     //
     tree = ipr_tree_new (RESTMS_ROOT);
-    ipr_tree_leaf (tree, "xmlns", "http://www.imatix.com/schema/restms");
     ipr_tree_open (tree, "domain");
     ipr_tree_leaf (tree, "name", portal->name);
     ipr_tree_leaf (tree, "title", self->title);
-    looseref = ipr_looseref_list_first (portal->children);
-    while (looseref) {
-        zyre_resource_t
-            *resource = (zyre_resource_t *) looseref->object;
-        if (!resource->private)
-            zyre_resource_request_report (resource, context, tree);
-        looseref = ipr_looseref_list_next (&looseref);
-    }
-    ipr_tree_shut (tree);
-    zyre_resource_report (portal, context, tree);
-    ipr_tree_destroy (&tree);
+    zyre_resource_to_document (portal, context, &tree);
 </method>
 
 <method name = "put">

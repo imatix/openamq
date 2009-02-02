@@ -56,12 +56,12 @@
 
 <class name = "basic">
   <action name = "deliver">
-    //  Send content/consumer_tag directly to portal front-end client
-    zyre_backend_response_arrived (caller, content, method->consumer_tag);
+    //  Send content and method directly to portal front-end client
+    zyre_backend_response_arrived (caller, self);
   </action>
   <action name = "return">
     //  Send content/consumer_tag directly to portal front-end client
-    zyre_backend_response_returned (caller, content);
+    zyre_backend_response_returned (caller, self);
   </action>
 </class>
 

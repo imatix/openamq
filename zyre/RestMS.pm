@@ -5,43 +5,59 @@
 #   Creative Commons Attribution-Share Alike 3.0 (cc-by-sa)
 #   (c) 2009 iMatix Corporation
 #
-#   Modules we need to use
+#   Modules we need to use ('sudo cpan; install XML:Simple')
 use LWP::UserAgent;
 use HTTP::Request::Common;
+use XML::Simple;
 
+
+#############################################################################
 #   RestMS class
 #
 package RestMS;
 
 #   Optional argument to constructor is hostname
 sub new {
-    my $class = shift;
-    my $self = {
-        _host => shift,
-        _verbose => 0,
-    };
-    $self->{_ua} = new LWP::UserAgent;
-    $self->{_ua}->credentials ($self->{_host}, "RestMS:", "guest", "guest");
-    bless $self, $class;
+    my $proto = shift;
+    my $class = ref ($proto) || $proto;
+    my $self = {};
+    bless ($self, $class);
+    $self->host (shift) if (@_);
+    $self->{VERBOSE} = 0;
     return $self;
 }
 
 sub DESTROY {
 }
 
+####    Methods to work with object properties
+#
 #   Get or set hostname
 sub host {
-    my ($self, $host) = @_;
-    $self->{_host} = $host if $host;
-    $self->{_ua} = new LWP::UserAgent;
-    $self->{_ua}->credentials ($self->{_host}, "RestMS:", "guest", "guest");
-    return $self->{_host};
+    my $self = shift;
+    if (@_) {
+        $self->{HOST} = shift;
+        $self->{_ua} = new LWP::UserAgent;
+        $self->{_ua}->credentials ($self->{HOST}, "RestMS:", "guest", "guest");
+    }
+    return $self->{HOST};
 }
 
-#   Get resource, returns XML document if found
+#   Get or set verbose
+sub verbose {
+    my $self = shift;
+    if (@_) {
+        $self->{VERBOSE} = shift;
+    }
+    return $self->{VERBOSE};
+}
+
+####    Basic RestMS access methods
+#
+#   Get resource, returns content body if found
 sub get {
     my ($self, $uri, $expect) = @_;
-    $uri = "http://".$self->{_host}.$uri unless $uri =~ /^http:\/\//;
+    $uri = "http://".$self->{HOST}.$uri unless $uri =~ /^http:\/\//;
     $self->{_request} = HTTP::Request->new (GET => $uri);
     $self->{_request}->header ("Accept" => "application/restms+xml");
     $self->{_response} = $self->{_ua}->request ($self->{_request});
@@ -55,7 +71,7 @@ sub get {
 #   Update resource
 sub put {
     my ($self, $uri, $content, $expect) = @_;
-    $uri = "http://".$self->{_host}.$uri unless $uri =~ /^http:\/\//;
+    $uri = "http://".$self->{HOST}.$uri unless $uri =~ /^http:\/\//;
     $self->{_request} = HTTP::Request->new (PUT => $uri);
     if ($content) {
         $self->{_request}->content_type ("application/restms+xml");
@@ -72,7 +88,7 @@ sub put {
 #   Delete resource
 sub delete {
     my ($self, $uri, $expect) = @_;
-    $uri = "http://".$self->{_host}.$uri unless $uri =~ /^http:\/\//;
+    $uri = "http://".$self->{HOST}.$uri unless $uri =~ /^http:\/\//;
     $self->{_request} = HTTP::Request->new (DELETE => $uri);
     $self->{_response} = $self->{_ua}->request ($self->{_request});
     $self->trace ();
@@ -91,7 +107,7 @@ sub post {
 #   Posts content, returns Location URI
 sub post_raw {
     my ($self, $uri, $slug, $content, $content_type, $expect) = @_;
-    $uri = "http://".$self->{_host}.$uri unless $uri =~ /^http:\/\//;
+    $uri = "http://".$self->{HOST}.$uri unless $uri =~ /^http:\/\//;
     $self->{_request} = HTTP::Request->new (POST => $uri);
     $self->{_request}->header (Slug => $slug) if $slug;
     $self->{_request}->content ($content) if $content;
@@ -107,7 +123,7 @@ sub post_raw {
         }
         else {
             $self->carp ("Location: missing from response");
-            if (!$self->{_verbose}) {
+            if (!$self->{VERBOSE}) {
                 $self->verbose (1);
                 $self->trace ();
             }
@@ -115,6 +131,9 @@ sub post_raw {
         }
     }
 }
+
+####    Higher-level
+#
 
 #   Creates a feed in the default domain, returns feed URI if ok
 sub feed_create {
@@ -147,6 +166,9 @@ sub stage {
 }
 
 #   Message send function: to send content, use stage() or content(), then send()
+#   Needs to be redesigned to work orthogonally with recv so that messages are
+#   received into and sent from: content, headers, properties.
+#
 sub send {
     my ($self, $uri, $address) = @_;
     my %properties = %{$_[3]};
@@ -172,13 +194,42 @@ sub send {
     }
     $content .= "</message></restms>";
 
-    $uri = "http://".$self->{_host}.$uri unless $uri =~ /^http:\/\//;
+    $uri = "http://".$self->{HOST}.$uri unless $uri =~ /^http:\/\//;
     $self->{_request} = HTTP::Request->new (POST => $uri);
     $self->{_request}->content_type ("application/restms+xml");
     $self->{_request}->content ($content);
     $self->{_response} = $self->{_ua}->request ($self->{_request});
     $self->trace ();
     $self->assert ($expect);
+}
+
+#   Message recv function: gets next message off pipe, waits as necesssary
+#   This method needs redesigning to work properly with send()
+sub recv {
+    my ($self, $pipe) = @_;
+
+    #   Get pipe definition and pull out first message
+    $self->get ($pipe);
+    my $data = eval { XML::Simple::XMLin ($self->content) };
+    my $message = $data->{pipe}{message}{href};
+    if (!$message) {
+        $self->carp ("Pipe does not contain any messages - is OpenAMQ running?");
+        $self->carp ($self->content);
+        exit (1);
+    }
+    #   Get and parse message document
+    $self->get ($message, 200);
+    my $data = eval { XML::Simple::XMLin ($self->content) };
+    my $content = $data->{message}{content}{href};
+    if (!$content) {
+        $self->carp ("Message does not contain a content... aborting");
+        $self->carp ($self->content);
+        exit (1);
+    }
+    $self->get ($content, 200);
+    $body = $self->content;
+    $self->delete ($message, 200);
+    return ($body);
 }
 
 #   Issue a raw request
@@ -190,7 +241,7 @@ sub send {
 #
 sub raw {
     my ($self, $method, $uri, $content, $expect) = @_;
-    $uri = "http://".$self->{_host}.$uri unless $uri =~ /^http:\/\//;
+    $uri = "http://".$self->{HOST}.$uri unless $uri =~ /^http:\/\//;
     $self->{_request} = HTTP::Request->new ($method => $uri);
     if ($content) {
         $self->{_request}->content_type ("application/restms+xml");
@@ -222,16 +273,10 @@ sub content {
     return $self->{_response}->content;
 }
 
-#   Enable/disable verbose output
-sub verbose {
-    my ($self, $verbose) = @_;
-    $self->{_verbose} = $verbose;
-}
-
 #   Trace the request and response, if verbose
 sub trace {
     my ($self) = @_;
-    if ($self->{_verbose}) {
+    if ($self->{VERBOSE}) {
         $self->carp ($self->{_request}->method . " "
             . $self->{_request}->uri . " => "
             . $self->{_response}->status_line);
@@ -271,6 +316,105 @@ sub carp {
     $date = sprintf ("%04d-%02d-%02d", $year + 1900, $month + 1, $day);
     $time = sprintf ("%2d:%02d:%02d", $hour, $min, $sec);
     print "$date $time $string\n";
+}
+
+
+#############################################################################
+#   RestMS::Resource base class
+#
+package RestMS::Resource;
+
+sub new {
+    my $proto = shift;
+    my $class = ref ($proto) || $proto;
+    my $self = {};
+    bless ($self, $class);
+    return $self;
+}
+
+
+#############################################################################
+#   RestMS::Domain class
+#
+package RestMS::Domain;
+
+sub new {
+    my $proto = shift;
+    my $class = ref ($proto) || $proto;
+    my $self = {};
+    bless ($self, $class);
+    return $self;
+}
+
+
+#############################################################################
+#   RestMS::Feed class
+#
+package RestMS::Feed;
+
+sub new {
+    my $proto = shift;
+    my $class = ref ($proto) || $proto;
+    my $self = {};
+    bless ($self, $class);
+    return $self;
+}
+
+#properties
+#    name (read only)
+#    uri (read only)
+#methods
+#    get/put/delete/post
+
+#############################################################################
+#   RestMS::Pipeclass
+#
+package RestMS::Pipe;
+
+sub new {
+    my $proto = shift;
+    my $class = ref ($proto) || $proto;
+    my $self = {};
+    bless ($self, $class);
+    return $self;
+}
+
+#############################################################################
+#   RestMS::Message class
+#
+package RestMS::Message;
+
+sub new {
+    my $proto = shift;
+    my $class = ref ($proto) || $proto;
+    my $self = {};
+    bless ($self, $class);
+    return $self;
+}
+
+#properties
+#    address
+#    reply_to
+#    feed
+#    correlation_id
+#    expiration
+#    message_id
+#    timestamp
+#    type
+#    user_id
+#    app_id
+#    sender_id
+#    priority
+#    delivery_mode
+#    content
+#    content_type
+#    headers
+#methods
+#    send (feed)
+#    recv (pipe)
+
+
+sub DESTROY {
 }
 
 1;

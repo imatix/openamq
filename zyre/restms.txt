@@ -1852,7 +1852,7 @@ In RestMS, the message envelope and message content are split into two distinct 
     [ expiration = "{expiration}" ]
     [ message_id = "{message-id}" ]
     [ timestamp = "{timestamp}" ]
-    [ type = "{time}" ]
+    [ type = "{type}" ]
     [ user_id = "{user-id}" ]
     [ app_id = "{app-id}" ]
     [ sender_id = "{sender-id}" ]

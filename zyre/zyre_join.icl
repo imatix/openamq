@@ -64,6 +64,7 @@ detaches from its pipe and feed.
     </local>
     //
     assert (backend);
+    portal->private = FALSE;            //  Discoverable via pipe
     self->pipe = portal->parent;
     //  If the context is null, configure a default join
     if (context) {
@@ -100,14 +101,11 @@ detaches from its pipe and feed.
     </local>
     //
     tree = ipr_tree_new (RESTMS_ROOT);
-    ipr_tree_leaf (tree, "xmlns", "http://www.imatix.com/schema/restms");
     ipr_tree_open (tree, "join");
     ipr_tree_leaf (tree, "address", self->address);
     ipr_tree_leaf (tree, "feed", "%s%s%s",
         context->response->root_uri, RESTMS_ROOT, self->feed->path);
-    ipr_tree_shut (tree);
-    zyre_resource_report (portal, context, tree);
-    ipr_tree_destroy (&tree);
+    zyre_resource_to_document (portal, context, &tree);
 </method>
 
 <method name = "put">

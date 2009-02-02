@@ -116,8 +116,11 @@
         //  Pathinfo is URI key into resource table
         resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
         if (resource) {
-            if (zyre_resource_modified (resource, context->request))
+            if (zyre_resource_modified (resource, context->request)) {
                 zyre_resource_request_get (resource, context);
+                if (!context->replied)
+                    http_driver_context_reply_success (context, HTTP_REPLY_OK);
+            }
             else
                 http_driver_context_reply_error (context, HTTP_REPLY_NOTMODIFIED, NULL);
         }
@@ -140,8 +143,11 @@
             if (zyre_resource_unmodified (resource, context->request))
                 http_driver_context_reply_error (context, HTTP_REPLY_PRECONDITION,
                     "The resource was modified by another application");
-            else
+            else {
                 zyre_resource_request_put (resource, context);
+                if (!context->replied)
+                    http_driver_context_reply_success (context, HTTP_REPLY_OK);
+            }
         }
         else
             http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
@@ -192,8 +198,11 @@
     if (zyre_restms_check_path (context) == 0) {
         //  Pathinfo is URI key into resource table
         resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
-        if (resource)
+        if (resource) {
             zyre_resource_request_post (resource, context, self->resources, self->backend);
+            if (!context->replied)
+                http_driver_context_reply_success (context, HTTP_REPLY_OK);
+        }
         else
             http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
                 "The URI does not match a known resource");
@@ -245,36 +254,45 @@
 <method name = "arrived">
     <action>
     zyre_resource_t
-        *pipe = NULL;
+        *pipe_res = NULL;
     icl_shortstr_t
         pipe_path;
     char
         *pipe_name;
-
+    //
     //  The consumer tag should be in the form prefix:pipe-name
-    pipe_name = strchr (consumer_tag, ':');
+    pipe_name = strchr (method->payload.basic_deliver.consumer_tag, ':');
     if (pipe_name) {
         pipe_name++;                    //  Point to start of pipe name
         icl_shortstr_fmt (pipe_path, "/resource/%s", pipe_name);
-        pipe = ipr_hash_lookup (self->resources, pipe_path);
+        pipe_res = ipr_hash_lookup (self->resources, pipe_path);
     }
-    if (pipe) {
+    if (pipe_res) {
         zyre_resource_t
-            *message;
+            *message_res,
+            *content_res;
 
         //  Create new message resource as child of pipe
-        message = zyre_message__zyre_resource_new (NULL, pipe, self->resources, "message", "");
-        zyre_restms__zyre_resource_bind (self, message);
+        message_res = zyre_message__zyre_resource_new (NULL, pipe_res, self->resources, "message", "");
+        zyre_restms__zyre_resource_bind (self, message_res);
 
-        //  We provide the new message resource with the AMQP content so the
-        //  message can create and configure a content resource.  This is not
-        //  really what 'attach' was meant for but it's nicer than making a
-        //  new portal method just for this specific case.
-        zyre_resource_request_attach (message, NULL, content);
-        zyre_resource_unlink (&message);
+        //  Create new content resource as child of message
+        content_res = zyre_content__zyre_resource_new (NULL, message_res, self->resources, "content", "");
+        zyre_restms__zyre_resource_bind (self, content_res);
+
+        //  We provide the new resources with the AMQP method so they can
+        //  process & store the AMQP content.  Not really what attach() was
+        //  meant for but it's nicer than making a new portal method.
+        zyre_resource_request_attach (message_res, NULL, method);
+        zyre_resource_request_attach (content_res, NULL, method);
+
+        //  Resouces are bound to us so we can drop the references
+        zyre_resource_unlink (&content_res);
+        zyre_resource_unlink (&message_res);
     }
     else
-        smt_log_print (self->log, "W: undeliverable message (tag='%s')", consumer_tag);
+        smt_log_print (self->log, "W: undeliverable message (tag='%s')",
+            method->payload.basic_deliver.consumer_tag);
     </action>
 </method>
 

@@ -98,6 +98,14 @@ TODO
     - redesign queue->consumer->channel using portals
     - also for exchange->binding->queue?
 
+2009-02-01
+
+* fixed: crash in amq_content_basic_get_body() if content size was zero (issue:43).
+
+2009-01-23
+
+* added: runs CoreMark test at startup (1.4)
+
 2009-01-17
 
 * fixed: various Win32 compile errors and warnings (1.3, 1.4)

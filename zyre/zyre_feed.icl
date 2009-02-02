@@ -89,7 +89,6 @@ This class implements the RestMS feed object.
     </local>
     //
     tree = ipr_tree_new (RESTMS_ROOT);
-    ipr_tree_leaf (tree, "xmlns", "http://www.imatix.com/schema/restms");
     ipr_tree_open (tree, "feed");
     ipr_tree_leaf (tree, "type", self->type);
     ipr_tree_leaf (tree, "name", portal->name);
@@ -97,9 +96,7 @@ This class implements the RestMS feed object.
         ipr_tree_leaf (tree, "title", self->title);
     if (*self->license)
         ipr_tree_leaf (tree, "license", self->license);
-    ipr_tree_shut (tree);
-    zyre_resource_report (portal, context, tree);
-    ipr_tree_destroy (&tree);
+    zyre_resource_to_document (portal, context, &tree);
 </method>
 
 <method name = "put">
@@ -122,7 +119,6 @@ This class implements the RestMS feed object.
         value = ipr_xml_attr_get (context->xml_item, "license", NULL);
         if (value)
             icl_shortstr_cpy (self->license, value);
-        http_driver_context_reply_success (context, HTTP_REPLY_OK);
     }
 </method>
 
@@ -159,14 +155,14 @@ This class implements the RestMS feed object.
                 s_send_message (message, context, table, portal->name, backend);
                 message = ipr_xml_next_sibling (&message);
             }
-            if (!context->failed)
-                http_driver_context_reply_success (context, HTTP_REPLY_OK);
         }
     }
     else {
         //  Create a content and attach to feed
         zyre_resource_t
             *content;
+        ipr_tree_t
+            *tree;
 
         //  We do not use the Slug: header for contents
         //  Create a new content resource and attach to the feed resource
@@ -174,20 +170,23 @@ This class implements the RestMS feed object.
         zyre_restms__zyre_resource_bind ((zyre_restms_t *) (portal->client_object), content);
         //  Allow the content resource to configure itself from the HTTP context
         zyre_resource_request_configure (content, context, table, backend);
+        //  Set Location: header to location of content
+        http_response_set_header (context->response, "location",
+            "%s%s%s", context->response->root_uri, RESTMS_ROOT, content->path);
+        //  Drop our link to it, it's now a child of the feed
+        zyre_resource_unlink (&content);
+
         if (context->request->content)
             context->response->reply_code = HTTP_REPLY_CREATED;
         else
             context->response->reply_code = HTTP_REPLY_NOCONTENT;
 
-        //  Set Location: header to location of content
-        http_response_set_header (context->response, "location",
-            "%s%s%s", context->response->root_uri, RESTMS_ROOT, content->path);
-
         //  Get content description for client
-        zyre_resource_request_get (content, context);
-
-        //  Drop our link to it, it's now a child of the feed
-        zyre_resource_unlink (&content);
+        tree = ipr_tree_new (RESTMS_ROOT);
+        ipr_tree_open (tree, "content");
+        ipr_tree_leaf (tree, "type", context->request->content_type);
+        ipr_tree_leaf (tree, "length", "%ld", context->request->content_length);
+        zyre_resource_to_document (portal, context, &tree);
     }
 </method>
 
@@ -369,8 +368,8 @@ s_send_message (
     }
     //  Save headers field table into content
     headers_table = asl_field_list_flatten (headers_list);
-    asl_field_list_unlink (&headers_list);
     amq_content_basic_set_headers (content, headers_table);
+    asl_field_list_unlink (&headers_list);
     icl_longstr_destroy (&headers_table);
 
     //  Calculate the feed and address
