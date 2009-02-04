@@ -272,9 +272,8 @@
             *message_res,
             *content_res;
 
-        //  Create new message resource as child of pipe
-        message_res = zyre_message__zyre_resource_new (NULL, pipe_res, self->resources, "message", "");
-        zyre_restms__zyre_resource_bind (self, message_res);
+        //  Reach through to pipe object to grab message asynclet
+        message_res = ((zyre_pipe_t *) (pipe_res->server_object))->asynclet;
 
         //  Create new content resource as child of message
         content_res = zyre_content__zyre_resource_new (NULL, message_res, self->resources, "content", "");
@@ -285,10 +284,13 @@
         //  meant for but it's nicer than making a new portal method.
         zyre_resource_request_attach (message_res, NULL, method);
         zyre_resource_request_attach (content_res, NULL, method);
-
-        //  Resouces are bound to us so we can drop the references
         zyre_resource_unlink (&content_res);
-        zyre_resource_unlink (&message_res);
+
+        //  Re-configure the pipe, which creates a new asynclet
+        zyre_resource_request_configure (pipe_res, NULL, self->resources, self->backend);
+
+        //  And now re-send the message if the clients is waiting
+        zyre_resource_request_get (message_res, NULL);
     }
     else
         smt_log_print (self->log, "W: undeliverable message (tag='%s')",

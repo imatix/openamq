@@ -302,7 +302,7 @@ For RestMS applications:
     [ address="{address literal}" ]
     [ reply_to="{address literal}" ]
     [ feed="{originating feed URI}" ]
-    [ next="next asynclet" ] ... >
+    [ next="next message" ] ... >
     [ <header name="{header name}" value="{header value}" /> ] ...
     [ <content href="{content URI}" ... />
     | <content type="{MIME type} encoding="{encoding}">{content value}</content> ]
@@ -319,7 +319,7 @@ For AMQP interoperability:
     [ address="{address literal}" ]
     [ reply_to="{address literal}" ]
     [ feed="{originating feed URI}" ]
-    [ next="next asynclet" ] ... >
+    [ next="next message" ] ... >
     [ delivery_mode = "{delivery-mode}" ]
     [ priority = "{priority}" ]
     [ correlation_id = "{correlation-id}" ]

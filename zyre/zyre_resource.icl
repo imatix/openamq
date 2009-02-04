@@ -95,7 +95,7 @@ This class is not threadsafe and may be used from one threadlet only.
   <request name = "attach">
     <doc>
     Attach the sender as a child of the target.  Provides a void * argument
-    who's semantics depend on the relationship.  To be used when configuring
+    whose semantics depend on the relationship.  To be used when configuring
     the child.
     </doc>
     <field name = "resource" type = "zyre_resource_t *">Child resource</field>
@@ -105,7 +105,7 @@ This class is not threadsafe and may be used from one threadlet only.
   <request name = "detach">
     <doc>
     Detach the sender as a child of the target.  Provides a void * argument
-    who's semantics depend on the relationship.  To be used when deleting
+    whose semantics depend on the relationship.  To be used when deleting
     the child.
     </doc>
     <field name = "resource" type = "zyre_resource_t *">Child resource</field>

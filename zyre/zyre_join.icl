@@ -109,12 +109,8 @@ detaches from its pipe and feed.
 </method>
 
 <method name = "put">
-    if (self->dynamic)
-        http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-            "The PUT method is still not allowed on this resource");
-    else
-        http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-            "The PUT method is not allowed on this resource");
+    http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+        "The PUT method is not allowed on this resource");
 </method>
 
 <method name = "delete">

@@ -48,13 +48,23 @@ This class implements the RestMS message object.
         delivery_mode;                  //  AMQP envelope property
     asl_field_list_t
         *headers;                       //  Header fields
+    Bool
+        pending;                        //  Waiting for content?
+    http_driver_context_t
+        *context;                       //  Context waiting for message
 </context>
 
 <method name = "new">
+    self->pending = TRUE;               //  No content yet
+</method>
+
+<method name = "configure">
+    portal->private = FALSE;            //  Discoverable via pipe
 </method>
 
 <method name = "destroy">
     asl_field_list_unlink (&self->headers);
+    http_driver_context_unlink (&self->context);
 </method>
 
 <method name = "get">
@@ -65,42 +75,57 @@ This class implements the RestMS message object.
         *field;                     //  One field from headers list
     </local>
     //
-    tree = ipr_tree_new (RESTMS_ROOT);
-    ipr_tree_open (tree, "message");
-    ipr_tree_leaf (tree, "address",   self->address);
-    ipr_tree_leaf (tree, "reply_to",  self->reply_to);
-    ipr_tree_leaf (tree, "feed",      self->feed);
-//    ipr_tree_leaf (tree, "next", "NULL");
-    if (self->delivery_mode)
-        ipr_tree_leaf (tree, "delivery_mode", "%d", self->delivery_mode);
-    if (self->priority)
-        ipr_tree_leaf (tree, "priority", "%d", self->priority);
-    if (*self->correlation_id)
-        ipr_tree_leaf (tree, "correlation_id", self->correlation_id);
-    if (*self->expiration)
-        ipr_tree_leaf (tree, "expiration",     self->expiration);
-    if (*self->message_id)
-        ipr_tree_leaf (tree, "message_id",     self->message_id);
-    if (*self->type)
-        ipr_tree_leaf (tree, "type",           self->type);
-    if (*self->user_id)
-        ipr_tree_leaf (tree, "user_id",        self->user_id);
-    if (*self->app_id)
-        ipr_tree_leaf (tree, "app_id",         self->app_id);
-    if (*self->sender_id)
-        ipr_tree_leaf (tree, "sender_id",      self->sender_id);
-    if (*self->timestamp)
-        ipr_tree_leaf (tree, "timestamp",      self->timestamp);
+    //  We either have a front-end context to talk to, or a saved context from
+    //  the last GET method and we were still pending... Either will do.
+    if (context == NULL)
+        context = self->context;
 
-    field = asl_field_list_first (self->headers);
-    while (field) {
-        ipr_tree_open (tree, "header");
-        ipr_tree_leaf (tree, "name", field->name);
-        ipr_tree_leaf (tree, "value", asl_field_string (field));
-        ipr_tree_shut (tree);
-        field = asl_field_list_next (&field);
+    if (self->pending) {
+        //  Save the context for a backend arrival call
+        http_driver_context_reply_void (context);
+        http_driver_context_unlink (&self->context);
+        self->context = http_driver_context_link (context);
     }
-    zyre_resource_to_document (portal, context, &tree);
+    else
+    //  Only respond if we have a valid context
+    if (context) {
+        tree = ipr_tree_new (RESTMS_ROOT);
+        ipr_tree_open (tree, "message");
+        ipr_tree_leaf (tree, "address", self->address);
+        ipr_tree_leaf (tree, "reply_to", self->reply_to);
+        ipr_tree_leaf (tree, "feed", self->feed);
+        ipr_tree_leaf (tree, "next", "not implemented yet");
+        if (self->delivery_mode)
+            ipr_tree_leaf (tree, "delivery_mode", "%d", self->delivery_mode);
+        if (self->priority)
+            ipr_tree_leaf (tree, "priority", "%d", self->priority);
+        if (*self->correlation_id)
+            ipr_tree_leaf (tree, "correlation_id", self->correlation_id);
+        if (*self->expiration)
+            ipr_tree_leaf (tree, "expiration", self->expiration);
+        if (*self->message_id)
+            ipr_tree_leaf (tree, "message_id", self->message_id);
+        if (*self->type)
+            ipr_tree_leaf (tree, "type", self->type);
+        if (*self->user_id)
+            ipr_tree_leaf (tree, "user_id", self->user_id);
+        if (*self->app_id)
+            ipr_tree_leaf (tree, "app_id", self->app_id);
+        if (*self->sender_id)
+            ipr_tree_leaf (tree, "sender_id", self->sender_id);
+        if (*self->timestamp)
+            ipr_tree_leaf (tree, "timestamp", self->timestamp);
+
+        field = asl_field_list_first (self->headers);
+        while (field) {
+            ipr_tree_open (tree, "header");
+            ipr_tree_leaf (tree, "name", field->name);
+            ipr_tree_leaf (tree, "value", asl_field_string (field));
+            ipr_tree_shut (tree);
+            field = asl_field_list_next (&field);
+        }
+        zyre_resource_to_document (portal, context, &tree);
+    }
 </method>
 
 <method name = "put">
@@ -121,6 +146,8 @@ This class implements the RestMS message object.
     ipr_tree_open (tree, "message");
     ipr_tree_leaf (tree, "href", "%s%s%s",
         context->response->root_uri, RESTMS_ROOT, portal->path);
+    if (self->pending)
+        ipr_tree_leaf (tree, "async", "1");
     ipr_tree_shut (tree);
 </method>
 
@@ -139,7 +166,6 @@ This class implements the RestMS message object.
     content = (amq_content_basic_t *) method->content;
     //
     //  feed = exchange, address = routing-key
-    portal->private = FALSE;            //  Discoverable via pipe
     icl_shortstr_cpy (self->address,        method->payload.basic_deliver.routing_key);
     icl_shortstr_cpy (self->feed,           method->payload.basic_deliver.exchange);
     icl_shortstr_cpy (self->reply_to,       content->reply_to);
@@ -155,6 +181,7 @@ This class implements the RestMS message object.
     self->priority = content->priority;
     self->delivery_mode = content->delivery_mode;
     self->headers = asl_field_list_new (content->headers);
+    self->pending = FALSE;              //  Now we have something
 </method>
 
 <method name = "selftest" />

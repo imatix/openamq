@@ -31,8 +31,6 @@ This class implements the RestMS pipe object.
 <inherit class = "zyre_resource_back" />
 
 <context>
-    Bool
-        dynamic;                        //  Dynamic resource?
     icl_shortstr_t
         type,                           //  Pipe type
         title;                          //  Title if any
@@ -40,6 +38,8 @@ This class implements the RestMS pipe object.
         *backend;                       //  Our protocol backend
     ipr_looseref_list_t
         *joins;                         //  Joins for pipe
+    zyre_resource_t
+        *asynclet;                      //  Asynclet message
 </context>
 
 <method name = "new">
@@ -65,25 +65,29 @@ This class implements the RestMS pipe object.
 <method name = "configure">
     <local>
     zyre_resource_t
-        *join;
+        *join,
+        *message;
     </local>
     //
-    //  If the context is null, configure a default domain
-    if (context)
-        self->dynamic = TRUE;
-    else
-        self->dynamic = FALSE;
+    //  If the context is null, only configure an asynclet
+    if (context) {
+        icl_shortstr_cpy (self->type, ipr_xml_attr_get (context->xml_item, "type", "topic"));
+        icl_shortstr_cpy (self->title, ipr_xml_attr_get (context->xml_item, "title", ""));
+        self->backend = zyre_backend_link (backend);
+        zyre_backend_request_pipe_create (self->backend, self->type, portal->name);
 
-    icl_shortstr_cpy (self->type, ipr_xml_attr_get (context->xml_item, "type", "topic"));
-    icl_shortstr_cpy (self->title, ipr_xml_attr_get (context->xml_item, "title", ""));
-    self->backend = zyre_backend_link (backend);
-    zyre_backend_request_pipe_create (self->backend, self->type, portal->name);
-
-    //  Create join from pipe to default feed
-    join = zyre_join__zyre_resource_new (NULL, portal, table, "join", "");
-    zyre_restms__zyre_resource_bind ((zyre_restms_t *) (portal->client_object), join);
-    zyre_resource_request_configure (join, NULL, table, self->backend);
-    zyre_resource_unlink (&join);
+        //  Create join from pipe to default feed
+        join = zyre_join__zyre_resource_new (NULL, portal, table, "join", "");
+        zyre_restms__zyre_resource_bind ((zyre_restms_t *) (portal->client_object), join);
+        zyre_resource_request_configure (join, NULL, table, self->backend);
+        zyre_resource_unlink (&join);
+    }
+    //  Create message asynclet
+    message = zyre_message__zyre_resource_new (NULL, portal, table, "message", "");
+    zyre_restms__zyre_resource_bind ((zyre_restms_t *) (portal->client_object), message);
+    zyre_resource_request_configure (message, context, table, self->backend);
+    self->asynclet = message;
+    zyre_resource_unlink (&message);
 </method>
 
 <method name = "get">
@@ -107,10 +111,6 @@ This class implements the RestMS pipe object.
         *value;
     </local>
     //
-    if (!self->dynamic)
-        http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
-            "Not allowed to modify this pipe");
-    else
     if (context->request->content_length == 0)
         http_driver_context_reply_success (context, HTTP_REPLY_NOCONTENT);
     else
@@ -122,24 +122,18 @@ This class implements the RestMS pipe object.
 </method>
 
 <method name = "delete">
-    //  We can delete configured resources internally, context will be null
-    if (self->dynamic || context == NULL) {
-        zyre_resource_t
-            *resource;
-        ipr_looseref_t
-            *looseref;
+    zyre_resource_t
+        *resource;
+    ipr_looseref_t
+        *looseref;
 
-        while ((looseref = ipr_looseref_list_first (self->joins))) {
-            //  Since we don't have a link to the resource, grab one
-            resource = zyre_resource_link ((zyre_resource_t *) looseref->object);
-            zyre_resource_request_delete (resource, NULL);
-            zyre_resource_destroy (&resource);
-        }
-        zyre_backend_request_pipe_delete (self->backend, portal->name);
+    while ((looseref = ipr_looseref_list_first (self->joins))) {
+        //  Since we don't have a link to the resource, grab one
+        resource = zyre_resource_link ((zyre_resource_t *) looseref->object);
+        zyre_resource_request_delete (resource, NULL);
+        zyre_resource_destroy (&resource);
     }
-    else
-        http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
-            "Not allowed to delete this pipe");
+    zyre_backend_request_pipe_delete (self->backend, portal->name);
 </method>
 
 <method name = "post">

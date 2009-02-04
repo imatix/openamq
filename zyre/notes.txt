@@ -1,49 +1,14 @@
-- implement joins
-- catch duplicate joins
-- report duplicate join
-- catch other errors during configuration
-- create default feed
-- default join from all pipes to default feed
-- filter default feed & joins in backend
-- pipe report joins
-    OK
-- RestMS class needs to fix error handling
-    OK
 - multiple messages
-    OK
     <message ... />
 - no content, headers only
-    OK
     <message ...>
         <content href="{staged content uri}" />
     </message>
 - if no such content, 404
 - else deletes content on sending
-    OK
     <message ...>
         <content type="{mime type}" encoding="{text encoding}">content body</content>
     </message>
-    OK
-- DELETE content on feed
-    OK
-- GET content on feed
-<?xml version="1.0"?>
-<restms xmlns = "http://www.imatix.com/schema/restms">
-    <content type = "text/plain" length = "19" />
-</restms>
-    OK
-- set private properly on resources
-    OK
-- get content
-    - return bucket of data and type
-    OK
-- get content headers into message resource
-    OK
-- report message headers at get
-    OK
-- get feed, address fields from Basic.Deliver
-    OK
-
 - document message sending & receiving in detail
 - document use case for RestMS
 - document: server MAY decode content before sending if encoding is "base64"
@@ -51,59 +16,61 @@
     http://tools.ietf.org/html/rfc4648
 
 
-asynclets
-    - generate message resource with no content and 'waiting'
-    - when get that message, don't respond
-        - mark pipe as waiting point to asynclet
-    - when content arrives,
-        - if pipe is waiting, get asynclet
-        - configure with message data
-        - respond to client thread
-            - save portal in message
-
-get pipe
-    - list messages
-    - add asynclet
-
-get message
-    - if synchronous,
-        get message details
-    - if asynchronous
-        - do not
-        wait until message arrives
-        get method does not reply immediately
+feed->send (message)
+message = pipe->recv (message)
 
 
+tests
+    pipe
+        - send message and check we can get it back
+    feed
 
-RestMS classes
+content
+    -> received from server GET
+    -> sent to server for PUT
+    -> $self->content
+    -> $self->content_type
 
-    $restms = RestMS->new (hostname)
 
-    $resource = $restms->resource_new ()
-    RestMS::Resource->new ($restms)
+- multiple messages
+my $content = <<EOF;
+<restms>
+  <message address="address.multi.1" message_id="ID1">
+    <header name="serial-number" value="0001" />
+    <content>It's too cold</content>
+  </message>
+  <message address="address.multi.2" message_id="ID2">
+    <header name="serial-number" value="0002" />
+    <content>It's too hot</content>
+  </message>
+  <message address="address.multi.3" message_id="ID3">
+    <header name="message_id" value="ID3" />
+    <header name="serial-number" value="0003" />
+    <content>It's just right!</content>
+  </message>
+</restms>
+EOF
+$restms->raw ("POST", "/restms/feed/default", $content);
 
 
-    $domain = $restms->new_domain ();
+how to know next asynclet?
+    - next is always next in list
+    - get pipe, children, and next...?
 
-    $domain = RestMS::Domain->new ($restms);
-    ->get
-    ->put
-    ->delete
-    -> return reply code
-    ->
 
-    create object: by posting to parent
-    new needs to specify parent
-    and also name
-    tries to fetch object
 
-    ->new (parent, name)
+    message = restms->recv (pipe)
+    restms->feed->send (message)
+    message->new ()
 
 
 need to learn GIT and make gitub for restms work
     - specs, sample code
     - addons
     restms.org
+
+
+live.zyre.com
 
 zyre.com
     - documentation

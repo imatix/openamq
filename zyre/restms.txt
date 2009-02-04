@@ -1070,7 +1070,7 @@ ETag: "{resource entity tag}"
 </restms>
 [[/code]]
 
-Private resources are accessed through their URI.  If the POST request actually created the resource the server responds with "201 Created".  If the resource already existed, and the specifications are correct, the server responds with "200 OK".  Otherwise the server responds with a "400 Bad Request".
+Private resources are accessed through their URI.  If the POST request actually created the resource the server responds with "201 Created".  If the resource already existed, and the specifications are correct, the server responds with "200 OK".  For both cases, the server provides a Location: header with the resource's URI.  If the POST failed, the server responds with a "400 Bad Request" or other suitable reply code.
 
 +++ Retrieving a known resource
 
@@ -1152,7 +1152,7 @@ Client                                     Server
   |  1.) GET to Resource URI                  |
   |------------------------------------------>|
   |                                           |
-  |  2.) 200 Ok                               |
+  |  2.) 200 OK                               |
   |      Resource representation              |
   |<------------------------------------------|
   |                                           |
@@ -1727,7 +1727,7 @@ The XML description of a message returned by the server has this format:
     [ address="{address literal}" ]
     [ reply_to="{address literal}" ]
     [ feed="{originating feed URI}" ]
-    [ next="next asynclet" ] ... >
+    [ next="next message" ] ... >
     [ <header name="{header name}" value="{header value}" /> ] ...
     [ <content href="{content URI}" ... />
     | <content type="{MIME type} encoding="{encoding}">{content value}</content> ]
