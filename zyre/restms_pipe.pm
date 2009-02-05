@@ -115,12 +115,12 @@ sub recv {
 #
 sub selftest {
     my $self = attr shift;
-    $self->carp ("Running pipe tests ($TYPE)...");
+    $self->carp ("Running pipe tests (".$self->type.")...");
 
-    $TITLE = "title";
+    $self->title ("title");
     $self->update;
     $self->read;
-    $self->croak ("Failed piprop") if $TITLE ne "title";
+    $self->croak ("Failed piprop") if $self->title ne "title";
 
     $self->delete;
     $self->read (expect => 404);
@@ -129,7 +129,7 @@ sub selftest {
 
     $self->create;
     $self->read;
-    $self->croak ("Failed piredo") if $TITLE ne "title";
+    $self->croak ("Failed piredo") if $self->title ne "title";
     $self->update;
 
     #   Test join from pipe to default feed

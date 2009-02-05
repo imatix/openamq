@@ -225,8 +225,15 @@ sub send {
         encoding => undef,              #   Set encoding before sending
         @_
     );
-#   set message properties from arguments
-#   create default feed object if none
+    my $feed = argv {feed} || $self->croak ("send needs a feed argument");
+    $self->address      (argv {address});
+    $self->reply_to     (argv {reply_to});
+    $self->content      (argv {content});
+    $self->content_type (argv {content_type});
+    $self->encoding     (argv {encoding});
+
+#   method to return content document
+#       or empty
 #   if we have a content, post to feed
 #       get back content uri and hold
 #   post message document to feed

@@ -113,12 +113,12 @@ sub send {
 #
 sub selftest {
     my $self = attr shift;
-    $self->carp ("Running feed tests ($TYPE)...");
+    $self->carp ("Running feed tests (".$self->type.")...");
 
-    $TITLE = "title";
+    $self->title ("title");
     $self->update;
     $self->read;
-    $self->croak ("Failed fdprop") if $TITLE ne "title";
+    $self->croak ("Failed fdprop") if $self->title ne "title";
 
     $self->delete;
     $self->read (expect => 404);
@@ -127,7 +127,7 @@ sub selftest {
 
     $self->create;
     $self->read;
-    $self->croak ("Failed fdredo") if $TITLE ne "title";
+    $self->croak ("Failed fdredo") if $self->title ne "title";
     $self->update;
 
     #   Test join from feed to fifo pipe
