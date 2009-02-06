@@ -13,7 +13,7 @@ use vars qw($HOSTNAME $URI $VERBOSE);
 #
 sub new {
     my $proto = attr shift;
-    my $class = ref ($proto) || $proto;
+    my $class = (ref ($proto) or $proto);
     my %argv = (
         hostname => undef,
         @_
@@ -24,20 +24,24 @@ sub new {
         request  => undef,
         response => undef,
         mimetype => "application/restms+xml",
-        HOSTNAME => $argv {hostname},
+        HOSTNAME => undef,
         URI      => undef,
         VERBOSE  => 0,
     };
     bless ($self, $class);
-    $self->{ua}->credentials ($self->hostname, "RestMS::", "guest", "guest");
+    $self->hostname ($argv {hostname});
     return $self;
 }
 
-#   Get hostname
+#   Get/set hostname
 #   print $resource->hostname;
 #
 sub hostname {
     my $self = attr shift;
+    if (@_) {
+        $HOSTNAME = shift;
+        $ua->credentials ($HOSTNAME, "RestMS::", "guest", "guest");
+    }
     return $HOSTNAME;
 }
 
@@ -57,6 +61,16 @@ sub verbose {
     my $self = attr shift;
     $VERBOSE = shift if (@_);
     return $VERBOSE;
+}
+
+#   Get/set connection timeout, in seconds
+#   $resource->timeout (seconds);
+#   print $resource->timeout;
+#
+sub timeout {
+    my $self = attr shift;
+    $ua->timeout (shift) if (@_);
+    return $ua->timeout;
 }
 
 #   Resource specification document
@@ -84,7 +98,8 @@ sub read {
     $request->header (Accept => $mimetype);
     $response = $ua->request ($request);
     $self->trace;
-    $self->assert ($argv {expect});
+    #   500 can be treated as a timeout
+    $self->assert ($argv {expect}) unless ($self->code == 500);
     return $self->code;
 }
 
@@ -129,6 +144,7 @@ sub post {
     my $self = attr shift;
     my %argv = (
         document => undef,
+        document_type => $mimetype,
         slug => undef,
         expect => undef,
         @_
@@ -136,22 +152,11 @@ sub post {
     $request = HTTP::Request->new (POST => $URI);
     $request->header (Slug => $argv {slug}) if $argv {slug};
     $request->content ($argv {document});
-    $request->content_type ($mimetype);
+    $request->content_type ($argv {document_type});
     $response = $ua->request ($request);
     $self->trace;
     $self->assert ($arg {expect});
-
-    if ($self->code < 300) {
-        #   Get Location: and strip off the URI start
-        my $location = $response->header ("Location");
-        if ($location) {
-            return ($location);
-        }
-        else {
-            $self->trace (verbose => 1) unless $VERBOSE;
-            $self->croak ("Location: missing from response");
-        }
-    }
+    return $response->header ("Location");
 }
 
 #   Issue message with date/time stamp
@@ -171,7 +176,7 @@ sub carp {
 #
 sub croak {
     my $self = attr shift;
-    my $string = shift || "E: unspecified error";
+    my $string = (shift or "E: unspecified error");
     $self->carp ("$myclass: $string");
     exit (1);
 }
@@ -182,6 +187,14 @@ sub croak {
 sub code {
     my $self = attr shift;
     return $response->code;
+}
+
+#   Returns the response data from the last HTTP request
+#   print $resource->body
+#
+sub body {
+    my $self = attr shift;
+    return $response->content;
 }
 
 #   Trace the request and response, if verbose
@@ -197,9 +210,10 @@ sub trace {
     if ($VERBOSE) {
         $self->carp ($request->method . " "
             . $request->uri . " => "
-            . $response->status_line);
+            . $response->status_line. "\n"
+            . $request->content);
         if ($response->content_length
-        &&  $response->content_type eq "application/restms+xml") {
+        and $response->content_type eq "application/restms+xml") {
             $self->carp ("Content-Length: "
                 . $response->content_length . "\n"
                 . $response->content);
@@ -213,8 +227,8 @@ sub trace {
 sub assert {
     my $self = attr shift;
     my $expect = shift;
-    if (($expect && $self->code != $expect)
-    || (!$expect && $self->code >= 300)) {
+    if (($expect and $self->code != $expect)
+    or (!$expect and $self->code >= 300)) {
         $self->carp ("$myclass: E: " . $request->method . " " . $request->uri);
         $self->carp ($response->status_line);
         $self->carp ("Expected $expect") if ($expect);

@@ -346,6 +346,10 @@
     if (resource->hash) {
         //  Configure action must be safe, all checking has already been done
         zyre_resource_request_configure (resource, context, self->resources, self->backend);
+        if (context->failed) {
+            icl_console_print ("Configure action may not raise an error");
+            assert (FALSE);
+        }
         context->response->reply_code = HTTP_REPLY_CREATED;
     }
     else {

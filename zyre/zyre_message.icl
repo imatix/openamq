@@ -77,9 +77,12 @@ This class implements the RestMS message object.
     //
     //  We either have a front-end context to talk to, or a saved context from
     //  the last GET method and we were still pending... Either will do.
-    if (context == NULL)
+    if (context == NULL) {
         context = self->context;
-
+        if (context)
+            //  We previously did a void reply, so allow a real reply now
+            context->replied = FALSE;
+    }
     if (self->pending) {
         //  Save the context for a backend arrival call
         http_driver_context_reply_void (context);
@@ -91,10 +94,11 @@ This class implements the RestMS message object.
     if (context) {
         tree = ipr_tree_new (RESTMS_ROOT);
         ipr_tree_open (tree, "message");
-        ipr_tree_leaf (tree, "address", self->address);
-        ipr_tree_leaf (tree, "reply_to", self->reply_to);
         ipr_tree_leaf (tree, "feed", self->feed);
-        ipr_tree_leaf (tree, "next", "not implemented yet");
+        if (*self->address)
+            ipr_tree_leaf (tree, "address", self->address);
+        if (*self->reply_to)
+            ipr_tree_leaf (tree, "reply_to", self->reply_to);
         if (self->delivery_mode)
             ipr_tree_leaf (tree, "delivery_mode", "%d", self->delivery_mode);
         if (self->priority)

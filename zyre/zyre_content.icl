@@ -37,6 +37,8 @@ This class implements the RestMS content object.
         length;                         //  Content length
     ipr_bucket_t
         *bucket;                        //  Uploaded bucket
+    amq_content_basic_t
+        *content;                       //  AMQP content
 </context>
 
 <method name = "new">
@@ -45,6 +47,7 @@ This class implements the RestMS content object.
 
 <method name = "destroy">
     ipr_bucket_unlink (&self->bucket);
+    amq_content_basic_unlink (&self->content);
 </method>
 
 <method name = "configure">
@@ -77,7 +80,8 @@ This class implements the RestMS content object.
 
 <method name = "report">
     ipr_tree_open (tree, "content");
-    ipr_tree_leaf (tree, "type", self->type);
+    if (*self->type)
+        ipr_tree_leaf (tree, "type", self->type);
     ipr_tree_leaf (tree, "length", "%ld", self->length);
     ipr_tree_leaf (tree, "href", "%s%s%s",
         context->response->root_uri, RESTMS_ROOT, portal->path);
@@ -101,6 +105,7 @@ This class implements the RestMS content object.
     content = (amq_content_basic_t *) method->content;
     amq_content_basic_set_reader (content, &reader, IPR_BUCKET_MAX_SIZE);
     icl_shortstr_cpy (self->type, content->content_type);
+    self->content = amq_content_basic_link (content);
     self->bucket = amq_content_basic_replay_body (content, &reader);
     self->length = (size_t) content->body_size;
     portal->private = FALSE;            //  Discoverable via messages

@@ -11,7 +11,7 @@ use vars qw($NAME $TITLE $FEEDS $PIPES);
 #
 sub new {
     my $proto = shift;
-    my $class = ref ($proto) || $proto;
+    my $class = (ref ($proto) or $proto);
     my %argv = (
         hostname => $proto->{HOSTNAME},
         name => "default",
@@ -56,7 +56,7 @@ sub pipes {
 sub read {
     my $self = attr shift;
     if ($self->SUPER::read (@_) == 200) {
-        my $restms = XML::Simple::XMLin ($response->content, forcearray => ['feed'], keyattr => []);
+        my $restms = XML::Simple::XMLin ($response->content, forcearray => ['feed', 'pipe'], keyattr => []);
         #print Data::Dumper::Dumper ($restms);
         $TITLE = $restms->{domain}{title};
         @FEEDS = @{$restms->{domain}{feed}};
@@ -70,7 +70,7 @@ sub read {
 #
 sub feed {
     my $self = attr shift;
-    $feed = RestMS::Feed->new (domain => $self, @_);
+    $feed = RestMS::Feed->new ($self, @_);
     $feed->verbose ($self->verbose);
     return $feed;
 }
@@ -80,7 +80,7 @@ sub feed {
 #
 sub pipe {
     my $self = attr shift;
-    $feed = RestMS::Pipe->new (domain => $self, @_);
+    $feed = RestMS::Pipe->new ($self, @_);
     $feed->verbose ($self->verbose);
     return $feed;
 }
@@ -90,6 +90,11 @@ sub pipe {
 #
 sub selftest {
     my $self = attr shift;
+    my %argv = (
+        verbose => undef,
+        @_
+    );
+    $self->verbose ($argv {verbose}) if $argv {verbose};
     $self->carp ("Running domain tests...");
     $self->croak ("Failed nameeq") if $self->name ne "default";
     $self->read;
@@ -108,7 +113,7 @@ sub selftest {
     $feed->delete (expect => 403);
 
     #   Test public feeds, each type
-    foreach my $type qw(fanout direct topic headers service rotator system) {
+    foreach my $type qw(fanout direct topic headers service rotator) {
         my $feed = $self->feed (name => "test.$type", type => $type);
         $feed->selftest;
     }

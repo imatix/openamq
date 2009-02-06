@@ -52,16 +52,14 @@ my $content = <<EOF;
 EOF
 $restms->raw ("POST", "/restms/feed/default", $content);
 
+- feed security
+    - password on creation
+    - provide in posts
 
-how to know next asynclet?
-    - next is always next in list
-    - get pipe, children, and next...?
-
-
-
-    message = restms->recv (pipe)
-    restms->feed->send (message)
-    message->new ()
+- join selftest
+- test pipe asynchrony
+- test message content vs. embedded
+- test message batching
 
 
 need to learn GIT and make gitub for restms work

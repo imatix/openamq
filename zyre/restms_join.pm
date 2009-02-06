@@ -11,7 +11,7 @@ use vars qw($ADDRESS);
 #
 sub new {
     my $proto = shift;
-    my $class = ref ($proto) || $proto;
+    my $class = (ref ($proto) or $proto);
     my %argv = (
         pipe => undef,
         feed => undef,
@@ -19,10 +19,10 @@ sub new {
         expect => undef,
         @_
     );
-    $argv {pipe} || RestMS::Join->croak ("new() needs a pipe argument");
-    $argv {feed} || RestMS::Join->croak ("new() needs a feed argument");
-    $argv {pipe}->hostname eq $argv {feed}->hostname ||
-                    RestMS::Join->croak ("new() pipe and feed on different hosts");
+    $argv {pipe} or RestMS::Join->croak ("RestMS::Join->new() needs a 'pipe =>' argument");
+    $argv {feed} or RestMS::Join->croak ("RestMS::Join->new() needs a 'feed =>' argument");
+    $argv {pipe}->hostname eq $argv {feed}->hostname or
+                    RestMS::Join->croak ("RestMS::Join->new() pipe and feed on different hosts");
 
     my $self = $class->SUPER::new (hostname => $argv {pipe}->hostname);
     bless ($self, $class);
@@ -49,6 +49,11 @@ sub address {
 sub create {
     my $self = attr shift;
     $URI = $pipe->post (document => $self->document);
+    if (!$URI) {
+        $pipe->trace (verbose => 1);
+        $pipe->croak ("'Location:' missing after POST join to pipe");
+    }
+    $self->parse ($pipe->body);
     return ($pipe->code);
 }
 
@@ -72,11 +77,20 @@ EOF
 sub read {
     my $self = attr shift;
     if ($self->SUPER::read (@_) == 200) {
-        my $restms = XML::Simple::XMLin ($response->content);
-        #print Data::Dumper::Dumper ($restms);
-        $ADDRESS = $restms->{join}{address};
+        $self->parse ($self->body);
     }
     return $self->code;
+}
+
+#   Parses document returned from server
+#   $join->parse ($pipe->body);
+#
+sub parse {
+    my $self = attr shift;
+    my $content = shift or $self->croak ("parse() requires argument");
+    my $restms = XML::Simple::XMLin ($content);
+    #print Data::Dumper::Dumper ($restms);
+    $ADDRESS = $restms->{join}{address};
 }
 
 #   Test dynamic join
@@ -84,6 +98,11 @@ sub read {
 #
 sub selftest {
     my $self = attr shift;
+    my %argv = (
+        verbose => undef,
+        @_
+    );
+    $self->verbose ($argv {verbose}) if $argv {verbose};
     $self->read;
     $self->update (expect => 400);
     $self->delete;

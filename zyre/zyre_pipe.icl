@@ -172,6 +172,10 @@ This class implements the RestMS pipe object.
                     zyre_resource_request_get (resource, context);
                 }
                 else
+                if (streq (resource->name, "default"))
+                    http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+                        "Not allowed to create joins on default feed");
+                else
                     //  Ok, join is valid and new, so create it
                     zyre_resource_response_child_add (portal, context);
             }

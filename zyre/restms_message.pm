@@ -13,7 +13,7 @@ use vars qw($content_uri $CONTENT $CONTENT_TYPE $ENCODING);
 #
 sub new {
     my $proto = shift;
-    my $class = ref ($proto) || $proto;
+    my $class = (ref ($proto) or $proto);
     my %argv = (
         address => undef,
         reply_to => undef,
@@ -32,12 +32,7 @@ sub new {
         encoding => undef,
         @_
     );
-    my $self = {
-        myclass  => $class,
-        URI      => undef,
-        VERBOSE  => 0,
-        HEADERS  => { },
-    };
+    my $self = $class->SUPER::new (@_);
     bless ($self, $class);
 
     #   Set message properties as specified
@@ -61,6 +56,7 @@ sub new {
     $self->{CONTENT}        = $argv {content};
     $self->{CONTENT_TYPE}   = $argv {content_type};
     $self->{ENCODING}       = $argv {encoding};
+    $self->{HEADERS}        = { };
     return $self;
 }
 
@@ -214,10 +210,13 @@ EOF
     return $document;
 }
 
+#   Send message to feed
+#   my $code = $message->send ($feed, address => $address,...);
+#
 sub send {
     my $self = attr shift;
+    my $feed = shift or $self->croak ("send() needs a feed argument");
     my %argv = (
-        feed => undef,                  #   Default feed if not specified
         address => undef,               #   Set address before sending
         reply_to => undef,              #   Set reply_to before sending
         content => undef,               #   Set content before sending
@@ -225,95 +224,94 @@ sub send {
         encoding => undef,              #   Set encoding before sending
         @_
     );
-    my $feed = argv {feed} || $self->croak ("send needs a feed argument");
-    $self->address      (argv {address});
-    $self->reply_to     (argv {reply_to});
-    $self->content      (argv {content});
-    $self->content_type (argv {content_type});
-    $self->encoding     (argv {encoding});
-
-#   method to return content document
-#       or empty
-#   if we have a content, post to feed
-#       get back content uri and hold
-#   post message document to feed
-#   return response code
-
-}
-    # TODO
-    # message->stage if needed
-    # post message to feed
-    #   easier with message method?
- #   my $feed = $self->feed (name => "default");
-  #  $self->content ("Milk &amp; Honey");
-   # $self->content_type ("text/plain");
-   # $self->encoding ("plain");
-
-#   Stage MIME-typed content on server for following send() method
-sub stage {
-    my ($self, $uri, $content, $content_type, $expect) = @_;
-    if ($self->{_content}) {
-        $self->carp ("Attempted to stage multiple contents, not supported");
-    }
-    else {
-        $self->{_content} = $self->post_raw ($uri, undef, $content, $content_type, $expect);
-        return $self->{_content};
-    }
-}
-#   Posts content, returns Location URI
-sub post_raw {
-    my ($self, $uri, $slug, $content, $content_type, $expect) = @_;
-    $uri = "http://".$self->{HOST}.$uri unless $uri =~ /^http:\/\//;
-    $request = HTTP::Request->new (POST => $uri);
-    $request->header (Slug => $slug) if $slug;
-    $request->content ($content) if $content;
-    $request->content_type ($content_type) if $content_type;
-    $response = $self->{_ua}->request ($request);
-    $self->trace;
-    $self->assert ($expect);
-    if ($self->code < 300) {
-        #   Get Location: and strip off the URI start
-        my $location = $response->header ("Location");
-        if ($location) {
-            return ($location);
-        }
-        else {
-            $self->carp ("Location: missing from response");
-            if (!$self->{VERBOSE}) {
-                $self->verbose (1);
-                $self->trace;
-            }
-            exit (1);
+    $self->address      ($argv {address}) if $argv {address};
+    $self->reply_to     ($argv {reply_to}) if $argv {reply_to};
+    $self->content      ($argv {content}) if $argv {content};
+    $self->content_type ($argv {content_type}) if $argv {content_type};
+    $self->encoding     ($argv {encoding}) if $argv {encoding};
+    #   If content cannot be encoded in message body, stage it seperately
+    if ($CONTENT and $ENCODING ne "base64" and $ENCODING ne "plain") {
+        $content_uri = $feed->post (
+            document => $CONTENT, document_type => $CONTENT_TYPE, expect => 201);
+        if (!$content_uri) {
+            $feed->trace (verbose => 1);
+            $feed->croak ("'Location:' missing after POST content to feed");
         }
     }
+    $feed->post (document => $self->document, expect => 201);
+    return $feed->code;
 }
 
 #   Fetches message from server, using message URI
-#   my $code = $message->read (uri => $uri, expect => undef);
+#   my $code = $message->read ($uri, expect => undef...);
 #
 sub read {
-    # TODO
-    # set own URI
-    # do SUPER::read
-    # get message properties
-    # get headers
-    # get content if any
-    #   - set content body and content type
     my $self = attr shift;
+    $URI = shift or $self->croak ("read() needs a 'feed =>' argument");
     if ($self->SUPER::read (@_) == 200) {
-        my $restms = XML::Simple::XMLin ($response->content);
-        #print Data::Dumper::Dumper ($restms);
-        #$TITLE = $restms->{message}{title};
+        $self->parse ($self->body);
+        if ($content_uri) {
+            #   Fetch content resource
+            $request = HTTP::Request->new (GET => $content_uri);
+            $response = $ua->request ($request);
+            $self->trace;
+            $self->assert ($argv {expect});
+            $CONTENT      = $response->content;
+            $CONTENT_TYPE = $response->content_type;
+            #   Delete content resource
+            $request = HTTP::Request->new (DELETE => $content_uri);
+            $response = $ua->request ($request);
+            $self->trace;
+            $self->assert ($argv {expect});
+        }
     }
     return $self->code;
 }
 
+#   Parses document returned from server
+#   $message->parse ($self->body);
+#
+sub parse {
+    my $self = attr shift;
+    my $content = shift or $self->croak ("parse() requires argument");
+    my $restms = XML::Simple::XMLin ($content, forcearray => ['header']);
+
+#    print Data::Dumper::Dumper ($restms);
+    $ADDRESS            = $restms->{message}{address};
+    $REPLY_TO           = $restms->{message}{reply_to};
+    $FEED               = $restms->{message}{feed};
+    $CORRELATION_ID     = $restms->{message}{correlation_id};
+    $EXPIRATION         = $restms->{message}{expiration};
+    $MESSAGE_ID         = $restms->{message}{message_id};
+    $TIMESTAMP          = $restms->{message}{timestamp};
+    $TYPE               = $restms->{message}{type};
+    $USER_ID            = $restms->{message}{user_id};
+    $APP_ID             = $restms->{message}{app_id};
+    $SENDER_ID          = $restms->{message}{sender_id};
+    $PRIORITY           = $restms->{message}{priority};
+    $DELIVERY_MODE      = $restms->{message}{delivery_mode};
+    $CONTENT            = $restms->{message}{content}{content};
+    $CONTENT_TYPE       = $restms->{message}{content}{type};
+    $ENCODING           = $restms->{message}{content}{encoding};
+    $content_uri        = $restms->{message}{content}{href};
+    #   There's presumably a way to pass the entire hash as argument
+    #   to $self->headers() but I don't have the time to figure this
+    #   out right now... so here goes stupid and simple
+    foreach my $name (keys %{$restms->{message}{header}}) {
+        $self->{HEADERS}->{$name} = $restms->{message}{header}{$name}{value};
+    }
+}
 
 #   Test message
 #   $message->selftest;
 #
 sub selftest {
     my $self = attr shift;
+    my %argv = (
+        verbose => undef,
+        @_
+    );
+    $self->verbose ($argv {verbose}) if $argv {verbose};
     $self->headers (TEST => "value");
     $self->croak ("Failed msghdr") if $self->headers ("TEST") ne "value";
 

@@ -1,6 +1,7 @@
 This document describes RestMS, a RESTful Messaging Service that exposes AMQP networks as a set of resources clearly identified by URIs and each supporting the appropriate HTTP methods.  RestMS is designed to interoperate with AMQP/0.9.1 and future versions of AMQP.
 
 * Name: 7-RESTMS@wiki.amqp.org
+* Version: draft/2.
 * Editor: Pieter Hintjens <ph@imatix.com>
 * Contributors: Steve Vinoski <vinoski@ieee.org>
 * Resources: http://www.restms.org.
@@ -273,7 +274,7 @@ Location: http://host.com/restms/resource/C4FE
         href="http://host.com/restms/resource/BA5F"
         address="RESTMS_C4FE"
         feed="http://host.com/restms/feed/default" />
-    <!-- All pipes contain an asynclet for the next message -->
+    <!-- All pipes contain an asynclet for the message -->
     <message
         href="http://host.com/restms/resource/F00D"
         async="1" />
@@ -1692,7 +1693,7 @@ The XML description of a join returned by the server has the same format.
 
 To create a new join the client POSTs a join document to the pipe's URI.  Joins are never named.  The meaning and function of the address pattern depends on the feed type.
 
-Every pipe automatically has a join on the default feed, using the pipe's name attribute as address.  This provides the same utility as default bindings in AMQP: it reduces the work that a client must do to prepare a pipe for the common use case of receiving a specifically addressed message.
+Every pipe automatically has a join on the default feed, using the pipe's name attribute as address.  This provides the same utility as default bindings in AMQP: it reduces the work that a client must do to prepare a pipe for the common use case of receiving a specifically addressed message.  Clients are not allowed to make joins onto the default feed, and the server SHOULD respond to such attempts with "400 Bad Request".
 
 +++ Messages
 
@@ -1726,8 +1727,7 @@ The XML description of a message returned by the server has this format:
   <message
     [ address="{address literal}" ]
     [ reply_to="{address literal}" ]
-    [ feed="{originating feed URI}" ]
-    [ next="next message" ] ... >
+    [ feed="{originating feed URI}" ] >
     [ <header name="{header name}" value="{header value}" /> ] ...
     [ <content href="{content URI}" ... />
     | <content type="{MIME type} encoding="{encoding}">{content value}</content> ]
