@@ -20,6 +20,7 @@ TODO
     - redesign console interface
         - use portals
         - use more restful model
+    - option to disable console in amq_server
     - projector exchange, generates test data
         - generate N random messages
         - immediately or with precise delays
@@ -100,6 +101,10 @@ TODO
         - win32 front-end (maybe portable GUI? Clutter?)
     - redesign queue->consumer->channel using portals
     - also for exchange->binding->queue?
+
+2009-02-06
+
+* fixed: Zyre crashed if pipe was still open on timed-out client.
 
 2009-02-01
 

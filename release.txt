@@ -157,7 +157,7 @@ This update includes all fixes in 1.2d2 as well as:
 
 + Stable branch
 
-++ 1.2e1 - 2009/02/
+++ 1.2e1 - 2009/02/05
 
 * fixed: malloc now aborts if the process runs out of memory (DAMQ-22)
 * fixed: amq_server_base.cfg now built into binary (http://www.openamq.org/issue:35)
