@@ -231,7 +231,7 @@ Domain description shows public feeds and pipes:
 
 * GET - retrieve domain.
 * POST - creates a new feed or pipe within the domain.  Public feeds need "Slug:" header.
-* Server creates default domain with URI path "/restms/domain/"
+* Server creates default domain with URI path "/restms/domain/default"
 
 +++ Feeds
 
@@ -248,7 +248,7 @@ Domain description shows public feeds and pipes:
 
 * GET, PUT, DELETE - retrieve, modify, delete feed.
 * POST - send message or content to the feed.
-* Server creates default feed with URI path "/restms/feed/" and type "direct"
+* Server creates default feed with URI path "/restms/feed/default" and type "direct"
 
 To create feed, post to domain URI.
 
@@ -342,14 +342,15 @@ To create a new message, post zero or more contents then post message to feed UR
 +++ Contents
 
 * GET - retrieve the content.
+* DELETE - delete the content.
 
 ++ Service request-response scenario
 
 In which requestor send requests to services, and get responses back:
 
-* RestMS service: create public feed with name of service: **POST <feed name="{service-name}" type="service"/> to /restms/domain/**, create pipe: **POST <pipe/> to /restms/domain/**, create join from pipe to service feed: **POST <join feed="/restms/feed/{service-name}"/> to /restms/resource/{pipe-hash}**.  Then retrieve message asynclet: **GET /restms/resource/{asynclet-hash}.  To send response, use reply-to attribute of request and send to default feed: **POST <message address="{reply-to}"/> to /restms/feed/**.
+* RestMS service: create public feed with name of service: **POST <feed name="{service-name}" type="service"/> to /restms/domain/default**, create pipe: **POST <pipe/> to /restms/domain/default**, create join from pipe to service feed: **POST <join feed="/restms/feed/{service-name}"/> to /restms/resource/{pipe-hash}**.  Then retrieve message asynclet: **GET /restms/resource/{asynclet-hash}.**  To send response, use reply-to attribute of request and send to default feed: **POST <message address="{reply-to}"/> to /restms/feed/default**.
 
-* RestMS requestor: create pipe: **POST <pipe/> to /restms/domain/**.  To send request, post to service feed, with service name as address and own pipe as reply-to attribute: **POST <message address="{service-name}" reply_to="/restms/resource/{pipe-hash}" /> to /restms/feed/.  Then retrieve message asynclet: **GET /restms/resource/{asynclet-hash}**.
+* RestMS requestor: create pipe: **POST <pipe/> to /restms/domain/default**.  To send request, post to service feed, with service name as address and own pipe as reply-to attribute: **POST <message address="{service-name}" reply_to="/restms/resource/{pipe-hash}" /> to /restms/feed/default.**  Then retrieve message asynclet: **GET /restms/resource/{asynclet-hash}**.
 
 * AMQP service: declare shared service queue: **Queue.Declare queue="{service-name}"**, then **Basic.Consume** on queue.  To send response, use reply-to attribute of requests and send to default exchange: **Basic.Publish exchange="(empty)" routing-key="{reply-to}"**
 
@@ -363,6 +364,6 @@ In which publishers distribute messages to subscribers:
 
 * AMQP subscriber: use private queue: **Queue.Declare queue="(empty)" exclusive=1**, then **Basic.Consume** on queue.  To subscribe, bind queue to feed exchange, using category pattern: **Queue.Bind queue="{queue}" exchange="{feed-name}" routing-key="{category pattern}"**
 
-* RestMS publisher: create public feed: **POST <feed name="{feed-name}" type="topic"/> to /restms/domain/**, then publish messages to that feed: **POST <message address="{category}"/> to /restms/feed/{feed-name}**.
+* RestMS publisher: create public feed: **POST <feed name="{feed-name}" type="topic"/> to /restms/domain/default**, then publish messages to that feed: **POST <message address="{category}"/> to /restms/feed/{feed-name}**.
 
-* RestMS subscriber: create pipe: **POST <pipe/> to /restms/domain/**.  Create join from pipe to feed: **POST <join address="{category pattern}" feed="{feed-name}"/>** Then retrieve message asynclet: **GET /restms/resource/{asynclet-hash}**.
+* RestMS subscriber: create pipe: **POST <pipe/> to /restms/domain/default**.  Create join from pipe to feed: **POST <join address="{category pattern}" feed="{feed-name}"/>** Then retrieve message asynclet: **GET /restms/resource/{asynclet-hash}**.

@@ -16,7 +16,33 @@ This document is governed by the 1-COSS@wiki.amqp.org specification[((bibcite co
 
 ++ Introduction
 
-+++ Goals
++++ Why RestMS?
+
+Before inventing a new protocol we need to look at what we are trying to achieve, and whether existing protocols can do the job.  What RestMS wants to do is provide the benefits of modern messaging to the widest possible audience.
+
+* By "modern messaging" we mean portable, decoupled, abstract messaging of the style defined by AMQP[((bibcite amqp))].
+* By the "widest possible audience" we mean web application developers.
+
+While AMQP offers an attractive and flexible messaging architecture that has been adopted by many teams, it does not offer any interface to web application developers.  In theory the protocol can be accessed across any IP network but the public internet poses specific challenges such as:
+
+* Security
+* Firewalls, proxies, and routers
+* Scalability (over a wide area network)
+* Reliability (over a fragile infrastructure)
+
+And any messaging technology faces the challenge of providing developers with a clean model and simple "stack" on which to program.  AMQP stacks are complex to make, and thus AMQP is limited to specific languages and platforms, and there is little or no competition between APIs.
+
+Fielding's "RESTful" pattern for web architectures is an alternative for complex "enterprise" techologies typfied by SOAP.  REST is comparable with XML/RPC but has cleaner semantics for state.  It can be understood as a way to implement a traditional "create/read/update/delete" data management approach over HTTP (or other indeed transports).
+
+We thus see the combination of AMQP's architecture, and the RESTful approach, as a useful way to provide messaging to web application developers.
+
+In practice, RestMS will usually act as a "front-end" to an existing AMQP network.  However it is coherent as a self-standing protocol implemented by self-standing servers.
+
+The typical effort taken to implement a RestMS library - which provides developers with a set of classes to do RestMS work, such as creating feeds and pipes, and publishing and receiving messages - is one week.  Part of the RestMS project includes the development of reference libraries in a range of languages.
+
+It is also possible for developers to use RestMS directly, without any intervening class library.  Indeed, it is possible - but cumbersome - to use RestMS via TELNET.
+
++++ Objectives of this standard
 
 RestMS aims to:
 
@@ -2124,6 +2150,7 @@ This section is being worked on.
 ++ References
 
 [[bibliography]]
+: amqp : "The Advanced Message Queueing Protocol" - [http://www.amqp.org amqp.org]
 : rfc2119 : "Key words for use in RFCs to Indicate Requirement Levels" - [http://tools.ietf.org/html/rfc2119 ietf.org]
 : rfc2616 : "HTTP/1.1 Protocol Parameters" - http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html w3.org]
 : coss : "Consensus Oriented Specification System" - [http://wiki.amqp.org/spec:1 wiki.amqp.org]

@@ -5,6 +5,7 @@
 #   Creative Commons Attribution-Share Alike 3.0 (cc-by-sa)
 #   (c) 2009 iMatix Corporation
 #
+#   Revision 2009/02/06.23
 #   Modules we need to use ('sudo cpan; install XML::Simple')
 use LWP::UserAgent ();
 use HTTP::Request::Common ();
@@ -241,7 +242,8 @@ sub trace {
             . $response->status_line. "\n"
             . $request->content);
         if ($response->content_length
-        and $response->content_type eq "application/restms+xml") {
+        and $response->content_type eq "application/restms+xml"
+        or  $response->content_type eq "text/xml") {
             $self->carp ("Content-Length: "
                 . $response->content_length . "\n"
                 . $response->content);
@@ -409,8 +411,7 @@ sub selftest {
 package RestMS::Feed;
 our @ISA = qw(RestMS::Base);
 use Alias qw(attr);
-use vars qw($name);
-use vars qw($DOMAIN $TYPE $TITLE $LICENSE);
+use vars qw($NAME $DOMAIN $TYPE $TITLE $LICENSE);
 
 #   my $feed = RestMS::Feed->new ($domain, name => "whatever", type = "topic",...)
 #
@@ -430,7 +431,7 @@ sub new {
     bless ($self, $class);
 
     #   Set feed properties as specified
-    $self->{name}    = $argv {name};
+    $self->{NAME}    = $argv {name};
     $self->{DOMAIN}  = $domain;
     $self->{TYPE}    = $argv {type};
     $self->{TITLE}   = $argv {title};
@@ -442,6 +443,10 @@ sub new {
 }
 
 #   Get/set properties
+sub name {
+    my $self = attr shift;
+    return $NAME;
+}
 sub domain {
     my $self = attr shift;
     return $DOMAIN;
@@ -466,7 +471,7 @@ sub license {
 #
 sub create {
     my $self = attr shift;
-    $URI = $DOMAIN->post (document => $self->document, slug => $name);
+    $URI = $DOMAIN->post (document => $self->document, slug => $NAME);
     if (!$URI) {
         $DOMAIN->trace (verbose => 1);
         $DOMAIN->croak ("'Location:' missing after POST feed to domain");
@@ -624,10 +629,10 @@ sub selftest_rotator {
 package RestMS::Pipe;
 our @ISA = qw(RestMS::Base);
 use Alias qw(attr);
-use vars qw($name);
-use vars qw($DOMAIN $TYPE $TITLE $MESSAGES);
+use vars qw($NAME $DOMAIN $TYPE $TITLE $MESSAGES);
 
 #   my $pipe = RestMS::Pipe->new ($domain, name => "whatever", type = "fifo",...)
+#   If name is specified, looks for existing pipe with name
 #
 sub new {
     my $proto = shift;
@@ -644,7 +649,7 @@ sub new {
     bless ($self, $class);
 
     #   Set pipe properties as specified
-    $self->{name}     = $argv {name};
+    $self->{NAME}     = $argv {name};
     $self->{DOMAIN}   = $domain;
     $self->{TYPE}     = $argv {type};
     $self->{TITLE}    = $argv {title};
@@ -656,6 +661,10 @@ sub new {
 }
 
 #   Get/set properties
+sub name {
+    my $self = attr shift;
+    return $NAME;
+}
 sub domain {
     my $self = attr shift;
     return $DOMAIN;
@@ -675,12 +684,27 @@ sub title {
 #
 sub create {
     my $self = attr shift;
-    $URI = $DOMAIN->post (document => $self->document, slug => $name);
-    if (!$URI) {
+
+    if ($NAME) {
+        $URI = "http://$HOSTNAME/restms/resource/$NAME";
+        $request = HTTP::Request->new (GET => $URI);
+        $request->header (Accept => $mimetype);
+        $response = $ua->request ($request);
+        if ($self->code == 200) {
+            #   Pipe still exists, which is great
+            $self->parse ($self->body);
+            return ($self->code);
+        }
+    }
+    #   Create new pipe, ignore requested name
+    $URI = $DOMAIN->post (document => $self->document, slug => $NAME);
+    if ($URI) {
+        $self->parse ($DOMAIN->body);
+    }
+    else {
         $DOMAIN->trace (verbose => 1);
         $DOMAIN->croak ("'Location:' missing after POST pipe to domain");
     }
-    $self->parse ($DOMAIN->body);
     return ($DOMAIN->code);
 }
 
@@ -717,6 +741,7 @@ sub parse {
     my $restms = XML::Simple::XMLin ($content, forcearray => ['message']);
     #   Always use the @{} form to copy an array out of the parsed XML
     @MESSAGES = @{$restms->{pipe}{message}};
+    $NAME = $restms->{pipe}{name};
     $TYPE = $restms->{pipe}{type};
     $TITLE = $restms->{pipe}{title};
 }
@@ -737,10 +762,8 @@ sub join {
 sub recv {
     my $self = attr shift;
 
-    if (scalar (@MESSAGES) == 0) {
-        $self->carp ("no more messages, fetching pipe");
-        $self->read;
-    }
+    #   If pipe has no more messages, fetch it again
+    $self->read if (scalar (@MESSAGES) == 0);
     $self->croak ("broken pipe") if (scalar (@MESSAGES) == 0);
     my $message_item = shift (@MESSAGES);
     my $message = RestMS::Message->new (hostname => $self->hostname);
@@ -913,7 +936,7 @@ sub selftest {
 package RestMS::Message;
 our @ISA = qw(RestMS::Base);
 use Alias qw(attr);
-use vars qw($domain $name);
+use vars qw($domain);
 use vars qw($ADDRESS $REPLY_TO $FEED $CORRELATION_ID $EXPIRATION $MESSAGE_ID);
 use vars qw($TIMESTAMP $TYPE $USER_ID $APP_ID $SENDER_ID $PRIORITY $DELIVERY_MODE);
 use vars qw($content_uri $CONTENT $CONTENT_TYPE $ENCODING);

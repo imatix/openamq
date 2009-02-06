@@ -79,9 +79,13 @@ This class implements the RestMS message object.
     //  the last GET method and we were still pending... Either will do.
     if (context == NULL) {
         context = self->context;
-        if (context)
+        if (context) {
             //  We previously did a void reply, so allow a real reply now
             context->replied = FALSE;
+            //  If context has been shut (client timeout) then don't use it
+            if (context->response == NULL)
+                context = NULL;     //  Message will stay on pipe...
+        }
     }
     if (self->pending) {
         //  Save the context for a backend arrival call

@@ -1,22 +1,440 @@
-<!DOCTYPE html 
+<!DOCTYPE html
      PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 
 <head>
- 	<title>RestMS - the Messaging Service for the Rest of Us</title>
- 	<meta http-equiv="content-type" content="text/html;charset=UTF-8"/>
- 	<meta http-equiv="content-language" content="en"/>
+    <title>Live.Zyre.Com - the Messaging Service for the Rest of Us</title>
+    <meta http-equiv="content-type" content="text/html;charset=UTF-8"/>
+    <meta http-equiv="content-language" content="en"/>
     <link rel="shortcut icon" href="/favicon.gif"/>
     <link rel="icon" type="image/gif" href="/favicon.gif"/>
+    <link rel="stylesheet" href="/http_base.css" type="text/css"/>
 </head>
 
 <body>
 <div style="margin-right:auto; margin-left:auto; width:600px;">
-<h1>RestMS</h1>
+<h1>http://live.zyre.com/restms</h1>
 <h2>The Messaging Service for the Rest of Us</h2>
-<p>Welcome.</p>
-<p>This is the RestMS test page.  If are reading this, that means your installation of RestMS is running at least on one cylinder.</p>
+<p>This is the live.zyre.com messaging service.  You can connect to this service to:</p>
+<ul>
+    <li>Create public or private feeds;</li>
+    <li>Create pipes and connect them to feeds;</li>
+    <li>Collect messages from pipes.</li>
+</ul>
+
+<p>For example, <a href="/restms/domain/default">here is the default domain</a>, listing all public feeds currently defined on this server.</p>
+
+<small>Terms of use: this is an experimental service is operated by iMatix Corporation.  We reserve the right to restrict access to any user for any reason, at any time.  We provide no guarantees, explicit or implicit, as to the quality or duration of this service, which may, and probably will, crash randomly and/or be removed at any time.  All content published to live.zyre.com must be in the public domain or licensed under terms specified in the feed 'license' property.  Zyre is part of the OpenAMQ project.  For help, use the email lists at <a href="http://www.openamq.org">www.openamq.org.</a></small>
+
+<h2>RestMS Quick Reference</h2>
+
+<h3>Documents and URIs</h3>
+
+<p>General syntax:</p>
+
+<pre>
+&lt;?xml version="1.0"?&gt;
+&lt;restms xmlns="http://www.imatix.com/schema/restms"&gt;
+  &lt;{resource-type} ...properties...&gt;
+    ...
+  &lt;/{resource-type}&gt;
+&lt;/restms&gt;
+</pre>
+
+<p>URIs:</p>
+<ul>
+    <li>Public resource: /restms/{resource-type}/{resource-name}</li>
+    <li>Private resource: /restms/resource/{resource hash}</li>
+</ul>
+
+<p>MIME types on GET request:</p>
+<ul>
+    <li>Get XML documents: Accept: application/restms+xml</li>
+    <li>Get JSON documents: Accept: application/restms+json</li>
+</ul>
+
+<p>MIME types on POST request and on GET/PUT responses:</p>
+<ul>
+    <li>XML: Content-Type: application/restms+xml</li>
+    <li>JSON: Content-Type: application/restms+json</li>
+</ul>
+
+<h3>Methods</h3>
+<ul>
+    <li>GET - retrieve a known resource</li>
+    <li>POST - create a new, dynamically named resource</li>
+    <li>PUT - edit a known resource</li>
+    <li>DELETE - remove a known resource</li>
+</ul>
+
+<h4>Create new resource</h4>
+
+<ul>
+    <li>Client: POST resource document, Slug to parent resource</li>
+    <li>Server: 201 Created or 200 OK, Location: + resource document</li>
+    <li>Short form: POST with no resource document, use all defaults.</li>
+</ul>
+
+<pre>
+Client:
+-------------------------------------------------
+POST /{parent uri} HTTP/1.1
+Content-Type: application/restms+xml
+Content-Length: {size of content}
+Slug: {resource-name}
+
+&lt;?xml version="1.0"?&gt;
+&lt;restms xmlns="http://www.imatix.com/schema/restms"&gt;
+  &lt;{resource type}&gt;
+    {resource specifications}
+  &lt;/{resource type}&gt;
+&lt;/restms&gt;
+
+Server:
+-------------------------------------------------
+HTTP/1.1 201 Created
+Content-Length: {size of content}
+Content-Type: application/restms+xml
+Location: http://{hostname}[{port}]/restms/resource/{hash}
+Date-Modified: {resource-date}
+ETag: {Etag}
+
+&lt;?xml version="1.0"?&gt;
+&lt;restms xmlns="http://www.imatix.com/schema/restms"&gt;
+  &lt;{resource type}&gt;
+    {resource contents}
+  &lt;/{resource type}&gt;
+&lt;/restms&gt;
+</pre>
+
+<h4>Retrieve known resource</h4>
+
+<p>Unconditional GET:</p>
+
+<ul>
+<li>Client: GET resource URI</li>
+<li>Server: 200 OK + resource document</li>
+</ul>
+
+<p>Conditional GET:</p>
+
+<ul>
+<li>Client: GET resource URI, If-None-Match: {ETag}, If-Modified-Since: {date}</li>
+<li>Server: 304 Not Modified.or 200 OK + document</li>
+</ul>
+
+<pre>
+Client:
+-------------------------------------------------
+GET /{resource uri} HTTP/1.1
+
+Server:
+-------------------------------------------------
+HTTP/1.1 200 OK
+Content-Length: {size of content}
+Content-Type: application/restms+xml
+Date-Modified: {resource-date}
+ETag: {Etag}
+
+&lt;?xml version="1.0"?&gt;
+&lt;restms xmlns="http://www.imatix.com/schema/restms"&gt;
+  &lt;{resource type}&gt;
+    {resource contents}
+  &lt;/{resource type}&gt;
+&lt;/restms&gt;
+</pre>
+
+<h4>Modify known resource</h4>
+
+<p>Normal update:</p>
+
+<ul>
+<li>Client: GET resource URI</li>
+<li>Server: 200 OK + resource document</li>
+<li>Client: PUT resource URI + edited document</li>
+<li>Server: 200 OK</li>
+</ul>
+
+<p>Conditional update:</p>
+
+<ul>
+<li>Client: GET resource URI</li>
+<li>Server: 200 OK + resource document</li>
+<li>Client: PUT resource URI, If-Match: {ETag}, If-Unmodified-Since: {date} + edited document</li>
+<li>Server: 412 Precondition Failed, or 200 OK</li>
+</ul>
+
+<pre>
+Client:
+-------------------------------------------------
+PUT /{resource uri} HTTP/1.1
+Content-Length: {size of content}
+Content-Type: application/restms+xml
+
+&lt;?xml version="1.0"?&gt;
+&lt;restms xmlns="http://www.imatix.com/schema/restms"&gt;
+  &lt;{resource type}&gt;
+    {resource contents}
+  &lt;/{resource type}&gt;
+&lt;/restms&gt;
+
+Server:
+-------------------------------------------------
+HTTP/1.1 200 OK
+</pre>
+
+<h4>Delete known resource</h4>
+
+<p>Normal delete:</p>
+
+<ul>
+<li>Client: DELETE resource URI</li>
+<li>Server: 200 OK</li>
+</ul>
+
+<p>Conditional delete:</p>
+
+<ul>
+<li>Client: DELETE resource URI, If-Match: {ETag}</li>
+<li>Server: 412 Precondition Failed, or 200 OK</li>
+</ul>
+
+<pre>
+Client:
+-------------------------------------------------
+DELETE /{resource uri} HTTP/1.1
+Content-Length: {size of content}
+Content-Type: application/restms+xml
+
+&lt;?xml version="1.0"?&gt;
+&lt;restms xmlns="http://www.imatix.com/schema/restms"&gt;
+  &lt;{resource type}&gt;
+    {resource contents}
+  &lt;/{resource type}&gt;
+&lt;/restms&gt;
+
+Server:
+-------------------------------------------------
+HTTP/1.1 200 OK
+</pre>
+
+<h3>Feed types</h3>
+
+<ul>
+<li><b>fanout</b>: each message goes to each join.  Addresses are not used.  Join address should be "*".</li>
+<li><b>direct</b>: each message goes to each join with identical address.</li>
+<li><b>topic</b>: each message goes to each join with address that matches message address.</li>
+<li><b>headers</b>: each message goes to each join with headers that match message headers.</li>
+<li><b>system</b>: implementation-specific.</li>
+<li><b>rotator</b>: each message goes to exactly one join, using round-robin distribution.  Addresses are not used.  Join address should be "*".</li>
+<li><b>service</b>: like rotator, but feed is deleted when last join is deleted.</li>
+</ul>
+
+<h3>Pipe types</h3>
+
+<ul>
+<li><b>fifo</b>: holds messages until deleted, delivers one by one.</li>
+<li><b>stream</b>: holds messages until deleted, delivers as multipart stream.</li>
+<li><b>ondemand</b>: fetches and delivers one message at a time, on demand.  For use with service feeds.</li>
+</ul>
+
+<h3>RestMS resources</h3>
+
+<pre>
+Resource type           Visibility          Lifecycle
+----------------        ----------------    ----------------
+Domain                  Public              Configured
+  |
+  o- Feed               Public, private     Configured, dynamic
+  |
+  o- Pipe               Private             Dynamic
+     |
+     o- Join            Private             Dynamic
+     |
+     o- Message         Private             Dynamic
+        |
+        o- Content      Private             Dynamic
+</pre>
+
+<h4>Domains</h4>
+
+<p>Domain description shows public feeds and pipes:</p>
+
+<pre>
+&lt;?xml version="1.0"?&gt;
+&lt;restms xmlns="http://www.imatix.com/schema/restms"&gt;
+  &lt;domain title="{domain description}"&gt;
+    [ &lt;feed
+        title="{feed description}"
+        type="{feed-type}"
+        license="{license}"
+        href="{feed URI}" /&gt; ] ...
+    [ &lt;pipe
+        title="{pipe description}"
+        type="{pipe-type}"
+        href="{pipe URI}" /&gt; ] ...
+  &lt;/domain&gt;
+&lt;/restms&gt;
+</pre>
+
+<ul>
+<li>GET - retrieve domain.</li>
+<li>POST - creates a new feed or pipe within the domain.  Public feeds need "Slug:" header.</li>
+<li>Server creates default domain with URI path "/restms/domain/default"</li>
+</ul>
+
+<h4>Feeds</h4>
+
+<pre>
+&lt;?xml version="1.0"?&gt;
+&lt;restms xmlns="http://www.imatix.com/schema/restms"&gt;
+  &lt;feed
+    [ type="fanout|direct|topic|headers|service|rotator|system" ]
+    [ title="{short title}" ]
+    [ license="{license name}" ]
+    /&gt;
+&lt;/restms&gt;
+</pre>
+
+<ul>
+<li>GET, PUT, DELETE - retrieve, modify, delete feed.</li>
+<li>POST - send message or content to the feed.</li>
+<li>Server creates default feed with URI path "/restms/feed/default" and type "direct"</li>
+</ul>
+
+<p>To create feed, post to domain URI.</p>
+
+<h4>Pipes</h4>
+
+<pre>
+&lt;?xml version="1.0"?&gt;
+&lt;restms xmlns="http://www.imatix.com/schema/restms"&gt;
+  &lt;pipe type="{pipe type}" reply_to="{string}"&gt;
+    [ &lt;join href="{join URI}" address="{address pattern}" feed="{feed URI}" /&gt; ] ...
+    [ &lt;message href="{message URI}" address="{address literal}" /&gt; ] ...
+    [ &lt;message href="{message URI}" async="1" /&gt; ]
+  &lt;/pipe&gt;
+&lt;/restms&gt;
+</pre>
+
+<ul>
+<li>GET, DELETE - retrieve, delete pipe.</li>
+<li>POST - create join for the pipe.</li>
+</ul>
+
+<p>To create pipe, post to domain URI:</p>
+
+<pre>
+&lt;?xml version="1.0"?&gt;
+&lt;restms xmlns="http://www.imatix.com/schema/restms"&gt;
+  &lt;pipe type="fifo|stream|ondemand" /&gt;
+&lt;/restms&gt;
+</pre>
+
+<h4>Joins</h4>
+
+<pre>
+&lt;?xml version="1.0"?&gt;
+&lt;restms xmlns="http://www.imatix.com/schema/restms"&gt;
+  &lt;join address="{address pattern}" feed="{feed URI}" /&gt;
+&lt;/restms&gt;
+</pre>
+
+<ul>
+<li>GET, DELETE - retrieve, delete join.</li>
+<li>Server creates default join for each pipe onto default feed.</li>
+</ul>
+
+<p>To create join, post to pipe URI.</p>
+
+<h4>Messages</h4>
+
+<p>For RestMS applications:</p>
+
+<pre>
+&lt;?xml version="1.0"?&gt;
+&lt;restms xmlns="http://www.imatix.com/schema/restms"&gt;
+  &lt;message
+    [ address="{address literal}" ]
+    [ reply_to="{address literal}" ]
+    [ feed="{originating feed URI}" ] &gt;
+    [ &lt;header name="{header name}" value="{header value}" /&gt; ] ...
+    [ &lt;content href="{content URI}" ... /&gt;
+    | &lt;content type="{MIME type} encoding="{encoding}"&gt;{content value}&lt;/content&gt; ]
+  &lt;/message&gt; ...
+&lt;/restms&gt;
+</pre>
+
+<p>For AMQP interoperability:</p>
+
+<pre>
+&lt;?xml version="1.0"?&gt;
+&lt;restms xmlns="http://www.imatix.com/schema/restms"&gt;
+  &lt;message
+    [ address="{address literal}" ]
+    [ reply_to="{address literal}" ]
+    [ feed="{originating feed URI}" ] &gt;
+    [ delivery_mode = "{delivery-mode}" ]
+    [ priority = "{priority}" ]
+    [ correlation_id = "{correlation-id}" ]
+    [ expiration = "{expiration}" ]
+    [ message_id = "{message-id}" ]
+    [ timestamp = "{timestamp}" ]
+    [ type = "{type}" ]
+    [ user_id = "{user-id}" ]
+    [ app_id = "{app-id}" ]
+    [ sender_id = "{sender-id}" ]
+    [ &lt;header name="{header name}" value="{header value}" /&gt; ] ...
+    [ &lt;content href="{content URI}" /&gt; ] ...
+  &lt;/message&gt; ...
+&lt;/restms&gt;
+</pre>
+
+<ul>
+<li>GET, DELETE - retrieve, delete message.</li>
+<li>POST - create a new content, Content-Type: {MIME-type};type=content, or create new message.</li>
+</ul>
+
+<p>To create a new message, post zero or more contents then post message to feed URI, with all content URIs.</p>
+
+<h4>Contents</h4>
+
+<ul>
+<li>GET - retrieve the content.</li>
+<li>DELETE - delete the content.</li>
+</ul>
+
+<h3>Service request-response scenario</h3>
+
+<p>In which requestor send requests to services, and get responses back:</p>
+
+<ul>
+<li>RestMS service: create public feed with name of service: <b>POST &lt;feed name="{service-name}" type="service"/&gt; to /restms/domain/default</b>, create pipe: <b>POST &lt;pipe/&gt; to /restms/domain/default</b>, create join from pipe to service feed: <b>POST &lt;join feed="/restms/feed/{service-name}"/&gt; to /restms/resource/{pipe-hash}</b>.  Then retrieve message asynclet: <b>GET /restms/resource/{asynclet-hash}.</b>  To send response, use reply-to attribute of request and send to default feed: <b>POST &lt;message address="{reply-to}"/&gt; to /restms/feed/default</b>.</li>
+
+<li>RestMS requestor: create pipe: <b>POST &lt;pipe/&gt; to /restms/domain/default</b>.  To send request, post to service feed, with service name as address and own pipe as reply-to attribute: <b>POST &lt;message address="{service-name}" reply_to="/restms/resource/{pipe-hash}" /&gt;</b> to /restms/feed/default.  Then retrieve message asynclet: <b>GET /restms/resource/{asynclet-hash}</b>.</li>
+
+<li>AMQP service: declare shared service queue: <b>Queue.Declare queue="{service-name}"</b>, then <b>Basic.Consume</b> on queue.  To send response, use reply-to attribute of requests and send to default exchange: <b>Basic.Publish exchange="(empty)" routing-key="{reply-to}"</b></li>
+
+<li>AMQP requestor: declare private response queue: <b>Queue.Declare queue="(empty)" exclusive=1</b>, then <b>Basic.Consume</b> on queue.  To send request, use service name as routing key and send to default exchange: <b>Basic.Publish exchange="(empty)" routing-key="{service-name}"</b></li>
+</ul>
+
+<h3>Newsfeed publish-subscribe scenario</h3>
+
+<p>In which publishers distribute messages to subscribers:</p>
+
+<ul>
+<li>AMQP publisher: declare topic exchange: <b>Exchange.Declare name="{feed-name}" type="topic"</b>, then publish messages to that exchange: <b>Basic.Publish exchange="{feed-name}" routing-key="{category}"</b></li>
+
+<li>AMQP subscriber: use private queue: <b>Queue.Declare queue="(empty)" exclusive=1</b>, then <b>Basic.Consume</b> on queue.  To subscribe, bind queue to feed exchange, using category pattern: <b>Queue.Bind queue="{queue}" exchange="{feed-name}" routing-key="{category pattern}"</b>.</li>
+
+<li>RestMS publisher: create public feed: <b>POST &lt;feed name="{feed-name}" type="topic"/&gt; to /restms/domain/default</b>, then publish messages to that feed: <b>POST &lt;message address="{category}"/&gt; to /restms/feed/{feed-name}</b>.</li>
+
+<li>RestMS subscriber: create pipe: <b>POST &lt;pipe/&gt; to /restms/domain/default</b>.  Create join from pipe to feed: <b>POST &lt;join address="{category pattern}" feed="{feed-name}"/&gt;</b> Then retrieve message asynclet: <b>GET /restms/resource/{asynclet-hash}</b>.</li>
+</ul>
+
+<div style="margin:2em; border-width: 1pt 0 0 0; border-style:dashed">Powered by X5</div>
+
 </div>
 </body>
 </html>

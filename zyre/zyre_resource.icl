@@ -398,13 +398,17 @@ static long int
     accept = http_request_get_header (context->request, "accept");
     if (ipr_str_prefixed (accept, "application/restms+json")) {
         longstr = ipr_tree_save_json (*p_tree);
-        icl_shortstr_fmt (content_type, "application/restms+json;type=");
+        icl_shortstr_cpy (content_type, "application/restms+json");
+    }
+    else
+    if (ipr_str_prefixed (accept, "application/restms+xml")) {
+        longstr = ipr_tree_save_xml (*p_tree);
+        icl_shortstr_cpy (content_type, "application/restms+xml");
     }
     else {
         longstr = ipr_tree_save_xml (*p_tree);
-        icl_shortstr_fmt (content_type, "application/restms+xml;type=");
+        icl_shortstr_cpy (content_type, "text/xml");
     }
-    icl_shortstr_cat (content_type, self_type_name (self->type));
     ipr_tree_destroy (p_tree);
 
     //  Save string in bucket and pass as response bucket

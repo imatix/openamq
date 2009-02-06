@@ -16,21 +16,7 @@
     http://tools.ietf.org/html/rfc4648
 
 
-feed->send (message)
-message = pipe->recv (message)
-
-
-tests
-    pipe
-        - send message and check we can get it back
-    feed
-
-content
-    -> received from server GET
-    -> sent to server for PUT
-    -> $self->content
-    -> $self->content_type
-
+- if client times out and pipe is still waiting, tries to send to invalid content
 
 - multiple messages
 my $content = <<EOF;
