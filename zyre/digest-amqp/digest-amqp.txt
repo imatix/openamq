@@ -41,8 +41,8 @@ The Request (in red) travels as follows:
 
 # A browser requests a method on a resource that is protected by Digest authentication.
 # The WWW server challenges the browser to provide credentials, which it does.
-# The WWW server asks for credentials from the Digest-AMQP client.
-# The Digest-AMQP client formats a Digest-AMQP Request message and sends this to the AMQP serer via an AMQP API layer.
+# The WWW server asks for credentials from the Digest-AMQP requestor.
+# The Digest-AMQP requestor formats a Digest-AMQP Request message and sends this to the AMQP server via an AMQP API layer.
 # The AMQP server routes the Request to the Digest-AMQP service, which retrieves the message via its AMQP API layer.
 # The Digest-AMQP service requests digest or password information from the credentials service.
 
@@ -50,15 +50,14 @@ The Response (in blue) then travels as follows:
 
 # The credentials service provides the Digest-AMQP service with the necessary credentials data.
 # The Digest-AMQP service formats a Response message and sends this to the AMQP server via its AMQP API layer.
-# The AMQP server routes the Response to the Digest-AMQP client, which retrieves the message via its AMQP API layer.
-# The Digest-AMQP client provides the WWW server with the credentials.
+# The AMQP server routes the Response to the Digest-AMQP requestor, which retrieves the message via its AMQP API layer.
+# The Digest-AMQP requestor provides the WWW server with the credentials.
 # The WWW server validates the brower-provided credentials and either accepts or denies the browser's request.
 
-One of the key features of the Digest scheme is that passwords do not cross the network.  That is, the browser and the WWW server, and the Digest-AMQP client and the Digest-AMQP service exchange digests of the password along with other data.
+One of the key features of the Digest scheme is that passwords do not cross the network.  That is, the browser and the WWW server, and the Digest-AMQP requestor and the Digest-AMQP service exchange digests of the password along with other data.
 
 Note that:
 
-* The yellow boxes show the components that are specific to this specification.
 * The web server must be capable of executing a plug-in module to implement Digest-AMQP.
 * The credentials service must be capable either of returning a properly formed Digest, or of providing the clear-text password to the Digest-AMQP service.
 
@@ -81,7 +80,7 @@ The Digest-AMQP request is an XML document with this format:
 </digest-amqp>
 [[/code]]
 
-The user, realm, and algorithm properties have the meaning defined in RFC 2617.  The reply_to property is the name of a queue created by the client.
+The user, realm, and algorithm properties have the meaning defined in RFC 2617.  The reply_to property is the name of a queue created by the requestor.
 
 The Digest-AMQP response is an XML document with this format:
 
@@ -102,7 +101,7 @@ The user, realm, and algorithm properties are identical to that supplied in the 
 
 +++ Message routing
 
-Digest-AMQP uses the RestMS[3] convention of addressing queues by name via the amq.direct exchange.  In this section we'll provide recipes for both client and service, in both AMQP and RestMS styles.
+Digest-AMQP uses the RestMS[3] convention of addressing queues by name via the amq.direct exchange.  In this section we'll provide recipes for both requestor and service, in both AMQP and RestMS styles.
 
 The AMQP service works as follows:
 
@@ -112,7 +111,7 @@ The AMQP service works as follows:
 * When it receives a request, it executes it, and prepares a response.
 * It publishes the response to the "amq.direct" exchange using the reply_to property of the request as the routing key.
 
-The AMQP client works as follows:
+The AMQP requestor works as follows:
 
 * It declares a queue, normally named by the server, and declared as exclusive, for responses.
 * It binds this queue to the "amq.direct" exchange, using the queue name as routing key.
@@ -121,7 +120,7 @@ The AMQP client works as follows:
 * When it receives a response, it processes it.
 * If it receives a returned message, it can conclude that the Digest-AMQP service is not running.
 
-Either the client and/or server can be implemented using RestMS rather than AMQP.  The RestMS service works as follows:
+Either the requestor and/or service can be implemented using RestMS rather than AMQP.  The RestMS service works as follows:
 
 * It creates a service feed called "Digest-AMQP".
 * It creates a server-named pipe.
@@ -130,7 +129,7 @@ Either the client and/or server can be implemented using RestMS rather than AMQP
 * It posts the response to an address consisting of the reply_to property of the request followed by "@amq.direct".
 * It deletes the message from the pipe.
 
-The RestMS client works as follows:
+The RestMS requestor works as follows:
 
 * It creates a server-named pipe, for responses.
 * It creates a join between its pipe and the amq.direct feed using the address "{pipe-name}@amq.direct".
@@ -139,13 +138,13 @@ The RestMS client works as follows:
 * It waits for a response message on the pipe.
 * When it receives a response, it processes it, and deletes the message from the pipe.
 
-In the RestMS case, if the Digest-AMQP service is not running, the client's attempt to post to "request@Digest-AMQP" will fail with an error.  RestMS does not use AMQP's 'mandatory' and returned message mechanism.
+In the RestMS case, if the Digest-AMQP service is not running, the requestor's attempt to post to "request@Digest-AMQP" will fail with an error.  RestMS does not use AMQP's 'mandatory' and returned message mechanism.
 
 Note that all strings used in routing are case-sensitive.
 
 ++ Worked example
 
-We use the example from RFC 2617.  The client requests credentials for the user "Mufasa" in the realm "testrealm@host.com" by sending this Request:
+We use the example from RFC 2617.  The requestor requests credentials for the user "Mufasa" in the realm "testrealm@host.com" by sending this Request:
 
 [[code]]
 Exchange: amq.direct
@@ -193,7 +192,7 @@ This is an implementation of a Digest-AMQP service in [http://www.openamq.org/do
 <?xml?>
 <!--
     This is a demo Digest-AMQP service that shows how to send
-    a response back to a Digest-AMQP client.  The response is
+    a response back to a Digest-AMQP requestor.  The response is
     hard-coded on the RFC2617 example.
  -->
 <pal script = "amq_pal_gen">
@@ -242,12 +241,12 @@ This is an implementation of a Digest-AMQP service in [http://www.openamq.org/do
 </pal>
 [[/code]]
 
-Here is a corresponding Digest-AMQP client in PAL:
+Here is a corresponding Digest-AMQP requestor in PAL:
 
 [[code]]
 <?xml?>
 <!--
-    This is a demo Digest-AMQP client that shows how to send
+    This is a demo Digest-AMQP requestor that shows how to send
     a request to a Digest-AMQP service.  The request is based
     on the RFC2617 example.
  -->
