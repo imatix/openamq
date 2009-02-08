@@ -1,3 +1,7 @@
+errata
+- Etag must depend on mimetype
+- URIs can be relative coming from client, always absolute from server
+
 - multiple messages
     <message ... />
 - no content, headers only

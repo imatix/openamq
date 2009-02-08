@@ -804,8 +804,8 @@ Our goals with this design are:
 RestMS documents obey these basic rules:
 
 * All RestMS documents have a "document root" element called "restms".
-* This document root contains a single "resource root".
-* The resource root element contains other elements, each which can itself contain elements.
+* This document root contains one or more "resource roots".
+* The resource root elements contains other elements, each which can itself contain elements.
 * All elements except the document root element correspond to RestMS resources, with the name of the element equal to the resource type.
 * All elements except the document root may have attributes, corresponding to resource properties.
 * All elements except the document root may repeat 0 or more times.
