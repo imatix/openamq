@@ -2,6 +2,30 @@ errata
 - Etag must depend on mimetype
 - URIs can be relative coming from client, always absolute from server
 
+fix
+- digest-amqp to use new restms api & examples
+- wiki.amqp.org to allow issues per spec
+- doc, to describe message post/get in detail
+- github: digest-amqp, restms.pm
+- make restms.pm in lua
+    - pay nino for python, javascript, ruby
+- amq_server export feeds to zyre
+- generic data model should not be <restms>
+- specify encodings and what they mean
+- note all error responses with examples
+- note rules for handling unknown elements
+- Slug - formal spec
+
+split
+- general introduction to using RestMS
+    - how the things work, patterns for joins, etc.
+- generic data model & restful access
+- proper restms spec with detailed specs for implementors
+    - formal grammar for trees
+    - rules for tree -> xml, json, etc.
+- AMQP interoperability
+
+
 - multiple messages
     <message ... />
 - no content, headers only
@@ -18,9 +42,6 @@ errata
 - document: server MAY decode content before sending if encoding is "base64"
     The Base16, Base32, and Base64 Data Encodings
     http://tools.ietf.org/html/rfc4648
-
-
-- if client times out and pipe is still waiting, tries to send to invalid content
 
 - multiple messages
 my $content = <<EOF;
@@ -135,18 +156,12 @@ synchronization with AMQP
         - all exchanges
     - when AMQP provides feed,
         - create in restms object if new
-
-
 new resource from openamq
     always public resource
     always locked
-
 - in openamq, synchronize back with zyre
     - add method Feed.Sync to class
     - if server gets this, syncs all exchange & shared queues back to RestMS
-
-
-
 AMQP synchronization
     - resource->private property
 
