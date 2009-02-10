@@ -1,5 +1,11 @@
 + RESTful release
 
+++ 1.4a4 - unreleased
+
+OpenAMQ:
+
+* fixed: if server runs out of sockets, dies with clear error message (http://www.openamq.org/issue:45)
+
 ++ 1.4a3 - 2008/02/06
 
 OpenAMQ:
@@ -57,6 +63,11 @@ All changes in 1.3c3 onwards plus:
 * changed: auto-named queues are now called "auto.nnn" instead of "#nnn"
 
 + High-performance release
+
+++ 1.3c4 - 2009/02/10
+
+* fixed: version number in server was wrong
+* fixed: if server runs out of sockets, dies with clear error message (http://www.openamq.org/issue:45)
 
 ++ 1.3c4 - 2009/02/05
 
@@ -156,6 +167,10 @@ This update includes all fixes in 1.2d2 as well as:
 * In PAL, added <session direct = "1"> option to enable Direct Mode
 
 + Stable branch
+
+++ 1.2e2 - unreleased
+
+* fixed: if server runs out of sockets, dies with clear error message (http://www.openamq.org/issue:45)
 
 ++ 1.2e1 - 2009/02/05
 
