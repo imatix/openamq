@@ -14,7 +14,10 @@ fix
 - specify encodings and what they mean
 - note all error responses with examples
 - note rules for handling unknown elements
-- Slug - formal spec
+- Slug -> name
+    - in body of document
+- change error response to plain text, not HTML
+- xmlns should not be in JSON output
 
 split
 - general introduction to using RestMS
