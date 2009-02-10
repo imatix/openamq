@@ -309,7 +309,7 @@ if [ $CLEAN = 1 ]; then
             SVN_URI=$SVN_ROOT/$PRODUCT/branches/prod_openamq_$BRANCH
         fi
         carp "in `pwd`: get '$SVN_URI' into $PRODUCT..."
-        svn checkout -q -r $REVISION $SVN_URI $PRODUCT || croak
+        svn checkout -r $REVISION $SVN_URI $PRODUCT || croak
     done
 fi
 
@@ -322,10 +322,10 @@ if [ ! -z "$VERSION" ]; then
         PROJECTS="common wireapi server shell zyre"
     fi
     for PROJECT in . $PROJECTS; do
-        perl -n -p -e 's/version   = "....."/version   = "'$VERSION'"/' < $PROJECT/project.pdl > _tmp
+        perl -n -p -e 's/version   = "[^"]+"/version   = "'$VERSION'"/' < $PROJECT/project.pdl > _tmp
         mv _tmp $PROJECT/project.pdl
     done
-    PRODVER=`perl -n -e '/version .*= "(.*)"/ && print $1' project.pdl`
+    PRODVER=`perl -n -e '/version .*= "([^"]+)"/ && print $1' project.pdl`
     carp "in `pwd`: project.pdl patched to $PRODVER"
 fi
 

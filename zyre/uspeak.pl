@@ -7,7 +7,7 @@
 #   with no conditions or restrictions.
 #
 use RestMS ();
-my $domain = RestMS::Domain->new (hostname => "live.zyre.com");
+my $domain = RestMS::Domain->new (hostname => "15.154.209.199");
 my $feed = $domain->feed (name => "ublog", type => "fanout");
 my $message = RestMS::Message->new;
 $message->content (shift);

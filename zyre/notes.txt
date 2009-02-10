@@ -1,32 +1,15 @@
-errata
-- Etag must depend on mimetype
-- URIs can be relative coming from client, always absolute from server
+Zyre:
+- amq_server export feeds to zyre
+- xmlns should not be in JSON output
 
-fix
+Digest-AMQP:
 - digest-amqp to use new restms api & examples
+
+Websites:
 - wiki.amqp.org to allow issues per spec
-- doc, to describe message post/get in detail
 - github: digest-amqp, restms.pm
 - make restms.pm in lua
     - pay nino for python, javascript, ruby
-- amq_server export feeds to zyre
-- generic data model should not be <restms>
-- specify encodings and what they mean
-- note all error responses with examples
-- note rules for handling unknown elements
-- Slug -> name
-    - in body of document
-- change error response to plain text, not HTML
-- xmlns should not be in JSON output
-
-split
-- general introduction to using RestMS
-    - how the things work, patterns for joins, etc.
-- generic data model & restful access
-- proper restms spec with detailed specs for implementors
-    - formal grammar for trees
-    - rules for tree -> xml, json, etc.
-- AMQP interoperability
 
 
 - multiple messages
@@ -141,14 +124,10 @@ need to learn GIT and make gitub for restms work
     - addons
     restms.org
 
-
-live.zyre.com
-
 zyre.com
     - documentation
     - examples
     - binaries, packages
-
 
 JSON parser in C
 new XML parser that is known solid
