@@ -122,11 +122,13 @@ This class implements the RestMS pipe object.
 </method>
 
 <method name = "delete">
+    <local>
     zyre_resource_t
         *resource;
     ipr_looseref_t
         *looseref;
-
+    </local>
+    //
     while ((looseref = ipr_looseref_list_first (self->joins))) {
         //  Since we don't have a link to the resource, grab one
         resource = zyre_resource_link ((zyre_resource_t *) looseref->object);

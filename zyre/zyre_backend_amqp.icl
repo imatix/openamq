@@ -89,6 +89,7 @@ link becomes active, and when a message content arrives.
 
 <method name = "destroy">
     <action>
+    {
     zyre_peer_method_t
         *method;                        //  Queue.Bind method
 
@@ -103,6 +104,7 @@ link becomes active, and when a message content arrives.
     ipr_hash_table_apply   (self->pipe_table, s_destroy_pipe, NULL);
     ipr_hash_table_destroy (&self->pipe_table);
     ipr_hash_table_destroy (&self->feed_table);
+    }
     </action>
 </method>
 
