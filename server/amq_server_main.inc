@@ -166,7 +166,9 @@ s_start (int argc, char *argv [])
 #else
                     printf ("Threading model: single threaded\n");
 #endif
+#if (defined (CCOPTS))
                     printf ("\nCompiler: " CCOPTS "\n");
+#endif
                     exit (EXIT_SUCCESS);
                 case 'h':
                     printf (SERVER_NAME "/" VERSION "\n");
@@ -222,9 +224,12 @@ s_start (int argc, char *argv [])
     amq_server_config = amq_server_config_new ();
     bucket = amq_server_resource_get ("amq_server_base.cfg");
     amq_server_config_load_bucket   (amq_server_config, bucket);
+    if (!amq_server_config->config) icl_console_print ("NULL at 2"); //##
     ipr_bucket_destroy (&bucket);
     amq_server_config_load_xmlfile  (amq_server_config, s_opt_config, FALSE);
+    if (!amq_server_config->config) icl_console_print ("NULL at 3"); //##
     amq_server_config_cmdline_parse (amq_server_config, SERVER_NAME, s_argc, s_argv);
+    if (!amq_server_config->config) icl_console_print ("NULL at 4"); //##
 
     //  Snapshot configuration into debug file, if wanted
     if (s_opt_snapshot) {
@@ -236,6 +241,7 @@ s_start (int argc, char *argv [])
         }
     }
     //  Check that server security is reasonably defined
+    if (!amq_server_config->config) icl_console_print ("NULL at 5"); //##
     config = ipr_config_dup (amq_server_config->config);
     ipr_config_locate (config, "/config/security", "plain");
     if (!config->located) {

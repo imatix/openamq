@@ -154,7 +154,9 @@ s_zyre_initialise (int argc, char *argv [])
 #else
                     printf ("Threading model: single threaded\n");
 #endif
+#if (defined (CCOPTS))
                     printf ("\nCompiler: " CCOPTS "\n");
+#endif
                     exit (EXIT_SUCCESS);
                 case 'h':
                     printf (SERVER_NAME "/" VERSION "\n");

@@ -20,7 +20,7 @@
     name      = "OpenAMQ Shell"
     version   = "1.4a4"
     workflow  = "standard.pwl"
-    library   = "libamq_operate"
+    library   = "libamq_shell"
     copyright = "Copyright (c) 2007-2009 iMatix Corporation"
     >
 
@@ -30,7 +30,7 @@
 
 <file name = "gpl_output"               class = "private resource"  >Generated code is licensed under the GPL</file>
 <file name = "version.h"                class = "c version"         >Project version file</file>
-<file name = "libamq_operate"           class = "public library"    >Object library</file>
+<file name = "libamq_shell"             class = "public library"    >Object library</file>
 
 <!-- OpenAMQ Management Console front-end -->
 <file name = "amq_shell"                class = "public command"    >Console shell</file>

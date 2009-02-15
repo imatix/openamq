@@ -144,7 +144,9 @@ int main (int argc, char *argv[])
                     printf (COPYRIGHT "\n");
                     printf (BUILDMODEL "\n");
                     printf ("Built on: " BUILDDATE "\n");
+#if defined (CCOPTS)
                     printf ("Compiler: " CCOPTS "\n");
+#endif
                     exit (EXIT_SUCCESS);
                 case 'h':
                     printf (PRODUCT "\n");

@@ -140,7 +140,9 @@ main (int argc, char *argv [])
                     printf (COPYRIGHT "\n");
                     printf (NOWARRANTY);
                     printf (BUILDMODEL "\n");
+#if defined (CCOPTS)
                     printf ("Compiled with: " CCOPTS "\n");
+#endif
                     exit (EXIT_SUCCESS);
                 case 'h':
                     printf (CLIENT_NAME "\n\n");
