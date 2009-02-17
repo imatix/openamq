@@ -35,6 +35,7 @@
     <project directory = "server"  />
     <project directory = "shell"   />
     <project directory = "zyre"    />
+    <project directory = "windows" />
 </distrib>
 
 <distrib name = "OpenAMQ install" type = "install">

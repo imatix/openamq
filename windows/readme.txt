@@ -1,0 +1,1 @@
+All documentation regarding the Windows packaging for OpenAMQ is on http://win.openamq.org.
