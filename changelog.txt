@@ -102,6 +102,28 @@ TODO
     - redesign queue->consumer->channel using portals
     - also for exchange->binding->queue?
 
+2009-02-17
+
+* changed: apr updated to 1.3.3, apr-util updated to 1.3.4 (1.4, FOR-21,
+BASE2-305)
+* removed: legacy platforms from 'c' script (everything except "modern gcc
+system" and "AIX with CCNAME=xlc_r") (1.4, FOR-22)
+* changed: if CCNAME and CCOPTS are unset, 'c' script looks for gcc on PATH,
+if found assumes a modern system and uses gcc and pthreads, if not then exits
+with error (1.4, FOR-22)
+* changed: if CCNAME and CCOPTS are set, 'c' does no autodetection of anything
+(including libraries) and just uses the provided values ("you're on your own
+mode"). this is done to massively simplify logic in 'c' script (1.4, FOR-22)
+* changed: when using gcc, detect standard "modern" libraries and link with
+them if present (includes libcrypt) (1.4, FOR-22)
+* changed: default BOOM_MODEL for all POSIX platforms is st,release (1.4,
+FOR-22)
+* changed: default ALLOCATOR for release is direct, for debug is fat (1.4,
+FOR-22)
+* removed: lockfree allocator and support code from iCL (1.4)
+* changed: ST builds on POSIX now identical to MT builds except for
+-DBASE_THREADSAFE (1.4, FOR-22)
+
 2009-02-06
 
 * fixed: Zyre crashed if pipe was still open on timed-out client.
