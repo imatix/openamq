@@ -410,7 +410,7 @@ gsl -q -script:make_build manifest.xml
 #   Unzip source kits to create OpenAMQ package tree
 for PRODUCT in $PRODUCTS; do
     PRODVER=`eval echo \\$${PRODUCT}_version`
-    gzip -dc $BUILD/$PRODUCT/$PRODVER-src.tar.gz | tar -xf - || croak
+    tar -xzf $BUILD/$PRODUCT/$PRODVER-src.tar.gz || croak
 done
 
 cd $BUILD
