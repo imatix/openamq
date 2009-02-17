@@ -18,7 +18,7 @@
 
 <pdl
     name      = "OpenAMQ Shell"
-    version   = "1.4a4"
+    version   = "1.4b0"
     workflow  = "standard.pwl"
     library   = "libamq_shell"
     copyright = "Copyright (c) 2007-2009 iMatix Corporation"
