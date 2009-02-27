@@ -139,13 +139,13 @@ check the credit to decide whether or not to use the channel's consumers.
         consumer = amq_consumer_new (self->connection, self, queue, method);
         if (consumer) {
             amq_consumer_by_channel_queue (self->consumer_list, consumer);
-            amq_queue_consume (queue, consumer, self->active, nowait);
             if (queue->exclusive)
                 self->credit = amq_server_config_private_credit (amq_server_config);
             else
                 self->credit = amq_server_config_shared_credit (amq_server_config);
             if (self->credit == 0)
                 self->credit = 1;
+            amq_queue_consume (queue, consumer, self->active, nowait);
         }
         else {
             amq_server_channel_error (self, ASL_RESOURCE_ERROR, "Unable to create consumer",
