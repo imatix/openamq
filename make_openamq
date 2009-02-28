@@ -17,13 +17,14 @@
 #   For information on alternative licensing for OEMs, please contact
 #   iMatix Corporation.
 #
-#   make_openamq [-r revision] [-b branch] [-v version] [-m model] [-c] [-s] [-a] [-p] [-i where]
+#   make_openamq [-r revision] [-b branch] [-v version] [-m model] [-c] [-r] [-s] [-a] [-p] [-i where]
 #
 #       * revision = svn revision number, default = head
 #       * branch = "trunk" or "xxx" where branch name is "/branches/prod_openamq_xxx", e.g. "1.2d"
 #       * version = "x.yRn", default is same as current
 #       * model = "mtr", "mtd", "str", or "std", default is mtd
 #       * -c means checkout sources from SVN
+#       * -r means recover after a partial checkout
 #       * -s means just report status and exit
 #       * -a means automatically do svn commits
 #       * -p means update local project.pdl files
@@ -95,6 +96,7 @@ BRANCH=trunk
 VERSION=""
 MODEL=mtd
 CLEAN=0
+RECOVER=0
 STATUS=0
 COMMIT=0
 INSTALL=""
@@ -108,6 +110,7 @@ while [ ! -z "$1" ]; do
         carp '   version = "x.yRn", default is same as current'
         carp '   model = "mtr", "mtd", "str", or "std", default is mtd'
         carp '   -c means do clean checkout and build'
+        carp '   -r means recover after a partial checkout'
         carp '   -s means just report status and exit'
         carp '   -a means automatically do svn commits'
         carp '   -p means patch local project.pdl files'
@@ -115,6 +118,8 @@ while [ ! -z "$1" ]; do
         exit 1;
     elif [ "$1" = "-c" ]; then
         CLEAN=1                         #   Clean checkout and rebuild
+    elif [ "$1" = "-r" ]; then
+        RECOVER=1                       #   Recover failed checkout, rebuild
     elif [ "$1" = "-s" ]; then
         STATUS=1                        #   Report status and then exit
     elif [ "$1" = "-a" ]; then
@@ -301,7 +306,7 @@ fi
 cd $BUILD || croak
 
 #   Checkout all products into build directory, if needed
-if [ $CLEAN = 1 ]; then
+if [ $CLEAN = 1 -o $RECOVER = 1 ]; then
     for PRODUCT in $PRODUCTS; do
         if [ "$BRANCH" = "trunk" ]; then
             SVN_URI=$SVN_ROOT/$PRODUCT/trunk
@@ -371,7 +376,7 @@ for PRODUCT in $PRODUCTS; do
         SVN_URI=$SVN_ROOT/$PRODUCT/branches/prod_openamq_$BRANCH
     fi
     PRODVER=`perl -n -e '/version .*= "(.*)"/ && print $1' $BUILD/$PRODUCT/project.pdl`
-    echo '  <product name = "'$PRODUCT'" url = "'$SVN_URI'" revision = "'$REVISION'" release = "'$PRODVER'" internal = "'`eval echo \\$${PRODUCT}_version`'" />'>> $MANIFEST
+    echo '  <product name = "'$PRODUCT'" url = "'$SVN_URI'" revision = "'$REVISION'" release = "'$PRODVER'" />'>> $MANIFEST
 done
 echo '</package>'>> $MANIFEST
 
@@ -411,9 +416,11 @@ gsl -q -script:make_build manifest.xml
 for PRODUCT in $PRODUCTS; do
     PRODVER=`eval echo \\$${PRODUCT}_version`
     tar -xzf $BUILD/$PRODUCT/$PRODVER-src.tar.gz || croak
+    mv $PRODVER $PRODUCT
 done
 
 cd $BUILD
+#   Pax does tar -czf but creates POSIX-compatible tar file
 pax -w OpenAMQ-$VERSION | gzip -c > OpenAMQ-${VERSION}.tar.gz || croak
 zip -lqrm OpenAMQ-${VERSION}.zip OpenAMQ-$VERSION || croak
 carp "in `pwd`: successfully built source kits:"

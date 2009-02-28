@@ -13,7 +13,7 @@ Under Linux/Unix, and under Windows, run this command from a console window:
 
     build
 
-You will need MSVC installed for command line use. Please see www.openamq.org 
+You will need MSVC installed for command line use. Please see www.openamq.org
 for more details.
 .   output "build.sh"
 
@@ -29,11 +29,11 @@ if [ -z "\$IBASE" ]; then
 fi
 .  for product
 
-#   Build $(internal:)
-cd $(internal:)
-sh ./boomake build test install; 
+#   Build $(name:)
+cd $(name:)
+sh ./boomake build test install;
 if [ \$? != 0 ]; then
-    echo "E: Build of $(internal:) failed" 1>&2
+    echo "E: Build of $(name:) failed" 1>&2
     exit 1
 fi
 cd ..
@@ -55,11 +55,11 @@ if "%IBASE%"=="" (
 )
 .  for product
 
-:-  Build $(internal:)
-cd $(internal:)
+:-  Build $(name:)
+cd $(name:)
 call boomake build test install
 if errorlevel 1 (
-    echo E: Build of $(internal:) failed
+    echo E: Build of $(name:) failed
     exit /b 1
 )
 cd ..

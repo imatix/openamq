@@ -1,12 +1,28 @@
-+ RESTful release
++ Unstable branch
 
-++ 1.4a4 - unreleased
+++ 1.4b1 - 2009/03/xx
 
-OpenAMQ:
+* fixed: Basic.Consume sometimes failed: http://www.openamq.org/issue:52/
+* fixed: build on Windows failed on MSVC when InputDir path had spaces
+* fixed: renamed 'template' property in ipr_dict_table_file_save to make it C++ compatible
+* fixed: Zyre: eliminate 'client connection timed-out' messages (http://www.xitami.com/issue:3)
+* fixed: Zyre: fixed crash on unrecognized HTTP methods (http://www.xitami.com/issue:1)
+
+++ 1.4b0 - 2009/02/17
 
 * fixed: if server runs out of sockets, dies with clear error message (http://www.openamq.org/issue:45)
+* changed: apr updated to 1.3.3, apr-util updated to 1.3.4 (1.4, FOR-21, BASE2-305)
+* removed: legacy platforms from 'c' script (everything except "modern gcc system" and "AIX with CCNAME=xlc_r") (1.4, FOR-22)
+* changed: if CCNAME and CCOPTS are unset, 'c' script looks for gcc on PATH, if found assumes a modern system and uses gcc and pthreads, if not then exits with error (1.4, FOR-22)
+* changed: if CCNAME and CCOPTS are set, 'c' does no autodetection of anything (including libraries) and just uses the provided values ("you're on your own mode"). this is done to massively simplify logic in 'c' script (1.4, FOR-22)
+* changed: when using gcc, detect standard "modern" libraries and link with them if present (includes libcrypt) (1.4, FOR-22)
+* changed: default BOOM_MODEL for all POSIX platforms is st,release (1.4, FOR-22)
+* changed: default ALLOCATOR for release is direct, for debug is fat (1.4, FOR-22)
+* removed: lockfree allocator and support code from iCL (1.4)
+* changed: ST builds on POSIX now identical to MT builds except for -DBASE_THREADSAFE (1.4, FOR-22)
+* added: build system for Windows (VisualC 2008)
 
-++ 1.4a3 - 2008/02/06
+++ 1.4a3 - 2009/02/06
 
 OpenAMQ:
 
@@ -62,10 +78,15 @@ All changes in 1.3c3 onwards plus:
 * fixed: PAL assert did not work with symbolic variables
 * changed: auto-named queues are now called "auto.nnn" instead of "#nnn"
 
-+ High-performance release
++ Stable branch
 
-++ 1.3c4 - 2009/02/10
+++ 1.3c6 - 2009/03/xx
 
+* fixed: Basic.Consume sometimes failed: http://www.openamq.org/issue:52/
+
+++ 1.3c5 - 2009/02/20
+
+* fixed: demo_content_class selftest died on Unix systems (AIX) (DAMQ-27).
 * fixed: version number in server was wrong
 * fixed: if server runs out of sockets, dies with clear error message (http://www.openamq.org/issue:45)
 
@@ -166,7 +187,7 @@ This update includes all fixes in 1.2d2 as well as:
 * In PAL, <session failover = "n"> option changed to seconds for consistency
 * In PAL, added <session direct = "1"> option to enable Direct Mode
 
-+ Stable branch
++ Legacy branch
 
 ++ 1.2e2 - unreleased
 
