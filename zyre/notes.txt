@@ -1,3 +1,9 @@
+Sender-AMQP
+- specification to sign messages with App-Id
+    - how to set a verifiable App-Id?
+    -> server will quash any provided App-Id, so no possibility of fraud
+    -> server puts in authenticated user id
+
 Zyre:
 - amq_server export feeds to zyre
 - xmlns should not be in JSON output
@@ -10,7 +16,6 @@ Websites:
 - github: digest-amqp, restms.pm
 - make restms.pm in lua
     - pay nino for python, javascript, ruby
-
 
 - multiple messages
     <message ... />

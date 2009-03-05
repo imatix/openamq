@@ -26,13 +26,36 @@
 <option name = "product_name" value = "OpenAMQ Kernel Client" />
 <option name = "syncapi"      value = "1" />
 
+<class name = "channel">
+  <context>
+    amq_sequence_table_t
+        *sequences;                     //  Timestamp per connection id
+  </context>
+  <constructor>
+    self->sequences = amq_sequence_table_new ();
+  </constructor>
+  <destructor>
+    amq_sequence_table_destroy (&self->sequences);
+  </destructor>
+</class>
+
 <class name = "basic">
   <action name = "get-ok">
+    if (amq_client_config_sequence_check (amq_client_config)) {
+        if (amq_sequence_check (session->sequences, content->sender_id, content->timestamp))
+            icl_console_print ("W: message out-of-sequence, routing-key='%s' exchange='%s'",
+                content->routing_key, content->exchange);
+    }
     amq_client_session_push_arrived (
         session, content, method->exchange, method->routing_key, NULL);
   </action>
 
   <action name = "deliver">
+    if (amq_client_config_sequence_check (amq_client_config)) {
+        if (amq_sequence_check (session->sequences, content->sender_id, content->timestamp))
+            icl_console_print ("W: message out-of-sequence, routing-key='%s' exchange='%s'",
+                content->routing_key, content->exchange);
+    }
     amq_client_session_push_arrived (
         session, content, method->exchange, method->routing_key, method->consumer_tag);
   </action>
@@ -50,6 +73,10 @@
         options;                        //  Encoded Direct Mode options
     </local>
     //
+    if (amq_client_config_sequence_set (amq_client_config)) {
+        amq_content_basic_set_timestamp (content, apr_time_now ());
+        amq_content_basic_set_sender_id (content, self->connection->id);
+    }
     if (amq_client_config_chrono_enabled (amq_client_config)
     &&  amq_client_config_chrono_density (amq_client_config) > randomof (1000))
         amq_content_basic_chrono_set (content);

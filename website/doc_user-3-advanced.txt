@@ -727,7 +727,7 @@ To enable and configure the Chronometer you must set configuration options in th
 : **/config/chrono/enabled** : Specifies whether chrono pingbacks are enabled or not. If not, then any any chrono information in contents will be ignored. By default chrono pingbacks are disabled. Default value is 0.
 : **/config/chrono/floor** : Specifies the floor for pingbacks, in milliseconds. Only pingbacks that show an end-to-end latency greater or equal to the floor will be reported. If you set this to zero, all pingbacks will be reported. Default value is 1.
 : **/config/chrono/density** : Specifies the sampling density, as a permille. Valid values are 1 to 1000. By default 1/1000th of messages will be sampled. The sampling is randomized if the density is less than 1000 permille. Default value is 1.
-: **/config/chrono/batch** : Specifies the batching size for chrono pingback messages.  If you change the floor, density, or batch size, test carefully to ensure you do not  create too much chatter due to many small pingbacks.  A single pingback is about 15 bytes.
+: **/config/chrono/batch** : Specifies the batching size in bytes for chrono pingback messages.  If you change the floor, density, or batch size, test carefully to ensure you do not create too much chatter due to many small pingbacks.  A single pingback is about 15 bytes.  The default batch size is 150 bytes.
 
 You should set the density so that the Chronometer measures about 10 messages per second.  This will detect spikes of a fraction of a second without creating excessive chatter.  The default settings are appropriate for high volume scenarios of 10k messages per second and upwards.
 
@@ -743,7 +743,7 @@ The Chronometer publishes pingbacks to the amq.status exchange with the routing 
 
 [[code]]
 <?xml?>
-<pal script = "amq_pal_gen" >
+<pal script = "amq_pal_gen">
     <session>
         <queue_declare exclusive = "1" />
         <queue_bind exchange = "amq.status" routing_key = "chrono" />

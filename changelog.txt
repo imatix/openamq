@@ -102,6 +102,18 @@ TODO
     - redesign queue->consumer->channel using portals
     - also for exchange->binding->queue?
 
+2009-03-05
+
+* changed: backported small fixes to Direct Mode thread management from trunk to 1.3 (asl_client_session.gsl).
+* added: Boom3 BOOM_CORES=n option to parallelize compile & link on multicore Unix boxes
+
+2009-03-04
+
+* added: new WireAPI connection property "connection->id" holds unique connection ID string assigned by server
+* added: WireAPI option /config/sequence/set that sets Sender-Id and Timestamp on published messages
+* added: WireAPI option /config/sequence/check that verifies Sender-Id and Timestamp on received messages
+* changed: internal hash tables initial size increased from 255 to 4096 to reduce latency spikes on hash table rebuilds
+
 2009-02-20
 
 * fixed: build on Windows failed on older MSVC which did not correctly define InputDir macro

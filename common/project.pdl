@@ -49,6 +49,8 @@
 <file name = "amq_pal_preproc.gsl"       class = "generated resource" />
 
 <!-- Shared classes & resources -->
+<file name = "amq_sequence.icl"          class = "icl public class"  >Sequence checker</file>
+<file name = "amq_sequence_table.icl"    class = "icl public cont"   >Sequence checker hash table</file>
 <file name = "amq_constants.icl"         class = "icl public data"   generated = "1"
                                                                      >Constants class</file>
 <file name = "amq_content_basic.icl"     class = "icl public cont"   >Basic content class</file>
