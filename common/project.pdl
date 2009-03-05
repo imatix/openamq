@@ -18,7 +18,7 @@
 
 <pdl
     name      = "OpenAMQ Common"
-    version   = "1.3c5"
+    version   = "1.4b0"
     workflow  = "standard.pwl"
     library   = "libamq_common"
     copyright = "Copyright (c) 2007-2009 iMatix Corporation"
@@ -36,6 +36,9 @@
 <file name = "amq_queue.asl"             class = "public resource"   >Queue management</file>
 <file name = "amq_basic.asl"             class = "public resource"   >Basic content</file>
 
+<!-- OpenAMQ extensions -->
+<file name = "amq_restms.asl"            class = "public resource"   >RestMS access</file>
+
 <!-- PAL/AMQ code generator -->
 <file name = "amq_pal.xnf"               class = "generated" />
 <file name = "amq_pal_stdc.gsl"          class = "generated resource" />
@@ -46,6 +49,8 @@
 <file name = "amq_pal_preproc.gsl"       class = "generated resource" />
 
 <!-- Shared classes & resources -->
+<file name = "amq_sequence.icl"          class = "icl public class"  >Sequence checker</file>
+<file name = "amq_sequence_table.icl"    class = "icl public cont"   >Sequence checker hash table</file>
 <file name = "amq_constants.icl"         class = "icl public data"   generated = "1"
                                                                      >Constants class</file>
 <file name = "amq_content_basic.icl"     class = "icl public cont"   >Basic content class</file>

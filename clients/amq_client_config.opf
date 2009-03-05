@@ -105,7 +105,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "on overflow" type = "icl_shortstr_t" default = "trim">
+    <property name = "on overflow" type = "char *" default = "trim">
     Sets action for high-water overflow
     <doc>
     Specifies how the WireAPI stack should handle an overflow condition, as
@@ -113,6 +113,28 @@ $\(selftype)
     allowed actions are: 'warn' - issue a message to the console, 'trim' -
     discard old messages to make space for new ones, 'drop' - drop new incoming
     messages, and 'kill' - assert an error and kill the application.
+    </doc>
+    </property>
+</path>
+
+<path name = "sequence">
+    <property name = "set" type = "int" default = "0" prefix = "sequence">
+    Sequence messages?
+    <doc>
+    Specifies whether messages are automatically sequenced or not.  If set,
+    all published messages are stamped with Sender-Id equal to the connection
+    Id, and Timestamp equal to the current date and time in the Unix 64-bit
+    time format (microseconds since epoch).
+    </doc>
+    </property>
+
+    <property name = "check" type = "int" default = "0" prefix = "sequence">
+    Check message sequencing?
+    <doc>
+    Specifies whether message sequencing is checked or not.  If set, all
+    received messages are checked with respect to the sending connection in
+    Sender-Id and Timestamp.  Out-of-sequence messages are reported to the
+    console output.
     </doc>
     </property>
 </path>
