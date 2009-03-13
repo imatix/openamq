@@ -193,7 +193,7 @@ static long int
     }
     self->hash = ipr_hash_new (table, self->path, self);
     if (self->hash) {
-        self->type      = zyre_resource_type_value (type);
+        self->type      = self_type_value (type);
         self->parent    = parent;
         self->children  = ipr_looseref_list_new ();
         self->modified  = apr_time_now ();
@@ -235,13 +235,29 @@ static long int
     Calculates an ETag for the resource and returns this as a fresh
     string, that the caller should free when finished.  The ETag will be
     different for each version of the resource, i.e. it includes the
-    resource's modified value.
+    resource's modified time and MIME type and the Accept content
+    type.
     </doc>
     <argument name = "self" type = "$(selftype) *" />
+    <argument name = "accept" type = "char *" />
     <declare name = "etag" type = "char *" default = "NULL">ETag to generate</declare>
+    <local>
+    int
+        mime_type;                      //  Encode content type into ETag
+    </local>
     //
-    etag = ipr_str_format ("%llx-%llx",
-        (long long unsigned int) self->modified, self->hash->table_index);
+    if (ipr_str_prefixed (accept, "application/restms+json"))
+        mime_type = 1;
+    else
+    if (ipr_str_prefixed (accept, "application/restms+xml"))
+        mime_type = 2;
+    else
+        mime_type = 3;
+
+    etag = ipr_str_format ("%llx-%llx-%d",
+        (long long unsigned int) self->modified,
+        (long long unsigned int) self->hash->table_index,
+        mime_type);
 </method>
 
 <method name = "modified" template = "function">
@@ -264,7 +280,7 @@ static long int
     if_modified = ipr_time_mime_decode (
         http_request_get_header (request, "if-modified-since")) / 1000000;
 
-    etag = self_etag (self);
+    etag = self_etag (self, http_request_get_header (request, "accept"));
     if (streq (etag, http_request_get_header (request, "if-none-match"))
     || (if_modified && (self->modified / 1000000) == if_modified))
         rc = FALSE;                     //  Not modified
@@ -292,7 +308,7 @@ static long int
     if_unmodified = ipr_time_mime_decode (
         http_request_get_header (request, "if-unmodified-since")) / 1000000;
 
-    etag = self_etag (self);
+    etag = self_etag (self, http_request_get_header (request, "accept"));
     if (streq (etag, http_request_get_header (request, "if-match"))
     || (if_unmodified && (self->modified / 1000000) == if_unmodified))
         rc = TRUE;                      //  Not modified
@@ -388,7 +404,7 @@ static long int
         zyre_resource_t
             *resource = (zyre_resource_t *) looseref->object;
         if (!resource->private)
-            zyre_resource_request_report (resource, context, *p_tree);
+            self_request_report (resource, context, *p_tree);
         looseref = ipr_looseref_list_next (&looseref);
     }
     ipr_tree_shut (*p_tree);
@@ -420,7 +436,7 @@ static long int
 
     //  Set Last-Modified and ETag
     ipr_time_mime (self->modified, mime_date);
-    etag = zyre_resource_etag (self);
+    etag = self_etag (self, accept);
     http_response_set_header (context->response, "last-modified", mime_date);
     http_response_set_header (context->response, "etag", etag);
     icl_mem_free (etag);

@@ -1,0 +1,14 @@
+Zyre change log
+
+2009-03-13
+
+* changed: ETag calculation and now includes Content-Type
+
+2009-02-20
+
+* fixed: eliminate 'client connection timed-out' messages (http://www.xitami.com/issue:3)
+* fixed: crash on unrecognized HTTP methods (http://www.xitami.com/issue:1)
+
+2009-02-06
+
+* fixed: Zyre crashed if pipe was still open on timed-out client.
