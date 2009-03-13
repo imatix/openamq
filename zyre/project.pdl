@@ -63,12 +63,6 @@
 <file name = "zyre_static.rc"          class = "ipr rc file"       >Static resources</file>
 <file name = "zyre_base.cfg"           class = "private resource"  >Base config file</file>
 
-<!-- RestMS specifications and interfaces -->
-<file name = "restms.txt"              class = "documentation"     >RestMS specifications</file>
-<file name = "restms_quick.txt"        class = "documentation"     >RestMS quick reference</file>
-<file name = "restms_test.pl"          class = "private resource"  >Zyre test scenarios</file>
-<file name = "RestMS.pm"               class = "public resource"   >RestMS class, Perl</file>
-
 <!-- Web server infrastructure -->
 <directory name = "webpages">
     <file name = "http_base.css"       class = "public resource"   >Base CSS style sheet</file>
