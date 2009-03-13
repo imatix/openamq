@@ -164,7 +164,6 @@ This class implements the RestMS feed object.
         ipr_tree_t
             *tree;
 
-        //  We do not use the Slug: header for contents
         //  Create a new content resource and attach to the feed resource
         content = zyre_content__zyre_resource_new (NULL, portal, table, "content", "");
         zyre_restms__zyre_resource_bind ((zyre_restms_t *) (portal->client_object), content);

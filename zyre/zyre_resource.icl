@@ -148,7 +148,7 @@ static long int
     uint
         type;                           //  Resource type
     icl_shortstr_t
-        name,                           //  Resource slug or hash
+        name,                           //  Resource name or hash
         path;                           //  Resource path
     Bool
         private;                        //  Not discoverable
@@ -171,13 +171,13 @@ static long int
     <argument name = "parent" type = "zyre_resource_t *">Parent resource, or NULL</argument>
     <argument name = "table" type = "ipr_hash_table_t *">Hash by path</argument>
     <argument name = "type" type = "char *">Resource type name</argument>
-    <argument name = "slug" type = "char *">Resource slug, or empty</argument>
+    <argument name = "name" type = "char *">Resource name, or empty</argument>
     //
-    if (*slug) {
-        //  If we have a slug, clean it up and use it as name
+    if (*name) {
+        //  If we have a name, clean it up
         char
             *name_ptr;
-        icl_shortstr_cpy (self->name, slug);
+        icl_shortstr_cpy (self->name, name);
         for (name_ptr = self->name; *name_ptr; name_ptr++)
             if (!isalnum (*name_ptr) && *name_ptr != '.')
                 *name_ptr = '-';

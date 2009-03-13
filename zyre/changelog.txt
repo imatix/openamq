@@ -2,7 +2,8 @@ Zyre change log
 
 2009-03-13
 
-* changed: ETag calculation and now includes Content-Type
+* changed: Slug: header replaced by 'name' attribute in document (RestMS spec change)
+* changed: ETag calculation and now includes Content-Type (RestMS spec change)
 
 2009-02-20
 

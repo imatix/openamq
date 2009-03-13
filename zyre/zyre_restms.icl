@@ -320,21 +320,21 @@
         *resource = NULL;
     </local>
     //
-    //  Clean up the slug and build resource path
+    //  Clean up the name and build resource path
     type = ipr_xml_name (context->xml_item);
 
     //  We create the resource and the server object instance
     //  The portal that called us is the parent of this new resource
     if (streq (type, "feed"))
         resource = zyre_feed__zyre_resource_new (NULL, portal, self->resources, type,
-            http_request_get_header (context->request, "slug"));
+            ipr_xml_attr_get (context->xml_item, "name", ""));
     else
     if (streq (type, "pipe"))
-        //  For pipes we ignore the Slug header
+        //  For pipes we ignore the name attribute
         resource = zyre_pipe__zyre_resource_new (NULL, portal, self->resources, type, "");
     else
     if (streq (type, "join"))
-        //  For joins we ignore the Slug header
+        //  For joins we ignore the name attribute
         resource = zyre_join__zyre_resource_new (NULL, portal, self->resources, type, "");
     else {
         icl_console_print ("E: not implemented: %s", type);
