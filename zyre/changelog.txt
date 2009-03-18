@@ -1,9 +1,14 @@
 Zyre change log
 
+2009-03-18
+
+* fixed: content-type on new resources is now same as that of POST request
+
 2009-03-13
 
 * changed: Slug: header replaced by 'name' attribute in document (RestMS spec change)
 * changed: ETag calculation and now includes Content-Type (RestMS spec change)
+* changed: error responses now sent as text/plain instead of text/html (RestMS spec change)
 
 2009-02-20
 

@@ -66,7 +66,7 @@ This class implements the RestMS content object.
 
 <method name = "put">
     http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
-        "Not allowed to modify contents");
+        "may not modify contents");
 </method>
 
 <method name = "delete">

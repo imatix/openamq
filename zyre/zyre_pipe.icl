@@ -176,18 +176,18 @@ This class implements the RestMS pipe object.
                 else
                 if (streq (resource->name, "default"))
                     http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-                        "Not allowed to create joins on default feed");
+                        "may not create joins on default feed");
                 else
                     //  Ok, join is valid and new, so create it
                     zyre_resource_response_child_add (portal, context);
             }
             else
                 http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-                    "Specified feed '%s' does not exist", feed_uri);
+                    "feed '%s' does not exist", feed_uri);
         }
         else
             http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-                "Can only create new join resources here");
+                "may only create new join resources here");
     }
 </method>
 
@@ -246,7 +246,7 @@ This class implements the RestMS pipe object.
         rc = TRUE;
     else
         http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-            "Invalid pipe type '%s' specified", type);
+            "unknown pipe type '%s' specified", type);
 </method>
 
 <method name = "selftest" />

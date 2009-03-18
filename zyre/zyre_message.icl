@@ -138,7 +138,7 @@ This class implements the RestMS message object.
 
 <method name = "put">
     http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
-        "Not allowed to modify messages");
+        "may not modify messages");
 </method>
 
 <method name = "delete">

@@ -235,21 +235,20 @@ static long int
     Calculates an ETag for the resource and returns this as a fresh
     string, that the caller should free when finished.  The ETag will be
     different for each version of the resource, i.e. it includes the
-    resource's modified time and MIME type and the Accept content
-    type.
+    resource's modified time and MIME type and the content type.
     </doc>
     <argument name = "self" type = "$(selftype) *" />
-    <argument name = "accept" type = "char *" />
+    <argument name = "type" type = "char *" />
     <declare name = "etag" type = "char *" default = "NULL">ETag to generate</declare>
     <local>
     int
         mime_type;                      //  Encode content type into ETag
     </local>
     //
-    if (ipr_str_prefixed (accept, "application/restms+json"))
+    if (ipr_str_prefixed (type, "application/restms+json"))
         mime_type = 1;
     else
-    if (ipr_str_prefixed (accept, "application/restms+xml"))
+    if (ipr_str_prefixed (type, "application/restms+xml"))
         mime_type = 2;
     else
         mime_type = 3;
@@ -390,10 +389,6 @@ static long int
     ipr_bucket_t
         *bucket;                        //  Serialized data as bucket
     icl_shortstr_t
-        content_type;
-    char
-        *accept;
-    icl_shortstr_t
         mime_date;
     char
         *etag;
@@ -410,33 +405,27 @@ static long int
     ipr_tree_shut (*p_tree);
     ipr_tree_leaf (*p_tree, "xmlns", "http://www.imatix.com/schema/restms");
 
-    //  Format content and set Content-Type
-    accept = http_request_get_header (context->request, "accept");
-    if (ipr_str_prefixed (accept, "application/restms+json")) {
+    if (ipr_str_prefixed (context->response->content_type, "application/restms+json"))
         longstr = ipr_tree_save_json (*p_tree);
-        icl_shortstr_cpy (content_type, "application/restms+json");
-    }
     else
-    if (ipr_str_prefixed (accept, "application/restms+xml")) {
+    if (ipr_str_prefixed (context->response->content_type, "application/restms+xml"))
         longstr = ipr_tree_save_xml (*p_tree);
-        icl_shortstr_cpy (content_type, "application/restms+xml");
-    }
     else {
+        icl_shortstr_cpy (context->response->content_type, "text/xml");
         longstr = ipr_tree_save_xml (*p_tree);
-        icl_shortstr_cpy (content_type, "text/xml");
     }
     ipr_tree_destroy (p_tree);
 
     //  Save string in bucket and pass as response bucket
     bucket = ipr_bucket_new (longstr->cur_size);
     ipr_bucket_fill (bucket, longstr->data, longstr->cur_size);
-    http_response_set_from_bucket (context->response, bucket, content_type);
+    http_response_set_from_bucket (context->response, bucket, NULL);
     ipr_bucket_unlink (&bucket);
     icl_longstr_destroy (&longstr);
 
     //  Set Last-Modified and ETag
     ipr_time_mime (self->modified, mime_date);
-    etag = self_etag (self, accept);
+    etag = self_etag (self, context->response->content_type);
     http_response_set_header (context->response, "last-modified", mime_date);
     http_response_set_header (context->response, "etag", etag);
     icl_mem_free (etag);

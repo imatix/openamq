@@ -70,19 +70,19 @@ This class implements the RestMS domain object.
 <method name = "put">
     if (self->dynamic)
         http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
-            "Still not allowed to modify this domain");
+            "may not modify this domain");
     else
         http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
-            "Not allowed to modify this domain");
+            "may not modify this domain");
 </method>
 
 <method name = "delete">
     if (self->dynamic || context == NULL)
         http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
-            "Still not allowed to delete this domain");
+            "still may not delete this domain");
     else
         http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
-            "Not allowed to delete this domain");
+            "may not delete this domain");
 </method>
 
 <method name = "post">
@@ -98,7 +98,7 @@ This class implements the RestMS domain object.
         }
         else
             http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-                "Can only create new pipe or feed resources here");
+                "may only create new pipe or feed resources here");
     }
 </method>
 

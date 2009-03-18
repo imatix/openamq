@@ -117,6 +117,9 @@
         resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
         if (resource) {
             if (zyre_resource_modified (resource, context->request)) {
+                //  Use the Accept content type for our response
+                http_response_set_content_type (context->response,
+                    http_request_get_header (context->request, "accept"));
                 zyre_resource_request_get (resource, context);
                 if (!context->replied)
                     http_driver_context_reply_success (context, HTTP_REPLY_OK);
@@ -126,7 +129,7 @@
         }
         else
             http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
-                "The URI does not match a known resource");
+                "URI does not match a known resource");
     }
     </action>
 </method>
@@ -142,7 +145,7 @@
         if (resource) {
             if (zyre_resource_unmodified (resource, context->request))
                 http_driver_context_reply_error (context, HTTP_REPLY_PRECONDITION,
-                    "The resource was modified by another application");
+                    "resource was modified by another application");
             else {
                 zyre_resource_request_put (resource, context);
                 if (!context->replied)
@@ -151,7 +154,7 @@
         }
         else
             http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
-                "The URI does not match a known resource");
+                "URI does not match a known resource");
     }
     </action>
 </method>
@@ -167,7 +170,7 @@
         if (resource) {
             if (zyre_resource_unmodified (resource, context->request))
                 http_driver_context_reply_error (context, HTTP_REPLY_PRECONDITION,
-                    "The resource was modified by another application");
+                    "resource was modified by another application");
             else {
                 //  The resource is the portal so we can't destroy it from
                 //  within a request, or the request ends up trying to use a
@@ -205,7 +208,7 @@
         }
         else
             http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
-                "The URI does not match a known resource");
+                "URI does not match a known resource");
     }
     </action>
 </method>
@@ -213,21 +216,21 @@
 <method name = "head">
     <action>
     http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-        "The HEAD method is not allowed on this resource");
+        "HEAD method is not allowed on this resource");
     </action>
 </method>
 
 <method name = "move">
     <action>
     http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-        "The MOVE method is not allowed on this resource");
+        "MOVE method is not allowed on this resource");
     </action>
 </method>
 
 <method name = "copy">
     <action>
     http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-        "The COPY method is not allowed on this resource");
+        "COPY method is not allowed on this resource");
     </action>
 </method>
 
@@ -366,6 +369,10 @@
         //  Set Location: header to new or existing resource
         http_response_set_header (context->response, "location",
             "%s%s%s", context->response->root_uri, RESTMS_ROOT, resource->path);
+
+        //  Use the Content-Type of the posted document for our response
+        http_response_set_content_type (context->response,
+            http_request_get_header (context->request, "content-type"));
 
         //  Get resource description for client
         zyre_resource_request_get (resource, context);

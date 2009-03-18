@@ -110,7 +110,7 @@ detaches from its pipe and feed.
 
 <method name = "put">
     http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-        "The PUT method is not allowed on this resource");
+        "PUT method is not allowed on this resource");
 </method>
 
 <method name = "delete">
@@ -133,12 +133,12 @@ detaches from its pipe and feed.
     }
     else
         http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
-            "Not allowed to delete this join");
+            "may not delete this join");
 </method>
 
 <method name = "post">
     http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-        "The POST method is not allowed on this resource");
+        "POST method is not allowed on this resource");
 </method>
 
 <method name = "report">

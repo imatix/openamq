@@ -107,7 +107,7 @@ This class implements the RestMS feed object.
     //
     if (!self->dynamic)
         http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
-            "Not allowed to modify this feed");
+            "may not modify this feed");
     else
     if (context->request->content_length == 0)
         http_driver_context_reply_success (context, HTTP_REPLY_NOCONTENT);
@@ -141,7 +141,7 @@ This class implements the RestMS feed object.
     }
     else
         http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
-            "Not allowed to delete this feed");
+            "may not delete this feed");
 </method>
 
 <method name = "post">
@@ -253,7 +253,7 @@ This class implements the RestMS feed object.
         rc = TRUE;
     else
         http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-            "Invalid feed type '%s' specified", type);
+            "unknown feed type '%s' specified", type);
 </method>
 
 <private name = "header">
@@ -313,7 +313,7 @@ s_send_message (
             }
             else
                 http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
-                    "Content resource does not exist");
+                    "content resource does not exist");
         }
         else {
             //  Set content from embedded element value
