@@ -87,18 +87,23 @@ This class implements the RestMS domain object.
 
 <method name = "post">
     if (zyre_restms_parse_document (context, NULL) == 0) {
-        if (streq (ipr_xml_name (context->xml_item), "pipe")) {
-            if (zyre_pipe_spec_valid (context))
-                zyre_resource_response_child_add (portal, context);
-        }
-        else
-        if (streq (ipr_xml_name (context->xml_item), "feed")) {
-            if (zyre_feed_spec_valid (context))
-                zyre_resource_response_child_add (portal, context);
+        if (context->xml_item) {
+            if (streq (ipr_xml_name (context->xml_item), "pipe")) {
+                if (zyre_pipe_spec_valid (context))
+                    zyre_resource_response_child_add (portal, context);
+            }
+            else
+            if (streq (ipr_xml_name (context->xml_item), "feed")) {
+                if (zyre_feed_spec_valid (context))
+                    zyre_resource_response_child_add (portal, context);
+            }
+            else
+                http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+                    "may only create new pipe or feed resources here");
         }
         else
             http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
-                "may only create new pipe or feed resources here");
+                "XML must specified resource type");
     }
 </method>
 
