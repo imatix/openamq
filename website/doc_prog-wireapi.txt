@@ -306,13 +306,23 @@ amq_client_session_destroy (&session);
 
 +++ amq_client_session_wait
 
-Waits for content to arrive from the server. You must call this method in order to get content. Returns zero when it ends normally, either because content arrived or because the timeout expired, and -1 if there was an error:
+Waits for content to arrive from the server. You must call this method in order to get content. Returns zero when it ends normally, either because content arrived or because the timeout expired, and -1 if there was an error.  The timeout is in milliseconds.  To wait forever, use a timeout of zero:
 
 [[code]]
-if (amq_client_session_wait (session, timeout))
-    //  session died
-else
+//  Wait forever until a message arrives
+amq_client_session_wait (session, 0);
+
+//  Wait for up to five seconds
+amq_client_session_wait (session, 5000);
+
+//  Wait for one second, exit if there was an error
+if (amq_client_session_wait (session, timeout)) {
+    icl_console_print ("E: error, aborted");
+    exit (1);
+}
+else {
     //  zero or more contents arrived
+}
 [[/code]]
 
 +++ Session properties
@@ -597,7 +607,8 @@ The first method returns the oldest content waiting to be processed, the second 
 amq_content_basic_t
     *content;
 
-amq_client_session_wait (session);
+//  Wait up to 1 second
+amq_client_session_wait (session, 1000);
 if (amq_client_session_basic_arrived_count (session)) {
     icl_console_print ("I: have messages to process...");
     content = amq_client_session_basic_arrived (session);
