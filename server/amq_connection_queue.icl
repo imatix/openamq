@@ -55,9 +55,6 @@ consumer object.
           <get>icl_shortstr_fmt (field_value, "%d", queue->enabled);</get>
           <put>queue->enabled = atoi (field_value);</put>
         </field>
-        <field name = "durable" label = "Durable queue?" type = "bool">
-          <get>icl_shortstr_fmt (field_value, "%d", queue->durable);</get>
-        </field>
         <field name = "exclusive" label = "Exclusive to one client?" type = "bool">
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", queue->exclusive);</get>

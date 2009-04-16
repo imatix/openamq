@@ -109,11 +109,11 @@ $\(selftype)
 </path>
 
 <path name = "logging">
-    <property name = "log path" type = "char *" default = "logs">
+    <property name = "log_path" type = "char *" default = "/var/log/openamq">
     Active log file directory
     <doc>
-    Specifies the directory path into which active log files are
-    placed.
+    Specifies the directory into which active log files are placed.  To get
+    the old behaviour, set this option to 'logs'.
     </doc>
     </property>
 
@@ -123,15 +123,6 @@ $\(selftype)
     Specifies whether or not the server should keep logs.  If zero,
     the server will not keep logs.  If 1, it will keep an alert log,
     a daily log, and a debug log as specified.
-    </doc>
-    </property>
-
-    <property name = "archive path" type = "char *" default = "archive">
-    Archive log file directory
-    <doc>
-    Specifies the directory path into which archived log files are
-    placed.  This can be the same as the active path; archived log
-    files are renamed to avoid conflict with active log files.
     </doc>
     </property>
 
