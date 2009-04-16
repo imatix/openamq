@@ -56,9 +56,6 @@ class.  This is a lock-free asynchronous class.
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", amq_queue_message_count (self));</get>
         </field>
-        <field name = "durable" label = "Durable queue?" type = "bool">
-          <get>icl_shortstr_fmt (field_value, "%d", self->durable);</get>
-        </field>
         <field name = "exclusive" label = "Exclusive queue?" type = "bool">
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", self->exclusive);</get>
@@ -152,7 +149,6 @@ class.  This is a lock-free asynchronous class.
         name;                           //  Queue name
     Bool
         enabled,                        //  Queue is enabled?
-        durable,                        //  Is queue durable?
         exclusive,                      //  Is queue exclusive?
         auto_delete,                    //  Auto-delete unused queue?
         locked;                         //  Queue for exclusive consumer?
@@ -191,7 +187,6 @@ class.  This is a lock-free asynchronous class.
 <method name = "new">
     <argument name = "connection"  type = "amq_server_connection_t *">Owner connection</argument>
     <argument name = "name"        type = "char *">Queue name</argument>
-    <argument name = "durable"     type = "Bool">Is queue durable?</argument>
     <argument name = "exclusive"   type = "Bool">Is queue exclusive?</argument>
     <argument name = "auto delete" type = "Bool">Auto-delete unused queue?</argument>
     <argument name = "arguments"   type = "icl_longstr_t*">Queue arguments</argument>
@@ -209,7 +204,6 @@ class.  This is a lock-free asynchronous class.
     //
     self->connection  = amq_server_connection_link (connection);
     self->enabled     = TRUE;
-    self->durable     = durable;
     self->exclusive   = exclusive;
     self->auto_delete = auto_delete;
     self->queue_basic = amq_queue_basic_new (self);

@@ -143,12 +143,15 @@
         if (method->passive)
             amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined",
                 AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_DECLARE);
+        else
+        if (method->durable)
+            amq_server_channel_error (channel, ASL_NOT_IMPLEMENTED, "Durable queues not supported",
+                AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_DECLARE);
         else {
             //  The queue->connection specifies owner connection, for exclusive queues
             queue = amq_queue_new (
                 method->exclusive? connection: NULL,
                 method->queue,
-                method->durable,
                 method->exclusive,
                 //  Setting the 'exclusive' flag always implies 'auto-delete'
                 method->exclusive? TRUE: method->auto_delete,
