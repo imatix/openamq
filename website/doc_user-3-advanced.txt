@@ -154,7 +154,16 @@ Then, running the server:
 
 +++ General description
 
-The OpenAMQ server keeps three levels of logs in the *logs* subdirectory:
+amq_server holds its logs in /var/log/openamq.  To put them somewhere else, set the 'log_path' configuration option, or use the --log_path command-line option:
+
+[[code]]
+<!-- Keep logs in ./logs directory -->
+<logging
+    log_path = "./logs"
+/>
+[[/code]]
+
+The OpenAMQ server keeps three levels of logs in the /var/log/openamq directory:
 
 # Alert logs, which contain all errors and alerts.
 # Daily logs, which contain normal activity data, as well as all the contents of the alert logs.

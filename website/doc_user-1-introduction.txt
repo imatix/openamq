@@ -36,13 +36,11 @@ iMatix developed AMQP in 2004-06 together with JPMorganChase in order to commodi
 # A standard semantic model for broker-based business messaging, called AMQ.
 # A standard wire-level protocol to connect the pieces together.
 
-OpenAMQ, the iMatix AMQP software, adds some further standard pieces:
+OpenAMQ, the iMatix AMQP software, adds further pieces:
 
 # A standard API for applications, called WireAPI.
 # A standard API for remote administration, called CML.
 # A standard model for joining brokers together in federation.
-
-These have not yet been adopted by the AMQP working group (being deceptively simple and easy to implement) but enjoy some support from other AMQP vendors.
 
 AMQP has useful features that set it aside from, e.g. JMS or Stomp or XMPP:
 

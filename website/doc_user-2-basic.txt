@@ -212,6 +212,15 @@ After setting IBASE, your PATH, and BOOM_MODEL, build the software using this co
 $ sh build.sh
 [[/code]]
 
+++++ Create the log directory
+
+By default OpenAMQ writes its logs to /var/log/openamq.  Make sure /var/log/openamq is writeable:
+
+[[code]]
+sudo mkdir /var/log/openamq
+sudo chmod a+rw /var/log/openamq
+[[/code]]
+
 ++++ Test the server
 
 After a successful build, start the server as follows:
