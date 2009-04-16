@@ -188,6 +188,10 @@
         if (method->passive)
             amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined",
                 AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_DECLARE);
+        else
+        if (method->durable)
+            amq_server_channel_error (channel, ASL_NOT_IMPLEMENTED, "Durable queues not supported",
+                AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_DECLARE);
         else {
             //  The queue->connection specifies owner connection, for exclusive queues
             queue = amq_queue_new (
@@ -298,7 +302,7 @@
   <action name = "unbind">
     <local>
     amq_exchange_t
-        *exchange;                      //  Exchange to unbind from 
+        *exchange;                      //  Exchange to unbind from
     amq_queue_t
         *queue;
     </local>
@@ -402,7 +406,7 @@
         amq_vhost_unlink (&vhost);
     }
     else
-        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready", 
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready",
             AMQ_SERVER_QUEUE, AMQ_SERVER_QUEUE_PURGE);
     </footer>
     //
@@ -505,16 +509,16 @@
                 method->routing_key,
                 connection->id);
             if (exchange->federation) {
-                icl_shortstr_fmt (sender_id, "%s|%d", connection->key, 
+                icl_shortstr_fmt (sender_id, "%s|%d", connection->key,
                     channel->number);
                 amq_content_basic_set_sender_id (content, sender_id);
             }
             amq_exchange_publish (
-                exchange, 
-                channel, 
-                content, 
-                method->mandatory, 
-                method->immediate, 
+                exchange,
+                channel,
+                content,
+                method->mandatory,
+                method->immediate,
                 connection->group);
         }
         else
@@ -597,8 +601,8 @@
         amq_lease_unlink (&lease);
     }
     else
-        amq_server_channel_error (channel, ASL_NOT_FOUND, 
-            "No such sink", 
+        amq_server_channel_error (channel, ASL_NOT_FOUND,
+            "No such sink",
             AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_PUT);
   </action>
   <action name = "get">
@@ -628,8 +632,8 @@
         amq_lease_unlink (&lease);
     }
     else
-        amq_server_channel_error (channel, ASL_NOT_FOUND, 
-            "No such feed", 
+        amq_server_channel_error (channel, ASL_NOT_FOUND,
+            "No such feed",
             AMQ_SERVER_DIRECT, AMQ_SERVER_DIRECT_GET);
   </action>
 </class>
