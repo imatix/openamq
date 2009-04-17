@@ -76,7 +76,6 @@
                     queue = amq_queue_new (
                         connection,     //  Server connection
                         pipe_name,      //  Queue name
-                        FALSE,          //  Durable queue?
                         TRUE,           //  Exclusive queue?
                         TRUE,           //  Auto-delete?
                         NULL);          //  Arguments to declaration
@@ -170,7 +169,12 @@
             if (ipr_str_prefixed (feed_name, "amq."))
                 error_text = "feed_create: new feed name may not start with amq.";
             else {
-                queue = amq_queue_new (NULL, feed_name, FALSE, FALSE, auto_delete, NULL);
+                queue = amq_queue_new (
+                    NULL,           //  Server connection
+                    feed_name,      //  Queue name
+                    FALSE,          //  Exclusive queue?
+                    auto_delete,    //  Auto-delete?
+                    NULL);          //  Arguments to declaration
                 if (queue) {
                     //  Bind to amq.direct
                     amq_exchange_t
