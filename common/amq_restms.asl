@@ -3,7 +3,7 @@
     Copyright (c) 1996-2009 iMatix Corporation
 
     This code is licensed under both the GPLv3 and the IETF licence, in accordance
-    with the terms of the wiki.amqp.org Intellectual Property Policy.
+    with the terms of the http://www.restms.org Intellectual Property Policy.
  -->
 <class
     name    = "restms"
