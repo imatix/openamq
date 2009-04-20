@@ -112,10 +112,16 @@
     zyre_resource_t
         *resource;
 
+    if (zyre_config_restms_debug (zyre_config))
+        icl_console_print ("R: GET resource '%s'", context->request->pathinfo);
+
     if (zyre_restms_check_path (context) == 0) {
         //  Pathinfo is URI key into resource table
         resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
         if (resource) {
+            if (zyre_config_restms_debug (zyre_config))
+                icl_console_print ("R: - resource is a %s",
+                    zyre_resource_type_name (resource->type));
             if (zyre_resource_modified (resource, context->request)) {
                 //  Use the Accept content type for our response
                 http_response_set_content_type (context->response,
@@ -131,6 +137,14 @@
             http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
                 "URI does not match a known resource");
     }
+    if (zyre_config_restms_debug (zyre_config) && !context->pending) {
+        if (context && context->response)
+            icl_console_print ("R: - reply %d %s",
+                context->response->reply_code, context->response->reply_text);
+        else
+            icl_console_print ("R: - ERROR: context=%pp c->response=%pp",
+                context, context->response);
+    }
     </action>
 </method>
 
@@ -139,10 +153,16 @@
     zyre_resource_t
         *resource;
 
+    if (zyre_config_restms_debug (zyre_config))
+        icl_console_print ("R: UPDATE resource '%s'", context->request->pathinfo);
+
     if (zyre_restms_check_path (context) == 0) {
         //  Pathinfo is URI key into resource table
         resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
         if (resource) {
+            if (zyre_config_restms_debug (zyre_config))
+                icl_console_print ("R: - resource is a %s",
+                    zyre_resource_type_name (resource->type));
             if (zyre_resource_unmodified (resource, context->request))
                 http_driver_context_reply_error (context, HTTP_REPLY_PRECONDITION,
                     "resource was modified by another application");
@@ -156,6 +176,14 @@
             http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
                 "URI does not match a known resource");
     }
+    if (zyre_config_restms_debug (zyre_config)) {
+        if (context && context->response)
+            icl_console_print ("R: - reply %d %s",
+                context->response->reply_code, context->response->reply_text);
+        else
+            icl_console_print ("R: - ERROR: context=%pp c->response=%pp",
+                context, context->response);
+    }
     </action>
 </method>
 
@@ -164,10 +192,16 @@
     zyre_resource_t
         *resource;
 
+    if (zyre_config_restms_debug (zyre_config))
+        icl_console_print ("R: DELETE resource '%s'", context->request->pathinfo);
+
     if (zyre_restms_check_path (context) == 0) {
         //  Pathinfo is URI key into resource table
         resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
         if (resource) {
+            if (zyre_config_restms_debug (zyre_config))
+                icl_console_print ("R: - resource is a %s",
+                    zyre_resource_type_name (resource->type));
             if (zyre_resource_unmodified (resource, context->request))
                 http_driver_context_reply_error (context, HTTP_REPLY_PRECONDITION,
                     "resource was modified by another application");
@@ -190,6 +224,14 @@
         else                            //  Idempotent delete -> OK
             http_driver_context_reply_success (context, HTTP_REPLY_OK);
     }
+    if (zyre_config_restms_debug (zyre_config)) {
+        if (context && context->response)
+            icl_console_print ("R: - reply %d %s",
+                context->response->reply_code, context->response->reply_text);
+        else
+            icl_console_print ("R: - ERROR: context=%pp c->response=%pp",
+                context, context->response);
+    }
     </action>
 </method>
 
@@ -198,10 +240,16 @@
     zyre_resource_t
         *resource;
 
+    if (zyre_config_restms_debug (zyre_config))
+        icl_console_print ("R: POST to '%s'", context->request->pathinfo);
+
     if (zyre_restms_check_path (context) == 0) {
         //  Pathinfo is URI key into resource table
         resource = ipr_hash_lookup (self->resources, context->request->pathinfo);
         if (resource) {
+            if (zyre_config_restms_debug (zyre_config))
+                icl_console_print ("R: - resource is a %s",
+                    zyre_resource_type_name (resource->type));
             zyre_resource_request_post (resource, context, self->resources, self->backend);
             if (!context->replied)
                 http_driver_context_reply_success (context, HTTP_REPLY_OK);
@@ -210,26 +258,34 @@
             http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
                 "URI does not match a known resource");
     }
+    if (zyre_config_restms_debug (zyre_config)) {
+        if (context && context->response)
+            icl_console_print ("R: - reply %d %s",
+                context->response->reply_code, context->response->reply_text);
+        else
+            icl_console_print ("R: - ERROR: context=%pp c->response=%pp",
+                context, context->response);
+    }
     </action>
 </method>
 
 <method name = "head">
     <action>
-    http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+    http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
         "HEAD method is not allowed on this resource");
     </action>
 </method>
 
 <method name = "move">
     <action>
-    http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+    http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
         "MOVE method is not allowed on this resource");
     </action>
 </method>
 
 <method name = "copy">
     <action>
-    http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+    http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
         "COPY method is not allowed on this resource");
     </action>
 </method>
@@ -270,6 +326,10 @@
         icl_shortstr_fmt (pipe_path, "/resource/%s", pipe_name);
         pipe_res = ipr_hash_lookup (self->resources, pipe_path);
     }
+    if (zyre_config_restms_debug (zyre_config))
+        icl_console_print ("R: - deliver message to pipe '%s' (%d bytes)",
+            pipe_path, (int) ((amq_content_basic_t *) method->content)->body_size);
+
     if (pipe_res) {
         zyre_resource_t
             *message_res,
@@ -279,7 +339,8 @@
         message_res = ((zyre_pipe_t *) (pipe_res->server_object))->asynclet;
 
         //  Create new content resource as child of message
-        content_res = zyre_content__zyre_resource_new (NULL, message_res, self->resources, "content", "");
+        content_res = zyre_content__zyre_resource_new (NULL,
+            message_res, self->resources, "content", "");
         zyre_restms__zyre_resource_bind (self, content_res);
 
         //  We provide the new resources with the AMQP method so they can

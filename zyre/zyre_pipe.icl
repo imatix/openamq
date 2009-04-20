@@ -175,18 +175,18 @@ This class implements the RestMS pipe object.
                 }
                 else
                 if (streq (resource->name, "default"))
-                    http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+                    http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
                         "may not create joins on default feed");
                 else
                     //  Ok, join is valid and new, so create it
                     zyre_resource_response_child_add (portal, context);
             }
             else
-                http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+                http_driver_context_reply_error (context, HTTP_REPLY_NOTFOUND,
                     "feed '%s' does not exist", feed_uri);
         }
         else
-            http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+            http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
                 "may only create new join resources here");
     }
 </method>
@@ -245,7 +245,7 @@ This class implements the RestMS pipe object.
     if (strnull (type) || streq (type, "fifo"))
         rc = TRUE;
     else
-        http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+        http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
             "unknown pipe type '%s' specified", type);
 </method>
 

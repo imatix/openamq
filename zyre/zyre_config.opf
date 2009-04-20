@@ -51,6 +51,17 @@ $\(selftype)
     </property>
 </path>
 
+<path name = "restms" prefix = "restms">
+    <property name = "debug" type = "Bool" default = "0">
+    Debug RestMS activity?
+    <doc>
+    Specifies whether RestMS activity is logged or not.  Use this if you are
+    unsure of what exactly Zyre is doing for the RestMS requests you are
+    sending it.
+    </doc>
+    </property>
+</path>
+
 <path name = "amqp" prefix = "amqp">
     <property name = "autorun" type = "char *" default = "amq_server">
     AMQP server to start

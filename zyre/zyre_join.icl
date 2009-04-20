@@ -109,7 +109,7 @@ detaches from its pipe and feed.
 </method>
 
 <method name = "put">
-    http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+    http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
         "PUT method is not allowed on this resource");
 </method>
 
@@ -137,7 +137,7 @@ detaches from its pipe and feed.
 </method>
 
 <method name = "post">
-    http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+    http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
         "POST method is not allowed on this resource");
 </method>
 

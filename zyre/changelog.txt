@@ -2,6 +2,7 @@ Zyre change log
 
 2009-03-18
 
+* fixed: Zyre aborted on POST to domain with empty content
 * fixed: content-type on new resources is now same as that of POST request
 
 2009-03-13

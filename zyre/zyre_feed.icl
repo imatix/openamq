@@ -174,18 +174,8 @@ This class implements the RestMS feed object.
             "%s%s%s", context->response->root_uri, RESTMS_ROOT, content->path);
         //  Drop our link to it, it's now a child of the feed
         zyre_resource_unlink (&content);
-
-        if (context->request->content)
-            context->response->reply_code = HTTP_REPLY_CREATED;
-        else
-            context->response->reply_code = HTTP_REPLY_NOCONTENT;
-
-        //  Get content description for client
-        tree = ipr_tree_new (RESTMS_ROOT);
-        ipr_tree_open (tree, "content");
-        ipr_tree_leaf (tree, "type", context->request->content_type);
-        ipr_tree_leaf (tree, "length", "%ld", context->request->content_length);
-        zyre_resource_to_document (portal, context, &tree);
+        //  Reply with 201 Created, and no content body
+        http_driver_context_reply_success (context, HTTP_REPLY_CREATED);
     }
 </method>
 
@@ -252,7 +242,7 @@ This class implements the RestMS feed object.
     ||  streq (type, "system"))
         rc = TRUE;
     else
-        http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+        http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
             "unknown feed type '%s' specified", type);
 </method>
 
@@ -321,13 +311,31 @@ s_send_message (
                 *value = ipr_xml_text (element),
                 *type = ipr_xml_attr_get (element, "type", NULL),
                 *encoding = ipr_xml_attr_get (element, "encoding", NULL);
+            size_t
+                value_len = strlen (value);
 
-            amq_content_basic_set_body (content, value, strlen (value), icl_mem_free);
+            if (encoding) {
+                if (streq (encoding, "base64")) {
+                    char
+                        *encoded,
+                        *decoded;
+
+                    //  Trim white space before and after encoded
+                    encoded = ipr_str_crop (ipr_str_skip (value));
+                    //  Decode the base64 value and switch to binary version
+                    value_len = apr_base64_decode_len (encoded);
+                    decoded = icl_mem_alloc (value_len);
+                    apr_base64_decode (decoded, encoded);
+                    icl_mem_free (value);
+                    value = decoded;
+                    value_len--;        //  APR counts size + 1
+                }
+                else
+                    amq_content_basic_set_content_encoding (content, encoding);
+            }
+            amq_content_basic_set_body (content, value, value_len, icl_mem_free);
             if (type)
                 amq_content_basic_set_content_type (content, type);
-            //  We should try to decode if Base64 and send as binary
-            if (encoding)
-                amq_content_basic_set_content_encoding (content, encoding);
         }
         ipr_xml_unlink (&element);
     }
@@ -371,14 +379,18 @@ s_send_message (
     asl_field_list_unlink (&headers_list);
     icl_longstr_destroy (&headers_table);
 
-    //  Calculate the feed and address
-    //  Map the default feed to AMQP's "" exchange
-    if (streq (feed_name, "default"))
-        feed_name = "";
     address = ipr_xml_attr_get (message, "address", "");
+    if (zyre_config_restms_debug (zyre_config))
+        icl_console_print ("R: - publish message to feed '%s@%s' (%d bytes)",
+            address, feed_name, (int) content->body_size);
 
     //  Send it off to the backend
-    zyre_backend_request_address_post (backend, address, feed_name, content);
+    zyre_backend_request_address_post (
+        backend,
+        address,
+        //  Map the default feed to AMQP's "" exchange
+        streq (feed_name, "default")? "": feed_name,
+        content);
 
     //  And drop our reference, we're done here
     amq_content_basic_unlink (&content);

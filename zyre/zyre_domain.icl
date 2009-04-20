@@ -98,7 +98,7 @@ This class implements the RestMS domain object.
                     zyre_resource_response_child_add (portal, context);
             }
             else
-                http_driver_context_reply_error (context, HTTP_REPLY_BADREQUEST,
+                http_driver_context_reply_error (context, HTTP_REPLY_FORBIDDEN,
                     "may only create new pipe or feed resources here");
         }
         else

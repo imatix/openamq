@@ -92,6 +92,8 @@ This class implements the RestMS message object.
         http_driver_context_reply_void (context);
         http_driver_context_unlink (&self->context);
         self->context = http_driver_context_link (context);
+        if (zyre_config_restms_debug (zyre_config))
+            icl_console_print ("R: - starting long poll on asynclet message");
     }
     else
     //  Only respond if we have a valid context
@@ -156,6 +158,8 @@ This class implements the RestMS message object.
         context->response->root_uri, RESTMS_ROOT, portal->path);
     if (self->pending)
         ipr_tree_leaf (tree, "async", "1");
+    if (*self->message_id)
+        ipr_tree_leaf (tree, "message_id", self->message_id);
     ipr_tree_shut (tree);
 </method>
 

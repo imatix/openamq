@@ -182,14 +182,14 @@ static long int
             if (!isalnum (*name_ptr) && *name_ptr != '.')
                 *name_ptr = '-';
         icl_shortstr_fmt (self->path, "/%s/%s", type, self->name);
-        self->private = FALSE;          //  Public resource
+        self->private = FALSE;          //  Discoverable resource
     }
     else {
         //  Else generate a new unique hash as name
         ipr_str_random (self->name, "ZYRE-AAAAAAAA");
         icl_shortstr_fmt (self->name + strlen (self->name), "-%d%d", s_instance, ++s_current);
         icl_shortstr_fmt (self->path, "/resource/%s", self->name);
-        self->private = TRUE;           //  Private resource
+        self->private = TRUE;           //  Not discoverable resource
     }
     self->hash = ipr_hash_new (table, self->path, self);
     if (self->hash) {
@@ -199,6 +199,8 @@ static long int
         self->modified  = apr_time_now ();
         self_attach_to_parent (self, parent);
     }
+    if (zyre_config_restms_debug (zyre_config))
+        icl_console_print ("R: - create %s called '%s'", type, self->name);
 </method>
 
 <method name = "destroy">
@@ -403,7 +405,7 @@ static long int
         looseref = ipr_looseref_list_next (&looseref);
     }
     ipr_tree_shut (*p_tree);
-    ipr_tree_leaf (*p_tree, "xmlns", "http://www.imatix.com/schema/restms");
+    ipr_tree_leaf (*p_tree, "xmlns", "http://www.restms.org/schema/restms");
 
     if (ipr_str_prefixed (context->response->content_type, "application/restms+json"))
         longstr = ipr_tree_save_json (*p_tree);

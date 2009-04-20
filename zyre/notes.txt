@@ -1,40 +1,29 @@
-Sender-AMQP
-- specification to sign messages with App-Id
-    - how to set a verifiable App-Id?
-    -> server will quash any provided App-Id, so no possibility of fraud
-    -> server puts in authenticated user id
+Changes for draft/4
 
-Zyre:
+- add join 'type' property, defaults to empty
+- default feed type is empty (was "topic")
+- default pipe type is empty (was "fifo")
+- implement "3/Defaults" profile
+    - can we make profiles extensible?
+    - or feeds, joins, pipes?
+    - POST message to feed results in <message> response
+- implement "4/AMQP9" profile
+- declare profiles as read-only child of domain
+- remove feed property on delivered messages
 - amq_server export feeds to zyre
+    - what feeds come from OpenAMQ:
+        - shared queues -> feedname
+        - all exchanges
+    - when AMQP provides feed,
+        - create in restms object if new
+    - always public resource
+    - always locked
 - xmlns should not be in JSON output
+- implement When-Modified-After and When-None-Match
+- add JSON parser -> XML tree
 
-Digest-AMQP:
-- digest-amqp to use new restms api & examples
-
-Websites:
-- wiki.amqp.org to allow issues per spec
-- github: digest-amqp, restms.pm
-- make restms.pm in lua
-    - pay nino for python, javascript, ruby
-
-- multiple messages
-    <message ... />
-- no content, headers only
-    <message ...>
-        <content href="{staged content uri}" />
-    </message>
-- if no such content, 404
-- else deletes content on sending
-    <message ...>
-        <content type="{mime type}" encoding="{text encoding}">content body</content>
-    </message>
-- document message sending & receiving in detail
-- document use case for RestMS
-- document: server MAY decode content before sending if encoding is "base64"
-    The Base16, Base32, and Base64 Data Encodings
-    http://tools.ietf.org/html/rfc4648
-
-- multiple messages
+restms.pl
+- add multiple message support
 my $content = <<EOF;
 <restms>
   <message address="address.multi.1" message_id="ID1">
@@ -54,141 +43,105 @@ my $content = <<EOF;
 EOF
 $restms->raw ("POST", "/restms/feed/default", $content);
 
+Digest-AMQP:
+- digest-amqp to use new restms api & examples
+- document on restms.org as sample application
+
+Sender-AMQP
+- specification to sign messages with App-Id
+    - how to set a verifiable App-Id?
+    -> server will quash any provided App-Id, so no possibility of fraud
+    -> server puts in authenticated user id
+
+Zyre
+- implement exchange logic in zyre and do federation
 - feed security
     - password on creation
     - provide in posts
-
-- join selftest
-- test pipe asynchrony
-- test message content vs. embedded
-- test message batching
-
-
-#   Test public service feed
-my $feed = $restms->feed_create ("test.service", "service");
-my $pipe = $restms->pipe_create ("fifo");
-my $join = $restms->join_create ($pipe, $feed, "*");
-
-$restms->content ("This is a request", "text/plain");
-$restms->send ($feed);
-$message = $restms->recv ($pipe);
-$restms->delete ($feed);
-$restms->delete ($pipe);
-$restms->delete ($join);
-
-#   --------- Topic publish/subscribe
-
-#
-#   --------- Errors ----------------
-#   Invalid URI path
-$restms->raw ("GET",    "/restms/invalid", undef, 400);
-$restms->raw ("PUT",    "/restms/invalid", undef, 400);
-$restms->raw ("DELETE", "/restms/",        undef, 400);
-$restms->raw ("POST",   "/restms/invalid", undef, 400);
-
-#   Non-existent resources
-$restms->raw ("GET",  "/restms/domain/none", undef, 404);
-$restms->raw ("PUT",  "/restms/pipe/nosuch", undef, 404);
-$restms->raw ("POST", "/restms/feed/nosuch", undef, 404);
-
-#   Badly structured documents
-my $feed = $restms->feed_create ("test.service", "service");
-$restms->raw ("PUT", $feed, '<restms/>', 400);
-$restms->raw ("PUT", $feed, '<restmas><type="fanout" /></restmas>', 400);
-$restms->raw ("PUT", $feed, '<restms><fud type="fanout" /></restms>', 400);
-$restms->raw ("PUT", $feed, '<restms><feed type="fanout" />', 400);
-
-#   Bad pipe types
-$restms->pipe_create ("fido", 400);
-
-#   Bad feed types
-$restms->feed_create ("test.fanin", "fanin", 400);
-$restms->get    ("/restms/feed/test.fanin", 404);
-$restms->put    ("/restms/feed/test.fanin", '<restms><domain title="New title"/></restms>', 404);
-$restms->delete ("/restms/feed/test.fanin");
-$feed = $restms->feed_create ("test.fanin", "fanout");
-$restms->delete ($feed);
-
-#   Bad feed types
-my $feed = $restms->feed_create ("test.fanout", "fanin", 400);
-
-#   Invalid joins
-my $feed = $restms->feed_create ("test.fanout", "fanout");
-my $pipe = $restms->pipe_create ("fifo");
-$restms->join_create ($pipe, "", "*", 400);
-$restms->join_create ($pipe, "/restms/feed/unknown", "*", 400);
-$restms->join_create ("/restms/pipe/unknown", $feed, "*", 404);
-$restms->delete ($feed);
-$restms->delete ($pipe);
+- stream profile
+- loopback profile
+- experimental profiles:
+    - try regexp and other stuff on messages
+    - how to make this really fast?
 
 
+Can we make a generic model for feed-join-pipe routing?
 
+feeds are queues with storage options
+    - memory
+    - disk
+    - ring or flat
+joins are selectors
+    - specify some criteria
+pipes are queues with storage and delivery options
+    - memory
+    - disk
+    - streamed or monotonic
 
-need to learn GIT and make gitub for restms work
-    - specs, sample code
-    - addons
-    restms.org
+        .---- J -> PPPP
+FFFFFFFFFF
+   '---J -> PPPP
 
-zyre.com
-    - documentation
-    - examples
-    - binaries, packages
+example of air traffic events
+    - pull on field match
+    - pull on regexp
+    - pull on geocoordinates
 
-JSON parser in C
-new XML parser that is known solid
+if we have a bunch of selectors on a queue
+    - normalize the selectors so that indentical ones are grouped together
+    - we need a way to convert a message into terms
+        - then lookup terms in database
+        - and then turn that into bitmap of selectors
+    -> test with 10k selectors...
 
-synchronization with AMQP
-    - what feeds come from OpenAMQ:
-        - shared queues -> feedname
-        - all exchanges
-    - when AMQP provides feed,
-        - create in restms object if new
-new resource from openamq
-    always public resource
-    always locked
-- in openamq, synchronize back with zyre
-    - add method Feed.Sync to class
-    - if server gets this, syncs all exchange & shared queues back to RestMS
-AMQP synchronization
-    - resource->private property
+Theory of fast message routing on arbitrary selection criteria -> fast routing engine inside Zyre and OpenAMQ.
 
-Rainey
-    - JPMC, DJ followup
-    - AMQP WG meetings each week: attend, report
-    - follow issues on openamq.org
-    - assist at FOSDEM
-    - logo for X5
-    - black t-shirts for X5 & FOSDEM
+-> queue before, after
+-> route
+-> persistence
 
-zyre_content class
-    content_type
-    content_encoding
-    bucket (limit content to 2MB for now)
-        overflow to file, later
-        limitation needs to be documented
+Slow routing:
+    - take message
+    - compare with each request in turn
 
+Fast routing
+    - take message
+    - extract terms
+    - for each term, pull up bitmap of requests
+    - do logical and/or on bitmaps
+    - resulting bitmap = matching requests
+    - process in loop starting from random point
 
-define pipe that sends messages back to feed
-    - allows proxy selection, macroisation
+What cases can we do fast routing on?
+     - strict match on address
+         -> each address = lookup of one bitmap
+         -> maintenance => locate, set/clear bit
+     - strict match on multiple fields
+         -> each field = lookup of one bitmap
+         -> logical operations between fields (AND?)
+         -> maintenance => locate, set/clear bit in all fields
+     - topic expression on address
+         -> each address = lookup of one bitmap
+         -> new topic = recalculate all matching requests
+         -> maintenance => locate, set/clear bit in all topics
+     - regular expression on address
+         -> each address = lookup of one bitmap
+         -> new address = recalculate all matching requests
+         -> maintenance => locate, set/clear bit in all addresses
 
-define fair queue mechanism that takes input from several feeds but fairly
-    - implement natively in openamq?
-    - ...?
+We can generalize to any matching function f() on one or more fields in message, indeed to any combination of any matches on a message.
 
+Let us say we have a function F1 that can take a message M and return a set of match terms T1.  For each T we can retrieve and modify a bitmap where each bit B represents one request R, numbered from 0 upwards, within the context of the feed.  Let us say we have a function F2 that takes a request R and returns a set of match terms T2, where each T is a pre-existing term.  Let us further say that the set of match terms is cached between sessions.
 
+For a new R we calculate T2.  For each T in T2 we fetch the bitmap, and set bit B, and store the modified bitmap.  The cost will be proportional to the complexity of R.
 
-Implement exchange logic in zyre and do federation
+For a given M we calculate T1.  For each T in T1 we fetch the bitmap.  If the bitmap does not exist we calculate it as follows: for each existing R we calculate T2, and where T is in T2, we set the bit.  We store the bitmap if created.  We collect all bitmaps and perform a logical AND.  Logical ORs can be performed by creating multiple requests.  The resulting bitmap gives us the set of matching R.
 
-config
-    amqp server name
-    amqp server login and password
-    client logins
-        - basic auths
-        - not same as openamq credentials
+For each deleted R we calculate T2.  For each T in T2 we fetch the bitmap, clear the bit B and store the modified bitmap.
 
+We can consider a modified R to be equivalent to a deleted R and a new R.
 
-RESTful extensions to AMQP
-    - RestMS protocol class
-    - * in topics matches empty routing-key
-    - empty topic segments are allowed (".value")
+The above works for homogeneous requests.  To handle heterogeneous requests we classify F1 and F2 into families.  A request uses one or more families of F2.  Accordingly, the message will invoke only the collection of families used by requests.
+
+... I'd like to build a feed/join/pipe engine that accepts messages in one end and produces them at the other...
 

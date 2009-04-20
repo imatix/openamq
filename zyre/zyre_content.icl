@@ -61,7 +61,10 @@ This class implements the RestMS content object.
 </method>
 
 <method name = "get">
-    http_response_set_from_bucket (context->response, self->bucket, self->type);
+    if (self->bucket)
+        http_response_set_from_bucket (context->response, self->bucket, self->type);
+    if (zyre_config_restms_debug (zyre_config))
+        icl_console_print ("R: - content length: %d", context->response->content_length);
 </method>
 
 <method name = "put">
@@ -101,7 +104,7 @@ This class implements the RestMS content object.
         reader;
     </local>
     //
-    method  = (zyre_peer_method_t *) argument;
+    method = (zyre_peer_method_t *) argument;
     content = (amq_content_basic_t *) method->content;
     amq_content_basic_set_reader (content, &reader, IPR_BUCKET_MAX_SIZE);
     icl_shortstr_cpy (self->type, content->content_type);
