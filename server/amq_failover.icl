@@ -79,7 +79,6 @@ typedef enum
     assert (self->status_exchange);
     backup  = amq_server_config_backup  (amq_server_config);
     primary = amq_server_config_primary (amq_server_config);
-    //  Set failover intervals
 
     //  All timeouts are represented internally as usec for SMT
     self->timeout = amq_server_config_failover_timeout (amq_server_config)
@@ -119,11 +118,11 @@ typedef enum
         amq_peering_start (self->peering);
 
         //  Subscribe for failover peer's state notifications
-        amq_peering_bind (self->peering, self->primary? "b": "p", NULL);
+        amq_peering_bind (self->peering,
+            self->primary? "failover.backup": "failover.primary", NULL);
 
         //  Start monitoring failover peer state
         amq_failover_start_monitoring (self);
-
     }
     //  Else, configuration not OK, or failover disabled
     else
@@ -158,15 +157,15 @@ typedef enum
     icl_shortstr_fmt (state, "%d", self->state);
     amq_content_basic_set_body (content,
         icl_mem_strdup (state), strlen (state) + 1, icl_mem_free);
-    amq_exchange_publish (
-        self->status_exchange, NULL, content,
-        FALSE, FALSE, AMQ_CONNECTION_GROUP_SUPER);
+    amq_exchange_publish (self->status_exchange,
+        NULL, content, FALSE, FALSE, AMQ_CONNECTION_GROUP_SUPER);
     amq_content_basic_unlink (&content);
 </method>
 
 <method name = "execute" return = "rc" template = "function">
     <argument name = "event" type = "int" />
     <declare name = "rc" type = "int" default = "0" />
+    //
     switch (self->state) {
       case amq_ha_state_pending:
         switch (event) {
