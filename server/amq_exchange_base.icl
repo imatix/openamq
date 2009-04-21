@@ -197,7 +197,7 @@ s_direct_deliver (amq_queue_t *queue, amq_content_basic_t *content, amq_lease_t 
     //  Check warning limit
     if (queue->warn_limit && queue_size >= queue->warn_limit && !queue->warned) {
         smt_log_print (amq_broker->alert_log,
-            "I: queue=%s hit %d messages: no action (%s, %s, %s %s)",
+            "W: queue=%s hit %d messages: no action (%s, %s, %s %s)",
             queue->name, queue_size,
             queue->connection->client_address,
             queue->connection->client_product,

@@ -210,7 +210,7 @@ $\(selftype)
     </property>
 
     <property name = "syslog" type = "int" default = "0">
-    Use syslog for logs
+    Use syslog logging protocol
     <doc>
     Specifies whether or not to use the syslog protocol for logging.
     By default log files are written directly to disk.  If this option
