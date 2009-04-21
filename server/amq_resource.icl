@@ -72,7 +72,7 @@
             else {
                 connection = amq_server_connection_link (channel->connection);
                 if (connection) {
-                    //  Create private queue for pipe, and consume from it
+                    //  Create private queue for pipe, and prepare queue for use
                     queue = amq_queue_new (
                         connection,     //  Server connection
                         pipe_name,      //  Queue name
@@ -80,12 +80,20 @@
                         TRUE,           //  Auto-delete?
                         NULL);          //  Arguments to declaration
                     if (queue) {
+                        //  Make automatic binding to default exchange
+                        amq_exchange_bind_queue (
+                            amq_broker->default_exchange, NULL, queue, pipe_name, NULL);
+
+                        //  Add to connection's exclusive queue list
+                        amq_server_connection_own_queue (connection, queue);
+
                         //  Consume from queue, using pipe name as consumer tag
                         icl_shortstr_fmt (tag, "x:%s", pipe_name);
                         method = amq_client_method_new_basic_consume (
                             0, pipe_name, tag, FALSE, FALSE, FALSE, TRUE, NULL);
                         amq_server_channel_consume (
                             channel, queue, (amq_server_method_t *) method);
+
                         amq_client_method_unlink (&method);
                     }
                     else

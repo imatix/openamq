@@ -102,6 +102,12 @@ TODO
     - redesign queue->consumer->channel using portals
     - also for exchange->binding->queue?
 
+2009-04-20
+
+* changed: added --syslog support (--syslog option) (http://www.openamq.org/issue:51, 1.4)
+* changed: some debugging went to daily log, cleaned up (1.4)
+* changed: maximum length of log line reduced to 1024 octets (1.4)
+
 2009-04-16
 
 * fixed: detect and reject attempts to declare durable queues (http://www.openamq.org/issue:54)

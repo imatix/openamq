@@ -208,6 +208,18 @@ $\(selftype)
     tracing on production servers except in low-volume scenarios.
     </doc>
     </property>
+
+    <property name = "syslog" type = "int" default = "0">
+    Use syslog for logs
+    <doc>
+    Specifies whether or not to use the syslog protocol for logging.
+    By default log files are written directly to disk.  If this option
+    is set to 1, uses the syslog protocol for all log files.  Uses a
+    priority depending on the type of log message (LOG_ERROR, LOG_INFO,
+    LOG_DEBUG). Uses the LOG_USER facility.  Has no effect on Windows.
+    Overrides the keep_logs option.
+    </doc>
+    </property>
 </path>
 
 <path name = "tuning">
