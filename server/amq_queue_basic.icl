@@ -94,7 +94,7 @@ runs lock-free as a child of the asynchronous queue class.
     queue_size = ipr_looseref_list_count (self->content_list);
     if (queue->warn_limit && queue_size >= queue->warn_limit && !queue->warned) {
         smt_log_print (amq_broker->alert_log,
-            "I: queue=%s hit %d messages: no action %s",
+            "W: queue=%s hit %d messages: no action %s",
             queue->name, queue_size, client_identifier);
         queue->warned = TRUE;
     }

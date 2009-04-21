@@ -230,7 +230,7 @@
     self->failover = amq_failover_new ();
 
     //  Calculate server performance
-    smt_coremark_calculate (self->alert_log, amq_server_config_coremark_cycles (amq_server_config));
+    smt_coremark_calculate (self->daily_log, amq_server_config_coremark_cycles (amq_server_config));
 </method>
 
 <method name = "destroy">
@@ -319,7 +319,7 @@
         self->dump_state_timer--;
         if (self->dump_state_timer == 0) {
             self->dump_state_timer = amq_server_config_dump_state (amq_server_config);
-            smt_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->debug_log,
                 "I: cnn=%d msg=%d mem=%uK/%uK exc=%d que=%d csm=%d bnd=%d adx=%d idx=%d map=%d",
                 amq_server_connection_count (),
                 amq_content_basic_count (),
@@ -333,7 +333,7 @@
                 ipr_index_count (),
                 ipr_bits_count ());
 
-            smt_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->debug_log,
                 "I: qcn=%d cnq=%d dsk=%d dfd=%d din=%d dot=%d dhi=%d",
                 amq_queue_connection_count (),
                 amq_connection_queue_count (),

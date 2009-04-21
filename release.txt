@@ -2,13 +2,14 @@
 
 ++ 1.4b2 - 2009/04/xx
 
+* fixed: server assertion on large direct mode messages (http://www.openamq.org/issue:53)
+* changed: log files are now written to /var/log/openamq (1.4, http://www.openamq.org/issue:48)
+* changed: removed archive_path from log file configuration (1.4, http://www.openamq.org/issue:48)
+* changed: base2 runtime now saves message to panic.log in case of exit (http://www.openamq.org/issue:50)
 * added: zyre: debug facility for RestMS processing.
 * changed: added --syslog support (--syslog option) (http://www.openamq.org/issue:51, 1.4)
 * changed: cleaned up use of logging to work better with syslog (1.4)
 * fixed: detect and reject attempts to declare durable queues (http://www.openamq.org/issue:54)
-* changed: base2 runtime now saves message to panic.log in case of exit (http://www.openamq.org/issue:50)
-* changed: removed archive_path from log file configuration (1.4, http://www.openamq.org/issue:48)
-* changed: log files are now written to /var/log/openamq (1.4, http://www.openamq.org/issue:48)
 * added: Boom3 BOOM_CORES=n option to parallelize compile & link on multicore Unix boxes
 * fixed: if icl_system_initialise() not called in client apps, issues error.
 
@@ -99,6 +100,7 @@ All changes in 1.3c3 onwards plus:
 
 ++ 1.3c6 - 2009/04/xx
 
+* fixed: server assertion on large direct mode messages (http://www.openamq.org/issue:53)
 * fixed: detect and reject attempts to declare durable queues (http://www.openamq.org/issue:54)
 * fixed: Basic.Consume sometimes failed: http://www.openamq.org/issue:52/
 
