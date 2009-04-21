@@ -58,15 +58,16 @@
 <file name = "amq_peer_config.opf"       class = "opf metadata"      >Peering config syntax</file>
 <file name = "amq_peer_agent.smt"        class = "smt public module"
                                          generated = "1"             >Peering client agent</file>
-<file name = "amq_exchange.icl"          class = "async public"      >Server exchange class</file>
-<file name = "amq_exchange_table.icl"    class = "icl private cont"  >Table of exchanges per broker</file>
-<file name = "amq_exchange_list.icl"     class = "icl private cont"  >List of exchanges by broker</file>
-<file name = "amq_exchange_base.icl"     class = "private resource"  >Server exchange base class</file>
 <file name = "amq_exchange_system.icl"   class = "icl private class" >Server system exchange class</file>
 <file name = "amq_exchange_fanout.icl"   class = "icl private class" >Server fanout exchange class</file>
 <file name = "amq_exchange_direct.icl"   class = "icl private class" >Server direct exchange class</file>
 <file name = "amq_exchange_topic.icl"    class = "icl private class" >Server topic exchange class</file>
 <file name = "amq_exchange_headers.icl"  class = "icl private class" >Server headers exchange class</file>
+<file name = "amq_exchange_regexp.icl"   class = "icl private class" >Server regexp exchange class</file>
+<file name = "amq_exchange_base.icl"     class = "private resource"  >Server exchange base class</file>
+<file name = "amq_exchange.icl"          class = "async public"      >Server exchange class</file>
+<file name = "amq_exchange_table.icl"    class = "icl private cont"  >Table of exchanges per broker</file>
+<file name = "amq_exchange_list.icl"     class = "icl private cont"  >List of exchanges by broker</file>
 <file name = "amq_binding.icl"           class = "icl private class" >Server exchange bindings class</file>
 <file name = "amq_binding_list.icl"      class = "icl private cont"  >Bindings per exchange</file>
 <file name = "amq_binding_mgt.icl"       class = "async public"      >Binding management class</file>
@@ -112,7 +113,7 @@
 <file name = "amq_console_schema.cml"    class = "generated resource">Console schema</file>
 <file name = "amq_console_schema.xml"    class = "generated resource">Console schema in raw form</file>
 <file name = "amq_console_config.gsl"    class = "private resource"  >OPF plugin for console</file>
-<file name = "amq_console_config.icl"    class = "async public"  
+<file name = "amq_console_config.icl"    class = "async public"
                                          generated = "1"             >Config wrapper class</file>
 <file name = "amq_cml.icl"               class = "icl public class"  >CML functionality</file>
 

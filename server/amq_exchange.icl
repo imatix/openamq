@@ -147,6 +147,7 @@ for each type of exchange. This is a lock-free asynchronous class.
 #define AMQ_EXCHANGE_DIRECT         3
 #define AMQ_EXCHANGE_TOPIC          4
 #define AMQ_EXCHANGE_HEADERS        5
+#define AMQ_EXCHANGE_REGEXP         6
 
 //  Max number of queues we can publish one message to.
 //  Used for static table of void * per exchange instance.
@@ -221,6 +222,13 @@ for each type of exchange. This is a lock-free asynchronous class.
         self->publish = amq_exchange_headers_publish;
         self->compile = amq_exchange_headers_compile;
         self->unbind  = amq_exchange_headers_unbind;
+    }
+    else
+    if (self->type == AMQ_EXCHANGE_REGEXP) {
+        self->object  = amq_exchange_regexp_new (self);
+        self->publish = amq_exchange_regexp_publish;
+        self->compile = amq_exchange_regexp_compile;
+        self->unbind  = amq_exchange_regexp_unbind;
     }
     else
         smt_log_print (amq_broker->alert_log,
@@ -363,6 +371,12 @@ for each type of exchange. This is a lock-free asynchronous class.
             *exchange = (amq_exchange_headers_t *) self->object;
         amq_exchange_headers_destroy (&exchange);
     }
+    else
+    if (self->type == AMQ_EXCHANGE_REGEXP) {
+        amq_exchange_regexp_t
+            *exchange = (amq_exchange_regexp_t *) self->object;
+        amq_exchange_regexp_destroy (&exchange);
+    }
     </action>
 </method>
 
@@ -390,6 +404,9 @@ for each type of exchange. This is a lock-free asynchronous class.
     if (streq (type_name, "headers"))
         rc = AMQ_EXCHANGE_HEADERS;
     else
+    if (streq (type_name, "regexp"))
+        rc = AMQ_EXCHANGE_REGEXP;
+    else
         rc = -1;
 </method>
 
@@ -414,6 +431,9 @@ for each type of exchange. This is a lock-free asynchronous class.
     else
     if (type == AMQ_EXCHANGE_HEADERS)
         name = "headers";
+    else
+    if (type == AMQ_EXCHANGE_REGEXP)
+        name = "regexp";
     else
         name = "(unknown)";
 </method>

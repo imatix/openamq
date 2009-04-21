@@ -41,10 +41,11 @@
 <import class = "amq_content_basic" />
 <import class = "amq_exchange" />
 <import class = "amq_exchange_direct" />
-<import class = "amq_exchange_topic" />
 <import class = "amq_exchange_headers" />
 <import class = "amq_exchange_fanout" />
+<import class = "amq_exchange_regexp" />
 <import class = "amq_exchange_system" />
+<import class = "amq_exchange_topic" />
 <import class = "amq_failover" />
 <import class = "amq_federation" />
 <import class = "amq_hitset" />

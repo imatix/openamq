@@ -211,6 +211,7 @@
     s_exchange_declare (self, "amq.direct",  AMQ_EXCHANGE_DIRECT,  FALSE, FALSE);
     s_exchange_declare (self, "amq.topic",   AMQ_EXCHANGE_TOPIC,   FALSE, FALSE);
     s_exchange_declare (self, "amq.headers", AMQ_EXCHANGE_HEADERS, FALSE, FALSE);
+    s_exchange_declare (self, "amq.regexp",  AMQ_EXCHANGE_REGEXP,  FALSE, FALSE);
     s_exchange_declare (self, "amq.system",  AMQ_EXCHANGE_SYSTEM,  FALSE, FALSE);
     s_exchange_declare (self, "amq.status",  AMQ_EXCHANGE_DIRECT,  FALSE, FALSE);
     s_exchange_declare (self, "amq.notify",  AMQ_EXCHANGE_TOPIC,   FALSE, FALSE);

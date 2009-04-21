@@ -187,8 +187,8 @@ typedef enum
             //  Do nothing; wait while peer switches to active
             break;
           case amq_ha_event_new_connection:
-            //  Connections are refused in pending state
-            rc = 0;
+            //  If pending, accept connection only if primary peer
+            rc = (self->primary);
             break;
           default:
             assert (0);
@@ -238,12 +238,13 @@ typedef enum
             break;
           case amq_ha_event_new_connection:
             //  Peer becomes master if timeout has passed
+            //  It's the connection request that triggers the failover
             if (smt_time_now () - self->last_peer_time > self->timeout) {
                 //  If peer is dead, switch to the active state
                 self->state = amq_ha_state_active;
                 smt_log_print (amq_broker->alert_log,
                     "I: failover: failover successful, READY as master");
-                rc = 1;
+                rc = 1;                 //  Accept the request, then
             }
             else
                 //  If peer is alive, reject connections
