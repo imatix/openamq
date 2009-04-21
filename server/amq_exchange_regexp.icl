@@ -1,6 +1,6 @@
 <?xml?>
 <!--
-    Copyright (c) 2007 iMatix Corporation
+    Copyright (c) 2009 iMatix Corporation
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
