@@ -7,28 +7,69 @@ if .%VERSION%==. (
     echo Syntax: "make_openamq version password", e.g. "make_openamq 1.4a4 Secret"
     exit /b 1
 )
-
 :- Update all projects from SVN
-cd ..\..
-svn update foreign base1 base2 openamq
+echo Updating projects from SVN...
+cd \work\trunk\
+svn --quiet update foreign base1 base2 openamq
+
 :- reconfigure and regenerate all projects
-cd foreign
+cd \work\trunk\foreign
 call boom configure regen
-cd ..\base1
+cd \work\trunk\base1
 call boom configure regen
-cd ..\base2
+cd \work\trunk\base2
 call boom configure regen
-cd ..\openamq
+cd \work\trunk\openamq
 call boom configure regen
 
-cd windows
 :- Build debug packages into %IBASE_HOME%\debug
+echo Preparing for debug build...
+call c:\work\debug
+cd \work\trunk\openamq\windows
 msbuild OpenAMQ.sln /nologo /t:Clean /v:quiet
-msbuild OpenAMQ.sln /nologo /t:Rebuild /p:Configuration=Debug /v:quiet
 
+echo Building Foreign/debug...
+msbuild OpenAMQ.sln /nologo /t:libzip /p:Configuration=Debug /v:quiet
+cd \work\trunk\foreign
+call boom install
+cd \work\trunk\openamq\windows
+
+echo Building Base2/debug...
+msbuild OpenAMQ.sln /nologo /t:xitami /p:Configuration=Debug /v:quiet
+cd \work\trunk\base2
+call boom install
+cd \work\trunk\openamq\windows
+
+echo Building OpenAMQ/debug...
+msbuild OpenAMQ.sln /nologo /t:zyre /p:Configuration=Debug /v:quiet
+cd \work\trunk\openamq
+call boom install
+cd \work\trunk\openamq\windows
+
+:release
 :- Build release packages into %IBASE_HOME%\release
+echo Preparing for release build...
+call c:\work\release
+cd \work\trunk\openamq\windows
 msbuild OpenAMQ.sln /nologo /t:Clean /v:quiet
-msbuild OpenAMQ.sln /nologo /t:Rebuild /p:Configuration=Release /v:quiet
+
+echo Building Foreign/release...
+msbuild OpenAMQ.sln /nologo /t:libzip /p:Configuration=Release /v:quiet
+cd \work\trunk\foreign
+call boom install
+cd \work\trunk\openamq\windows
+
+echo Building Base2/release...
+msbuild OpenAMQ.sln /nologo /t:xitami /p:Configuration=Release /v:quiet
+cd \work\trunk\base2
+call boom install
+cd \work\trunk\openamq\windows
+
+echo Building OpenAMQ/release...
+msbuild OpenAMQ.sln /nologo /t:zyre /p:Configuration=Release /v:quiet
+cd \work\trunk\openamq
+call boom install
+cd \work\trunk\openamq\windows
 
 rm -rf *.zip
 echo Building packages...
