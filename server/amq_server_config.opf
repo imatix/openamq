@@ -216,7 +216,7 @@ $\(selftype)
     By default log files are written directly to disk.  If this option
     is set to 1, uses the syslog protocol for all log files.  Uses a
     priority depending on the type of log message (LOG_ERROR, LOG_INFO,
-    LOG_DEBUG). Uses the LOG_USER facility.  Has no effect on Windows.
+    LOG_DEBUG). Uses the LOG_DAEMON facility.  Has no effect on Windows.
     Overrides the keep_logs option.
     </doc>
     </property>
