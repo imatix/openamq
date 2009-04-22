@@ -55,7 +55,7 @@ typedef enum
     amq_peering_t
         *peering;                       //  The peering to the other HA peer
     Bool
-        enabled,                        //  If FALSE, broker is standalone 
+        enabled,                        //  If FALSE, broker is standalone
         primary;                        //  TRUE = primary, FALSE = backup
     long
         timeout;                        //  Failover timeout in usec
@@ -73,7 +73,7 @@ typedef enum
     <argument name = "broker" type = "amq_broker_t *">Parent broker</argument>
     <local>
     char
-        *backup,                        //  Backup to connect to 
+        *backup,                        //  Backup to connect to
         *primary;                       //  Primary to connect to
     </local>
     //
@@ -83,7 +83,6 @@ typedef enum
     assert (self->status_exchange);
     backup  = amq_server_config_backup  (amq_server_config);
     primary = amq_server_config_primary (amq_server_config);
-    //  Set failover intervals
 
     //  All timeouts are represented internally as usec for SMT
     self->timeout = amq_server_config_failover_timeout (amq_server_config)
@@ -102,9 +101,9 @@ typedef enum
         self->enabled = TRUE;
     //  Enable failover if requested
     if (self->enabled) {
-        smt_log_print (amq_broker->alert_log, "I: failover enabled, acting as %s", 
+        smt_log_print (amq_broker->alert_log, "I: failover enabled, acting as %s",
             self->primary? "master": "slave");
-        smt_log_print (amq_broker->alert_log, "I: failover: waiting for %s...", 
+        smt_log_print (amq_broker->alert_log, "I: failover: waiting for %s...",
             self->primary? "backup (slave)": "primary (master)");
 
         self->state = amq_ha_state_pending;
@@ -115,7 +114,7 @@ typedef enum
             *primary? primary: backup,
             amq_server_config_vhost (amq_server_config),
             amq_server_config_trace (amq_server_config),
-            "amq.status",               //  Exchange name to peer with 
+            "amq.status",               //  Exchange name to peer with
             "direct");                  //  Exchange type to create
 
         amq_peering_set_login (self->peering, "peering");
@@ -123,18 +122,18 @@ typedef enum
         amq_peering_start (self->peering);
 
         //  Subscribe for failover peer's state notifications
-        amq_peering_bind (self->peering, self->primary? "b": "p", NULL);
+        amq_peering_bind (self->peering,
+            self->primary? "failover.backup": "failover.primary", NULL);
 
         //  Start monitoring failover peer state
         amq_failover_start_monitoring (self);
-
     }
     //  Else, configuration not OK, or failover disabled
     else
         smt_log_print (amq_broker->alert_log, "I: no failover defined, READY as stand-alone");
 </method>
 
-<method name = "start_monitoring" template = "async function" async = "1">
+<method name = "start_monitoring" template = "async function">
     <action>
     smt_timer_request_delay (self->thread, self->timeout / 2, monitor_event);
     </action>
@@ -157,18 +156,21 @@ typedef enum
         *content;
     </local>
     //
-    icl_shortstr_fmt (state, "%d", self->state);
     content = amq_content_basic_new ();
-    amq_content_basic_set_routing_key (content, "amq.status", self->primary? "p" : "b", 0);
-    amq_content_basic_set_body (content, 
+    amq_content_basic_set_routing_key (content, "amq.status",
+        self->primary? "failover.primary" : "failover.backup", 0);
+    icl_shortstr_fmt (state, "%d", self->state);
+    amq_content_basic_set_body (content,
         icl_mem_strdup (state), strlen (state) + 1, icl_mem_free);
-    amq_exchange_publish (self->status_exchange, NULL, content, FALSE, FALSE, AMQ_CONNECTION_GROUP_SUPER);
+    amq_exchange_publish (self->status_exchange,
+        NULL, content, FALSE, FALSE, AMQ_CONNECTION_GROUP_SUPER);
     amq_content_basic_unlink (&content);
 </method>
 
 <method name = "execute" return = "rc" template = "function">
     <argument name = "event" type = "int" />
     <declare name = "rc" type = "int" default = "0" />
+    //
     switch (self->state) {
       case amq_ha_state_pending:
         switch (event) {
@@ -189,14 +191,14 @@ typedef enum
             //  Do nothing; wait while peer switches to active
             break;
           case amq_ha_event_new_connection:
-            //  Connections are refused in pending state
-            rc = 0;
+            //  If pending, accept connection only if primary peer
+            rc = (self->primary);
             break;
           default:
             assert (0);
         }
         break;
-  
+
       case amq_ha_state_active:
         switch (event) {
           case amq_ha_event_peer_pending:
@@ -219,7 +221,7 @@ typedef enum
             assert (0);
         }
         break;
-    
+
       case amq_ha_state_passive:
         switch (event) {
           case amq_ha_event_peer_pending:
@@ -240,12 +242,13 @@ typedef enum
             break;
           case amq_ha_event_new_connection:
             //  Peer becomes master if timeout has passed
+            //  It's the connection request that triggers the failover
             if (smt_time_now () - self->last_peer_time > self->timeout) {
                 //  If peer is dead, switch to the active state
                 self->state = amq_ha_state_active;
                 smt_log_print (amq_broker->alert_log,
                     "I: failover: failover successful, READY as master");
-                rc = 1;
+                rc = 1;                 //  Accept the request, then
             }
             else
                 //  If peer is alive, reject connections
@@ -255,7 +258,7 @@ typedef enum
             assert (0);
         }
         break;
-      
+
       default:
         assert (0);
     }
