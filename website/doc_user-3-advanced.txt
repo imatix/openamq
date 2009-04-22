@@ -180,7 +180,6 @@ debug_[portnumber].log
 The log files are cycled when the server restarts, or at midnight. The cycle process does the following:
 
 # It closes the current log files (if the server is still running).
-# It moves the log files to the *archive* subdirectory.
 # It optionally executes a user-configurable archiving command.
 # It reopens new log files for the application.
 
@@ -284,9 +283,9 @@ You can also specify these in the amq_server.cfg configuration file.
 
 +++ Custom log file cycling
 
-The built-in cycling mechanism just copies old log files to the archive subdirectory and renames them using the current date and time.
+The built-in cycling mechanism renames old log files using the current date and time.
 
-You can customise the cycling mechanism by specifying your own cycling command, which is a shell command that amq_server will execute after moving the log files to their archive directory. The log file name is passed to this command as its first and only argument:
+You can customise the cycling mechanism by specifying your own cycling command, which is a shell command that amq_server will execute on each log file. The log file name is passed to this command as its first and only argument:
 
 [[code]]
 --archive_cmd value            Archive log file command
@@ -311,6 +310,10 @@ You can also specify these in the amq_server.cfg configuration file.
 +++ Log file format
 
 Logged data always shows the date and time, then a single letter to indicate the type or severity of the message. E is an error, W is a warning, I indicates an information message, and other letters are used to trace different types of activity.
+
++++ Syslog support
+
+OpenAMQ supports syslog on systems where it is available (Unix and Linux, but not Windows).  If you use syslog, the normal text log files are not produced, and amq_server instead sends its logging data to the syslog "user" facility.  The priority of the logged data is 'warning' for the error log, 'info' for the daily log, and 'debug' for the debug log.
 
 ++ Monitoring the server
 
@@ -939,6 +942,21 @@ Notes:
 : **/config/failover/primary** : Used when running the backup server, specifies the failover primary server for the high-availability pair. Use the internet name of the primary server as 'host' or 'host:port' if it is not running on port 5672. Do not specify this option together with the 'backup' option. Default value is ''
 : **/config/failover/timeout** : Specifies the delay in seconds after which the backup peer will become the primary peer. This switch over will happen only if and when an application connects to the backup peer after the failover timeout has expired. Reducing this value will allow failover to happen faster but will increase the risk of unnecessary failover due to transient network issues. Default value is 5.
 
++++ Credentials
+
+Failover peers connect to each other using the username 'peering'.  The password for this defaults to "peering".  If you wish to change this password you must change it in two place:
+
+* In the amq_server security section, as you would change the password for any connecting client.
+* In the peering configuration file, **amq_peering.cfg**, as follows:
+
+[[code]]
+<config>
+    <security name = "plain">
+        <user name = "peering" password = "peering" />
+    </security>
+</config>
+[[/code]]
+
 +++ Simple example
 
 This PAL program demonstrates failover:
@@ -1341,7 +1359,7 @@ amq_server.cfg:
 ------------------------------------------------------------------------
 <?xml?>
 <config>
-    <failover
+    <federation
         attach = "hostname[:port]"
         attach_vhost = "path"
         attach_login = "userid"
@@ -1382,7 +1400,7 @@ amq_server.cfg:
 ------------------------------------------------------------------------
 <?xml?>
 <config>
-    <failover
+    <federation
         attach = "hostname[:port]"
         attach_all = "pattern"
         attach_vhost = "path"
@@ -1421,7 +1439,7 @@ You can define as many <federate> entries as you like. The properties for each o
 
 ++++ Login security
 
-The child server needs to be able to connect and login to the parent server. This means it must provide a valid password. It takes the password from the <security> section of its own configuration file. So if to attach to a parent server, a child must login as "remote012" with the password "AW766", both the child and parent need to have the following identical user definition in their amq_server.cfg file:
+The child server needs to be able to connect and login to the parent server. This means it must provide a valid password. It takes the password from the <security> section of its own configuration file. So if to attach to a parent server, a child must login as "remote012" with the password "AW766", the parent needs to have the following identical user definition in their amq_server.cfg file:
 
 [[code]]
 amq_server.cfg:
@@ -1435,6 +1453,8 @@ amq_server.cfg:
     </security>
 </config>
 [[/code]]
+
+And the child may have an identical definition in **amq_peering.cfg**, or may inherit from the amq_server.cfg (in which case the password are the same for incoming and outgoing peering connections).
 
 ++++ Restrictions
 

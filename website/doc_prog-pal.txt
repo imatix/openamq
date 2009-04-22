@@ -648,10 +648,10 @@ Note that the standard ASL technique for returning values from protocol methods 
 
 PAL also defines these built-in variables:
 
-* $script - name of current PAL script. 
-* $connection - 1 if the connection is alive, else 0. 
-* $session - 1 if the session is alive, else 0. 
-* $random - a random integer in the range 0..32767, when used as an insertion value, produces a 4-digit hex string. 
+* $script - name of current PAL script.
+* $connection - 1 if the connection is alive, else 0.
+* $session - 1 if the session is alive, else 0.
+* $random - a random integer in the range 0..32767, when used as an insertion value, produces a 4-digit hex string.
 * $body_size - the body size of the last content to be created, arrived, or returned.
 
 You must not name your own variables using any of the connection, session, or built-in names. PAL resolves a variable reference in this order:
@@ -937,7 +937,7 @@ We process returned content in a similar way to arrived content:
 [[/code]]
 
 * If a counter is specified, this variable is automatically set to zero when the loop starts and incremented each time the loop runs.  You can access the counter variable after the loop.
-* If there was no arrived content, the script executes the following <empty> command, if any.
+* If there was no returned content, the script executes the following <empty> command, if any.
 
 +++ Synchronous content processing
 

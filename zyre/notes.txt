@@ -1,3 +1,22 @@
+It's easiest to do this with a combination of APR and POSIX calls. Here's the rough pseudocode:
+
+drop_privileges (ipr_shortstr_t target_user):
+   1. Get the current UID with apr_uid_get().
+   2. If current UID != 0, fail (Not privileged)
+   3. Call apr_uid_get() to get the target_user UID and GID. You will need to allocate a pool for this, and free it afterwards.
+   4. setgid (target_gid)
+   5. setuid (target_uid)
+
+At every stage make sure you check all return codes and FAIL if you get an error.
+
+For the apr_uid call documentation, see http://apr.apache.org/docs/apr/1.3/group__apr__user.html
+For setuid(), setgid() see the POSIX manuals at http://www.opengroup.org/onlinepubs/9699919799/ (don't trust the Linux docs)
+
+If for some reason you want to do it without APR, you will have to write a threadsafe equivalent of apr_uid_get() using getpwnam_r(), I suspect you don't want to get into that...  Also note apr only provides the apr_uid... functions if APR_USER is defined.
+
+You want to run this "drop privileges" function ASAP after you open your listening socket, i.e. right after the bind() call.
+
+
 Changes for draft/4
 
 - add join 'type' property, defaults to empty

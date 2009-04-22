@@ -1,21 +1,5 @@
 OpenAMQ change log
 
-AMQP changes for 0.92
-    - exchange.declare-ok - add properties result
-    - queue.declare-ok - add properties result
-    - basic.cancel - explicitly document as assertive
-    - exchange.delete - explicitly document as assertive
-    - queue.delete - explicitly document as assertive
-    - queue.unbind - explicitly document as assertive, queue may be gone
-    - basic.ack - make synchronous, reply is ack-ok
-    - basic.reject - make synchronous, reply is reject-ok
-    - restms class
-    - direct class
-    - content class properties:
-        - remove unused properties
-        - add timestamping for latency tracking
-        - add/clarify routing and addressing properties
-
 TODO
     - redesign console interface
         - use portals
@@ -32,12 +16,6 @@ TODO
     - generate shortref:
         //  Comment
         type result = method (argument prototype)
-    - in documentation, amq_peering.cfg not mentioned
-        - this provides credential for failover connections
-        - and also for federation connections
-        - unless this file is used, will use default credentials
-    - wiki.amq.org:
-        - index of all known AMQP products and what they support
     - make PAL arrived processing faster when possible
     - remove all content class variability in asl scripts
         - alias amq_content_basic_t -> amq_content_t
@@ -49,9 +27,6 @@ TODO
     - make web-based amq_shell tool using http server
     - fix/remove settle time in server (before/after socket? federation?)
     - use portals for exchange implementation interface
-    - make user extensible exchange interface (FastCGI style)
-    - implement regexp exchange
-        - performance testing of different exchanges & tuning
     - implement fuzzy text search exchange
         - use Leif's algorithms...
         - example for picking up news items, public news server -> RSS
@@ -81,11 +56,9 @@ TODO
             - perhaps using group name in item name
         - need concept of arbitrary user groups
         - document as new security model proposal
-    - allow primary in failover to come up alone
     - make federation work with failover
         - already records/replays via peering
         - need to include failover detection & recovery
-    - rename base to base1 and reversion base2
     - make regression test set for server
         - send to shared queue and read back
         - pubsub over topic exchange
@@ -102,6 +75,12 @@ TODO
     - redesign queue->consumer->channel using portals
     - also for exchange->binding->queue?
 
+
+2009-04-21
+
+* added: regular expression exchange (http://www.pcre.org, 1.4)
+* added: amq.regexp is default regexp exchange
+* changed: semi-active failover feature added (http://www.openamq.org/issue:21, 1.3 and 1.4)
 
 2009-04-20
 
