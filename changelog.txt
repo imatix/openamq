@@ -1,6 +1,5 @@
 OpenAMQ change log
 
-<<<<<<< .mine
 AMQP changes for 0.92
     - exchange.declare-ok - add properties result
     - queue.declare-ok - add properties result
@@ -18,8 +17,6 @@ AMQP changes for 0.92
         - add/clarify routing and addressing properties
     -> SIG for AMQP/0.9.2
 
-=======
->>>>>>> .r12011
 TODO
     - redesign console interface
         - use portals
