@@ -130,21 +130,6 @@
           </exec>
         </method>
 
-        <!-- Not working yet
-        <method name = "restart" label = "Restart broker">
-          <doc>
-          Restarts the broker. All client connections are broken, and the
-          broker process will then restart.
-          </doc>
-          <exec>
-            smt_log_print (amq_broker->alert_log,
-                "W: operator requested restart - closing all connections");
-            self->restart = TRUE;       //  Tell main line to restart
-            smt_shut_down ();
-          </exec>
-        </method>
-        -->
-
         <method name = "lock" label = "Prevent new connections">
           <doc>
           Locks or unlocks the broker. When the broker is locked it will refuse

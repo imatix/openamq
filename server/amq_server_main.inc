@@ -247,8 +247,10 @@ s_start (int argc, char *argv [])
     //  Now check console login/password
     ipr_config_locate (config, "user", "super");
     if (config->located
-    && streq (ipr_config_get (config, "password", ""), "super"))
+    && streq (ipr_config_get (config, "password", ""), "super")) {
         icl_console_print ("W: security warning - logins use default passwords");
+        icl_console_print ("I: advise addition of security section in %s", s_opt_config);
+    }
     ipr_config_destroy (&config);
 
     //  Set system options from configuration

@@ -460,6 +460,34 @@ typedef int (amq_peering_return_fn) (
     </release>
 </method>
 
+<method name = "peer connection start" template = "protocol handler">
+    <doc>
+    Handles a Connection.Start method coming from the peered server.
+    </doc>
+    <action>
+    asl_field_list_t
+        *fields;                        //  Decoded responses
+    icl_shortstr_t
+        peer_identifier;                //  Unique id of peer
+
+    fields = asl_field_list_new (method->payload.connection_start.server_properties);
+    assert (fields);
+    asl_field_list_cpy (fields, peer_identifier, "identifier");
+    asl_field_list_destroy (&fields);
+
+    if (amq_server_config_debug_peering (amq_server_config))
+        smt_log_print (amq_broker->debug_log,
+            "P: connected peer=%s self=%s",
+            peer_identifier, amq_broker->identifier);
+
+    //  If peer and us have same identifier, jump overboard
+    if (streq (amq_broker->identifier, peer_identifier)) {
+        icl_system_panic ("amq_peering", "E: attempted to peer to self - aborting");
+        smt_shut_down ();
+    }
+    </action>
+</method>
+
 <method name = "peer connection open ok" template = "protocol handler">
     <doc>
     Handles a Connection.Open-Ok method coming from the peered server.
@@ -481,6 +509,7 @@ typedef int (amq_peering_return_fn) (
     if (ASL_HARD_ERROR (method->payload.connection_close.reply_code)) {
         smt_log_print (amq_broker->alert_log,
             "E: hard error on peering - please correct and restart server");
+        icl_system_panic ("amq_peering", "E: hard error on peering");
         smt_shut_down ();
     }
     </action>

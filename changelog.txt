@@ -1,5 +1,25 @@
 OpenAMQ change log
 
+<<<<<<< .mine
+AMQP changes for 0.92
+    - exchange.declare-ok - add properties result
+    - queue.declare-ok - add properties result
+    - basic.cancel - explicitly document as assertive
+    - exchange.delete - explicitly document as assertive
+    - queue.delete - explicitly document as assertive
+    - queue.unbind - explicitly document as assertive, queue may be gone
+    - basic.ack - make synchronous, reply is ack-ok
+    - basic.reject - make synchronous, reply is reject-ok
+    - restms class
+    - direct class
+    - content class properties:
+        - remove unused properties
+        - add timestamping for latency tracking
+        - add/clarify routing and addressing properties
+    -> SIG for AMQP/0.9.2
+
+=======
+>>>>>>> .r12011
 TODO
     - redesign console interface
         - use portals
@@ -75,12 +95,16 @@ TODO
     - redesign queue->consumer->channel using portals
     - also for exchange->binding->queue?
 
-
 2009-04-21
 
 * added: regular expression exchange (http://www.pcre.org, 1.4)
 * added: amq.regexp is default regexp exchange
 * changed: semi-active failover feature added (http://www.openamq.org/issue:21, 1.3 and 1.4)
+* changed: Connection.Start 'id' property renamed to 'connection' for clarity
+* added: new Connection.Start property, 'identifier' is server process ID
+* fixed: failover detects attempt to connect to self as primary or backup (AMQ-597)
+* fixed: federation detects attempt to connect to self (--attach localhost) (AMQ-597)
+* fixed: checks channel-nbr from misbehaving clients (http://www.openamq.org/issue:44)
 
 2009-04-20
 
