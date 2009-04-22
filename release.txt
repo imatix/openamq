@@ -11,7 +11,7 @@
 * changed: Connection.Start 'id' property renamed to 'connection' for clarity
 * changed: log files are now written to /var/log/openamq (http://www.openamq.org/issue:48)
 * changed: removed archive_path from log file configuration (http://www.openamq.org/issue:48)
-* changed: base2 runtime now saves message to panic.log in case of exit (http://www.openamq.org/issue:50)
+* changed: saves message to panic.log in case of abort (http://www.openamq.org/issue:50)
 * changed: added --syslog support (--syslog option) (http://www.openamq.org/issue:51)
 * changed: cleaned up use of logging to work better with syslog
 * added: new Connection.Start property, 'identifier' is server process ID

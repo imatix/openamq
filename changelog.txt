@@ -119,7 +119,7 @@ TODO
 2009-04-16
 
 * fixed: detect and reject attempts to declare durable queues (http://www.openamq.org/issue:54)
-* changed: base2 runtime now saves message to panic.log in case of exit (1.4, http://www.openamq.org/issue:50)
+* changed: saves message to panic.log in case of abort (1.4, http://www.openamq.org/issue:50)
 * changed: removed archive_path from log file configuration (1.4, http://www.openamq.org/issue:48)
 * changed: log files are now written to /var/log/openamq (1.4, http://www.openamq.org/issue:48)
 
