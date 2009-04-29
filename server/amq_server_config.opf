@@ -244,6 +244,15 @@ $\(selftype)
     </doc>
     </property>
 
+    <property name = "accept retry timeout" type = "int" default = "60" min = "1">
+    Timeout before retrying accept calls, seconds
+    <doc>
+    Defines the amount of time the server will wait before retrying
+    an accept call if the call failed due to running out of file
+    descriptors.
+    </doc>
+    </property>
+
     <property name = "polling threads" type = "int" default = "4">
     Number of polling OS threads
     <doc>
