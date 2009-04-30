@@ -75,6 +75,24 @@ $\(selftype)
     an identical vhost identifier.
     </doc>
     </property>
+
+    <property name = "user" type = "char *">
+    User to run server as
+    <doc>
+    If you specify a user and group, the server will switch to that user
+    and group after opening its port, thus dropping any privileges it
+    previously had.
+    </doc>
+    </property>
+
+    <property name = "group" type = "char *">
+    Group to run server as
+    <doc>
+    If you specify a user and group, the server will switch to that user
+    and group after opening its port, thus dropping any privileges it
+    previously had.
+    </doc>
+    </property>
 </path>
 
 <path name = "resources">
