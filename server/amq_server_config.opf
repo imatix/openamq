@@ -48,9 +48,9 @@ $\(selftype)
     <property name = "listen" type = "icl_shortstr_t" default = "*">
     Address (local network interface) to listen on
     <doc>
-    Specifies the network interface on which the server should listen for 
-    connections.  By default this is *, meaning all interfaces.  You would 
-    choose to set an address when you use OpenAMQ on a server with multiple 
+    Specifies the network interface on which the server should listen for
+    connections.  By default this is *, meaning all interfaces.  You would
+    choose to set an address when you use OpenAMQ on a server with multiple
     network interfaces, e.g. routing between two networks.
     </doc>
     </property>
@@ -73,6 +73,24 @@ $\(selftype)
     server.  We recommend you set this on production servers and on all
     failover pairs.  Note that the two servers in a failover pair must use
     an identical vhost identifier.
+    </doc>
+    </property>
+
+    <property name = "user" type = "char *">
+    User to run server as
+    <doc>
+    If you specify a user and group, the server will switch to that user
+    and group after opening its port, thus dropping any privileges it
+    previously had.
+    </doc>
+    </property>
+
+    <property name = "group" type = "char *">
+    Group to run server as
+    <doc>
+    If you specify a user and group, the server will switch to that user
+    and group after opening its port, thus dropping any privileges it
+    previously had.
     </doc>
     </property>
 </path>
@@ -193,9 +211,9 @@ $\(selftype)
     <property name = "debug peering" type = "Bool" default = "0" dynamic = "1">
     Debug peering messages?
     <doc>
-    Specifies whether peering activity is logged or not. Set this option if 
-    you need to debug exchange federation and failover. For production use, 
-    we recommend you do not set this option.                           
+    Specifies whether peering activity is logged or not. Set this option if
+    you need to debug exchange federation and failover. For production use,
+    we recommend you do not set this option.
     </doc>
     </property>
 
@@ -239,7 +257,7 @@ $\(selftype)
     Connection close timeout, seconds
     <doc>
     Defines the maximum amount of time the server will wait for a
-    client to send a connection.close-ok when closing the 
+    client to send a connection.close-ok when closing the
     connection due to an exception.
     </doc>
     </property>
@@ -330,8 +348,8 @@ $\(selftype)
     Credit window for shared queues
     <doc>
     Defines the credit window for shared queues.  The credit window regulates
-    the flow of messages internally.  The default value of 1 will provide the 
-    best response to blocked/slow clients working on shared queues.  Set to 
+    the flow of messages internally.  The default value of 1 will provide the
+    best response to blocked/slow clients working on shared queues.  Set to
     zero to disable credit based flow control on shared queues.
     </doc>
     </property>
@@ -341,19 +359,19 @@ $\(selftype)
     <property name = "backup" type = "icl_shortstr_t" default = "">
     Failover backup host:port
     <doc>
-    Used when running the primary server, specifies the failover backup 
-    server for the high-availability pair. Use the internet name of the 
-    backup server as 'host' or 'host:port' if it is not running on port 
+    Used when running the primary server, specifies the failover backup
+    server for the high-availability pair. Use the internet name of the
+    backup server as 'host' or 'host:port' if it is not running on port
     5672.  Do not specify this option together with the 'primary' option.
     </doc>
     </property>
-    
+
     <property name = "primary" type = "icl_shortstr_t" default = "">
     Failover primary host:port
     <doc>
     Used when running the backup server, specifies the failover primary
-    server for the high-availability pair. Use the internet name of the 
-    primary server as 'host' or 'host:port' if it is not running on port 
+    server for the high-availability pair. Use the internet name of the
+    primary server as 'host' or 'host:port' if it is not running on port
     5672.  Do not specify this option together with the 'backup' option.
     </doc>
     </property>
@@ -361,11 +379,11 @@ $\(selftype)
     <property name = "timeout" type = "int" default = "5" min = "1" max = "60" prefix = "failover">
     Failover timeout, in seconds
     <doc>
-    Specifies the delay in seconds after which the backup peer will become 
-    the primary peer.  This switch over will happen only if and when an 
-    application connects to the backup peer after the failover timeout has 
+    Specifies the delay in seconds after which the backup peer will become
+    the primary peer.  This switch over will happen only if and when an
+    application connects to the backup peer after the failover timeout has
     expired.  Reducing this value will allow failover to happen faster but
-    will increase the risk of unnecessary failover due to transient network 
+    will increase the risk of unnecessary failover due to transient network
     issues.
     </doc>
     </property>
@@ -375,7 +393,7 @@ $\(selftype)
     <property name = "attach" type = "icl_shortstr_t" default = "">
     Enable auto-federation to specified host
     <doc>
-    If specified, the server will auto-federate to the specified parent 
+    If specified, the server will auto-federate to the specified parent
     OpenAMQ server.  This federates three exchanges: amq.service (a direct
     exchange) using a service federation; amq.data (a topic exchange) using
     a fanout federation; and amq.dataex (a headers exchange) using a fanout
@@ -388,8 +406,8 @@ $\(selftype)
     <property name = "attach vhost" type = "icl_shortstr_t" default = "/">
     Auto-federation virtual host name
     <doc>
-    Specifies the auto-federation vhost name, an arbitrary string that 
-    will be used when connecting to the parent server. This must match 
+    Specifies the auto-federation vhost name, an arbitrary string that
+    will be used when connecting to the parent server. This must match
     the vhost setting of the parent server.
     </doc>
     </property>
@@ -397,7 +415,7 @@ $\(selftype)
     <property name = "attach login" type = "icl_shortstr_t" default = "peering">
     Auto-federation login user name
     <doc>
-    Specifies the user name to be used when logging in.  You do not need to 
+    Specifies the user name to be used when logging in.  You do not need to
     specify a password, it is taken from the security section.
     </doc>
     </property>
@@ -418,10 +436,10 @@ $\(selftype)
     <property name = "batching" type = "int" max = "2097152" default = "32768">
     Maximum size of Direct Mode batches
     <doc>
-    Defines the maximum batch size for Direct Mode opportunistic batching on 
-    message sends.  Setting this higher will improve throughput, and usually 
-    with lower latency, but will cause higher memory consumption.  Setting 
-    this to zero will switch off batching.  Any value less than 2048 is 
+    Defines the maximum batch size for Direct Mode opportunistic batching on
+    message sends.  Setting this higher will improve throughput, and usually
+    with lower latency, but will cause higher memory consumption.  Setting
+    this to zero will switch off batching.  Any value less than 2048 is
     treated as zero.
     </doc>
     </property>
