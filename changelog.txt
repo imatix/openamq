@@ -92,6 +92,21 @@ TODO
     - redesign queue->consumer->channel using portals
     - also for exchange->binding->queue?
 
+
+2009-05-01
+
+* added: in amq_server console, you can see all bindings for a queue (1.4)
+* added: in amq_server console, verbose option to see all private queues, must be superuser (1.4)
+
+2009-04-30
+
+* fixed: socket management layer was leaking socket descriptors (1.3, 1.4)
+* added: --user and --group options to switch to unprivileged user (1.3, 1.4) (TODO: DOC)
+* changed: response to socket exhaustion improved (BASE2-312, 1.3, 1.4)
+* added: new option --accept-retry-timeout tunes server response to socket exhaustion (BASE2-312, 1.3, 1.4) (TODO: DOC)
+* fixed: WireAPI Direct Mode layer was leaking connections (DAMQ-33, 1.3, 1.4)
+* fixed: WireAPI Direct Mode layer could abort at shutdown (AMQ-599, 1.3, 1.4)
+
 2009-04-21
 
 * added: regular expression exchange (http://www.pcre.org, 1.4)

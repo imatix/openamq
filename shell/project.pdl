@@ -28,23 +28,24 @@
 <inherit filename = "icl_classes.pdl" />
 <inherit filename = "smt_classes.pdl" />
 
-<file name = "gpl_output"               class = "private resource"  >Generated code is licensed under the GPL</file>
-<file name = "version.h"                class = "c version"         >Project version file</file>
-<file name = "libamq_shell"             class = "public library"    >Object library</file>
+<file name = "gpl_output"                   class = "private resource"  >Generated code is licensed under the GPL</file>
+<file name = "version.h"                    class = "c version"         >Project version file</file>
+<file name = "libamq_shell"                 class = "public library"    >Object library</file>
 
 <!-- OpenAMQ Management Console front-end -->
-<file name = "amq_shell"                class = "public command"    >Console shell</file>
-<file name = "amq_shell.c"              class = "main program"      >Management console</file>
-<file name = "amq_mgt_console.icl"      class = "icl public class"  >Management console class</file>
-<file name = "amq_mgt_broker.icl"       class = "icl public cont"   >Management broker class</file>
-<file name = "amq_mgt_exchange.icl"     class = "icl public cont"   >Management exchange class</file>
-<file name = "amq_mgt_binding.icl"      class = "icl public cont"   >Management binding class</file>
-<file name = "amq_mgt_queue.icl"        class = "icl public cont"   >Management queue class</file>
-<file name = "amq_mgt_config.icl"       class = "icl public cont"   >Management config class</file>
-<file name = "amq_mgt_connection.icl"   class = "icl public cont"   >Management connection class</file>
-<file name = "amq_mgt_queue_connection.icl" class = "icl public cont">Management queue connection class</file>
-<file name = "amq_mgt_connection_queue.icl" class = "icl public cont">Management connection queue class</file>
-<file name = "amq_operate_api.gsl"      class = "public resource"   >Generates the operator API</file>
+<file name = "amq_shell"                    class = "public command"    >Console shell</file>
+<file name = "amq_shell.c"                  class = "main program"      >Management console</file>
+<file name = "amq_mgt_console.icl"          class = "icl public class"  >Management console class</file>
+<file name = "amq_mgt_broker.icl"           class = "icl public cont"   >Management broker class</file>
+<file name = "amq_mgt_exchange.icl"         class = "icl public cont"   >Management exchange class</file>
+<file name = "amq_mgt_binding.icl"          class = "icl public cont"   >Management binding class</file>
+<file name = "amq_mgt_queue.icl"            class = "icl public cont"   >Management queue class</file>
+<file name = "amq_mgt_config.icl"           class = "icl public cont"   >Management config class</file>
+<file name = "amq_mgt_connection.icl"       class = "icl public cont"   >Management connection class</file>
+<file name = "amq_mgt_queue_connection.icl" class = "icl public cont"   >Management queue connection class</file>
+<file name = "amq_mgt_queue_binding.icl"    class = "icl public cont"   >Management queue binding class</file>
+<file name = "amq_mgt_connection_queue.icl" class = "icl public cont"   >Management connection queue class</file>
+<file name = "amq_operate_api.gsl"          class = "public resource"   >Generates the operator API</file>
 
 <!-- Generate AMQ operate API -->
 <actions>

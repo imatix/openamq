@@ -77,9 +77,13 @@ class.  This is a lock-free asynchronous class.
                 icl_shortstr_cpy (field_value, "");
           </get>
         </field>
+        <field name = "exchange_name" label = "Exchange name">
+          <rule name = "show on summary" />
+          <get>icl_shortstr_cpy (field_value, self->last_exchange_name);</get>
+        </field>
         <field name = "exchange_type" label = "Exchange type">
           <rule name = "show on summary" />
-          <get>icl_shortstr_cpy (field_value, amq_exchange_type_name (self->last_exchange_type));</get>
+          <get>icl_shortstr_cpy (field_value, self->last_exchange_type);</get>
         </field>
         <field name = "routing_key" label = "Routing key">
           <rule name = "show on summary" />
@@ -134,6 +138,29 @@ class.  This is a lock-free asynchronous class.
           </next>
         </class>
 
+        <class name = "queue_binding" label = "Queue bindings" repeat = "1">
+          <local>
+            amq_queue_binding_t
+                *queue_binding;
+            ipr_looseref_t
+                *looseref;
+          </local>
+          <get>
+            looseref = ipr_looseref_list_first (self->bindings);
+            if (looseref) {
+                queue_binding = (amq_queue_binding_t *) (looseref->object);
+                icl_shortstr_fmt (field_value, "%d", queue_binding->object_id);
+            }
+          </get>
+          <next>
+            looseref = ipr_looseref_list_next (&looseref);
+            if (looseref) {
+                queue_binding = (amq_queue_binding_t *) (looseref->object);
+                icl_shortstr_fmt (field_value, "%d", queue_binding->object_id);
+            }
+          </next>
+        </class>
+
         <method name = "purge" label = "Purge all queue messages">
           <exec>amq_queue_basic_purge (self->queue_basic);</exec>
         </method>
@@ -154,12 +181,14 @@ class.  This is a lock-free asynchronous class.
         locked;                         //  Queue for exclusive consumer?
     amq_queue_basic_t
         *queue_basic;                   //  Basic content queue
-    int
-        last_exchange_type;             //  Last exchange type bound to
     icl_shortstr_t
+        last_exchange_name,             //  Last exchange bound to
+        last_exchange_type,             //  Last exchange type bound to
         last_routing_key;               //  Last routing key
     icl_shortstr_t
         last_binding_args;              //  Last binding arguments
+    ipr_looseref_list_t
+        *bindings;                      //  List of bindings for queue
     qbyte
         warn_limit,                     //  Warn user that we're in trouble
         drop_limit,                     //  Drop new incoming messages
@@ -207,6 +236,7 @@ class.  This is a lock-free asynchronous class.
     self->exclusive   = exclusive;
     self->auto_delete = auto_delete;
     self->queue_basic = amq_queue_basic_new (self);
+    self->bindings    = ipr_looseref_list_new ();
     icl_shortstr_cpy (self->name, name);
     amq_queue_list_queue (amq_broker->queue_list, self);
     if (amq_server_config_debug_queue (amq_server_config))
@@ -254,11 +284,25 @@ class.  This is a lock-free asynchronous class.
 
 <method name = "destroy">
     <action>
+    ipr_looseref_t
+        *looseref;
+    amq_queue_binding_t
+        *queue_binding;
+
     amq_server_connection_unlink (&self->connection);
     if (amq_server_config_debug_queue (amq_server_config))
         smt_log_print (amq_broker->debug_log, "Q: destroy  queue=%s", self->name);
 
     amq_queue_basic_destroy (&self->queue_basic);
+
+    //  Destroy management list of bindings for queue
+    looseref = ipr_looseref_list_first (self->bindings);
+    while (looseref) {
+        queue_binding = (amq_queue_binding_t *) (looseref->object);
+        amq_queue_binding_destroy (&queue_binding);
+        looseref = ipr_looseref_list_next (&looseref);
+    }
+    ipr_looseref_list_destroy (&self->bindings);
     </action>
 </method>
 
@@ -449,7 +493,7 @@ class.  This is a lock-free asynchronous class.
     </action>
 </method>
 
-<event name = "auto_delete">
+<event name = "auto delete">
     <action>
     //  If we're still at zero consumers, self-destruct
     if (amq_queue_basic_consumer_count (self->queue_basic) == 0) {
@@ -545,36 +589,60 @@ class.  This is a lock-free asynchronous class.
     rc = amq_queue_basic_consumer_count (self->queue_basic);
 </method>
 
-<method name = "set last binding" template = "async function">
+<method name = "binding register" template = "async function">
     <doc>
-    Sets the last binding information for the queue. We do this via an
-    async method to avoid two threads squashing the queue's context at the
-    same time. The last binding information is used only by the console.
+    Register new binding for the queue.  The binding information is used
+    by the console only.
     </doc>
-    <argument name = "exchange type" type = "int"></argument>
-    <argument name = "routing key" type = "char *"></argument>
-    <argument name = "arguments" type = "icl_longstr_t*"></argument>
+    <argument name = "exchange" type = "amq_exchange_t *"></argument>
+    <argument name = "binding" type = "amq_binding_t *"></argument>
     //
     <possess>
-    routing_key = icl_mem_strdup (routing_key);
-    arguments = icl_longstr_dup (arguments);
+    exchange = amq_exchange_link (exchange);
+    binding = amq_binding_link (binding);
     </possess>
     <release>
-    icl_longstr_destroy (&arguments);
-    icl_mem_free (routing_key);
+    amq_exchange_unlink (&exchange);
+    amq_binding_unlink (&binding);
     </release>
     <action>
-    asl_field_list_t
-        *field_list;
+    ipr_looseref_queue (self->bindings, amq_queue_binding_new (self, exchange, binding));
+    </action>
+</method>
 
-    self->last_exchange_type = exchange_type;
-    icl_shortstr_cpy (self->last_routing_key, routing_key);
+<method name = "binding cancel" template = "async function">
+    <doc>
+    Cancel binding for the queue. The binding information is used
+    by the console only.
+    </doc>
+    <argument name = "exchange" type = "amq_exchange_t *"></argument>
+    <argument name = "binding" type = "amq_binding_t *"></argument>
+    //
+    <possess>
+    exchange = amq_exchange_link (exchange);
+    binding = amq_binding_link (binding);
+    </possess>
+    <release>
+    amq_exchange_unlink (&exchange);
+    amq_binding_unlink (&binding);
+    </release>
+    <action>
+    amq_queue_binding_t
+        *queue_binding;
+    ipr_looseref_t
+        *looseref;
 
-    // Convert binding arguments to human readable string
-    field_list = asl_field_list_new (arguments);
-    assert (field_list);
-    asl_field_list_dump (field_list, self->last_binding_args);
-    asl_field_list_destroy (&field_list);
+    looseref = ipr_looseref_list_first (self->bindings);
+    while (looseref) {
+        queue_binding = (amq_queue_binding_t *) (looseref->object);
+        if (queue_binding->exchange == exchange
+        &&  queue_binding->binding == binding) {
+            ipr_looseref_list_remove (looseref);
+            amq_queue_binding_destroy (&queue_binding);
+            break;
+        }
+        looseref = ipr_looseref_list_next (&looseref);
+    }
     </action>
 </method>
 

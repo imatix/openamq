@@ -78,17 +78,15 @@
                 *queue;
           </local>
           <get>
-            //  Get first queue and then skip private queues
             queue = amq_queue_list_first (self->queue_list);
-            while (queue && queue->exclusive)
+            while (queue && !self->verbose && queue->exclusive)
                 queue = amq_queue_list_next (&queue);
             if (queue)
                 icl_shortstr_fmt (field_value, "%d", queue->object_id);
           </get>
           <next>
-            //  Get next queue and then skip private queues
             queue = amq_queue_list_next (&queue);
-            while (queue && queue->exclusive)
+            while (queue && !self->verbose && queue->exclusive)
                 queue = amq_queue_list_next (&queue);
             if (queue)
                 icl_shortstr_fmt (field_value, "%d", queue->object_id);
@@ -138,6 +136,15 @@
           <field name = "setting" type = "bool" label = "1|0"/>
           <exec>self->locked = setting;</exec>
         </method>
+
+        <method name = "verbose" label = "Show all queues">
+          <doc>
+          Enables or disables listing of exclusive queues.  By default the broker
+          only lists shared queues.
+          </doc>
+          <field name = "setting" type = "bool" label = "1|0"/>
+          <exec>self->verbose = setting;</exec>
+        </method>
     </class>
 </data>
 
@@ -160,7 +167,8 @@
         *shared_queues;                 //  Cluster shared queues
     Bool
         locked,                         //  Is broker locked?
-        restart;                        //  Restart broker after exit?
+        restart,                        //  Restart broker after exit?
+        verbose;                        //  Show exclusive queues?
     int
         dump_state_timer,               //  Dump state timer
         auto_crash_timer,               //  Automatic failure

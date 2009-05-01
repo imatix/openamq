@@ -313,7 +313,7 @@ Logged data always shows the date and time, then a single letter to indicate the
 
 +++ Syslog support
 
-OpenAMQ supports syslog on systems where it is available (Unix and Linux, but not Windows).  If you use syslog, the normal text log files are not produced, and amq_server instead sends its logging data to the syslog "user" facility.  The priority of the logged data is 'warning' for the error log, 'info' for the daily log, and 'debug' for the debug log.
+OpenAMQ supports syslog on systems where it is available (Unix and Linux, but not Windows).  If you use syslog, the normal text log files are not produced, and amq_server instead sends its logging data to the syslog LOG_DAEMON facility.  The priority of the logged data is 'warning' for the error log, 'info' for the daily log, and 'debug' for the debug log.
 
 ++ Monitoring the server
 

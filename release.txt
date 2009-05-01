@@ -1,6 +1,6 @@
 + Unstable branch
 
-++ 1.4b2 - 2009/04/xx
+++ 1.4b2 - 2009/04/22
 
 * fixed: failover detects attempt to connect to self as primary or backup (AMQ-597)
 * fixed: federation detects attempt to connect to self (--attach localhost) (AMQ-597)
@@ -19,7 +19,6 @@
 * added: amq.regexp is default regexp exchange
 * added: semi-active failover feature added (http://www.openamq.org/issue:21)
 * added: zyre: debug facility for RestMS processing.
-* added: Boom BOOM_CORES=n option to parallelize compile & link on multicore Unix boxes
 
 ++ 1.4b1 - 2009/03/29
 
@@ -105,7 +104,7 @@ All changes in 1.3c3 onwards plus:
 
 + Stable branch
 
-++ 1.3c6 - 2009/04/xx
+++ 1.3c6 - 2009/04/22
 
 * added: semi-active failover feature added (http://www.openamq.org/issue:21)
 * fixed: server assertion on large direct mode messages (http://www.openamq.org/issue:53)

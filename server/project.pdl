@@ -95,6 +95,7 @@
                                          class = "icl private cont"  >Consumers per channel</file>
 <file name = "amq_consumer_basic.icl"    class = "icl private class" >Basic consumer class</file>
 <file name = "amq_queue_connection.icl"  class = "async public"      >Queue-connection mgt class</file>
+<file name = "amq_queue_binding.icl"     class = "async public"      >Queue-binding mgt class</file>
 <file name = "amq_connection_queue.icl"  class = "async public"      >Connection-queue mgt class</file>
 <file name = "amq_resource.icl"          class = "icl public class"  >AMQP/Rest functionality</file>
 <file name = "amq_server_method.icl"     class = "icl private cont"  >Server method class</file>

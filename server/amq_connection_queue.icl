@@ -59,9 +59,13 @@ consumer object.
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", queue->exclusive);</get>
         </field>
+        <field name = "exchange_name" label = "Exchange name">
+          <rule name = "show on summary" />
+          <get>icl_shortstr_cpy (field_value, queue->last_exchange_name);</get>
+        </field>
         <field name = "exchange_type" label = "Exchange type">
           <rule name = "show on summary" />
-          <get>icl_shortstr_cpy (field_value, amq_exchange_type_name (queue->last_exchange_type));</get>
+          <get>icl_shortstr_cpy (field_value, queue->last_exchange_type);</get>
         </field>
         <field name = "routing_key" label = "Routing key">
           <rule name = "show on summary" />
