@@ -161,8 +161,6 @@ This class implements the RestMS feed object.
         //  Create a content and attach to feed
         zyre_resource_t
             *content;
-        ipr_tree_t
-            *tree;
 
         //  Create a new content resource and attach to the feed resource
         content = zyre_content__zyre_resource_new (NULL, portal, table, "content", "");

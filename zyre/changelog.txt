@@ -1,5 +1,11 @@
 Zyre change log
 
+2009-04-30
+
+* added: --user and --group options to switch to unprivileged user
+* changed: response to socket exhaustion improved
+* added: new option --accept-retry-timeout tunes server response to socket exhaustion
+
 2009-03-18
 
 * fixed: Zyre aborted on POST to domain with empty content
