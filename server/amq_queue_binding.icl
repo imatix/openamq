@@ -82,9 +82,6 @@ This class shows one queue binding, navigable from the queue object.
         *field_list;
     </local>
     //
-    asl_field_list_t
-        *field_list;
-
     //  Don't link to these objects because it makes deconstruction impossible
     self->queue    = queue;
     self->exchange = exchange;

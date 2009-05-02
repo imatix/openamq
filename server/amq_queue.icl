@@ -284,6 +284,7 @@ class.  This is a lock-free asynchronous class.
 
 <method name = "destroy">
     <action>
+	{
     ipr_looseref_t
         *looseref;
     amq_queue_binding_t
@@ -303,6 +304,7 @@ class.  This is a lock-free asynchronous class.
         looseref = ipr_looseref_list_next (&looseref);
     }
     ipr_looseref_list_destroy (&self->bindings);
+	}
     </action>
 </method>
 
