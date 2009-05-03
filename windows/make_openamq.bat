@@ -3,73 +3,70 @@ echo Version numbers must be correct in source code.
 echo Updating from SVN, rebuilding from scratch
 set VERSION=%1
 set PASSWORD=%2
+set QUICK=%3
 if .%VERSION%==. (
-    echo Syntax: "make_openamq version password", e.g. "make_openamq 1.4a4 Secret"
+    echo Syntax: "make_openamq version password [-quick]", e.g. "make_openamq 1.4a4 Secret -quick"
     exit /b 1
 )
-:- Update all projects from SVN
-echo Updating projects from SVN...
-cd \work\trunk\
-svn --quiet update foreign base1 base2 openamq
 
-:- reconfigure and regenerate all projects
-cd \work\trunk\foreign
-call boom configure regen
-cd \work\trunk\base1
-call boom configure regen
-cd \work\trunk\base2
-call boom configure regen
-cd \work\trunk\openamq
-call boom configure regen
+if %QUICK%.==. (
+    :- Update all projects from SVN
+    echo Updating projects from SVN...
+    cd \work\trunk\
+    svn --quiet update foreign base1 base2 openamq
 
+    :- reconfigure and regenerate all projects
+    cd \work\trunk\foreign
+    call boom configure regen
+    cd \work\trunk\base1
+    call boom configure regen
+    cd \work\trunk\base2
+    call boom configure regen
+    cd \work\trunk\openamq
+    call boom configure regen
+)
 :- Build debug packages into %IBASE_HOME%\debug
 echo Preparing for debug build...
 call c:\work\debug
 cd \work\trunk\openamq\windows
 msbuild OpenAMQ.sln /nologo /t:Clean /v:quiet
+set CONFIG=Debug
 
-echo Building Foreign/debug...
-msbuild OpenAMQ.sln /nologo /t:libzip /p:Configuration=Debug /v:quiet
-cd \work\trunk\foreign
-call boom install
-cd \work\trunk\openamq\windows
+call build_target foreign         libzip
+call build_target base2\xnf
+call build_target base2\icl       libicl
+call build_target base2\ipr       libipr
+call build_target base2\smt       libsmt
+call build_target base2\opf       libopf
+call build_target base2\asl       libasl
+call build_target base2\http      libhttp
+call build_target base2\xitami    xitami
+call build_target openamq\common  libamq_common
+call build_target openamq\server  amq_server
+call build_target openamq\wireapi amq_client
+call build_target openamq\shell   amq_shell
+call build_target openamq\zyre    zyre
 
-echo Building Base2/debug...
-msbuild OpenAMQ.sln /nologo /t:xitami /p:Configuration=Debug /v:quiet
-cd \work\trunk\base2
-call boom install
-cd \work\trunk\openamq\windows
 
-echo Building OpenAMQ/debug...
-msbuild OpenAMQ.sln /nologo /t:zyre /p:Configuration=Debug /v:quiet
-cd \work\trunk\openamq
-call boom install
-cd \work\trunk\openamq\windows
-
-:release
-:- Build release packages into %IBASE_HOME%\release
-echo Preparing for release build...
 call c:\work\release
 cd \work\trunk\openamq\windows
 msbuild OpenAMQ.sln /nologo /t:Clean /v:quiet
+set CONFIG=Release
 
-echo Building Foreign/release...
-msbuild OpenAMQ.sln /nologo /t:libzip /p:Configuration=Release /v:quiet
-cd \work\trunk\foreign
-call boom install
-cd \work\trunk\openamq\windows
-
-echo Building Base2/release...
-msbuild OpenAMQ.sln /nologo /t:xitami /p:Configuration=Release /v:quiet
-cd \work\trunk\base2
-call boom install
-cd \work\trunk\openamq\windows
-
-echo Building OpenAMQ/release...
-msbuild OpenAMQ.sln /nologo /t:zyre /p:Configuration=Release /v:quiet
-cd \work\trunk\openamq
-call boom install
-cd \work\trunk\openamq\windows
+call build_target foreign         libzip
+call build_target base2\xnf
+call build_target base2\icl       libicl
+call build_target base2\ipr       libipr
+call build_target base2\smt       libsmt
+call build_target base2\opf       libopf
+call build_target base2\asl       libasl
+call build_target base2\http      libhttp
+call build_target base2\xitami    xitami
+call build_target openamq\common  libamq_common
+call build_target openamq\server  amq_server
+call build_target openamq\wireapi amq_client
+call build_target openamq\shell   amq_shell
+call build_target openamq\zyre    zyre
 
 rm -rf *.zip
 echo Building packages...
