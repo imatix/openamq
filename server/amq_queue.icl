@@ -664,7 +664,7 @@ s_set_queue_limits ($(selftype) *self, char *profile)
     char
         *action_text;                   //  Limit action as string
 
-    config = ipr_config_dup (amq_server_config->config);
+    config = ipr_config_dup (amq_server_config_table (amq_server_config));
     ipr_config_locate (config, "/config/queue_profile", profile);
 
     if (!config->located) {

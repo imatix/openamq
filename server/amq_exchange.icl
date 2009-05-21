@@ -266,7 +266,7 @@ for each type of exchange. This is a lock-free asynchronous class.
                         AMQ_FEDERATION_SERVICE: AMQ_FEDERATION_FANOUT;
 
     //  First take settings from configuration file if possible
-    config = ipr_config_dup (amq_server_config->config);
+    config = ipr_config_dup (amq_server_config_table (amq_server_config));
     ipr_config_locate (config, "/config/federate", "");
     while (config->located) {
         char

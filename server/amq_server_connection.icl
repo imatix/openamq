@@ -187,7 +187,7 @@ static int s_auth_plain (
             AMQ_SERVER_CONNECTION, AMQ_SERVER_CONNECTION_START_OK);
         return (0);
     }
-    config = ipr_config_dup (amq_server_config->config);
+    config = ipr_config_dup (amq_server_config_table (amq_server_config));
     ipr_config_locate (config, "/config/security", "plain");
     if (!config->located) {
         smt_log_print (amq_broker->alert_log,

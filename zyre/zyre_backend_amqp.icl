@@ -115,7 +115,7 @@ link becomes active, and when a message content arrives.
     char
         *login = "peering";             //  Local user name for credentials
 
-    config = ipr_config_dup (zyre_peer_config->config);
+    config = ipr_config_dup (zyre_peer_config_table (zyre_peer_config));
     ipr_config_locate (config, "/config/security", "plain");
     if (config->located)
         ipr_config_locate (config, "user", login);
@@ -363,7 +363,7 @@ link becomes active, and when a message content arrives.
     Then start asynchronous client connection (zyre_peer_agent)
     </doc>
     zyre_peer_config = zyre_peer_config_new ();
-    zyre_peer_config_shadow (zyre_peer_config, zyre_config->config);
+    zyre_peer_config_shadow (zyre_peer_config, zyre_config_table (zyre_config));
     zyre_peer_agent_init ();
 </method>
 

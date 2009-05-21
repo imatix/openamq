@@ -195,7 +195,7 @@ typedef int (amq_peering_return_fn) (
         *config;                        //  Current server config file
     </local>
     //
-    config = ipr_config_dup (amq_peer_config->config);
+    config = ipr_config_dup (amq_server_config_table (amq_server_config));
     ipr_config_locate (config, "/config/security", "plain");
     if (config->located)
         ipr_config_locate (config, "user", login);

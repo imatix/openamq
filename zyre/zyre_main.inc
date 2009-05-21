@@ -235,7 +235,7 @@ s_zyre_initialise (int argc, char *argv [])
     //  Now shadow http_config from zyre_config so that we can run the
     //  Xitami core properly
     http_config = http_config_new ();
-    http_config_shadow (http_config, zyre_config->config);
+    http_config_shadow (http_config, zyre_config_table (zyre_config));
 
     //  Set system options from configuration
 #   if defined (BASE_THREADSAFE)
