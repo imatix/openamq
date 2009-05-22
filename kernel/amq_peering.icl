@@ -54,7 +54,8 @@ this, set the environment variable AMQ_PEERING_TEST=1 and run an amq_server.
 
 This is a summary of the amq_peering API:
 
-    peering = amq_peering_new (remote-host-name, virtual-host, trace-level)
+    peering = amq_peering_new (remote-host-name, virtual-host, trace-level, 
+                               heartbeat)
         Create a new peering to the specified host and virtual host.
 
     amq_peering_set_login (peering, login-name)
@@ -112,7 +113,9 @@ typedef int (amq_peering_return_fn) (
     icl_longstr_t
         *auth_data;                     //  Authentication data
     int
-        trace;                          //  Trace level
+        trace,                          //  Trace level
+        heartbeat;                      //  Heartbeat interval
+                                        //  (0 = use server default)
     smt_thread_t
         *peer_agent_thread;             //  Active agent thread if any
     dbyte
@@ -142,10 +145,12 @@ typedef int (amq_peering_return_fn) (
     <argument name = "host" type = "char *">Host to connect to</argument>
     <argument name = "virtual host" type = "char *">Virtual host</argument>
     <argument name = "trace" type = "int">Trace level, 0 - 3</argument>
+    <argument name = "heartbeat" type = "int">Heartbeat interval</argument>
     //
     icl_shortstr_cpy (self->host, host);
     icl_shortstr_cpy (self->virtual_host, virtual_host);
     self->trace = trace;
+    self->heartbeat = heartbeat;
 
     //  Create binding state lists
     self->bindings = ipr_looseref_list_new ();
@@ -497,7 +502,8 @@ typedef int (amq_peering_return_fn) (
             self->virtual_host,
             self->auth_data,
             "Peering connection",       //  Instance name
-            self->trace);
+            self->trace,
+            self->heartbeat);
 
         self->channel_nbr = 1;          //  Single channel per connection
         amq_peer_agent_channel_open (self->peer_agent_thread, self->channel_nbr);
@@ -653,7 +659,7 @@ s_test_content_handler (
 
         //  **************   Peering example starts here   *******************
         //  Create a new peering to local AMQP server
-        peering = amq_peering_new ("localhost", "/", 1);
+        peering = amq_peering_new ("localhost", "/", 1, 0);
 
         //  Set login credentials
         amq_peering_set_login (peering, "peering");

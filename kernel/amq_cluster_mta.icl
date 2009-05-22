@@ -40,12 +40,13 @@
     <argument name = "login" type = "char *" />
     <argument name = "exchange" type = "amq_exchange_t *" />
     <argument name = "mode" type = "int" />
+    <argument name = "heartbeat" type = "int" />
     //
     assert (AMQ_MTA_MODE_VALID (mode));
     
     self->exchange = amq_exchange_link (exchange);
     self->mode = mode;
-    self->peering = amq_peering_new (host, virtual_host, amq_server_config_trace (amq_server_config));
+    self->peering = amq_peering_new (host, virtual_host, amq_server_config_trace (amq_server_config), heartbeat);
     amq_peering_set_login           (self->peering, login);
     amq_peering_set_content_handler (self->peering, s_content_handler, self);
     amq_peering_set_return_handler  (self->peering, s_return_handler, self);

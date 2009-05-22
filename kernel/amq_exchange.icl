@@ -145,7 +145,9 @@ for each type of exchange. This is a lock-free asynchronous class.
         *mta_vhost,                     //  Virtual host for MTA
         *mta_login;                     //  Login name for MTA
     int
-        mta_mode;                       //  MTA mode
+        mta_mode,                       //  MTA mode
+        mta_heartbeat;                  //  MTA peering connection heartbeat
+                                        //  (0 = use heartbeat from server)
     </local>
     //
     self->broker        = broker;
@@ -209,8 +211,9 @@ for each type of exchange. This is a lock-free asynchronous class.
         mta_vhost = ipr_config_get (config, "vhost", "/");
         mta_login = ipr_config_get (config, "login", "peering");
         mta_mode  = atoi (ipr_config_get (config, "mode", "0"));
+        mta_heartbeat = atoi (ipr_config_get (config, "heartbeat", "0"));
         if (AMQ_MTA_MODE_VALID (mta_mode)) {
-            self->mta = amq_cluster_mta_new (mta_host, mta_vhost, mta_login, self, mta_mode);
+            self->mta = amq_cluster_mta_new (mta_host, mta_vhost, mta_login, self, mta_mode, mta_heartbeat);
             self->mta_mode = mta_mode;
         }
         else

@@ -85,7 +85,7 @@
         self->peering = amq_peering_new (
             ha_peer,
             amq_server_config_cluster_vhost (amq_server_config),
-            amq_server_config_trace (amq_server_config));
+            amq_server_config_trace (amq_server_config), 0);
         amq_peering_set_login (self->peering, "peering");
         amq_peering_set_content_handler (self->peering, s_content_handler, self);
         amq_peering_start (self->peering);
