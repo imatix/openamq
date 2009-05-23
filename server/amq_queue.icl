@@ -274,7 +274,7 @@ class.  This is a lock-free asynchronous class.
     </action>
 </method>
 
-<method name = "unbind connection" template = "async function" async = "1">
+<method name = "unbind connection" template = "async function">
     <action>
     amq_queue_t
         *queue_ref;                     //  Need a reference to call destroy
@@ -298,7 +298,7 @@ class.  This is a lock-free asynchronous class.
     </action>
 </method>
 
-<method name = "publish" template = "async function" async = "1">
+<method name = "publish" template = "async function">
     <doc>
     Publish message content onto queue.
     </doc>
@@ -324,7 +324,7 @@ class.  This is a lock-free asynchronous class.
     </action>
 </method>
 
-<method name = "get" template = "async function" async = "1">
+<method name = "get" template = "async function">
     <doc>
     Returns next message off queue, if any.
     </doc>
@@ -342,7 +342,7 @@ class.  This is a lock-free asynchronous class.
     </action>
 </method>
 
-<method name = "consume" template = "async function" async = "1">
+<method name = "consume" template = "async function">
     <doc>
     Attach consumer to appropriate queue consumer list.
     </doc>
@@ -407,7 +407,7 @@ class.  This is a lock-free asynchronous class.
     </action>
 </method>
 
-<method name = "cancel" template = "async function" async = "1" on_shutdown = "1">
+<method name = "cancel" template = "async function" on_shutdown = "1">
     <doc>
     Cancel consumer, by reference, and alert client application if
     we're doing this in a synchronous exchange of methods.  If the
@@ -473,7 +473,7 @@ class.  This is a lock-free asynchronous class.
     </action>
 </event>
 
-<method name = "self destruct" template = "async function" async = "1">
+<method name = "self destruct" template = "async function">
     <doc>
     Self-destruct the queue.  This is somewhat delicate because it's
     an async object, and because it's linked to by exchanges/bindings
@@ -498,7 +498,18 @@ class.  This is a lock-free asynchronous class.
     </action>
 </method>
 
-<method name = "purge" template = "async function" async = "1">
+<method name = "consumer ack" template = "async function">
+    <doc>
+    Acknowledge messages on consumer, if any.
+    </doc>
+    <argument name = "consumer" type = "amq_consumer_t *">Consumer to ack</argument>
+    //
+    <action>
+    amq_queue_basic_consumer_ack (self->queue_basic, consumer);
+    </action>
+</method>
+
+<method name = "purge" template = "async function">
     <doc>
     Purge all content on a queue.
     </doc>
@@ -531,7 +542,7 @@ class.  This is a lock-free asynchronous class.
     </action>
 </method>
 
-<method name = "dispatch" template = "async function" async = "1">
+<method name = "dispatch" template = "async function">
     <doc>
     Dispatches all pending messages waiting on the specified message queue.
     </doc>
@@ -560,7 +571,7 @@ class.  This is a lock-free asynchronous class.
     rc = amq_queue_basic_consumer_count (self->queue_basic);
 </method>
 
-<method name = "set last binding" template = "async function" async = "1">
+<method name = "set last binding" template = "async function">
     <doc>
     Sets the last binding information for the queue. We do this via an
     async method to avoid two threads squashing the queue's context at the

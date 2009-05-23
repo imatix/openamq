@@ -461,7 +461,7 @@
     queue = amq_queue_table_search (vhost->queue_table, method->queue);
     if (queue) {
         //  The channel is responsible for creating/cancelling consumers
-        amq_server_channel_consume (channel, queue, self, method->nowait);
+        amq_server_channel_consume (channel, queue, self);
         amq_queue_unlink (&queue);
     }
     else
@@ -566,6 +566,10 @@
     else
         amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined",
             AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_GET);
+  </action>
+
+  <action name = "ack">
+    amq_server_channel_ack (channel, method->delivery_tag, method->multiple);
   </action>
 
   <action name = "cancel">

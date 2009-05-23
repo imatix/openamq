@@ -452,6 +452,21 @@ $\(selftype)
     </property>
 </path>
 
+<path name = "compatibility">
+    <property name = "no ack" type = "Bool" default = "0">
+    Do not implement acknowledgments
+    <doc>
+    Provides backwards compatibility with earlier versions of OpenAMQ for
+    use with shared queues.  From 1.4b4 and 1.3d0 onwards OpenAMQ treats
+    the Basic.Consume no-ack flag as meaningful, whereas prior versions
+    ignored this flag.  Applications that do not set this flag when
+    consuming from shared queues must now issue Basic.Ack for each message
+    they received.  The --no-ack option restores the prior way of working
+    and allows old applications to work unchanged.
+    </doc>
+    </property>
+</path>
+
 <path name = "internal">
     <property name = "auto crash" type = "int" default = "0" dynamic = "1">
     Auto-crash test timer, seconds

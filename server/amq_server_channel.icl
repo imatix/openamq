@@ -75,7 +75,7 @@ check the credit to decide whether or not to use the channel's consumers.
     amq_consumer_by_channel_destroy (&self->consumer_list);
 </method>
 
-<method name = "flow" template = "async function" async = "1">
+<method name = "flow" template = "async function">
     <doc>
     Implements the channel.flow method.  When a channel is restarted,
     we dispatch the channel's virtual host.
@@ -99,7 +99,7 @@ check the credit to decide whether or not to use the channel's consumers.
     </action>
 </method>
 
-<method name = "consume" template = "async function" async = "1">
+<method name = "consume" template = "async function">
     <doc>
     Creates a new channel consumer as specified.  Mechanism is as follows:
     server_channel creates consumer, then attaches it to own consumer list
@@ -107,7 +107,6 @@ check the credit to decide whether or not to use the channel's consumers.
     </doc>
     <argument name = "queue"  type = "amq_queue_t *">Queue to consume from</argument>
     <argument name = "method" type = "amq_server_method_t *">Consume method</argument>
-    <argument name = "nowait" type = "Bool">No reply method wanted</argument>
     //
     <possess>
     queue  = amq_queue_link (queue);
@@ -121,6 +120,8 @@ check the credit to decide whether or not to use the channel's consumers.
     <action>
     amq_consumer_t
         *consumer = NULL;
+    Bool
+        nowait = method->payload.basic_consume.nowait;
 
     if (strused (method->payload.basic_consume.consumer_tag))
         consumer = amq_consumer_table_search (
@@ -128,9 +129,11 @@ check the credit to decide whether or not to use the channel's consumers.
 
     //  If consumer tag specified, ignore re-consume of same tag on same queue
     if (consumer) {
-        if (consumer->queue == queue)
-            amq_server_agent_basic_consume_ok (
-                self->connection->thread, self->number, consumer->tag);
+        if (consumer->queue == queue) {
+            if (!nowait)
+                amq_server_agent_basic_consume_ok (
+                    self->connection->thread, self->number, consumer->tag);
+        }
         else
             amq_server_channel_error (self, ASL_NOT_ALLOWED, "Consumer tag used on other queue",
                 AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_CONSUME);
@@ -157,6 +160,26 @@ check the credit to decide whether or not to use the channel's consumers.
     </action>
 </method>
 
+<method name = "ack" template = "async function">
+    <doc>
+    Implements the Basic.Ack method on all consumers in the channel.
+    </doc>
+    <argument name = "delivery_tag" type = "int64_t">Delivery tag to ack</argument>
+    <argument name = "multiple" type = "Bool">Ack multiple messages?</argument>
+    //
+    <action>
+    amq_consumer_t
+        *consumer;                      //  Consumer object reference
+
+    consumer = amq_consumer_by_channel_first (self->consumer_list);
+    while (consumer) {
+        //  Get queue to do work on consumer so it's synchronized
+        amq_queue_consumer_ack (consumer->queue, consumer);
+        consumer = amq_consumer_by_channel_next (&consumer);
+    }
+    </action>
+</method>
+
 <method name = "earn">
     <local>
     amq_consumer_t
@@ -173,7 +196,7 @@ check the credit to decide whether or not to use the channel's consumers.
     }
 </method>
 
-<method name = "cancel" template = "async function" async = "1" on_shutdown = "1">
+<method name = "cancel" template = "async function" on_shutdown = "1">
     <doc>
     Cancels channel consumer specified by tag.  May be called either
     from method handler - sync true - or from queue agent - sync false.

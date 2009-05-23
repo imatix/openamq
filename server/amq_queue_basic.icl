@@ -27,9 +27,34 @@ This class implements the basic content queue manager. This class
 runs lock-free as a child of the asynchronous queue class.
 </doc>
 
-<inherit class = "amq_queue_base" />
+<inherit class = "icl_object">
+    <option name = "alloc" value = "cache" />
+</inherit>
+
+<import class = "amq_server_classes" />
+
+<context>
+    amq_queue_t
+        *queue;                         //  Parent queue
+    amq_consumer_by_queue_t
+        *consumer_list;                 //  List of consumers from the queue
+    ipr_looseref_list_t
+        *content_list;                  //  List of message contents
+
+    //  Statistics
+    size_t
+        accept_count,                   //  Number of messages accepted
+        dispatch_count;                 //  Number of messages dispatched
+    int64_t
+        delivery_tag;                   //  Message delivery tag
+</context>
 
 <method name = "new">
+    <argument name = "queue" type = "amq_queue_t *">Parent queue</argument>
+    //
+    self->queue            = queue;
+    self->consumer_list    = amq_consumer_by_queue_new ();
+    self->content_list     = ipr_looseref_list_new ();
 </method>
 
 <method name = "destroy">
@@ -38,8 +63,77 @@ runs lock-free as a child of the asynchronous queue class.
         *content;                       //  Content object reference
     </local>
     //
+    s_free_consumer_queue (self->consumer_list);
     while ((content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list)))
         amq_content_basic_unlink (&content);
+</method>
+
+<method name = "free">
+    amq_consumer_by_queue_destroy (&self->consumer_list);
+    ipr_looseref_list_destroy (&self->content_list);
+</method>
+
+<method name = "stop" template = "function">
+    <footer>
+    s_free_consumer_queue (self->consumer_list);
+    </footer>
+</method>
+
+<method name = "consume" template = "function">
+    <doc>
+    Attach consumer to appropriate queue consumer list.
+    </doc>
+    <argument name = "consumer" type = "amq_consumer_t *">Consumer reference</argument>
+    //
+    amq_consumer_by_queue_queue (self->consumer_list, consumer);
+</method>
+
+<method name = "cancel" template = "function">
+    <doc>
+    Cancel consumer.  This method synchronises with the server_channel
+    cancel method so each party handles their consumer lists separately.
+    </doc>
+    <argument name = "consumer" type = "amq_consumer_t *">Consumer reference</argument>
+    <local>
+    amq_content_basic_t
+        *content;
+    </local>
+    //
+    //  Consumer must have been removed from its per-channel list
+    assert (consumer->by_channel_next == consumer);
+    if (consumer->pending_content) {
+        content = amq_content_basic_link (consumer->pending_content);
+        if (content) {
+            if (amq_server_config_debug_queue (amq_server_config))
+                smt_log_print (amq_broker->debug_log,
+                    "Q: requeue  queue=%s message=%s **for redelivery**", self->queue->name, content->message_id);
+            ipr_looseref_push (self->content_list, content);
+            self_dispatch (self);
+            amq_consumer_content_release (consumer);
+        }
+    }
+    amq_consumer_destroy (&consumer);
+</method>
+
+<method name = "consumer ack" template = "function">
+    <doc>
+    Acknowledge messages on consumer, if any.
+    </doc>
+    <argument name = "consumer" type = "amq_consumer_t *">Consumer to ack</argument>
+    <local>
+    amq_content_basic_t
+        *content;
+    </local>
+    //
+    content = amq_content_basic_link (consumer->pending_content);
+    if (content) {
+        if (amq_server_config_debug_queue (amq_server_config))
+            smt_log_print (amq_broker->debug_log,
+                "Q: ack mesg queue=%s message=%s", self->queue->name, content->message_id);
+        amq_consumer_content_release (consumer);
+        amq_content_basic_unlink (&content);
+        self_dispatch (self);
+    }
 </method>
 
 <method name = "publish" template = "function">
@@ -94,7 +188,7 @@ runs lock-free as a child of the asynchronous queue class.
     queue_size = ipr_looseref_list_count (self->content_list);
     if (queue->warn_limit && queue_size >= queue->warn_limit && !queue->warned) {
         smt_log_print (amq_broker->alert_log,
-            "I: queue=%s hit %d messages: no action %s",
+            "W: queue=%s hit %d messages: no action %s",
             queue->name, queue_size, client_identifier);
         queue->warned = TRUE;
     }
@@ -152,7 +246,7 @@ runs lock-free as a child of the asynchronous queue class.
             have_active_consumers = FALSE;
             consumer = amq_consumer_by_queue_first (self->consumer_list);
             while (consumer) {
-                if (!consumer->paused) {
+                if (!consumer->paused && !consumer->pending_content) {
                     have_active_consumers = TRUE;
                     amq_consumer_unlink (&consumer);
                     break;
@@ -231,7 +325,8 @@ runs lock-free as a child of the asynchronous queue class.
     have_active_consumers = FALSE;
     consumer = amq_consumer_by_queue_first (self->consumer_list);
     while (consumer) {
-        if (!consumer->paused) {
+        //  Consumer is available if it's not paused, nor has pending content
+        if (!consumer->paused && !consumer->pending_content) {
             have_active_consumers = TRUE;
             amq_consumer_unlink (&consumer);
             break;
@@ -265,16 +360,24 @@ runs lock-free as a child of the asynchronous queue class.
                 amq_server_channel_spend (channel);
                 connection = amq_server_connection_link (channel->connection);
                 if (connection) {
+                    //  Hold content if consumer is acknowledged
+                    //  Queue must be shared queue
+                    if (!self->queue->exclusive && !consumer->no_ack
+                    &&  !amq_server_config_no_ack (amq_server_config))
+                        amq_consumer_content_hold (consumer, content);
+
+                    self->delivery_tag++;
                     amq_server_agent_basic_deliver (
                         connection->thread,
                         channel->number,
                         content,
                         consumer->tag,
-                        0,                  //  Delivery tag
-                        FALSE,              //  Redelivered
+                        self->delivery_tag,
+                        content->redelivered,
                         content->exchange,
                         content->routing_key,
                         consumer);
+
                     amq_server_connection_unlink (&connection);
                 }
                 amq_server_channel_unlink (&channel);
@@ -289,20 +392,6 @@ runs lock-free as a child of the asynchronous queue class.
             if (amq_server_config_debug_queue (amq_server_config))
                 smt_log_print (amq_broker->debug_log,
                     "Q: busy     queue=%s message=%s",
-                    self->queue->name, content->message_id);
-
-            //  No consumers right now, push content back onto list
-            ipr_looseref_push (self->content_list, content);
-            break;
-        }
-        else
-        //  CONSUMER_PAUSED can be returned if a consumer was paused since we
-        //  checked before entering the loop.  In this case, just treat it the
-        //  same as CONSUMER_BUSY.  TODO: Find a way to avoid this situation
-        if (rc == CONSUMER_PAUSED) {
-            if (amq_server_config_debug_queue (amq_server_config))
-                smt_log_print (amq_broker->debug_log,
-                    "Q: paused   queue=%s message=%s",
                     self->queue->name, content->message_id);
 
             //  No consumers right now, push content back onto list
@@ -392,5 +481,119 @@ runs lock-free as a child of the asynchronous queue class.
         rc++;
     }
 </method>
+
+<method name = "consumer count" template = "function">
+    <doc>
+    Return number of consumers for queue.
+    </doc>
+    //
+    rc = amq_consumer_by_queue_count (self->consumer_list);
+</method>
+
+<method name = "message count" template = "function">
+    <doc>
+    Returns number of messages on queue.
+    </doc>
+    //
+    rc = ipr_looseref_list_count (self->content_list);
+</method>
+
+<private name = "header">
+#define CONSUMER_FOUND  0
+#define CONSUMER_NONE   1
+#define CONSUMER_BUSY   2
+
+static int
+    s_get_next_consumer ($(selftype) *self, char *producer_id, amq_consumer_t **consumer_p);
+static void
+    s_free_consumer_queue (amq_consumer_by_queue_t *queue);
+</private>
+
+<private name = "footer">
+//  Find next consumer for queue and message
+//  - producer_id is used for local consumers,
+//  Returns CONSUMER_FOUND if a valid consumer is found
+//  Returns CONSUMER_NONE if no valid consumers are found
+//  Returns CONSUMER_BUSY if there are busy/paused consumers
+
+static int
+s_get_next_consumer (
+    $(selftype) *self,
+    char *producer_id,
+    amq_consumer_t **consumer_p)
+{
+    amq_consumer_t
+        *consumer;
+    int
+        rc = CONSUMER_NONE;
+    amq_server_connection_t
+        *connection;
+    amq_server_channel_t
+        *channel;
+    Bool
+        channel_active;
+
+    //  We expect to process the first consumer on the active list
+    consumer = amq_consumer_by_queue_first (self->consumer_list);
+    while (consumer) {
+        channel_active = FALSE;
+        channel = amq_server_channel_link (consumer->channel);
+        if (channel) {
+            connection = amq_server_connection_link (channel->connection);
+            if (connection)
+                channel_active = channel->active;
+        }
+        else
+            connection = NULL;
+
+        if (channel_active) {
+            if (icl_atomic_get32 ((volatile qbyte *) &channel->credit) < 1)
+                rc = CONSUMER_BUSY;     //  Skip this consumer if busy
+            else
+            if (consumer->no_local) {
+                //  If the consumer is an application then we can compare the
+                //  content producer_id with the connection id of the consumer.
+                if (strneq (connection->id, producer_id))
+                    rc = CONSUMER_FOUND; //  We have our consumer
+            }
+            else
+                rc = CONSUMER_FOUND;    //  We have our consumer
+        }
+        else
+            rc = CONSUMER_BUSY;         //  Skip this consumer
+
+        amq_server_connection_unlink (&connection);
+        amq_server_channel_unlink (&channel);
+        if (rc == CONSUMER_FOUND)
+            break;                      //  Return this consumer
+        else
+            consumer = amq_consumer_by_queue_next (&consumer);
+    }
+    *consumer_p = consumer;
+    return (rc);
+}
+
+static void
+s_free_consumer_queue (amq_consumer_by_queue_t *queue)
+{
+    amq_consumer_t
+        *consumer;
+    amq_server_channel_t
+        *channel;
+
+    if (queue) {
+        while ((consumer = amq_consumer_by_queue_pop (queue))) {
+            channel = amq_server_channel_link (consumer->channel);
+            if (channel) {
+                amq_server_channel_cancel (channel, consumer->tag, FALSE, TRUE);
+                amq_server_channel_unlink (&channel);
+            }
+            amq_consumer_destroy (&consumer);
+        }
+    }
+}
+</private>
+
+<method name = "selftest" />
 
 </class>

@@ -13,7 +13,7 @@ Under Linux/Unix, and under Windows, run this command from a console window:
 
     build
 
-You will need MSVC installed for command line use. Please see www.openamq.org 
+You will need MSVC installed for command line use. Please see www.openamq.org
 for more details.
 .   output "build.sh"
 
@@ -31,7 +31,9 @@ fi
 
 #   Build $(internal:)
 cd $(internal:)
-sh ./boomake build test install; 
+sh ./boomake build
+test $BOOM_NOTEST || sh ./boomake test
+sh ./boomake install;
 if [ \$? != 0 ]; then
     echo "E: Build of $(internal:) failed" 1>&2
     exit 1

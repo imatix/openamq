@@ -102,7 +102,6 @@
 <file name = "amq_queue_list.icl"        class = "icl private class" >List of queues</file>
 <file name = "amq_queue_agent.smt"       class = "smt public module"
                                          generated = "1"             >Server queue agent</file>
-<file name = "amq_queue_base.icl"        class = "private resource"  >Queue base class</file>
 <file name = "amq_queue_basic.icl"       class = "icl private class" >Basic content queue class</file>
 <file name = "amq_connection.icl"        class = "icl public class"  >Connection mgt class</file>
 <file name = "amq_connection_agent.smt"  class = "smt public module"
@@ -117,11 +116,11 @@
 <file name = "amq_consumer_basic.icl"    class = "icl private class" >Basic consumer class</file>
 <file name = "amq_queue_connection.icl"  class = "icl public class"  >Queue-connection mgt class</file>
 <file name = "amq_queue_connection_agent.smt"
-                                         class = "smt public module"     
+                                         class = "smt public module"
                                          generated = "1"             >Queue-connection mgt agent</file>
 <file name = "amq_connection_queue.icl"  class = "icl public class"  >Connection-queue mgt class</file>
 <file name = "amq_connection_queue_agent.smt"
-                                         class = "smt public module"     
+                                         class = "smt public module"
                                          generated = "1"             >Connection-queue mgt agent</file>
 <file name = "amq_server_method.icl"     class = "icl private cont"  >Server method class</file>
 <file name = "amq_server_base.cfg"       class = "public resource"   >Server config file</file>
@@ -132,7 +131,7 @@
 <file name = "amq_failover_agent.smt"    class = "smt public module"
                                          generated = "1"             >Failover agent</file>
 <file name = "amq_lease.icl"             class = "icl private class" >Server direct lease class</file>
-<file name = "amq_lease_table.icl"       class = "icl private cont"  
+<file name = "amq_lease_table.icl"       class = "icl private cont"
                                          generated = "1"             >Server lease container</file>
 
 <!-- OpenAMQ Management Console back-end -->

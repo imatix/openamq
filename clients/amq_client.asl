@@ -47,7 +47,12 @@
                 content->routing_key, content->exchange);
     }
     amq_client_session_push_arrived (
-        session, content, method->exchange, method->routing_key, NULL);
+        session,
+        content,
+        method->exchange,
+        method->routing_key,
+        NULL,                           //  No consumer tag for Get-Ok
+        method->delivery_tag);
   </action>
 
   <action name = "deliver">
@@ -57,7 +62,12 @@
                 content->routing_key, content->exchange);
     }
     amq_client_session_push_arrived (
-        session, content, method->exchange, method->routing_key, method->consumer_tag);
+        session,
+        content,
+        method->exchange,
+        method->routing_key,
+        method->consumer_tag,
+        method->delivery_tag);
   </action>
 
   <action name = "return">
