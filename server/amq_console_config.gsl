@@ -31,7 +31,7 @@
 <data name = "cml">
     <class name = "config" parent = "broker" label = "Configuration">
         <field name = "name" label = "Configuration name">
-          <get>icl_shortstr_cpy (field_value, amq_server_config->filename);</get>
+          <get>icl_shortstr_cpy (field_value, amq_server_config_filename (amq_server_config));</get>
         </field>
 .for property
 .   if type = "Bool"
