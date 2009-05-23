@@ -18,7 +18,7 @@
 
 <pdl
     name      = "OpenAMQ WireAPI"
-    version   = "1.4b3"
+    version   = "1.4c0"
     workflow  = "standard.pwl"
     library   = "libamq_wireapi"
     copyright = "Copyright (c) 2007-2009 iMatix Corporation"
