@@ -615,6 +615,23 @@ For production use you must define non-default passwords as explained below. If 
 W: security warning - logins use default passwords
 [[/code]]
 
++++ Running as an unprivileged user
+
+It is good practice to run the amq_server daemon as an unprivileged user, on systems that support it.  Use the --user and --group command line options to specify an unprivileged user and group that the server should switch to, after opening its port:
+
+[[code]]
+sudo amq_server --user amq-user --group amq-user
+[[/code]]
+
+You can also define this in the amq_server.cfg file:
+
+[[code]]
+amq_server.cfg:
+<config>
+    <server user = "amq-user" group = "amq-user" />
+</config>
+[[/code]]
+
 +++ Access controls
 
 AMQP applications must authenticate using a user login that amq_server accepts. User logins and corresponding passwords are defined in the server configuration file.

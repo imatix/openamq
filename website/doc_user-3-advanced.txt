@@ -592,15 +592,21 @@ There are two options for window control, one for private queues and one for sha
 : **/config/tuning/private_credit** : Defines the credit window for private queues. The credit window regulates the flow of messages internally. A higher value will move messages faster off private message queues and into the protocol transport threads. This will increase server memory consumption (before configured queue limits are applied) but can improve performance. For high performance applications we recommend using Direct Mode. To disable credit based flow control on private queues, set to zero. Default value is 1024.
 : **/config/tuning/shared_credit** : Defines the credit window for shared queues. The credit window regulates the flow of messages internally. The default value of 1 will provide the best response to blocked/slow clients working on shared queues. Set to zero to disable credit based flow control on shared queues. Default value is 1.
 
++++ Managing socket exhaustion
+
+An OpenAMQ server can be vulnerable to socket exhaustion, depending on the number of clients and the operating system configuration.  The server's strategy in case all available sockets are used is to reject new incoming connections during a configurable period, and then to retry.
+
+You can tune this period via the --accept_retry_timeout command-line argument (/config/tuning/accept_retry_timeout), which defaults to 60 seconds.
+
 +++ Tuning the memory allocator
 
 OpenAMQ uses a memory subsystem that can be tuned for different purposes. The tradeoff is between performance, and reporting of errors for debugging and to detect memory leaks.
 
 The memory subsystem selects an 'allocator' depending on the value of the ALLOCATOR environment variable:
 
-: **ALLOCATOR=thin** : The thin allocator tracks memory leaks and reports these when the server stops. This is the default allocator for production builds (when OpenAMQ is built with BOOM_MODEL=release).
 : **ALLOCATOR=fat** : The fat allocator tracks memory leaks and reports the source file and line number for any leak. This is the default allocator for debug builds. (when OpenAMQ is built with BOOM_MODEL=debug).
-: **ALLOCATOR=direct** : The direct allocator does no memory leak detection, and no debug tracking. It is a very thin layer over the system memory allocator (malloc). This is usually the fastest allocator.
+: **ALLOCATOR=direct** : The direct allocator does no memory leak detection, and no debug tracking. It is a very thin layer over the system memory allocator (malloc). This is the fastest allocator on Linux.  This is the default allocator for production builds (when OpenAMQ is built with BOOM_MODEL=release).
+: **ALLOCATOR=thin** : The thin allocator tracks memory leaks and reports these when the server stops.  This is the fastest allocator on Windows and Solaris, and probably other POSIX systems.
 
 We recommend that in a high-performance scenario (over 20k messages per second) you use ALLOCATOR=direct, while in normal scenarios you leave the default setting. As with all tuning options, test before and after using throughput and latency tests.
 

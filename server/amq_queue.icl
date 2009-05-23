@@ -532,6 +532,17 @@ class.  This is a lock-free asynchronous class.
     </action>
 </method>
 
+<method name = "consumer ack" template = "async function">
+    <doc>
+    Acknowledge messages on consumer, if any.
+    </doc>
+    <argument name = "consumer" type = "amq_consumer_t *">Consumer to ack</argument>
+    //
+    <action>
+    amq_queue_basic_consumer_ack (self->queue_basic, consumer);
+    </action>
+</method>
+
 <method name = "purge" template = "async function">
     <doc>
     Purge all content on a queue.

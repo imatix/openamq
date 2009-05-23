@@ -83,7 +83,6 @@
 <file name = "amq_queue_table.icl"       class = "icl private cont"  >Hash of queues</file>
 <file name = "amq_queue_list.icl"        class = "icl private cont"  >List of queues</file>
 <file name = "amq_queue_set.icl"         class = "icl private class" >Local queue set</file>
-<file name = "amq_queue_base.icl"        class = "private resource"  >Queue base class</file>
 <file name = "amq_queue_basic.icl"       class = "icl private class" >Basic content queue class</file>
 <file name = "amq_connection.icl"        class = "async public"      >Connection mgt class</file>
 <file name = "amq_connection_by_broker.icl"

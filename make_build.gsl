@@ -31,7 +31,9 @@ fi
 
 #   Build $(name:)
 cd $(name:)
-sh ./boomake build test install;
+sh ./boomake build
+test $BOOM_NOTEST || sh ./boomake test
+sh ./boomake install;
 if [ \$? != 0 ]; then
     echo "E: Build of $(name:) failed" 1>&2
     exit 1

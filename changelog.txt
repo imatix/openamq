@@ -38,9 +38,6 @@ TODO
         - alias amq_content_basic_t -> amq_content_t
     - show broker HA status via amq_shell
     - show connection direct status via amq_shell
-    - show last exchange as well as type on amq_shell queue page
-    - put debian packaging into release package
-    - merge amq_queue_basic & amq_queue_base into amq_queue
     - make web-based amq_shell tool using http server
     - fix/remove settle time in server (before/after socket? federation?)
     - use portals for exchange implementation interface
@@ -92,6 +89,18 @@ TODO
     - redesign queue->consumer->channel using portals
     - also for exchange->binding->queue?
 
+
+2009-05-23
+
+* fixed: returned messages were not triggering wait end (http://www.openamq.org/issue:58)
+* added: no wait in wireapi, timeout = -1 (http://www.openamq.org/issue:65)
+* added: implemented acknowledgements on shared queues  (http://www.openamq.org/issue:55)
+* added: --no-ack option to keep old behaviour
+
+2009-05-22
+
+* added: in Base2/icl, opaque classes and property export/import
+* changed: in OpenAMQ, amq_queue_base.icl class merged into amq_queue_basic.
 
 2009-05-01
 

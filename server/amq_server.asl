@@ -418,6 +418,10 @@
             AMQ_SERVER_BASIC, AMQ_SERVER_BASIC_GET);
   </action>
 
+  <action name = "ack">
+    amq_server_channel_ack (channel, method->delivery_tag, method->multiple);
+  </action>
+
   <action name = "cancel">
     amq_server_channel_cancel (channel, method->consumer_tag, TRUE, method->nowait);
   </action>

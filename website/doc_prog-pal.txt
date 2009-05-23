@@ -732,7 +732,7 @@ See the specification of each protocol command in the WireAPI documentation abov
 
 These are the protocol method commands you can use in a PAL script:
 
-Exchange.Declare:
++++ Exchange.Declare
 
 [[code]]
 <exchange_declare
@@ -743,7 +743,7 @@ Exchange.Declare:
 />
 [[/code]]
 
-Exchange.Delete:
++++ Exchange.Delete
 
 [[code]]
 <exchange_delete
@@ -751,7 +751,7 @@ Exchange.Delete:
 />
 [[/code]]
 
-Queue.Declare:
++++ Queue.Declare
 
 [[code]]
 <queue_declare
@@ -762,7 +762,7 @@ Queue.Declare:
 />
 [[/code]]
 
-Queue.Bind:
++++ Queue.Bind
 
 [[code]]
 <queue_bind
@@ -774,7 +774,7 @@ Queue.Bind:
 />
 [[/code]]
 
-Queue.Unbind:
++++ Queue.Unbind
 
 [[code]]
 <queue_unbind
@@ -786,7 +786,7 @@ Queue.Unbind:
 </queue_unbind>
 [[/code]]
 
-Queue.Purge:
++++ Queue.Purge
 
 [[code]]
 <queue_purge
@@ -794,7 +794,7 @@ Queue.Purge:
 />
 [[/code]]
 
-Queue.Delete:
++++ Queue.Delete:
 
 [[code]]
 <queue_delete
@@ -802,7 +802,7 @@ Queue.Delete:
 />
 [[/code]]
 
-Basic.Consume:
++++ Basic.Consume
 
 [[code]]
 <basic_consume
@@ -813,7 +813,7 @@ Basic.Consume:
 />
 [[/code]]
 
-Basic.Cancel:
++++ Basic.Cancel
 
 [[code]]
 <basic_cancel
@@ -821,7 +821,7 @@ Basic.Cancel:
 />
 [[/code]]
 
-Basic.Publish:
++++ Basic.Publish
 
 [[code]]
 <basic_publish
@@ -832,11 +832,20 @@ Basic.Publish:
 />
 [[/code]]
 
-Basic.Get:
++++ Basic.Get
 
 [[code]]
 <basic_get
     [ queue = "queue name" ]
+/>
+[[/code]]
+
++++ Basic.Ack
+
+[[code]]
+<basic_ack
+    [ delivery_tag = "delivery tag" ]
+    [ multiple = "ack multiple/all messages" ]
 />
 [[/code]]
 

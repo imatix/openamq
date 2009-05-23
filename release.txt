@@ -1,5 +1,28 @@
 + Unstable branch
 
+++ 1.4c0 - 2009/05/23
+
+* fixed: returned messages were not triggering wait end (http://www.openamq.org/issue:58)
+* added: WireAPI amq_client_session_wait () allows -1 timeout meaning 'polled' (http://www.openamq.org/issue:65)
+* added: if BOOM_NOTEST environment variable is 1, build.sh does not run regression tests (http://www.openamq.org/issue:64)
+* added: APR build is configurable via the environment (http://www.openamq.org/issue:62)
+* added: implemented acknowledgements on shared queues (Basic.Consume/no-ack, Basic.Ack) (http://www.openamq.org/issue:21)
+* added: --no-ack option to keep old behaviour in which no-ack is ignored
+* added: new WireAPI connection property "connection->id" holds unique connection ID string assigned by server
+* added: WireAPI option /config/sequence/set that sets Sender-Id and Timestamp on published messages
+* added: WireAPI option /config/sequence/check that verifies Sender-Id and Timestamp on received messages
+
+++ 1.4b3 - 2009/05/01
+
+* fixed: socket management layer was leaking socket descriptors
+* fixed: WireAPI Direct Mode layer was leaking connections (DAMQ-33)
+* fixed: WireAPI Direct Mode layer could abort at shutdown (AMQ-599)
+* changed: response to socket exhaustion improved (BASE2-312)
+* added: in amq_server console, you can see all bindings for a queue
+* added: in amq_server console, verbose option to see all private queues, must be superuser
+* added: --user and --group options to switch to unprivileged user
+* added: new option --accept-retry-timeout tunes server response to socket exhaustion (BASE2-312)
+
 ++ 1.4b2 - 2009/04/22
 
 * fixed: failover detects attempt to connect to self as primary or backup (AMQ-597)
@@ -103,6 +126,27 @@ All changes in 1.3c3 onwards plus:
 * changed: auto-named queues are now called "auto.nnn" instead of "#nnn"
 
 + Stable branch
+
+++ 1.3d0 - 2009/05/23
+
+* fixed: returned messages were not triggering wait end (http://www.openamq.org/issue:58)
+* added: WireAPI amq_client_session_wait () allows -1 timeout meaning 'polled' (http://www.openamq.org/issue:65)
+* added: if BOOM_NOTEST environment variable is 1, build.sh does not run regression tests (http://www.openamq.org/issue:64/)
+* added: APR build is configurable via the environment (http://www.openamq.org/issue:62)
+* added: implemented acknowledgements on shared queues (Basic.Consume/no-ack, Basic.Ack) (http://www.openamq.org/issue:21)
+* added: --no-ack option to keep old behaviour in which no-ack is ignored
+* added: new WireAPI connection property "connection->id" holds unique connection ID string assigned by server
+* added: WireAPI option /config/sequence/set that sets Sender-Id and Timestamp on published messages
+* added: WireAPI option /config/sequence/check that verifies Sender-Id and Timestamp on received messages
+
+++ 1.3c7 - 2009/05/03
+
+* fixed: socket management layer was leaking socket descriptors
+* fixed: WireAPI Direct Mode layer was leaking connections (DAMQ-33)
+* fixed: WireAPI Direct Mode layer could abort at shutdown (AMQ-599)
+* changed: response to socket exhaustion improved (BASE2-312)
+* added: --user and --group options to switch to unprivileged user
+* added: new option --accept_retry_timeout tunes server response to socket exhaustion (BASE2-312)
 
 ++ 1.3c6 - 2009/04/22
 

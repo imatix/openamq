@@ -157,10 +157,10 @@ if (rc) {
 
 ++ Tuning WireAPI
 
-The WireAPI client library cannot be tuned via command-line options. It uses an XML configuration file called amq_wireapi.cfg. This file, if present, can set any of the following options:
+The WireAPI client library cannot be tuned via command-line options. It uses an XML configuration file called wireapi.cfg. This file, if present, can set any of the following options:
 
 [[code]]
-amq_wireapi.cfg:
+wireapi.cfg:
 ------------------------------------------------------------------------
 <?xml?>
 <config>
@@ -187,6 +187,8 @@ amq_wireapi.cfg:
 : **/config/tuning/direct** : If set to 1, all connections will default to using Direct Mode.  This is faster for publish/subscribe and request/response scenarios.  See the [[[doc:user-3-advanced | OpenAMQ user guide]]] for details on Direct Mode.
 : **/config/direct/batching** : Defines the maximum batch size for Direct Mode opportunistic batching on message sends. Setting this higher will improve throughput, and usually with lower latency, but will cause higher memory consumption. Setting this to zero will switch off batching. Any value less than 2048 is treated as zero. Default value is 32768. Maximum value is 2097152.
 : **/config/direct/on_overflow** : In Direct Mode, specifies how the WireAPI stack should handle an overflow condition, as defined by the arrived message queue reaching the high-water mark. The allowed actions are: 'warn' - issue a message to the console, 'trim' - discard old messages to make space for new ones, 'drop' - drop new incoming messages, and 'kill' - assert an error and kill the application. Default value is trim.
+* **/config/sequence/set** : sets Sender-Id and Timestamp on published messages.  If set, all published messages are stamped with Sender-Id equal to the connection Id, and Timestamp equal to the current date and time in the Unix 64-bit time format (microseconds since epoch).
+* **/config/sequence/check** : verifies Sender-Id and Timestamp on received messages.  If set, all received messages are checked with respect to the sending connection in Sender-Id and Timestamp.  Out-of-sequence messages are reported to the console output.
 
 Direct Mode is supported on OpenAMQ versions 1.3 and later.
 
@@ -262,6 +264,7 @@ auth_data = amq_client_connection_auth_plain ("guest", "guest");
 
 These are the properties of a connection object:
 
+* direct (Boolean) - set this TRUE to use Direct Mode
 * alive (Boolean) - FALSE when connection has had an error
 * silent (Boolean) - set this TRUE to suppress error reporting
 * error_text (string) - error string reported by the API
@@ -274,6 +277,19 @@ These are the properties of a connection object:
 * server_platform (string) - operatintg system platform reported by server
 * server_copyright (string) - copyright notice reported by server
 * server_information (string) - other information reported by server
+* server_identifier (string) - unique server instance identifier
+* id (string) - holds unique connection ID string assigned by server
+
++++ Direct Mode
+
+To switch on Direct Mode for specific connections, set the connection "direct" property after creating the connection:
+
+[[code]]
+if (direct_mode)
+    connection->direct = TRUE;
+[[/code]]
+
+This overrides any setting in the WireAPI configuration.
 
 ++ The session class
 
@@ -306,7 +322,7 @@ amq_client_session_destroy (&session);
 
 +++ amq_client_session_wait
 
-Waits for content to arrive from the server. You must call this method in order to get content. Returns zero when it ends normally, either because content arrived or because the timeout expired, and -1 if there was an error.  The timeout is in milliseconds.  To wait forever, use a timeout of zero:
+Waits for content to arrive from the server. You must call this method in order to get content. Returns zero when it ends normally, either because content arrived or because the timeout expired, and -1 if there was an error.  The timeout is in milliseconds.  To wait forever, use a timeout of zero, and to poll (never wait), use a timeout of -1:
 
 [[code]]
 //  Wait forever until a message arrives
@@ -323,7 +339,12 @@ if (amq_client_session_wait (session, timeout)) {
 else {
     //  zero or more contents arrived
 }
+
+//  Poll for new messages but do not wait
+amq_client_session_wait (session, -1);
 [[/code]]
+
+After using the amq_client_session_wait() call, check both the amq_client_session_basic_arrived () and amq_client_session_basic_returned () lists.
 
 +++ Session properties
 
@@ -561,6 +582,17 @@ The amq_client_session_basic_cancel method stops a consumer. The application mus
 rc = amq_client_session_basic_cancel (
     session,                    //  Session reference
     consumer_tag);              //  Consumer tag
+[[/code]]
+
++++ amq_client_session_basic_ack
+
+The amq_client_session_basic_ack method acknowledges a message on consumers with acknowledgements. The application must use the delivery tag provided by the server, which is in the content->delivery_tag property.  You can use delivery_tag zero with
+
+[[code]]
+rc = amq_client_session_basic_ack (
+    session,                    //  Session reference
+    delivery_tag,               //  Delivery tag
+    multiple);                  //  Acknowledge multiple messages
 [[/code]]
 
 +++ amq_client_session_basic_publish
@@ -887,19 +919,23 @@ int main (int argc, char *argv [])
     char
         *message_body;
     assert (argc == 4);
+
     //  Initialise system
     icl_system_initialise (argc, argv);
+
     //  Open a connection
     auth_data = amq_client_connection_auth_plain ("guest", "guest");
     connection = amq_client_connection_new (
             argv [1], "/", auth_data, "im_sender", 0, 30000);
     assert (connection);
     icl_longstr_destroy (&auth_data);
+
     //  Open a channel
     session = amq_client_session_new (connection);
     assert (session);
+
     while (1) {
-    //  Read one line from stdin
+        //  Read one line from stdin
         fgets (message_text, sizeof (message_text), stdin);
         //  Exit the loop if Ctrl+C is encountered
         if (!connection->alive)
@@ -969,7 +1005,6 @@ int main (int argc, char *argv [])
     size_t
         message_size;
 
-
     assert (argc == 3);
 
     //  Initialise system
@@ -1018,9 +1053,7 @@ int main (int argc, char *argv [])
         NULL);                          //  arguments
 
     while (1) {
-
         while (1) {
-
             //  Get next message
             content = amq_client_session_basic_arrived (session);
             if (!content)
@@ -1033,7 +1066,6 @@ int main (int argc, char *argv [])
                 message_text [message_size] = 0;
                 fputs (message_text, stdout);
             }
-
             //  Destroy the message
             amq_content_basic_unlink (&content);
         }
@@ -1044,7 +1076,6 @@ int main (int argc, char *argv [])
         if (!connection->alive)
             break;
     }
-
     //  Close the channel
     amq_client_session_destroy (&session);
 

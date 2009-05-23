@@ -67,6 +67,8 @@ for Basic, File, and Stream content classes.
         exclusive;                      //  Exclusive access?
     volatile Bool
         paused;                         //  Is consumer paused (flow off) ?
+    amq_content_basic_t
+        *pending_content;               //  Up to one unack'd content
 </context>
 
 <method name = "new">
@@ -104,10 +106,37 @@ for Basic, File, and Stream content classes.
 <method name = "destroy">
     amq_server_channel_unlink    (&self->channel);
     amq_queue_unlink             (&self->queue);
-    
+
+    amq_content_basic_unlink     (&self->pending_content);
     amq_connection_queue_destroy (&self->mgt_connection_queue);
     amq_queue_connection_destroy (&self->mgt_queue_connection);
     amq_consumer_basic_destroy   (&self->consumer_basic);
+</method>
+
+<method name = "content hold" template = "function">
+    <doc>
+    Holds onto a content.
+    </doc>
+    <argument name = "content" type = "amq_content_basic_t *" />
+    <inherit name = "wrlock" />
+    //
+    assert (!self->pending_content);
+    self->pending_content = amq_content_basic_link (content);
+</method>
+
+<method name = "content release" template = "function">
+    <doc>
+    Releases its pending content, if any.  Returns TRUE if a content was
+    released, else FALSE.
+    </doc>
+    <inherit name = "wrlock" />
+    //
+    if (self->pending_content) {
+        amq_content_basic_unlink (&self->pending_content);
+        rc = TRUE;
+    }
+    else
+        rc = FALSE;
 </method>
 
 <method name = "selftest" />
