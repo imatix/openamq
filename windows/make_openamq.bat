@@ -9,21 +9,23 @@ if .%VERSION%==. (
     exit /b 1
 )
 
+goto continue
+
 if %QUICK%.==. (
     :- Update all projects from SVN
     echo Updating projects from SVN...
     cd \work\trunk\
     svn --quiet update foreign base1 base2 openamq
 
-    :- reconfigure and regenerate all projects
+    :- reconfigure all projects
     cd \work\trunk\foreign
-    call boom configure regen
+    call boom configure
     cd \work\trunk\base1
-    call boom configure regen
+    call boom configure
     cd \work\trunk\base2
-    call boom configure regen
+    call boom configure
     cd \work\trunk\openamq
-    call boom configure regen
+    call boom configure
 )
 :- Build debug packages into %IBASE_HOME%\debug
 echo Preparing for debug build...
@@ -47,7 +49,7 @@ call build_target openamq\wireapi amq_client
 call build_target openamq\shell   amq_shell
 call build_target openamq\zyre    zyre
 
-
+:continue
 call c:\work\release
 cd \work\trunk\openamq\windows
 msbuild OpenAMQ.sln /nologo /t:Clean /v:quiet
