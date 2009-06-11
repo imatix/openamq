@@ -26,7 +26,9 @@
 
 <include filename = "prelude.pdl" />
 <inherit filename = "icl_classes.pdl" />
+<inherit filename = "ipr_classes.pdl" />
 <inherit filename = "smt_classes.pdl" />
+<inherit filename = "opf_classes.pdl" />
 
 <file name = "version.h"             class = "c version"         >Project version file</file>
 <file name = "libamq_wireapi"        class = "public library"    >Object library</file>
@@ -39,8 +41,7 @@
 <file name = "amq_client_method.icl" class = "icl public cont"   >Client method class</file>
 <file name = "amq_client_agent.smt"  class = "smt public module"
                                      generated = "1"             >Client protocol agent</file>
-<file name = "amq_client_config.opf" class = "gsl data"          >Client configuration</file>
-<file name = "amq_client_config.icl" class = "icl private cont"  >Client configuration class</file>
+<file name = "amq_client_config.opf" class = "opf metadata"      >Client configuration</file>
 <file name = "amq_client_classes.icl"
                                      class = "icl public data"   >Client classes</file>
 <file name = "amq_client_connection.icl"

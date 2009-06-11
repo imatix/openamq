@@ -45,7 +45,7 @@
 
 ++ 1.4b1 - 2009/03/29
 
-* fixed: Basic.Consume sometimes failed: http://www.openamq.org/issue:52/
+* fixed: Basic.Consume sometimes failed http://www.openamq.org/issue:52/
 * fixed: build on Windows failed on MSVC when InputDir path had spaces
 * fixed: renamed 'template' property in ipr_dict_table_file_save to make it C++ compatible
 * fixed: Zyre: content-type on new resources is now same as that of POST request
@@ -127,12 +127,15 @@ All changes in 1.3c3 onwards plus:
 
 + Stable branch
 
+++ 1.3d1 -
+
+* added: APR build is configurable via the environment (http://www.openamq.org/issue:62)
+
 ++ 1.3d0 - 2009/05/23
 
 * fixed: returned messages were not triggering wait end (http://www.openamq.org/issue:58)
 * added: WireAPI amq_client_session_wait () allows -1 timeout meaning 'polled' (http://www.openamq.org/issue:65)
 * added: if BOOM_NOTEST environment variable is 1, build.sh does not run regression tests (http://www.openamq.org/issue:64/)
-* added: APR build is configurable via the environment (http://www.openamq.org/issue:62)
 * added: implemented acknowledgements on shared queues (Basic.Consume/no-ack, Basic.Ack) (http://www.openamq.org/issue:21)
 * added: --no-ack option to keep old behaviour in which no-ack is ignored
 * added: new WireAPI connection property "connection->id" holds unique connection ID string assigned by server

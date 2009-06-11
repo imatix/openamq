@@ -27,6 +27,7 @@
 <inherit filename = "icl_classes.pdl" />
 <inherit filename = "ipr_classes.pdl" />
 <inherit filename = "smt_classes.pdl" />
+<inherit filename = "opf_classes.pdl" />
 
 <file name = "version.h"               class = "c version"         >Project version file</file>
 <file name = "libamq_zyre"             class = "public library"    >Object library</file>
@@ -34,9 +35,7 @@
 <file name = "zyre.c"                  class = "main program"      >Zyre main</file>
 <file name = "zyre"                    class = "public command"    >Zyre executable</file>
 <file name = "zyre_main.inc"           class = "private resource"  >Zyre mainline</file>
-<file name = "zyre_config.opf"         class = "gsl data"          >Configuration schema</file>
-<file name = "zyre_config.icl"         class = "icl private class"
-                                       generated = "1"             >Configuration class</file>
+<file name = "zyre_config.opf"         class = "opf metadata"      >Configuration schema</file>
 <file name = "zyre_backend.icl"        class = "ipr portal"        >Portal to backend handler</file>
 <file name = "zyre_resource.icl"       class = "ipr portal"        >Portal to resource handler</file>
 <file name = "zyre_domain.icl"         class = "icl public class"  >RestMS domain resource</file>
@@ -53,9 +52,7 @@
 <file name = "zyre_digest_amqp.icl"    class = "async private"     >Digest-AMQP access module</file>
 <file name = "zyre_peer.asl"           class = "gsl data"          >Peering method interface</file>
 <file name = "zyre_peer_method.icl"    class = "icl public cont"   >Peering methods, generated</file>
-<file name = "zyre_peer_config.opf"    class = "gsl data"          >Peering config syntax</file>
-<file name = "zyre_peer_config.icl"    class = "icl private cont"  >Peering config class</file>
-<file name = "zyre_peer_config.txt"    class = "generated resource">Peering config docs</file>
+<file name = "zyre_peer_config.opf"    class = "opf metadata"      >Peering config syntax</file>
 <file name = "zyre_peer_agent.smt"     class = "smt private module"
                                        generated = "1"             >Peering client agent</file>
 <file name = "zyre_classes.icl"        class = "icl public data"   >Application classes</file>
