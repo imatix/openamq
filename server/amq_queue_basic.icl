@@ -363,9 +363,10 @@ runs lock-free as a child of the asynchronous queue class.
                     //  Hold content if consumer is acknowledged
                     //  Queue must be shared queue
                     if (!self->queue->exclusive && !consumer->no_ack
-                    &&  !amq_server_config_no_ack (amq_server_config))
+                    &&  !amq_server_config_no_ack (amq_server_config)) {
+                        amq_consumer_content_release (consumer);
                         amq_consumer_content_hold (consumer, content);
-
+                    }
                     self->delivery_tag++;
                     amq_server_agent_basic_deliver (
                         connection->thread,

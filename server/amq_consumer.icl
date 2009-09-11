@@ -23,9 +23,8 @@
     script  = "icl_gen"
     >
 <doc>
-This class implements a polymorphic consumer. This is an object that
-ties the channel to the queue, and envelopes class-specific consumers
-for Basic, File, and Stream content classes.
+This class implements a channel consumer. This is an object that
+ties the channel to the queue.
 </doc>
 
 <option name = "links" value = "1"/>
