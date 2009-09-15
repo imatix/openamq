@@ -1,5 +1,8 @@
 + Unstable branch
 
+* fixed: build process crashed in ipr_time_selftest for some timezones (http://www.openamq.org/issue:75)
+* fixed: server crash when multiple consumers ack on shared queue (http://www.openamq.org/issue:67)
+
 ++ 1.4c0 - 2009/05/23
 
 * fixed: returned messages were not triggering wait end (http://www.openamq.org/issue:58)
@@ -126,6 +129,8 @@ All changes in 1.3c3 onwards plus:
 * changed: auto-named queues are now called "auto.nnn" instead of "#nnn"
 
 + Stable branch
+
+* fixed: build process crashed in ipr_time_selftest for some timezones (http://www.openamq.org/issue:75)
 
 ++ 1.3d1 -
 
