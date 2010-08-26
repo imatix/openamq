@@ -267,16 +267,17 @@ $(selftype)
         ipr_xml_attr_set (cur_item, "status", "ok");
         if (notice)
             ipr_xml_attr_set (cur_item, "notice", notice);
-    }
-    if (fields) {
-        field = asl_field_list_first (fields);
-        while (field) {
-            sub_item = ipr_xml_new (cur_item, "field", NULL);
-            ipr_xml_attr_set (sub_item, "name", field->name);
-            val_item = ipr_xml_new (sub_item, NULL, asl_field_string (field));
-            ipr_xml_unlink (&val_item);
-            ipr_xml_unlink (&sub_item);
-            field = asl_field_list_next (&field);
+
+        if (fields) {
+            field = asl_field_list_first (fields);
+            while (field) {
+                sub_item = ipr_xml_new (cur_item, "field", NULL);
+                ipr_xml_attr_set (sub_item, "name", field->name);
+                val_item = ipr_xml_new (sub_item, NULL, asl_field_string (field));
+                ipr_xml_unlink (&val_item);
+                ipr_xml_unlink (&sub_item);
+                field = asl_field_list_next (&field);
+            }
         }
     }
     s_reply_xml (request, cml_item);
