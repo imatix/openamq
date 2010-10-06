@@ -257,22 +257,24 @@ $(selftype)
     ipr_xml_attr_set (cml_item, "version", "1.0");
     ipr_xml_attr_set (cml_item, "xmlns", "http://www.openamq.org/schema/cml");
 
-    cur_item = ipr_xml_new (cml_item, name, NULL);
-    ipr_xml_attr_set (cur_item, "class",  entry->class_ref->name);
-    ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%d", object_id));
-    ipr_xml_attr_set (cur_item, "status", "ok");
-    if (notice)
-        ipr_xml_attr_set (cur_item, "notice", notice);
+    if (entry) {
+        cur_item = ipr_xml_new (cml_item, name, NULL);
+        ipr_xml_attr_set (cur_item, "class",  entry->class_ref->name);
+        ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%d", object_id));
+        ipr_xml_attr_set (cur_item, "status", "ok");
+        if (notice)
+            ipr_xml_attr_set (cur_item, "notice", notice);
 
-    if (fields) {
-        field = asl_field_list_first (fields);
-        while (field) {
-            sub_item = ipr_xml_new (cur_item, "field", NULL);
-            ipr_xml_attr_set (sub_item, "name", field->name);
-            val_item = ipr_xml_new (sub_item, NULL, asl_field_string (field));
-            ipr_xml_unlink (&val_item);
-            ipr_xml_unlink (&sub_item);
-            field = asl_field_list_next (&field);
+        if (fields) {
+            field = asl_field_list_first (fields);
+            while (field) {
+                sub_item = ipr_xml_new (cur_item, "field", NULL);
+                ipr_xml_attr_set (sub_item, "name", field->name);
+                val_item = ipr_xml_new (sub_item, NULL, asl_field_string (field));
+                ipr_xml_unlink (&val_item);
+                ipr_xml_unlink (&sub_item);
+                field = asl_field_list_next (&field);
+            }
         }
     }
     s_reply_xml (request, cml_item);
@@ -313,11 +315,12 @@ $(selftype)
     ipr_xml_attr_set (cml_item, "version", "1.0");
     ipr_xml_attr_set (cml_item, "xmlns", "http://www.openamq.org/schema/cml");
 
-    cur_item = ipr_xml_new (cml_item, name, NULL);
-    ipr_xml_attr_set (cur_item, "class",  entry->class_ref->name);
-    ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%d", object_id));
-    ipr_xml_attr_set (cur_item, "status", status);
-
+    if (entry) {
+        cur_item = ipr_xml_new (cml_item, name, NULL);
+        ipr_xml_attr_set (cur_item, "class",  entry->class_ref->name);
+        ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%d", object_id));
+        ipr_xml_attr_set (cur_item, "status", status);
+    }
     s_reply_xml (request, cml_item);
     ipr_xml_unlink  (&cur_item);
     ipr_xml_destroy (&cml_item);
