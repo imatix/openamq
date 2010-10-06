@@ -1,5 +1,11 @@
 + Unstable branch
 
+++ 1.4c1 - 2010/10/07
+
+* fixed: WireAPI was not clearing messages out of IO thread if client thread was too slow.
+* fixed: two access violations in amq_console due to improper multithreading code (http://www.openamq.org/issue:88).
+* fixed: OPF config framework did not properly free filename property of object class.
+* fixed: renamed min, max macros to MIN, MAX for C++ safety (http://www.openamq.org/issue:62)
 * fixed: build process crashed in ipr_time_selftest for some timezones (http://www.openamq.org/issue:75)
 * fixed: server crash when multiple consumers ack on shared queue (http://www.openamq.org/issue:67)
 
@@ -130,10 +136,12 @@ All changes in 1.3c3 onwards plus:
 
 + Stable branch
 
+++ 1.3d1 - 2010/10/07
+
+* fixed: WireAPI was not clearing messages out of IO thread if client thread was too slow.
+* fixed: two access violations in amq_console due to improper multithreading code (http://www.openamq.org/issue:88).
 * fixed: build process crashed in ipr_time_selftest for some timezones (http://www.openamq.org/issue:75)
-
-++ 1.3d1 -
-
+* fixed: renamed min, max macros to MIN, MAX for C++ safety (http://www.openamq.org/issue:62)
 * added: APR build is configurable via the environment (http://www.openamq.org/issue:62)
 
 ++ 1.3d0 - 2009/05/23

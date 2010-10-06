@@ -90,6 +90,12 @@ TODO
     - also for exchange->binding->queue?
 
 
+2010-10-06
+
+* fixed: WireAPI was not clearing messages out of IO thread if client thread was too slow.
+* fixed: two access violations in amq_console due to improper multithreading code.
+* fixed: OPF config framework did not properly free filename property of object class.
+
 2009-05-23
 
 * fixed: returned messages were not triggering wait end (http://www.openamq.org/issue:58)
