@@ -2,6 +2,11 @@ OpenAMQ
 
 Copyright (c) 2007-2009 iMatix Corporation
 
+**Historical note**: the AMQP specifications evolved as part of this
+project, in the docs directory. Check out older tags to see this design
+coming together over time. OpenAMQ/1.0 coincided with the start of the
+AMQP Working Group.
+
 This is the OpenAMQ source distribution, and consists of the following
 subdirectories:
 
