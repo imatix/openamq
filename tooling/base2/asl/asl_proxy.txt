@@ -1,0 +1,14 @@
+ASL Proxy/0.1
+
+Functionality
+
+    - single-threaded ASL-aware proxy
+    - waits on specified port
+    - accepts client connection
+    - connects to server
+    - passes data from server to client and v.v.
+
+Todo
+    - logs all data as offline traffic orders (.oto)
+    - ability to replay either client or server role
+    - uses APR socket layer

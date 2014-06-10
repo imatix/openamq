@@ -1,0 +1,40 @@
+<?xml?>
+<pal script = "demo_pal_gen">
+    This script demonstrates how to manipulate message content.
+    <session queue = "test-queue" exchange = "test-exchange">
+        <exchange_declare type = "fanout" />
+        <queue_declare />
+        <queue_bind>
+            <arguments>
+                <field name = "currency" value = "USD" />
+                <field name = "symbol"   value = "MSFT" />
+            </arguments>
+        </queue_bind>
+        <repeat times = "10" counter = "id">
+          <basic_content size = "64000" content_type = "text/html" message_id = "id-$random">
+            <headers>
+              <field name = "Numbering" value = "$id" />
+              <field name = "Max-items" value = "100" />
+              <field name = "Server-name" value = "http://www.openamq.org" />
+            </headers>
+          </basic_content>
+          <assert name = "body_size" value = "64000" />
+          <basic_publish routing_key = "test-queue" />
+        </repeat>
+        <repeat>
+            <basic_get />
+            <basic_returned>
+                <echo>Returned: $message_id</echo>
+            </basic_returned>
+            <basic_arrived>
+                <inc name = "count" />
+                <echo>Arrived: $message_id, numbering=$headers-Numbering</echo>
+            </basic_arrived>
+            <empty>
+                <break/>
+            </empty>
+        </repeat>
+        <echo>Total number of messages exchanged: $count</echo>
+    </session>
+</pal>
+

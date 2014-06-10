@@ -1,0 +1,147 @@
+<?xml?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<pdl
+    name      = "iPR"
+    acronym   = "ipr"
+    version   = "1.1"
+    workflow  = "standard.pwl"
+    library   = "libipr"
+    >
+
+<include filename = "prelude.pdl" />
+<inherit filename = "../icl/icl_classes.pdl" />
+<file name = "version.h" class = "c version">Project version file</file>
+
+<!-- public classes -->
+<file name = "ipr_bits.icl"          class = "icl public class"  >Bit strings</file>
+<file name = "ipr_bucket.icl"        class = "icl public class"  >Memory bucket</file>
+<file name = "ipr_bucket_list.icl"   class = "icl public class"  >List of buckets</file>
+<file name = "ipr_mother.icl"        class = "icl public class"  >Memory bucket mother</file>
+<file name = "ipr_config.icl"        class = "icl public class"  >Config table item</file>
+<file name = "ipr_crc.icl"           class = "icl public class"  >CRC calculations</file>
+<file name = "ipr_dict.icl"          class = "icl public class"  >Hashed dictionary item</file>
+<file name = "ipr_dict_table.icl"    class = "icl public class"  >Dictionary hash table</file>
+<file name = "ipr_dict_list.icl"     class = "icl public cont"   >Dictionary list</file>
+<file name = "ipr_symbol.icl"        class = "icl public class"  >Hashed symbol item</file>
+<file name = "ipr_symbol_table.icl"  class = "icl public cont"   >Hashed symbol table</file>
+<file name = "ipr_dir.icl"           class = "icl public class"  >Directory manipulation</file>
+<file name = "ipr_file.icl"          class = "icl public class"  >File management</file>
+<file name = "ipr_finfo.icl"         class = "icl public class"  >File information</file>
+<file name = "ipr_finfo_list.icl"    class = "icl public cont"   >File information list</file>
+<file name = "ipr_hash.icl"          class = "icl public class"  >Unlocked hash item</file>
+<file name = "ipr_hash_table.icl"    class = "icl public cont"   >Unlocked hash table</file>
+<file name = "ipr_http.icl"          class = "icl public class"  >HTTP request parsing</file>
+<file name = "ipr_index.icl"         class = "icl public class"  >Object indexation</file>
+<file name = "ipr_log.icl"           class = "icl public class"  >Log file management</file>
+<file name = "ipr_looseref.icl"      class = "icl public class"  >Loose reference item</file>
+<file name = "ipr_looseref_list.icl" class = "icl public cont"   >Loose reference list</file>
+<file name = "ipr_token.icl"         class = "icl public class"  >Token class</file>
+<file name = "ipr_token_list.icl"    class = "icl public class"  >Token list list</file>
+<file name = "ipr_meter.icl"         class = "icl public class"  >Traffic rate meter</file>
+<file name = "ipr_net.icl"           class = "icl public class"  >Network functions</file>
+<file name = "ipr_nonce.icl"         class = "icl public class"  >Nonce management</file>
+<file name = "ipr_nonce_table.icl"   class = "icl public cont"   >Nonce table</file>
+<file name = "ipr_password.icl"      class = "icl public class"  >Password management</file>
+<file name = "ipr_password_table.icl" class = "icl public class" >Password table management</file>
+<file name = "ipr_password_list.icl" class = "icl public cont"   >Password list</file>
+<file name = "ipr_path.icl"          class = "icl public class"  >Path & file manipulation</file>
+<file name = "ipr_process.icl"       class = "icl public class"  >Process manipulation</file>
+<file name = "ipr_regexp.icl"        class = "icl public class"  >Regular expressions</file>
+<file name = "ipr_sasl.icl"          class = "icl public class"  >SASL functions</file>
+<file name = "ipr_stat.icl"          class = "icl public class"  >Statistics module</file>
+<file name = "ipr_str.icl"           class = "icl public class"  >String manipulation</file>
+<file name = "ipr_uid.icl"           class = "icl public class"  >UID/GID manipulation</file>
+<file name = "ipr_time.icl"          class = "icl public class"  >time & date manipulation</file>
+<file name = "ipr_tree.icl"          class = "icl public class"  >Tree builder</file>
+
+<!-- XML data interface -->
+<file name = "ipr_xml.icl"           class = "icl public class"  >XML item</file>
+<file name = "ipr_xml_list.icl"      class = "icl public cont"   >XML item list</file>
+<file name = "ipr_xml_attr.icl"      class = "icl public class"  >XML attribute</file>
+<file name = "ipr_xml_attr_list.icl" class = "icl public cont"   >XML attribute list</file>
+
+<!-- Ported SFL libraries -->
+<file name = "ipr_xmll.h"            class = "public resource"   >XML loading and saving</file>
+<file name = "ipr_xmll.c"            class = "library module"    >XML loading and saving</file>
+
+<!-- Portal system -->
+<file name = "ipr_portal.icl"        class = "icl abstract class">Portal base class</file>
+<file name = "ipr_portal.gsl"        class = "public resource"   >Portal codegen wrapper</file>
+<file name = "ipr_portal_sync.gsl"   class = "public resource"   >Portal codegen for sync model</file>
+<file name = "ipr_portal_async.gsl"  class = "public resource"   >Portal codegen for async model</file>
+<file name = "ipr_demo_portal.icl"   class = "icl private class" >Example portal</file>
+<file name = "ipr_demo_portal_client.icl"
+                                     class = "icl private class" >Example portal client</file>
+<file name = "ipr_demo_portal_server.icl"
+                                     class = "icl private class" >Example portal server</file>
+<file name = "ipr_demo_portal_front.icl"
+                                     class = "generated"         >Front-end portal wrapper</file>
+<file name = "ipr_demo_portal_back.icl"
+                                     class = "generated"         >Back-end portal wrapper</file>
+
+<!-- Self-test data -->
+<file name = "ipr_config_test1.xml"  class = "private resource"  >XML test data</file>
+<file name = "ipr_config_test2.xml"  class = "private resource"  >XML test data</file>
+<file name = "ipr_config_test3.xml"  class = "private resource"  >XML test data</file>
+
+<!-- Deliverables -->
+<file name = "libipr"                class = "public library"    >iPR library</file>
+<file name = "ipr.h"                 class = "public header"     >iPR exported classes</file>
+<file name = "ipr_classes.pdl"       class = "public resource"   >iPR Boom classes</file>
+
+<!-- Other tools -->
+<file name = "ipr_resource.pl"       class = "command script"    >iPR Resource Compiler</file>
+
+<actions when = "after">
+  <generate>
+    <collect into = "ipr.h" class = "public header">
+      <file name = "ipr_bits.h"      />
+      <file name = "ipr_bucket.h"    />
+      <file name = "ipr_config.h"    />
+      <file name = "ipr_crc.h"       />
+      <file name = "ipr_dict.h"      />
+      <file name = "ipr_dir.h"       />
+      <file name = "ipr_file.h"      />
+      <file name = "ipr_finfo.h"     />
+      <file name = "ipr_hash.h"      />
+      <file name = "ipr_http.h"      />
+      <file name = "ipr_index.h"     />
+      <file name = "ipr_log.h"       />
+      <file name = "ipr_looseref.h"  />
+      <file name = "ipr_meter.h"     />
+      <file name = "ipr_net.h"       />
+      <file name = "ipr_nonce.h"     />
+      <file name = "ipr_path.h"      />
+      <file name = "ipr_password.h"  />
+      <file name = "ipr_process.h"   />
+      <file name = "ipr_regexp.h"    />
+      <file name = "ipr_sasl.h"      />
+      <file name = "ipr_stat.h"      />
+      <file name = "ipr_str.h"       />
+      <file name = "ipr_symbol.h"    />
+      <file name = "ipr_token.h"     />
+      <file name = "ipr_tree.h"      />
+      <file name = "ipr_xml.h"       />
+      <file name = "ipr_xmll.h"      />
+      <file name = "ipr_uid.h"       />
+      <file name = "ipr_time.h"      />
+    </collect>
+  </generate>
+</actions>
+
+</pdl>

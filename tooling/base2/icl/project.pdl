@@ -1,0 +1,170 @@
+<?xml?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<pdl
+    name      = "iCL"
+    version   = "1.1"
+    copyright = "Copyright (c) 1991-2009 iMatix Corporation"
+    workflow  = "standard.pwl"
+    library   = "libicl"
+    >
+
+<include filename = "prelude.pdl" />
+<inherit filename = "icl_classes.pdl" />
+<file name = "version.h" class = "c version">Project version file</file>
+
+<!-- iCL toolkit -->
+<file name = "icl_stdc.xnf"           class = "gsl public data"     >iCL grammar</file>
+<file name = "icl.xnf"                class = "public resource"     >iCL grammar</file>
+<file name = "icl_gen.gsl"            class = "generated resource"  >iCL code wrapper</file>
+<file name = "icl_preproc.gsl"        class = "generated resource"  >iCL preprocessor</file>
+<file name = "icl_inherit.gsl"        class = "generated resource"  >iCL inheritor</file>
+<file name = "icl_parse.gsl"          class = "generated resource"  >iCL parser</file>
+<file name = "icl_doc.txt"            class = "generated"           >iCL documentation</file>
+
+<!-- iCL code generators -->
+<file name = "base.h"                 class = "public header"     >Base2 standard header</file>
+<file name = "icl_stdc.gsl"           class = "public resource"   >iCL generator for icl/C</file>
+<file name = "icl_stdc_lib.gsl"       class = "public resource"   >GSL library for iCL/stdc</file>
+<file name = "icl_perl.gsl"           class = "public resource"   >iCL generator for Perl 5</file>
+<file name = "icl_java.gsl"           class = "public resource"   >iCL generator for Java</file>
+<file name = "icl_ruby.gsl"           class = "public resource"   >iCL generator for Ruby</file>
+<file name = "icl_doc.gsl"            class = "public resource"   >iCL documentation generator</file>
+<file name = "icl_classes.pdl"        class = "public resource"   >iCL Boom classes</file>
+
+<!-- iCL classes -->
+<file name = "icl_base.icl"           class = "icl abstract class">Global base class</file>
+<file name = "icl_init.icl"           class = "icl abstract class">Class initialisation class</file>
+<file name = "icl_object.icl"         class = "icl abstract class">General object class</file>
+<file name = "icl_thread.icl"         class = "icl abstract class">OS thread manager</file>
+<file name = "icl_mutex.icl"          class = "icl public class"  >Mutex manager</file>
+<file name = "icl_cond.icl"           class = "icl public class"  >Condition variable manager</file>
+<file name = "icl_rwlock.icl"         class = "icl public class"  >Read-write lock manager</file>
+<file name = "icl_apr.icl"            class = "icl public class"  >iCL APR module</file>
+<file name = "icl_stats.icl"          class = "icl public class"  >Statistics manager</file>
+<file name = "icl_trace.icl"          class = "icl public class"  >Class tracing class</file>
+<file name = "icl_destroy.icl"        class = "icl public class"  >Item/destructor object</file>
+<file name = "icl_destroy_list.icl"   class = "icl public class" >Item/destructor object list</file>
+<file name = "icl_system.icl"         class = "icl public class"  >System manager</file>
+<file name = "icl_system_list.icl"    class = "icl public cont"   >System object list</file>
+<file name = "icl_console.icl"        class = "icl public class"  >Console manager</file>
+<file name = "icl_longstr.icl"        class = "icl public class"  >Long strings</file>
+<file name = "icl_shortstr.icl"       class = "icl public class"  >Short strings</file>
+<file name = "icl_tracker.icl"        class = "icl abstract class">Object tracker class</file>
+
+<!-- Memory allocator classes -->
+<file name = "icl_mem.icl"            class = "icl public class"  >Memory allocator API</file>
+<file name = "icl_mem_lib.icl"        class = "icl abstract class">Abstract memory allocator</file>
+<file name = "icl_mem_fat.icl"        class = "icl public class"  >Debugging memory allocator</file>
+<file name = "icl_mem_fat_list.icl"   class = "icl public cont"  >Debugging memory allocator container</file>
+<file name = "icl_mem_thin.icl"       class = "icl public class"  >Fast memory allocator</file>
+<file name = "icl_mem_thin_list.icl"  class = "icl public cont" >Fast memory allocator container</file>
+<file name = "icl_cache.icl"          class = "icl public class"  >Memory cache manager</file>
+<file name = "icl_cache_list.icl"     class = "icl public cont"   >Memory cache manager container</file>
+
+<!-- Abstract base classes -->
+<file name = "icl_list_item.icl"      class = "icl abstract class">List item base class</file>
+<file name = "icl_list_head.icl"      class = "icl abstract class">List head base class</file>
+<file name = "icl_hash_item.icl"      class = "icl abstract class">Hash base class</file>
+<file name = "icl_hash_head.icl"      class = "icl abstract class">Hash base class</file>
+<file name = "icl_array_item.icl"     class = "icl abstract class">Array item base class</file>
+<file name = "icl_array_head.icl"     class = "icl abstract class">Array head base class</file>
+<file name = "icl_stack_item.icl"     class = "icl abstract class">Lockless stack item base class</file>
+<file name = "icl_stack_head.icl"     class = "icl abstract class">Lockless stack head base class</file>
+<file name = "icl_queue_item.icl"     class = "icl abstract class">Lockless queue item base class</file>
+<file name = "icl_queue_head.icl"     class = "icl abstract class">Lockless queue head base class</file>
+<file name = "icl_iter_list_item.icl" class = "icl abstract class">Iterator list item base class</file>
+<file name = "icl_iter_list_head.icl" class = "icl abstract class">Iterator list head base class</file>
+
+<!-- Stand-alone programs -->
+<file name = "icl_stats_examine.c"    class = "main program"      >Statistics reporter</file>
+
+<!-- iCL test classes -->
+<file name = "icl_demo_rwlock.icl"    class = "icl private class" >Demo of read/write lock manager</file>
+<file name = "icl_demo_thread.icl"    class = "icl private class" >Demo of OS thread manager</file>
+<file name = "icl_demo_plain.icl"     class = "icl private class" >Demo of plain allocator</file>
+<file name = "icl_demo_cache.icl"     class = "icl private class" >Demo of cached allocator</file>
+<file name = "icl_demo_local.icl"     class = "icl private class" >Demo of thread-local allocator</file>
+<file name = "icl_demo_possess.icl"   class = "icl private class" >Demo of possession</file>
+<file name = "icl_demo_links.icl"     class = "icl private class" >Demo of reference counting</file>
+<file name = "icl_demo_list.icl"      class = "icl private class" >Demo of list item class</file>
+<file name = "icl_demo_list_list.icl" class = "icl private cont"  >Container for list demo</file>
+<file name = "icl_demo_list2.icl"     class = "icl private class" >Demo of 2D list item class</file>
+<file name = "icl_demo_list2_list.icl"
+                                      class = "icl private cont"  >Container for 2D list demo</file>
+<file name = "icl_demo_list2_list2.icl"
+                                      class = "icl private cont"  >Container for 2D list demo</file>
+<file name = "icl_demo_hash_int.icl"  class = "icl private class" >Demo of hashed item class</file>
+<file name = "icl_demo_hash_int_table.icl"
+                                      class = "icl private cont"  >Container for hash demo</file>
+<file name = "icl_demo_hash_str.icl"  class = "icl private class" >Demo of hashed item class</file>
+<file name = "icl_demo_hash_str_table.icl"
+                                      class = "icl private cont"  >Container for hash demo</file>
+<file name = "icl_demo_hash_lstr.icl" class = "icl private class" >Demo of hashed item class</file>
+<file name = "icl_demo_hash_lstr_table.icl"
+                                      class = "icl private cont"  >Container for hash demo</file>
+<file name = "icl_demo_serial.icl"    class = "icl private class" >Demo of serialisation</file>
+<file name = "icl_demo_array.icl"     class = "icl private class" >Demo of array access</file>
+<file name = "icl_demo_array_array.icl"
+                                      class = "icl private cont"  >Container for array access</file>
+<file name = "icl_demo_stack.icl"     class = "icl private class" >Demo of stack access</file>
+<file name = "icl_demo_stack_stack.icl"
+                                      class = "icl private cont"  >Container for stack access</file>
+<file name = "icl_demo_queue.icl"     class = "icl private class" >Demo of queue access</file>
+<file name = "icl_demo_queue_queue.icl"
+                                      class = "icl private cont"  >Container for queue access</file>
+<file name = "icl_demo_scope.icl"     class = "icl private class" >Demo of method scope</file>
+
+<!-- Templates -->
+<file name = "icl_list_lib.gsl"       class = "public resource"   >List functions builder</file>
+<file name = "icl_list_head.gsl"      class = "public resource"   >List container builder</file>
+<file name = "icl_iter_list_head.gsl" class = "public resource"   >Iterator list container builder</file>
+<file name = "icl_hash_head.gsl"      class = "public resource"   >Hash table builder</file>
+<file name = "icl_array_head.gsl"     class = "public resource"   >Array head builder</file>
+<file name = "icl_stack_head.gsl"     class = "public resource"   >Stack head builder</file>
+<file name = "icl_queue_head.gsl"     class = "public resource"   >Queue head builder</file>
+<file name = "icl_serialise.gsl"      class = "public resource"   >Serialisation builder</file>
+
+<!-- Deliverables -->
+<file name = "libicl"                 class = "public library"    >iCL library</file>
+<file name = "icl.h"                  class = "public header"     >iCL exported classes</file>
+
+<!-- Other tools -->
+<file name = "icl_prettyc.pl"         class = "public resource"   >ANSI C prettifier</file>
+<file name = "icl_make_doc.sh"        class = "public script"     >Prototype documentation reference generator</file>
+<file name = "icl_make_doc.ignore"    class = "private resource"  >List of classes not to document</file>
+
+
+<actions when = "after">
+  <generate>
+    <collect into = "icl.h" class = "public header">
+      <file name = "base.h"         />
+      <file name = "icl_apr.h"      />
+      <file name = "icl_mutex.h"    />
+      <file name = "icl_cond.h"     />
+      <file name = "icl_rwlock.h"   />
+      <file name = "icl_console.h"  />
+      <file name = "icl_stats.h"    />
+      <file name = "icl_trace.h"    />
+      <file name = "icl_mem.h"      />
+      <file name = "icl_system.h"   />
+      <file name = "icl_shortstr.h" />
+      <file name = "icl_longstr.h"  />
+    </collect>
+  </generate>
+</actions>
+</pdl>

@@ -1,0 +1,183 @@
+#  ----------------------------------------------------------------------------
+#   ASL target for Java
+#
+#   Generates server or client chassis from the ASL specifications.
+#
+#  ----------------------------------------------------------------------------
+
+
+############################  GENERATE CHASSIS  ############################
+
+.macro generate_chassis ()
+.include "build/asl_chassis_java.gsl"
+.endmacro
+
+
+#################################   MAIN   #################################
+
+function generate_protocol (protocol)
+ scope my.protocol
+    ignorecase = 1
+    target_protocol_for_java ()
+    generate_chassis ()
+ endscope
+endfunction
+
+function getJavaFieldName(rawName)
+    return getJavaName(my.rawName, 0)
+endfunction
+
+function getJavaClassName(rawName)
+    return getJavaName(my.rawName, 1)
+endfunction
+
+function getJavaName(rawName, initialUpper)
+    if my.rawName = "class"
+        my.rawName = "clazz"
+    elsif my.rawName = "private"
+        my.rawName = "isPrivate"
+    endif
+    
+    result = ""
+    length = string.length(my.rawName)
+    i = 0
+    makeUpper = my.initialUpper
+    while i < length
+        ch = string.substr(my.rawName, i, i)
+        if ch = " " | ch = "-"
+            makeUpper = 1
+        else
+            if makeUpper = 1
+                result += "$(ch:upper)"
+                makeUpper = 0
+            else
+                result += ch
+            endif
+        endif        
+        i += 1
+    endwhile
+    return result
+endfunction
+
+function checkLastBoolean(lastField, field)
+    if my.lastField.type = "bit" & (!defined(my.field) |(defined(my.field) & my.field.type <> "bit"))
+        my.lastField.encodeMethod += "});"
+    endif
+endfunction
+
+function target_protocol_for_java
+    protocol.basename = protocol.name
+    for class by index
+        for method
+            if class.name = "connection" \
+            | (class.name = "channel" & method.name = "close-ok")
+                method.internal = 1
+            else
+                method.internal = 0
+            endif
+            
+            #if class.name = "connection" & method.name = "start"
+            #    method.framingSuperclass = "AMQFrame"
+            #else
+                method.framingSuperclass = "AMQMethodBody"
+            #endif
+            
+            # Whether this boolean requires a new byte to be declared (1 if the case)            
+            booleanCount = 0
+            # An index of the current boolean being iterated through (always incremented)
+            booleanIndex = 0
+            lastField = 0
+            
+            for field
+                field.jname = getJavaFieldName(field.name)
+                
+                checkLastBoolean(lastField, field)                
+                if type = "char"
+                    field.jtype = "char"
+
+                    field.encodedSize = 1
+                    field.encodeMethod = "EncodingUtils.writeChar(buffer, $(field.jname:no));"
+                    field.decodeMethod = "buffer.getChar();"
+                elsif type = "bit"
+                    field.jtype = "boolean"                  
+                    # Boolean fields are packed so that you write 1 byte per 8
+                    # bits
+                    if booleanCount = 0                    
+                        field.encodeMethod = "EncodingUtils.writeBooleans(buffer, new boolean[]{ \n            $(field.jname:no)"
+                        field.decodeMethod = "boolean[] bools = EncodingUtils.readBooleans(buffer); \n        $(field.jname:no) = bools[0]"
+                    else
+                        field.encodeMethod = "            , $(field.jname:no)"
+                        field.decodeMethod = "$(field.jname:no) = bools[$(booleanIndex)]"
+                    endif
+
+                    booleanIndex += 1
+                    booleanCount += 1
+                    if booleanCount = 1
+                        field.encodedSize = 1
+                    else
+                        field.encodedSize = 0
+                    endif
+                    if booleanCount > 7
+                       booleanCount = 0
+                    endif                   
+                elsif type = "octet"
+                    field.jtype = "short"
+                    field.encodedSize = 1
+                    field.encodeMethod = "EncodingUtils.writeUnsignedByte(buffer, $(field.jname:no));"
+                    field.decodeMethod = "$(field.jname:no) = buffer.getUnsigned()"
+                elsif type = "short"
+                    field.jtype = "int"
+                    field.encodedSize = 2
+                    field.encodeMethod = "EncodingUtils.writeUnsignedShort(buffer, $(field.jname:no));"
+                    field.decodeMethod = "$(field.jname:no) = buffer.getUnsignedShort()"
+                elsif type = "long"
+                    field.jtype = "long"
+                    field.encodedSize = 4
+                    field.encodeMethod = "EncodingUtils.writeUnsignedInteger(buffer, $(field.jname:no));"
+                    field.decodeMethod = "$(field.jname:no) = buffer.getUnsignedInt()"
+                elsif type = "longlong" | type = "timestamp"
+                    # TODO: this is a signed type but easier to work with than BigInteger...
+                    field.jtype = "long"
+                    field.encodedSize = 8
+                    field.encodeMethod = "buffer.putLong($(field.jname:no));"
+                    field.decodeMethod = "$(field.jname:no) = buffer.getLong()"
+                elsif type = "shortstr"
+                    field.jtype = "String"
+                    field.encodedSize = "EncodingUtils.encodedShortStringLength($(field.jname:no))"
+                    field.encodeMethod = "EncodingUtils.writeShortStringBytes(buffer, $(field.jname:no));"
+                    field.decodeMethod = "$(field.jname:no) = EncodingUtils.readShortString(buffer)"
+                elsif type = "longstr" 
+                    field.jtype = "byte[]"
+                    field.encodedSize = "4 + (($(field.jname:no) == null)?0:$(field.jname:no).length)"
+                    field.encodeMethod = "EncodingUtils.writeLongstr(buffer, $(field.jname:no));"
+                    field.decodeMethod = "$(field.jname:no) = EncodingUtils.readLongstr(buffer)"
+                elsif type = "table"
+                    field.jtype = "FieldTable"
+                    field.encodedSize = "EncodingUtils.encodedFieldTableLength($(field.jname:no))"
+                    field.encodeMethod = "EncodingUtils.writeFieldTableBytes(buffer, $(field.jname:no));"
+                    field.decodeMethod = "$(field.jname:no) = EncodingUtils.readFieldTable(buffer)"
+                elsif type = "peer properties"
+                    field.jtype = "FieldTable"
+                    field.encodedSize = "EncodingUtils.encodedFieldTableLength($(field.jname:no))"
+                    field.encodeMethod = "EncodingUtils.writeFieldTableBytes(buffer, $(field.jname:no));"
+                    field.decodeMethod = "$(field.jname:no) = EncodingUtils.readFieldTable(buffer)"
+                else
+                    abort "Unknown field type: $(type)"
+                endif
+                lastField = field                             
+            endfor
+            
+            checkLastBoolean(lastField)
+            
+            for response
+                for class.method as class_method where name = response.name
+                    if defined (class_method.predecessor)
+                        echo "Duplicate route to $(class_method.name)"
+                    endif
+                    class_method.predecessor = method.index
+                endfor
+            endfor
+        endfor
+    endfor
+endfunction
+

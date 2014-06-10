@@ -1,0 +1,715 @@
+.#
+.#   Copyright (c) 1996-2009 iMatix Corporation
+.#
+.#   This program is free software; you can redistribute it and/or modify
+.#   it under the terms of the GNU General Public License as published by
+.#   the Free Software Foundation; either version 2 of the License, or (at
+.#   your option) any later version.
+.#
+.#   This program is distributed in the hope that it will be useful, but
+.#   WITHOUT ANY WARRANTY; without even the implied warranty of
+.#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.#   General Public License for more details.
+.#
+.#   For information on alternative licensing for OEMs, please contact
+.#   iMatix Corporation.
+.#
+<!---------------------------------------------------------------------------->
+<!--  Heartbeat thread  ------------------------------------------------------>
+
+<thread
+    name = "heartbeat"
+    schedule = "poll"
+    context = "connection"
+    share = "1"
+    >
+
+    <handler name = "thread init">
+        thread->animate = (tcb->trace >= ASL_TRACE_MED);
+.if chassis = "client" & defined (syncapi)
+        //  Register to receive interrupt_event on SIGINT, SIGTERM
+        smt_signal_register (SIGINT, thread, interrupt_event);
+        smt_signal_register (SIGTERM, thread, interrupt_event);
+.endif
+        smt_thread_set_next_event (thread, peer_alive_event);
+    </handler>
+
+    <handler name = "thread destroy">
+        tcb->heartbeat_thread = NULL;
+
+.if chassis = "client" & defined (syncapi)
+        //  Deregister signal handlers
+        smt_signal_deregister (SIGINT);
+        smt_signal_deregister (SIGTERM);
+
+.endif
+    </handler>
+
+    <state name = "monitor heartbeat">
+        <event name = "peer alive" nextstate = "monitor heartbeat">
+            <action name = "wait for heartbeat interval" />
+            <action name = "check peer liveness" />
+        </event>
+        <event name = "peer slowing" nextstate = "monitor heartbeat">
+            <action name = "report peer slowing" />
+            <action name = "wait for heartbeat interval" />
+            <action name = "check peer liveness" />
+        </event>
+        <event name = "peer stopped" nextstate = "">
+            <action name = "shut down agent" />
+            <action name = "report peer stopped" />
+        </event>
+    </state>
+
+    <action name = "wait for heartbeat interval">
+        smt_timer_request_delay (thread, tcb->heartbeat * 1000 * 1000, SMT_NULL_EVENT);
+    </action>
+
+    <action name = "check peer liveness">
+        //  Decrease peer liveness.  If liveness reaches 1 log a warning, if
+        //  liveness reaches zero, pronounce the peer dead
+        tcb->liveness--;
+        if (tcb->liveness) {
+            if (tcb->liveness == 1)
+                smt_thread_set_next_event (thread, peer_slowing_event);
+            else
+                smt_thread_set_next_event (thread, peer_alive_event);
+        }
+        else
+            smt_thread_set_next_event (thread, peer_stopped_event);
+    </action>
+
+    <action name = "report peer slowing">
+.if chassis = "client"
+.   if defined (syncapi)
+        icl_console_print (
+            "W: server heartbeat slowing (%s)", tcb->host);
+.   else
+        smt_log_print ($(broker)->alert_log,
+            "W: peer heartbeat slowing (%s)", tcb->host);
+.   endif
+.else
+        smt_log_print ($(protocol.name)_broker->alert_log,
+            "W: client heartbeat slowing (%s, %s, %s, %s)",
+            tcb->connection->client_address,
+            tcb->connection->client_product,
+            tcb->connection->client_version,
+            tcb->connection->client_instance);
+.endif
+    </action>
+
+    <!--  If heartbeats stop we can't use an exception to notify the agent
+          since it is likely to be blocked waiting for socket requests to
+          complete.                                                         -->
+
+    <action name = "shut down agent">
+        if (tcb->input_thread)
+            smt_thread_shut_down (tcb->input_thread);
+        if (tcb->connection_thread)
+            smt_thread_shut_down (tcb->connection_thread);
+    </action>
+
+    <action name = "report peer stopped">
+.if chassis = "client"
+.   if defined (syncapi)
+        icl_console_print (
+            "W: server heartbeat stopped, closing connection (%s)", tcb->host);
+.   else
+        smt_log_print ($(broker)->alert_log,
+            "W: peer heartbeat stopped, closing connection (%s)", tcb->host);
+.   endif
+.else
+        smt_log_print ($(protocol.name)_broker->alert_log,
+            "W: client heartbeat stopped, closing connection (%s, %s, %s, %s)",
+            tcb->connection->client_address,
+            tcb->connection->client_product,
+            tcb->connection->client_version,
+            tcb->connection->client_instance);
+.endif
+    </action>
+
+    <!--  Defaults for heartbeat thread                                     -->
+
+    <state name = "defaults">
+        <!-- Exception events -->
+        <event name = "smt error" nextstate = "">
+            <action name = "notify connection of exception" />
+        </event>
+.if chassis = "client" & defined (syncapi)
+        <!--  SIGINT or SIGTERM received -->
+        <event name = "interrupt" nextstate = "monitor heartbeat">
+            if (*tcb->conn_interrupt == FALSE) {
+                icl_console_print ("I: caught signal, shutting down");
+                *tcb->conn_interrupt = TRUE;
+                $(basename)_agent_shutdown (tcb->connection_thread);
+            }
+            //  Restart monitoring
+            smt_thread_set_next_event (thread, peer_alive_event);
+        </event>
+.endif
+
+    </state>
+
+</thread>
+
+<!---------------------------------------------------------------------------->
+<!--  Helper code shared between agents  ------------------------------------->
+
+<private name = "types">
+//  Function prototypes
+
+//  Raises a connection exception
+static void
+s_connection_exception (
+    smt_thread_t *thread,
+    dbyte reply_code,
+    char *reply_text,
+    dbyte faulting_class_id,
+    dbyte faulting_method_id);
+
+//  Aborts the connection immediately
+static void
+s_connection_abort (
+    smt_thread_t *thread,
+    dbyte reply_code,
+    char *reply_text,
+    dbyte faulting_class_id,
+    dbyte faulting_method_id);
+
+//  Helper function for reporting errors
+static void
+s_report_error (
+    smt_thread_t *thread,
+    char *context,
+    char *action_taken,
+    dbyte reply_code,
+    char *reply_text,
+    dbyte faulting_class_id,
+    dbyte faulting_method_id);
+
+//  Executes an incoming method
+static inline void
+s_execute_method (
+    smt_thread_t *thread,
+    Bool channel_method,
+    int class_id,
+    int method_id);
+
+//  Executes an incoming functional method
+static void
+s_execute_functional_method (
+    smt_thread_t *thread,
+    dbyte class_id,
+    dbyte method_id,
+    dbyte out_class_id,
+    dbyte out_method_id);
+.if chassis = "client" & defined (syncapi)
+
+//  Destructor for reply methods
+static int
+s_method_destructor (void *method);
+.endif
+
+//  Writes a non-null payload to the socket
+static void
+s_write_payload (
+    smt_thread_t *thread,
+    dbyte channel,
+    byte type,
+    ipr_bucket_t **bucket_p);
+
+//  Writes an outgoing method to the socket
+static void
+s_send_method_out (
+    smt_thread_t *thread,
+    dbyte channel,
+    smt_log_t *log);
+
+//  Helper functions for socket input/output
+static inline void
+s_socket_write (
+    smt_thread_t *thread,
+    byte *buffer,
+    size_t size);
+
+static inline void
+s_socket_write_bucket (
+    smt_thread_t *thread,
+    ipr_bucket_t *bucket);
+
+static void inline
+s_socket_write_shortstr (
+    smt_thread_t *thread,
+    char *string);
+
+static inline void
+s_socket_read (
+    smt_thread_t *thread,
+    byte *buffer,
+    size_t size);
+
+static inline void
+s_socket_read_bucket (
+    smt_thread_t *thread,
+    ipr_bucket_t **bucket_p,
+    size_t size);
+
+//  Table of predecessor methods for each method.  If >0, then when we get a
+//  specific method we can assert that we previously sent the predecessor on
+//  the same channel.
+static dbyte s_class_index [$(count (class)) + 1] = {
+    \
+.   for class by index
+$(index), \
+.   endfor
+0
+};
+static dbyte s_method_index [$(count (class))][$(max_method + 1)] = {
+.   for class by index
+    { \
+.       cur_method = 0
+.       for method
+.           cur_method += 1
+ $(index)$((cur_method < max_method)?? ','? '')\
+.       endfor
+.       while cur_method < max_method
+.           cur_method += 1
+  0$((cur_method < max_method)?? ','? '')\
+.       endwhile
+,  0 }$(last()??''?',')
+.   endfor
+};
+static dbyte s_predecessor [$(count (class))][$(max_method + 1)] = {
+.   for class by index
+    { \
+.       cur_method = 0
+.       for method
+.           cur_method += 1
+ $(predecessor?' 0')$((cur_method < max_method)?? ','? '')\
+.       endfor
+.       while cur_method < max_method
+.           cur_method += 1
+  0$((cur_method < max_method)?? ','? '')\
+.       endwhile
+,  0 }$(last()??''?',')
+.   endfor
+};
+</private>
+
+<private name = "functions">
+#define tcb (($(basename)_agent_connection_context_t *) thread->context)
+
+//  Raises a connection exception
+//  Called internally by the agent when a protocol error is detected
+static void
+s_connection_exception (
+    smt_thread_t *thread,               //  Calling thread
+    dbyte reply_code,                   //  Error code
+    char *reply_text,                   //  Error text
+    dbyte faulting_class_id,            //  Faulting class id, if any
+    dbyte faulting_method_id)           //  Faulting method id, if any
+{
+    s_report_error (thread, "Connection", "closing connection",
+        reply_code, reply_text, faulting_class_id, faulting_method_id);
+
+.if chassis = "server"
+    //  Raise an exception in the server connection object so that
+    //  the input thread will pick up on this at the next frame boundary
+    //  and abort processing any current method/content
+    $(basename)_connection_raise_exception (tcb->connection,
+        reply_code, reply_text, faulting_method_id, faulting_class_id);
+.else
+    //  Save reply code for $(basename)_connection
+    tcb->reply_code = reply_code;
+    icl_shortstr_cpy (tcb->reply_text, reply_text);
+.endif
+    smt_thread_raise_exception (thread, connection_error_event);
+}
+
+//  Aborts the connection immediately
+//  Called internally by the agent if we detect an unrecoverable error
+//  (e.g. malformed frame)
+static void
+s_connection_abort (
+    smt_thread_t *thread,               //  Calling thread
+    dbyte reply_code,                   //  Error code
+    char *reply_text,                   //  Error text
+    dbyte faulting_class_id,            //  Faulting class id, if any
+    dbyte faulting_method_id)           //  Faulting method id, if any
+{
+    s_report_error (thread, "Connection", "aborting connection",
+        reply_code, reply_text, faulting_class_id, faulting_method_id);
+
+.if chassis = "client"
+    //  Save reply code for $(basename)_connection
+    tcb->reply_code = reply_code;
+    icl_shortstr_cpy (tcb->reply_text, reply_text);
+.endif
+    smt_thread_raise_exception (thread, connection_abort_event);
+}
+
+//  Helper function to report connection and channel errors
+static void
+s_report_error (
+    smt_thread_t *thread,               //  Calling thread
+    char *context,                      //  Error context
+    char *action_taken,                 //  Action taken
+    dbyte reply_code,                   //  Error code
+    char *reply_text,                   //  Error text
+    dbyte faulting_class_id,            //  Faulting class id, if any
+    dbyte faulting_method_id)           //  Faulting method id, if any
+{
+    if (reply_code == 100)
+        return;
+    if ((tcb->trace >= ASL_TRACE_MED || reply_code >= 500) &&
+        faulting_class_id && faulting_method_id)
+.if chassis = "client"
+.   if defined (syncapi)
+        icl_console_print (
+.   else
+        smt_log_print ($(broker)->alert_log,
+.   endif
+            "E: %s error: %d %s "
+            "(faulting method %u, %u), %s "\
+            "(%s)",
+            context, reply_code, reply_text,
+            faulting_class_id, faulting_method_id, action_taken,
+            tcb->host);
+.else
+        smt_log_print ($(protocol.name)_broker->alert_log,
+            "E: %s error: %d %s "
+            "(faulting method %u, %u), %s "\
+            "(%s, %s, %s, %s)",
+            context, reply_code, reply_text,
+            faulting_class_id, faulting_method_id, action_taken,
+            tcb->connection->client_address,
+            tcb->connection->client_product,
+            tcb->connection->client_version,
+            tcb->connection->client_instance);
+.endif
+    else
+.if chassis = "client"
+.   if defined (syncapi)
+        icl_console_print (
+.   else
+        smt_log_print ($(broker)->alert_log,
+.   endif
+            "E: %s error: %d %s, %s "\
+            "(%s)",
+            context, reply_code, reply_text, action_taken,
+            tcb->host);
+.else
+        smt_log_print ($(protocol.name)_broker->alert_log,
+            "E: %s error: %d %s, %s "\
+            "(%s, %s, %s, %s)",
+            context, reply_code, reply_text, action_taken,
+            tcb->connection->client_address,
+            tcb->connection->client_product,
+            tcb->connection->client_version,
+            tcb->connection->client_instance);
+.endif
+}
+
+//  Executes an incoming method if it matches the requested method,
+//  raises a connection exception if not.
+static inline void
+s_execute_method (
+    smt_thread_t *thread,               //  Thread executing the method
+    Bool channel_method,                //  FALSE == connection method
+    int class_id,                       //  Expected class id
+    int method_id                       //  Expected method id
+    )
+{
+.if chassis = "server"
+    //  Trap possible async exception before executing method
+    if ($(basename)_connection_exception_raised (tcb->connection))
+        smt_thread_raise_exception (thread, async_connection_error_event);
+    else
+.endif
+    if (tcb->method_in->class_id  == class_id
+    &&  tcb->method_in->method_id == method_id) {
+.if chassis = "server"
+        $(basename)_method_execute (tcb->method_in, tcb->connection,
+            channel_method ? tcb->channel : NULL);
+        if ($(basename)_connection_exception_raised (tcb->connection))
+            s_connection_exception (thread,
+                tcb->connection->reply_code,
+                tcb->connection->reply_text,
+                tcb->connection->faulting_class_id,
+                tcb->connection->faulting_method_id);
+.elsif chassis = "client" & !defined (syncapi)
+        $(basename)_method_execute (tcb->method_in, tcb->caller, thread);
+.else
+        ;                               //  Proceed
+.endif
+    }
+    else
+        s_connection_exception (thread, ASL_SYNTAX_ERROR,
+            "Method not valid here",
+            tcb->method_in->class_id,
+            tcb->method_in->method_id);
+}
+
+//  Executes an incoming functional method.  Checks if we sent the predecessor
+//  method (if any) and raises a connection exception if not.
+static void
+s_execute_functional_method (
+    smt_thread_t *thread,               //  Thread executing the method
+    dbyte class_id,                     //  Incoming class id
+    dbyte method_id,                    //  Incoming method id
+    dbyte out_class_id,                 //  Last sent class id
+    dbyte out_method_id)                //  Last sent method id
+{
+    dbyte
+        pred_method_id;                 //  Predecessor method id, if any
+    uint
+        class_index,
+        method_index;
+
+    //  Convert input class index (20, 30, 41,...) into lookup index
+    for (class_index = 0; s_class_index [class_index]; class_index++)
+        if (class_id == s_class_index [class_index])
+            break;
+
+    //  Convert input method index (20, 30, 41,...) into lookup index
+    for (method_index = 0; s_method_index [class_index][method_index]; method_index++)
+        if (method_id == s_method_index [class_index][method_index])
+            break;
+
+    //  If we got a method that requires a predecessor, check we sent that
+    if (s_method_index [class_index][method_index]) {
+        pred_method_id = s_predecessor [class_index][method_index];
+        if (pred_method_id > 0
+        && (pred_method_id != out_method_id
+        &&  out_class_id == class_id))
+            s_connection_exception (thread,
+                ASL_SYNTAX_ERROR, "Method not allowed at this stage",
+                method_id, class_id);
+        else
+.if chassis = "server"
+            $(basename)_method_execute (tcb->method_in, tcb->connection,
+                tcb->channel);
+            if ($(basename)_connection_exception_raised (tcb->connection))
+                s_connection_exception (thread,
+                    tcb->connection->reply_code,
+                    tcb->connection->reply_text,
+                    tcb->connection->faulting_class_id,
+                    tcb->connection->faulting_method_id);
+.elsif chassis = "client" & !defined (syncapi)
+            $(basename)_method_execute (tcb->method_in, tcb->caller, thread);
+.else
+        {
+            $(basename)_method_t
+                *method;
+
+            //  Send method to $(basename)_session for processing
+            method = $(basename)_method_link (tcb->method_in);
+            if (smt_method_send (tcb->channel->method_queue, SMT_NULL_EVENT,
+                SMT_PRIORITY_NORMAL, $(BASENAME)_REPLY_METHOD, method,
+                s_method_destructor))
+                $(basename)_method_unlink (&method);
+        }
+.endif
+    }
+    else
+        s_connection_exception (thread,
+            ASL_SYNTAX_ERROR, "Method invalid - unknown method id",
+            method_id, class_id);
+}
+.if chassis = "client" & defined (syncapi)
+
+//  Destructor for reply methods sent to session or connection agent
+static int
+s_method_destructor (void *method)
+{
+    $(basename)_method_t
+        *method_p;
+
+    method_p = method;
+    $(basename)_method_unlink (&method_p);
+    return 0;
+}
+
+//  Destructor for contents sent as methods
+static int
+s_content_destructor (void *content)
+{
+    $(protocol.name)_content_basic_t
+        *content_p;
+
+    content_p = content;
+    $(protocol.name)_content_basic_unlink (&content_p);
+    return (0);
+}
+.endif
+
+//  Sends an outgoing method to the socket
+static void
+s_send_method_out (
+    smt_thread_t *thread,
+    dbyte channel,
+    smt_log_t *log)
+{
+    ipr_bucket_t
+        *payload;
+
+    if (tcb->trace >= ASL_TRACE_LOW)
+        $(basename)_method_dump (tcb->method_out, log, "I: send ");
+
+    //  Send the method
+    payload = $(basename)_method_encode (tcb->method_out);
+    s_write_payload (thread, channel, ASL_FRAME_METHOD, &payload);
+
+    tcb->out_class_id  = tcb->method_out->class_id;
+    tcb->out_method_id = tcb->method_out->method_id;
+
+.if chassis = "client" & defined (syncapi)
+    s_history_table [s_history_index].inout = 'o';
+    s_history_table [s_history_index].name  = tcb->method_out->name;
+    s_history_index = (s_history_index + 1) % METHOD_HISTORY_SIZE;
+.endif
+}
+
+//  Writes a non-null payload to the socket
+static void
+s_write_payload (
+    smt_thread_t *thread,
+    dbyte channel,
+    byte type,                          //  Frame type indicator
+    ipr_bucket_t **payload_p)
+{
+    ipr_bucket_t
+        *payload = NULL,
+        *bucket;                        //  Header bucket
+    byte
+        *bucket_ptr;
+    static byte
+        frame_end = ASL_FRAME_END;
+
+    if (payload_p) {
+        payload = *payload_p;
+        if (!payload)
+            return;                     //  Ignore empty payloads
+    }
+    if (payload->cur_size > tcb->frame_max) {
+        icl_console_print ("E: frame type=%d is too large, discarded (size=%d, max=%d)",
+            type, payload->cur_size, tcb->frame_max);
+        return;
+    }
+    //  Write ASL frame header to normal bucket
+    bucket = ipr_bucket_new (ASL_HEADER_SIZE);
+    bucket_ptr = bucket->data;
+    PUT_OCTET (bucket_ptr, type);
+    PUT_SHORT (bucket_ptr, channel);
+    PUT_LONG  (bucket_ptr, payload->cur_size);
+    bucket->cur_size = bucket_ptr - bucket->data;
+
+    s_socket_write_bucket (thread, bucket);
+    s_socket_write_bucket (thread, payload);
+    s_socket_write        (thread, &frame_end, 1);
+    ipr_bucket_unlink (&bucket);
+    ipr_bucket_unlink (payload_p);
+}
+
+//  Helper functions for socket input/output
+static void inline
+s_socket_write (
+    smt_thread_t *thread,
+    byte *buffer,
+    size_t size)
+{
+.if chassis = "server"
+    tcb->connection->traffic_out += size;
+.endif
+    smt_socket_request_write (
+        thread,
+        tcb->socket,
+        0,
+        size,
+        buffer,
+        SMT_NULL_EVENT);
+}
+
+static void inline
+s_socket_write_bucket (
+    smt_thread_t *thread,
+    ipr_bucket_t *bucket)
+{
+.if chassis = "server"
+    tcb->connection->traffic_out += bucket->cur_size;
+.endif
+    smt_socket_request_write_bucket (
+        thread,
+        tcb->socket,
+        0,
+        bucket,
+        SMT_NULL_EVENT);
+}
+
+static void inline
+s_socket_write_shortstr (
+    smt_thread_t *thread,
+    char *string)
+{
+    ipr_bucket_t
+        *bucket;                        //  Formatted output
+
+    assert (strlen (string) < 256);
+    bucket = ipr_bucket_new (256);
+    bucket->data [0] = (byte) strlen (string);
+    memcpy (bucket->data + 1, string, strlen (string));
+    bucket->cur_size = 1 + strlen (string);
+    s_socket_write_bucket (thread, bucket);
+    ipr_bucket_unlink (&bucket);
+}
+
+static void inline
+s_socket_read (
+    smt_thread_t *thread,
+    byte *buffer,
+    size_t size)
+{
+    if (size <= IPR_BUCKET_MAX_SIZE) {
+.if chassis = "server"
+        tcb->connection->traffic_in += size;
+.endif
+        smt_socket_request_read (
+            thread,
+            tcb->socket,
+            0,
+            size,
+            size,
+            buffer,
+            SMT_NULL_EVENT);
+    }
+    else
+        s_connection_abort (thread,
+            ASL_FRAME_ERROR, "Illegal frame size specified", 0, 0);
+}
+
+static void inline
+s_socket_read_bucket (
+    smt_thread_t *thread,
+    ipr_bucket_t **bucket_p,
+    size_t size)
+{
+    if (size <= IPR_BUCKET_MAX_SIZE) {
+.if chassis = "server"
+        tcb->connection->traffic_in += size;
+.endif
+        smt_socket_request_read_bucket (
+            thread,
+            tcb->socket,
+            0,
+            size,
+            size,
+            bucket_p,
+            SMT_NULL_EVENT);
+    }
+    else
+        s_connection_abort (thread,
+            ASL_FRAME_ERROR, "Illegal frame size specified", 0, 0);
+}
+
+#undef tcb
+</private>

@@ -1,0 +1,624 @@
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+ 	<title>Xitami Wiki: Xitami 5</title>
+ 	
+ 		 	<script type="text/javascript" src="http://static-l.wikidot.com/v--4/common--javascript/init.combined.js"></script>
+ 	<script  type="text/javascript">
+ 		// global request information
+ 		
+ 		var WIKIREQUEST = {};
+ 		WIKIREQUEST.info = {};
+ 		
+ 		WIKIREQUEST.info.domain = "xitami.wikidot.com";
+ 		WIKIREQUEST.info.siteId = 32235;
+ 		WIKIREQUEST.info.categoryId = 510495;
+ 		WIKIREQUEST.info.themeId = 3691;
+ 		WIKIREQUEST.info.requestPageName = "doc:xitami-5";
+ 		OZONE.request.timestamp = 1231446384;
+ 		OZONE.request.date = new Date();
+ 		WIKIREQUEST.info.lang = 'en';
+ 		 		WIKIREQUEST.info.pageUnixName = "doc:xitami-5";
+ 		WIKIREQUEST.info.pageId = 2799800;
+ 		 		WIKIREQUEST.info.lang = "en";
+ 		OZONE.lang = "en";
+// 		window.onload = WikidotInit();
+ 	</script>
+ 	
+ 	<meta http-equiv="content-type" content="text/html;charset=UTF-8"/>
+         	<meta http-equiv="content-language" content="en"/>
+ 		<script type="text/javascript" src="http://static-l.wikidot.com/v--4/common--javascript/WIKIDOT.combined.js"></script>
+	
+	
+	
+   	
+	<style type="text/css" id="internal-style"> 
+ @import url(http://static-l.wikidot.com/v--4/common--modules/css/monetize/textlinkads/MonetizeTextLinkAdsModule.css);
+ 
+ 
+   		
+   		   			@import url(http://static-l.wikidot.com/v--4/common--theme/base/css/style.css?0);
+   		   			@import url(default.css?2);
+   		   		
+     </style>
+    
+    <link rel="shortcut icon" href="/local--favicon/favicon.gif"/>
+    <link rel="icon" type="image/gif" href="/local--favicon/favicon.gif"/>
+    
+            
+</head>
+
+  <body id="html-body">
+
+	<div id="container-wrap">
+		<div id="container">
+		  	<div id="header">
+		  		<h1><a href="/"><span>Xitami Wiki</span></a></h1>
+		  				  			<h2><span>The new Xitami Website</span></h2>
+		  				  		
+		  		<!-- google_ad_section_start(weight=ignore) -->
+		  		
+		  		<div id="search-top-box">
+		  			<form id="search-top-box-form" action="dummy">
+			  			<input id="search-top-box-input" class="text empty" type="text" size="15" name="query" value="search this site" onfocus="if(YAHOO.util.Dom.hasClass(this, 'empty')){YAHOO.util.Dom.removeClass(this,'empty'); this.value='';}"/><input class="button" type="submit" name="search" value="search"/>
+				 	</form>
+	  			</div>
+		  		
+		  					  		<div id="top-bar">
+			  			
+
+
+			  		</div>
+		  				  		<div id="login-status"><a href="http://www.wikidot.com/auth:newaccount?origUrl=http%3A%2F%2Fxitami.wikidot.com%2Fdoc%3Axitami-5">create account</a> or <a href="http://www.wikidot.com/auth:login?origUrl=http%3A%2F%2Fxitami.wikidot.com%2Fdoc%3Axitami-5">login</a> </div>
+		  		<div id="header-extra-div-1"><span></span></div><div id="header-extra-div-2"><span></span></div><div id="header-extra-div-3"><span></span></div>
+		  	</div>
+		  	
+			<div id="content-wrap">
+									<div id="side-bar">
+													
+												
+
+<h3 ><span><a href="http://www.xitami.org">xitami.org</a></span></h3><div style="margin-top:1em"><ul><li><a href="/system:join">Become an editor</a></li><li><a href="/editors">Current editors</a></li></ul></div><div style="margin-top:1em"><ul><li><a href="/admin:manage">Administer site</a></li></ul></div><h2 ><span>Other sites</span></h2><ul><li><a href="http://www.imatix.com">www.imatix.com</a></li></ul><div style="margin-top:3em; margin-left:1em; font-size:80%"><p>Copyright (c) the authors and iMatix. Licensed under the Creative Commons Attribution Share Alike 3.0 License.</p></div><div class="image-container aligncenter"><a href="http://creativecommons.org/licenses/by-sa/3.0/"><img src="http://i.creativecommons.org/l/by-sa/3.0/88x31.png" alt="88x31.png" class="image" /></a></div>
+
+													
+											</div>
+								
+				<!-- google_ad_section_end -->
+				
+				<div id="main-content">
+					<div id="action-area-top"></div>
+					
+					<!-- google_ad_section_start -->
+					
+										<div id="page-title">
+					Xitami 5					</div>
+															
+										
+										
+					<div id="page-content">
+					
+													
+												 	
+					 								
+												
+												
+
+<p>This is a work in progress that describes some main features of the emerging Xitami/5 development.</p>
+<h2 id="toc0"><span>Xitami/5 server documentation</span></h2>
+<p>Xitami/5 is the latest generation web server from iMatix Corporation. The Xitami product line stretches back to 1996. Version 5 is principally designed to be embedded in other application, like OpenAMQ and Zyre. Xitami/5 is built using iMatix's current Base2 technology for multithreading applications. This means it can run on single and multicore systems, with its own green threading model for concurrent processing. On a single core machine, Xitami/5 is slower than previous versions of the product. On multicore machines, it is much more scalable.</p>
+<p>If you are reading this, most likely you are configuring the HTTP component of one of the applications that uses it, such as Zyre. If you're running Zyre, just replace all instances of 'xitami' with 'zyre' in all examples.</p>
+<h2 id="toc1"><span>Summary of features and options</span></h2>
+<p>Xitami/5 is a simple web server which focuses on security and ease of use. These are the key features explained in this document:</p>
+<ul>
+<li>Basic and Digest authentication mechanisms using Apache-compatible password files;</li>
+<li>Standard (NSCA, W3C) and customisable access logs;</li>
+<li>Scriptable access control using easy-to-write policy language;</li>
+<li>Predefined access policies: apply blacklist, block hotlinking, private web area;</li>
+<li>Allow/deny access depending on: client IP address, request headers, user group;</li>
+<li>Auto-ban for script &amp; form injections, path climbing, proxy probes, over-sized requests.</li>
+</ul>
+<p>The on-line help ('xitami —help') explains how to configure further aspects of the server through a set of command-line options:</p>
+<div class="code">
+<pre>
+<code>--server_name      Announced server name
+  --port             Server port for HTTP requests
+  --public_port      Public port for HTTP requests
+  --trace            Trace network traffic?
+  --animate          Animate HTTP agent?
+  --verbose          Verbose output?
+  --listen           Address (local network interface) to listen on
+  --webroot          Path to web root directory
+  --index            Index file name
+  --default_types    Default document types
+  --monitor          Monitor interval, seconds
+  --record_stats     Record performance statistics
+  --log_path         Active log file directory
+  --keep_logs        Keep log files
+  --archive_path     Archive log file directory
+  --archive_cmd      Archive log file command
+  --alert_log        Error log file name
+  --access_log       Access log file name
+  --access_log_format  Access log file format
+  --debug_log        Debug log file name
+  --basic_auth       Basic authentication filename
+  --digest_auth      Digest authentication filename
+  --blacklist        Blacklist filename
+  --policy_trace     Debug policy execution?
+  --nervosity        Security nervosity, seconds
+  --header_max       Max size of HTTP header
+  --bucket_max       Max size of content bucket
+  --read_timeout     Network read timeout, seconds
+  --write_timeout    Network write timeout, seconds
+  --tcp_nodelay      TCP/IP NODELAY option
+  --tcp_rcvbuf       TCP/IP receive buffer, in bytes
+  --tcp_sndbuf       TCP/IP send buffer, in bytes
+  --polling_threads  Number of polling OS threads
+  --working_threads  Number of working OS threads</code>
+</pre></div>
+<h2 id="toc2"><span>Access control</span></h2>
+<p>A web server is only as good as its security.</p>
+<h3 id="toc3"><span>Overview</span></h3>
+<p>Xitami controls access to resources by applying <em>access control policies</em> that you define, as system administrator. In general terms, Xitami works through the list of all defined policies until it either gets a firm "deny" or "allow" for the current request.</p>
+<p>The general order of things after an incoming request has been validated, is to:</p>
+<ol>
+<li>First, reject any known bad IP addresses (that is, spammers and hackers).</li>
+<li>Second, reject certain types of access, such as image hotlinking.</li>
+</ol>
+<p>Policies can do various things:</p>
+<ol>
+<li>Deny an address based on a blacklist.</li>
+<li>Deny or allow the current request based on IP address or the value of certain HTTP headers.</li>
+<li>Request that the current user be authenticated via Basic or Digest authentication.</li>
+<li>Allow or deny authenticated users according to group.</li>
+<li>Automatically ban the current IP address based on the request URI.</li>
+</ol>
+<h3 id="toc4"><span>Predefined policies</span></h3>
+<p>Policies are named. Xitami provides a set of default policies. You can redefine these in the xitami.cfg file. These are the default policies:</p>
+<div class="code">
+<pre>
+<code>&lt;config&gt;
+    &lt;access config_meta = "discrete"&gt;
+        &lt;!-- Apply blacklist --&gt;
+        &lt;policy name = "blacklist"&gt;
+            &lt;from value = "127.0.0.1"&gt;
+                &lt;skip /&gt;
+            &lt;/from&gt;
+            &lt;blacklist&gt;
+                &lt;deny code = "503" text = "Server overloaded" /&gt;
+            &lt;/blacklist&gt;
+        &lt;/policy&gt;
+
+        &lt;!-- Detect hostile requests, auto-ban offending IP addresses --&gt;
+        &lt;policy name = "auto-ban"&gt;
+            &lt;!-- Attempt to smash the server with long requests --&gt;
+            &lt;detect limit = "255"       comment = "long request line" /&gt;
+            &lt;!-- Attempts at injections via the URI --&gt;
+            &lt;detect value = "%3Cscript" comment = "script injection" /&gt;
+            &lt;detect value = "%3Cform"   comment = "form injection" /&gt;
+            &lt;detect value = "%20or"     comment = "SQL injection" /&gt;
+            &lt;detect value = "%20and"    comment = "SQL injection" /&gt;
+            &lt;detect value = "%20select" comment = "SQL injection" /&gt;
+            &lt;detect value = "%20drop"   comment = "SQL injection" /&gt;
+            &lt;!-- Attempts to navigate outside the web root --&gt;
+            &lt;detect value = ".."        comment = "path climbing" /&gt;
+            &lt;detect value = "%5c"       comment = "Win32 paths" /&gt;
+            &lt;detect value = "~"         comment = "Unix paths" /&gt;
+            &lt;!-- Probe to see if we're a proxy server --&gt;
+            &lt;detect value = "http://"   comment = "proxy probe" /&gt;
+            &lt;default&gt;
+                &lt;echo&gt;W: hostile request from $from ($comment), blacklisting&lt;/echo&gt;
+                &lt;echo&gt;W: request='$request'&lt;/echo&gt;
+                &lt;ban /&gt;
+                &lt;deny code = "503" text = "Server overloaded" /&gt;
+            &lt;/default&gt;
+        &lt;/policy&gt;
+
+        &lt;!-- Deny hotlinking to /local URIs  --&gt;
+        &lt;policy name = "coldlink" uri = "/local"&gt;
+            &lt;!-- Not proof against referrer fraud but good for most cases --&gt;
+            &lt;local&gt;
+                &lt;allow /&gt;
+            &lt;/local&gt;
+            &lt;always&gt;
+                &lt;deny /&gt;
+            &lt;/always&gt;
+        &lt;/policy&gt;
+
+        &lt;!-- Secure the /private area --&gt;
+        &lt;policy name = "private" uri = "/private"&gt;
+            &lt;always&gt;
+                &lt;authenticate mechanism = "basic" realm = "Private" /&gt;
+            &lt;/always&gt;
+            &lt;group value = "users"&gt;
+                &lt;allow /&gt;
+            &lt;/group&gt;
+        &lt;/policy&gt;
+
+        &lt;!--  By default other resources are public --&gt;
+        &lt;policy name = "default"&gt;
+            &lt;always&gt;
+                &lt;allow /&gt;
+            &lt;/always&gt;
+        &lt;/policy&gt;
+    &lt;/access&gt;
+&lt;/config&gt;</code>
+</pre></div>
+<h3 id="toc5"><span>Policy language</span></h3>
+<p>The access module excecutes all defined policies, except the policy named "default", in order, stopping either when it has executed all policies, or has a 'deny' or 'allow' action. It will execute the default policy if no other policy provides a 'deny' or 'allow' action. If there are no policies which return a 'deny' or 'allow', the built in default action is 'deny'.</p>
+<p>The policy item can take these options:</p>
+<ul>
+<li><strong>uri</strong> - if specified, the policy applies only if the requested URI starts with this value. By default the policy applies all URIs.</li>
+</ul>
+<p>Each policy consists of a series of <em>rules</em> which contain <em>actions</em>. The access module processes the rules in struct order in a <em>single pass</em>. Rules are tests, which can pass or fail. If the rule passes, the access module executes the actions. A 'deny', 'allow', 'ban', or 'redirect' action ends processing of the actions, rules, and policies.</p>
+<p>The rules are somewhat like 'if' statements in a scripting language. The goal of this design is to make policy writing easier than the multi-pass design used by some web servers.</p>
+<p>The allowed rules are:</p>
+<ul>
+<li>&lt;blacklist&gt; - check if the IP address of the client application is blacklisted.</li>
+<li>&lt;from value = "pattern"&gt;…&lt;/from&gt; - check the IP address of the client application.</li>
+<li>&lt;header name = "name" value = "pattern"&gt;…&lt;/header&gt; - check the value of a specific request header.</li>
+<li>&lt;local&gt;…&lt;/local&gt; - check if the referrer is the current host.</li>
+<li>&lt;detect value = "string" limit = "length"&gt;…&lt;/detect&gt; - check if the request contains the specified value, or is longer than the specified size.</li>
+<li>&lt;group value = "pattern"&gt;…&lt;/group&gt; - check if the user is authenticated and in some group.</li>
+<li>&lt;always&gt;…&lt;/always&gt; - always execute the actions.</li>
+<li>&lt;default&gt;…&lt;/default&gt; - executes the actions for any successful rule that has <em>no</em> actions.</li>
+</ul>
+<p>The detect value is case insensitive. The detect rule allows a 'comment' attribute that is available for &lt;echo&gt; statements as $comment. The from and group patterns use the Unix wildcard syntax, where '*' matches zero or more instances of any character and '?' matches one instance of any character. The from pattern can also be a <a href="http://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing">CIDR</a> specification, e.g:</p>
+<p>[[code]<br />
+&lt;from value = "64.182.*" /&gt;<br />
+&lt;from value = "64.182.0.0/16" /&gt;<br />
+[[/code]]</p>
+<p>The allowed actions are:</p>
+<ul>
+<li>&lt;deny code = "reply-code" text = "reply-text" /&gt; - deny access to the resource. Default reply code is 403 - FORBIDDEN. Ends policy processing.</li>
+<li>&lt;allow /&gt; - allow access to the resource. Ends policy processing.</li>
+<li>&lt;authenticate mechanism = "basic|digest" [ realm = "realmname" ] /&gt; - attempts to authenticate the user using the Authorization credentials provided by the browser. If successful, continues policy processing. If not, returns a 401 UNAUTHORIZED response to the browers. The default mechanism is "basic", and the default realm is the host name.</li>
+<li>&lt;redirect uri = "uri" /&gt; - redirects the browser to another URI, on the same or a different server, with a reply code 302 FOUND. The default uri is "/". Ends policy processing.</li>
+<li>&lt;ban /&gt; - adds the browser's IP address to the blacklist. Ends policy processing.</li>
+<li>&lt;skip /&gt; - ends processing of this policy and continues with the next.</li>
+<li>&lt;echo&gt;Message text&lt;/echo&gt; - echoes a message to the console and log files. The message can contain substitution variables as defined below for access logs.</li>
+</ul>
+<h3 id="toc6"><span>Blacklisting</span></h3>
+<p>Xitami maintains a single <em>blacklist</em> file that is applied to all incoming requests, as an in-built policy. The blacklist file (by default, "blacklist.txt") consists of IP addresses, one per line. Whitespace, and any portion of lines starting with '#' are ignored.</p>
+<p>The <em>ban</em> rule adds an IP address to the blacklist file. If you want to track bans, use the &lt;echo&gt; action with text that is easy to find using a tool like grep. Echoed text goes into the alert log file (logs/alert_nnnn.log).</p>
+<p>To identify and block specific IP addresses, you should use the &lt;blacklist&gt; rule, which is very fast, rather than the &lt;from&gt; rule. The &lt;from&gt; rule is suitable for blocking groups of IP addresses (specified by wildcard). Note that the built-in blacklist policy always allows 127.0.0.1 (the local machine) to pass, even if that address has been blacklisted.</p>
+<p>Xitami automatically reloads modified blacklist files, and you can safely edit, delete, or replace the blacklist file at any time while the server is running. For example, here we start Xitami, then delete the blacklist.txt file, then re-create it with two banned addresses. This shows Xitami's console output:</p>
+<div class="code">
+<pre>
+<code>2009-01-01 15:26:15: I: loaded configuration from ./http_base.cfg
+2009-01-01 15:26:15: I: merged configuration from ./xitami.cfg
+2009-01-01 15:26:15: I: blacklist file 'blacklist.txt' loaded (Thu, 01 Jan 2009 14:21:53 UTC, 1 entries)
+2009-01-01 15:26:15: I: hostname is nb200802 (127.0.1.1)
+2009-01-01 15:26:15: I: listening on port 8080, all network interfaces
+2009-01-01 15:26:15: I: initializing HTTP/file plugin on '/'
+2009-01-01 15:26:15: I:  - serving files from 'webpages' directory
+2009-01-01 15:26:16: I: ready for incoming HTTP requests
+2009-01-01 15:26:35: W: blacklist file 'blacklist.txt' not found, or unreadable
+2009-01-01 15:27:12: I: blacklist file 'blacklist.txt' loaded (Thu, 01 Jan 2009 14:27:11 UTC, 2 entries)</code>
+</pre></div>
+<p>Since reloading a very large blacklist file may take some resources, Xitami does this at most every 5 seconds. You can tune this time (called the "nervosity") using the '—nervosity' command line option:</p>
+<div class="code">
+<pre>
+<code>./xitami --nervosity 1  -X "run a very nervous server"</code>
+</pre></div>
+<h3 id="toc7"><span>The auto-ban policy</span></h3>
+<p>The auto-ban policy detects the most frequent attempts to subvert your web server by sending it unfriendly requests. Xitami likes to shoot first and ask questions later, so any IP address (except 127.0.0.1, which is "you") trying these requests gets immediately blacklisted. Here is a Perl program that tries them all:</p>
+<div class="code">
+<pre>
+<code>#!/usr/bin/perl
+#   Perl script to test various hostile requests
+use LWP::UserAgent;
+my $ua = new LWP::UserAgent;
+$ua-&gt;agent ('HTTP/Tests');
+
+hostile ("index.html?" . sprintf ("%80s", "*"));
+hostile ("index.html?&lt;script&gt;");
+hostile ("index.html?&lt;form&gt;");
+hostile ("index.html? or");
+hostile ("index.html? and");
+hostile ("index.html? select");
+hostile ("index.html? drop");
+hostile ("../index.html");
+hostile ("c:\\win32\\system");
+hostile ("~/bin/sh");
+#   Probe server to see if we can use it as a proxy
+$ua-&gt;proxy('http', 'http://localhost:8080/');
+hostile ("/");
+
+sub hostile {
+    my ($uri) = @_;
+    $request = HTTP::Request-&gt;new (GET =&gt; "http://localhost:8080/$uri");
+    $response = $ua-&gt;request ($request);
+    $response-&gt;code == 503 || die;
+}</code>
+</pre></div>
+<p>This what Xitami reports:</p>
+<div class="code">
+<pre>
+<code>2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (long request line), blacklisting
+2009-01-02 13:28:01: W: request='GET /index.html?%20%20%20%20...20%20%20%20%20* HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (script injection), blacklisting
+2009-01-02 13:28:01: W: request='GET /index.html?%3Cscript%3E HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (form injection), blacklisting
+2009-01-02 13:28:01: W: request='GET /index.html?%3Cform%3E HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (SQL injection), blacklisting
+2009-01-02 13:28:01: W: request='GET /index.html?%20or HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (SQL injection), blacklisting
+2009-01-02 13:28:01: W: request='GET /index.html?%20and HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (SQL injection), blacklisting
+2009-01-02 13:28:01: W: request='GET /index.html?%20select HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (SQL injection), blacklisting
+2009-01-02 13:28:01: W: request='GET /index.html?%20drop HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (path climbing), blacklisting
+2009-01-02 13:28:01: W: request='GET /../index.html HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (Win32 paths), blacklisting
+2009-01-02 13:28:01: W: request='GET /c:%5Cwin32%5Csystem HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (Unix paths), blacklisting
+2009-01-02 13:28:01: W: request='GET /~/bin/sh HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (proxy probe), blacklisting
+2009-01-02 13:28:01: W: request='GET http://localhost:8080// HTTP/1.1'</code>
+</pre></div>
+<p>Note that the limit on requests is 255 chars, which is very strict. However, passing over-long requests is a favourite way to break into a web server. Properly written web applications pass long data via the content body (POST data), not the request line.</p>
+<p>After all this fun, the blacklist.txt file contains:</p>
+<div class="code">
+<pre>
+<code>127.0.0.1</code>
+</pre></div>
+<p>Which the server loads but patiently ignores, as defined by the blacklist policy. Which you can change, as we explain next.</p>
+<h3 id="toc8"><span>Custom policies</span></h3>
+<p>You write custom policies in xitami.cfg (the usual configuration file). There are two things you can do:</p>
+<ol>
+<li>Write new policies that are executed after the built-in ones.</li>
+<li>Replace the built-in policies with your own versions.</li>
+</ol>
+<p>Write your custom policies using the policy syntax explained above, as &lt;policy&gt; items within an &lt;access&gt; item. The general format for any custom policies is:</p>
+<div class="code">
+<pre>
+<code>xitami.cfg:
+&lt;?xml?&gt;
+&lt;config&gt;
+    &lt;access&gt;
+        &lt;policy name = "policy-name"&gt;
+            rules
+        &lt;/policy&gt;
+    &lt;/access&gt;
+&lt;/config&gt;</code>
+</pre></div>
+<p>Where there are usually other config items before and/or after the &lt;access&gt; item, and there will usually be multiple policies. Here are some examples of custom policies (assuming the general format we just explained:</p>
+<p>To change the default policy to deny access to any unauthenticated users:</p>
+<div class="code">
+<pre>
+<code>&lt;policy name = "default"&gt;
+    &lt;always&gt;
+        &lt;allow /&gt;
+    &lt;/always&gt;
+&lt;/policy&gt;</code>
+</pre></div>
+<p>To change the authentication mechanism on /private from Basic to Digest:</p>
+<div class="code">
+<pre>
+<code>&lt;!-- Secure the /private area --&gt;
+&lt;policy name = "private" uri = "/private"&gt;
+    &lt;always&gt;
+        &lt;authenticate mechanism = "digest" realm = "Private" /&gt;
+    &lt;/always&gt;
+    &lt;group value = "users"&gt;
+        &lt;allow /&gt;
+    &lt;/group&gt;
+&lt;/policy&gt;</code>
+</pre></div>
+<p>To rewrite the blacklist policy:</p>
+<div class="code">
+<pre>
+<code>&lt;policy name = "blacklist"&gt;
+    &lt;blacklist&gt;
+        &lt;echo&gt;Denied access to $from (blacklisted address)&lt;/echo&gt;
+        &lt;deny code = "503" text = "Server overloaded" /&gt;
+    &lt;/blacklist&gt;
+&lt;/policy&gt;</code>
+</pre></div>
+<p>Note that to change a built-in policy you need to rewrite it completely, there is no sensible way to merge custom and existing policies.</p>
+<h3 id="toc9"><span>Authentication</span></h3>
+<p>Xitami uses the Apache <em>htpasswd</em> and <em>htdigest</em> file formats. To create password files in these formats, install those tools from Apache. On Debian Linux, do:</p>
+<div class="code">
+<pre>
+<code>$ sudo apt-get install apache2-utils</code>
+</pre></div>
+<p>If you cannot or do not want to use the Apache tools, you can create a plain (unencrypted) htpasswd file by specifying each user name and password on a new line, separated by a colon, e.g.:</p>
+<div class="code">
+<pre>
+<code>Kossi:secrets-are-better-shared
+Affi:lets-hope-it-works-this-time
+Admin:super-password</code>
+</pre></div>
+<p>Xitami will nag you if you use plain text passwords, but it's better than no authentication at all. You can also create password files in various languages. For details on the format of the htpasswd and htdigest files and examples of how to create these in PHP, Java, Ruby and C/C++, see <a href="http://httpd.apache.org/docs/2.2/misc/password_encryptions.html">the Apache documentation</a>.</p>
+<h3 id="toc10"><span>User groups</span></h3>
+<p>Currently, user groups are not implemented and Xitami hard-defines the group "users".</p>
+<h3 id="toc11"><span>Debugging policies</span></h3>
+<p>Since policies are somewhat like a (very simple) security scripting language, Xitami gives you a way to debug them. Start the server with the "—policy_trace 1" command line option, and then run your specific test cases. Here is a typical test case, written in Perl:</p>
+<div class="code">
+<pre>
+<code>#!/usr/bin/perl
+#   Simple Perl script to test script injection attack
+use LWP::UserAgent;
+my $ua = new LWP::UserAgent;
+$ua-&gt;agent ('HTTP/Tests');
+$request = HTTP::Request-&gt;new (GET =&gt; "http://localhost:8080/index.html?&lt;script&gt;");
+$response = $ua-&gt;request ($request);
+print $response-&gt;status_line . "\n";</code>
+</pre></div>
+<p>And this is what the server reports, when run with '—policy_trace 1' (some output removed for clarity):</p>
+<div class="code">
+<pre>
+<code>ph@nb200802:~/work/trunk/base2/http$ ./xitami --policy_trace 1
+Xitami/5.0
+Copyright (c) 1996-2009 iMatix Corporation
+2009-01-02 12:19:22: I: loaded configuration from ./http_base.cfg
+2009-01-02 12:19:22: I: merged configuration from ./xitami.cfg
+2009-01-02 12:19:22: I: listening on port 8080, all network interfaces
+2009-01-02 12:19:23: I: ready for incoming HTTP requests
+2009-01-02 12:19:26: P: starting policy check on request 'GET /index.html?%3Cscript%3E HTTP/1.1'
+2009-01-02 12:19:26: P: executing 'blacklist' policy
+2009-01-02 12:19:26: P: executing rule 'blacklist'
+2009-01-02 12:19:26: P: executing 'auto-ban' policy
+2009-01-02 12:19:26: P: executing rule 'detect'
+2009-01-02 12:19:26: P: rule match: request contains '%3Cscript'
+2009-01-02 12:19:26: P: execute action 'echo'
+2009-01-02 12:19:26: W: hostile request from 127.0.0.1 (script injection), blacklisting
+2009-01-02 12:19:26: P: execute action 'echo'
+2009-01-02 12:19:26: W: request='GET /index.html? %Cscript3.614564E-313 HTTP/1.1'
+2009-01-02 12:19:26: P: execute action 'ban'
+2009-01-02 12:19:27: I: blacklist file 'blacklist.txt' loaded (Fri, 02 Jan 2009 11:19:26 UTC, 1 entries)</code>
+</pre></div>
+<h2 id="toc12"><span>Access logs</span></h2>
+<h3 id="toc13"><span>Log formats</span></h3>
+<p>Xitami/5 generates access logs in a variety of formats:</p>
+<ul>
+<li>CLF - NCSA/httpd common logging format.</li>
+<li>CLFX - W3C logging format as used by Apache. This is the default.</li>
+<li>Custom defined log format.</li>
+</ul>
+<p>Xitami uses templating to produce the log files. The templates for the above predefined formats are:</p>
+<ul>
+<li>CLF - '$from - $user [$datetime] "$request" $status $sent'</li>
+<li>CLFX - '$from - $user [$datetime] "$request" $status $sent "$referer" "$agent"'</li>
+</ul>
+<p>The log file format is specified by —access_log_format or /config/logging/access_log_format. If it is not one of the above three values, it is used as a template. The full list of template variables is:</p>
+<ul>
+<li>$agent - User-Agent header value</li>
+<li>$arguments - requested URI arguments</li>
+<li>$datetime - date/time in NCSA format</li>
+<li>$day - day as two digits</li>
+<li>$file - filename to which request was translated</li>
+<li>$from - client address, as dotted number</li>
+<li>$hh - hour, using 24-hour clock</li>
+<li>$method - HTTP method</li>
+<li>$mm - minutes as two digits</li>
+<li>$mon - month as two digits</li>
+<li>$path - requested URI path</li>
+<li>$query - query string, if any</li>
+<li>$recd - request size, in bytes</li>
+<li>$referer - Referer header</li>
+<li>$request - complete request line</li>
+<li>$sent - response size, in bytes</li>
+<li>$ss - seconds as two digits</li>
+<li>$status - response code, 3 digits</li>
+<li>$user - user name, if authenticated, else -</li>
+<li>$year - year as four digits</li>
+<li>$yy - year as two digits</li>
+<li>$VAR - environment variable VAR</li>
+</ul>
+
+					</div>
+					
+										
+										
+										
+					<!-- google_ad_section_end -->
+					
+					<!-- google_ad_section_start(weight=ignore) -->
+					
+					<div style="clear:both; height:1px; font-size:1px;"></div>
+																				
+										
+					<div id="action-area" style="display: none"></div>
+				</div>
+			</div>
+			
+			
+			
+	 		<div id="footer" style="display: block; visibility: visible;">
+	 					 			<div class="options" style="display: block; visibility: visible;">
+			 			<a href="http://www.wikidot.com/doc" id="wikidot-help-button">
+				 			help				 		</a>
+			 			|
+				 		<a href="http://www.wikidot.com/legal:terms-of-service"   id="wikidot-tos-button">
+				 			terms of service				 		</a>
+			 			|
+				 		<a href="http://www.wikidot.com/legal:privacy-policy"   id="wikidot-privacy-button">
+				 			privacy				 		</a>
+			 			|
+				 		<a href="javascript:;" id="bug-report-button" 
+				 			onclick="WIKIDOT.page.listeners.pageBugReport(event)">
+				 			report a bug				 		</a>
+			 			|
+				 		<a href="javascript:;" id="abuse-report-button" 
+				 			onclick="WIKIDOT.page.listeners.flagPageObjectionable(event)">
+				 			flag as objectionable				 		</a>
+		 			</div>
+			 				 				Hosted by <a href="http://www.wikidot.com">Wikidot.com</a> &#8212; 
+		 						 					professional wiki solutions
+		 						 					 					 			 		</div>
+	 									
+						
+			
+			<div id="extrac-div-1"><span></span></div><div id="extrac-div-2"><span></span></div><div id="extrac-div-3"><span></span></div>
+			
+	 	</div>
+	 </div>
+ 	
+ 	<!-- These extra divs/spans may be used as catch-alls to add extra imagery. -->
+	<div id="extra-div-1"><span></span></div><div id="extra-div-2"><span></span></div><div id="extra-div-3"><span></span></div>
+	<div id="extra-div-4"><span></span></div><div id="extra-div-5"><span></span></div><div id="extra-div-6"><span></span></div>
+ 	
+ 	 	
+ 	<div id="page-options-bottom-tips" style="display: none">
+ 		<div id="edit-button-hovertip">
+ 			Click here to edit contents of this page. 		</div>
+ 	</div>
+ 	<div id="page-options-bottom-2-tips"  style="display: none">
+ 		<div id="edit-sections-button-hovertip">
+	 		Click here to toggle editing of individual sections of the page (if possible).
+	 		Watch headings for an "edit" link when available. 		</div>
+ 		<div id="edit-append-button-hovertip">
+ 			Append content without editing the whole page source. 		</div>
+ 		<div id="history-button-hovertip">
+ 			Check out how this page has evolved in the past. 		</div>
+ 		<div id="discuss-button-hovertip">
+ 			If you want to discuss contents of this page - this is the easiest way to do it. 		</div>
+ 		<div id="files-button-hovertip">
+ 			View and manage file attachments for this page. 		</div>
+ 		<div id="site-tools-button-hovertip">
+ 			A few useful tools to manage this Site. 		</div>
+ 		<div id="backlinks-button-hovertip">
+ 				See pages that link to and include this page. 		</div>
+ 		<div id="rename-move-button-hovertip">
+ 			Change the name (also URL address, possibly the category) of the page. 		</div>
+ 		<div id="view-source-button-hovertip">
+ 			View wiki source for this page without editing. 		</div>
+ 		<div id="parent-page-button-hovertip">	
+ 			View/set parent page (used for creating breadcrumbs and structured layout). 		</div>
+ 			 		<div id="abuse-report-button-hovertip">
+	 				Notify administrators if there is objectionable content in this page.	 		</div>
+	 		<div id="bug-report-button-hovertip">
+				Something does not work as expected? Find out what you can do.	 		</div>
+	 		<div id="wikidot-help-button-hovertip">
+	 			General Wikidot.com documentation and help section.	 		</div>
+	 		<div id="wikidot-tos-button-hovertip">
+	 			Wikidot.com Terms of Service - what you can, what you should not etc.	 		</div>
+	 		<div id="wikidot-privacy-button-hovertip">
+	 				Wikidot.com Privacy Policy. 			
+	 		</div>
+ 		 	</div>
+ 	
+ 	<!-- google_ad_section_end -->
+ 	
+ 	<div id="account-notifications-dummy" style="display:none"></div>
+ 	
+ 	<div style="display:none" id="dummy-ondomready-block"></div>
+	
+		
+	<script src="http://www.google-analytics.com/urchin.js" type="text/javascript"></script>
+	<script type="text/javascript">
+		_uff = false;
+		_uacct = "UA-68540-5";
+		_udn="wikidot.com"; 
+		urchinTracker();
+	</script>
+	
+		
+	  </body>
+
+</html>

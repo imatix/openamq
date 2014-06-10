@@ -1,0 +1,408 @@
+.#
+.#   Copyright (c) 1996-2009 iMatix Corporation
+.#
+.#   This program is free software; you can redistribute it and/or modify
+.#   it under the terms of the GNU General Public License as published by
+.#   the Free Software Foundation; either version 2 of the License, or (at
+.#   your option) any later version.
+.#
+.#   This program is distributed in the hope that it will be useful, but
+.#   WITHOUT ANY WARRANTY; without even the implied warranty of
+.#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.#   General Public License for more details.
+.#
+.#   For information on alternative licensing for OEMs, please contact
+.#   iMatix Corporation.
+.#
+.output "$(opf.name).icl"
+<?xml?>
+<!--
+    *** GENERATED FROM $(arg?filename) BY $(script) USING GSL/4 ***
+
+.   if defined (copyright)
+        >#   $(copyright:)
+.   endif
+.   $(license:lower)_license ("")
+ -->
+<class
+    name      = "$(name)"
+    comment   = "$(comment)"
+    script    = "icl_gen"
+.   if defined (copyright)
+    copyright = "$(copyright:)"
+.   endif
+    license   = "$(license:)"
+    opaque    = "1"
+    >
+
+<inherit class = "icl_object">
+    <option name = "alloc"  value = "cache" />
+    <option name = "rwlock" value = "1" />
+</inherit>
+
+<import class = "smt_log" />
+
+<public name = "include">
+#include "ipr.h"
+</public>
+
+<public>
+.for public
+.   output_code (public)
+.endfor
+.for property
+.   for allow
+#define $(OPF.NAME)_$(PROPERTY.NAME)_$(NAME)  $(VALUE)
+.   endfor
+.endfor
+</public>
+
+<private>
+.for private
+.   output_code (private)
+.endfor
+</private>
+
+<context>
+.for property
+    $(type:)
+        $(name);                        //  $(string.trim (property.?''):left)
+.endfor
+    <property name = "filename" type = "char *" />
+    <property name = "table" type = "ipr_config_t *" readonly = "1" />
+</context>
+
+<method name = "new">
+    <doc>
+    Creates an empty configuration set.  To fill this, use the load and
+    load_bucket methods.
+    </doc>
+    //
+    self->table = ipr_config_new (NULL, FALSE);
+</method>
+
+<method name = "destroy">
+    ipr_config_destroy (&self->table);
+    icl_mem_free (self->filename);
+</method>
+
+<method name = "load xmlfile" template = "function">
+    <doc>
+    Loads a config file into the property set, merging the new loaded data
+    with any previous data, as defined in ipr_config.icl.
+    </doc>
+    <argument name = "filename" type = "char *">Config file to load</argument>
+    <argument name = "required" type = "Bool">Config file is required?</argument>
+    //
+    assert (filename);
+    if (!ipr_config_load (self->table, filename, required)) {
+        self_set_filename (self, filename);
+        s_validate_items (self);
+        s_get_properties (self);
+    }
+</method>
+
+<method name = "load bucket" template = "function">
+    <doc>
+    Loads a config resource (as a bucket) into the property set, merging the
+    new loaded data with any previous data, as defined in ipr_config.icl.
+    </doc>
+    <argument name = "bucket" type = "ipr_bucket_t *">Config data to load</argument>
+    //
+    assert (bucket);
+    ipr_config_load_bucket (self->table, bucket);
+    s_validate_items (self);
+    s_get_properties (self);
+</method>
+
+<method name = "shadow" template = "function">
+    <doc>
+    Loads the data from a different property set, and updates all the properties.
+    Use this when you want to provide your code with multiple property classes
+    that actually contain an identical configuration set.  To use:
+    my_config = my_config_new (NULL, NULL, FALSE);
+    my_config_shadow (self, your_config->config);
+    </doc>
+    <argument name = "source" type = "ipr_config_t *">Config data to shadow</argument>
+    //
+    //  Get rid of our own config data
+    ipr_config_destroy (&self->table);
+    //  Grab a handle onto the source data
+    self->table = ipr_config_dup (source);
+    //  Update our properties, without validation
+    s_get_properties (self);
+</method>
+
+<method name = "commit" template = "function">
+    <doc>
+    Saves the current configuration values to the specified file.  If the
+    provided filename is null, uses the original config filename. If both
+    filenames are null, does nothing.
+    </doc>
+    <argument name = "filename" type = "char *">Config file to save</argument>
+    <inherit name = "wrlock" />
+    //
+    if (filename)
+        ipr_config_save (self->table, filename);
+    else
+    if (strused (self->filename))
+        ipr_config_save (self->table, self->filename);
+</method>
+
+<method name = "rollback" template = "function">
+    <doc>
+    Reloads the saved configuration from the saved file, if any.
+    Any changes made to the current configuration are lost.
+    </doc>
+    <inherit name = "wrlock" />
+    //
+    ipr_config_destroy (&self->table);
+    self->table = ipr_config_new (self->filename, TRUE);
+    s_get_properties (self);
+</method>
+
+<method name = "cmdline help">
+    <doc>
+    Prints command-line help for setting options from the command
+    line.
+    </doc>
+    printf ("Options that override config values; these take an argument:\\\\n");
+.for property
+    printf ("  --$(name)        $(string.trim (property.?''):left)\\\\n");
+.endfor
+</method>
+
+<method name = "cmdline parse" template = "function">
+    <doc>
+    Parses recognized command-line options starting with --.  Prints an error
+    message and exits if the syntax is invalid.
+    </doc>
+    <argument name = "name" type = "char *">Name of application</argument>
+    <argument name = "argc" type = "int">Argument count</argument>
+    <argument name = "argv" type = "char **">Argument list</argument>
+    <local>
+    int
+        argn;                           //  Argument number
+    char
+        *arg_name,
+        *arg_value;
+    </local>
+    //
+    argn = 1;
+    while (argn < argc) {
+        arg_name = argv [argn];
+        if (streq (arg_name, "--help")) {
+            self_options_help (self, name);
+            exit (EXIT_SUCCESS);
+        }
+        else
+        if (ipr_str_prefixed (argv [argn], "--")) {
+            argn++;
+            if (argn < argc && *argv [argn] != '-') {
+                arg_value = argv [argn];
+                argn++;
+
+                //  Set property
+.for property
+                if (streq (arg_name, "--$(name)"))
+.   if metat = "string"
+                    self_set_$(name) (self, arg_value);
+.   else
+                    self_set_$(name) (self, atoi (arg_value));
+.   endif
+.   if !last ()
+                else
+.   endif
+.endfor
+                else {
+                    icl_console_print ("E: unrecognised option '%s'", arg_name);
+                    exit (EXIT_FAILURE);
+                }
+            }
+            else {
+                icl_console_print ("E: %s option needs a parameter", arg_name);
+                exit (EXIT_FAILURE);
+            }
+        }
+        else
+            argn++;
+    }
+    rc = argc;                          //  Return final arg count
+</method>
+
+<method name = "options help" template = "function">
+    <doc>
+    Prints full help for all configuration options.
+    </doc>
+    <argument name = "name" type = "char *">Name of application</argument>
+    printf ("These are the configured options for %s\\\\n\\\\n", name);
+.for property
+
+    printf ("$(path)/$(src) - $(string.trim (property.?''):left)\\\\n");
+    printf ("    From command-line: --$(name) newvalue\\\\n");
+.   if metat = "string"
+.       text = " Current value is '%s'."
+.       if defined (default)
+.           text += " Default value is '$(default)'"
+.       endif
+.   else
+.       text = " Current value is $(format)."
+.       if defined (default)
+.           text += " Default value is $(default)."
+.       endif
+.   endif
+    printf ("    $(->doc.?'':justify,block                                            )\\\\n");
+    printf ("    $(text:justify,block                                                 )\\\\n", self->$(name));
+    printf ("\\\\n");
+.endfor
+</method>
+
+.for property
+<method name = "set $(name)" template = "function">
+.   if metat = "string"
+    <argument name = "$(name)" type = "char *" />
+.   else
+    <argument name = "$(name)" type = "$(type:)" />
+.   endif
+    <inherit name = "wrlock" />
+.   if metat = "string"
+    ipr_config_putp (self->table, "$(path:)", "$(src)", $(name));
+    $(name) = ipr_config_getp (self->table, "$(path:)", "$(src)", NULL);
+    assert ($(name));
+.   else
+    <local>
+    icl_shortstr_t
+        strvalue;
+    </local>
+    //
+.   if defined (min)
+    if ($(name) < $(min)) {
+        icl_console_print ("W: &lt;command line&gt;: illegal value %d for $(name), using %d",
+            $(name), $(min));
+        $(name) = $(min);
+    }
+.   endif
+.   if defined (max)
+    if ($(name) > $(max)) {
+        icl_console_print ("W: &lt;command line&gt;: illegal value %d for $(name), using %d",
+            $(name), $(max));
+        $(name) = $(max);
+    }
+.   endif
+    icl_shortstr_fmt (strvalue, "$(format)", $(name));
+    ipr_config_putp (self->table, "$(path:)", "$(src)", strvalue);
+.   endif
+    self->$(name) = $(name);
+</method>
+
+<method name = "$(name)" return = "$(name)">
+    <argument name = "self" type = "$\(selftype) *">Reference to self</argument>
+.   if metat = "string"
+    <declare name = "$(name)" type = "char *" />
+.   else
+    <declare name = "$(name)" type = "$(type:)" />
+.   endif
+    //
+    if (self)
+        $(name) = self->$(name);
+    else
+.       if metat = "string"
+        $(name) = "$(default?'':)";
+.       else
+        $(name) = $(default?'0':);
+.       endif
+</method>
+
+.endfor
+<method name = "dump log" template = "function">
+    <doc>
+    Dump current option values to an smt_log file.
+    </doc>
+    <argument name = "logfile" type = "smt_log_t *">Log file to dump to</argument>
+    smt_log_print (logfile, "*******************  Configuration Settings  ********************");
+.for property
+.   if metat = "string"
+    smt_log_print (logfile, "$(name)=%s", self->$(name));
+.   else
+    smt_log_print (logfile, "$(name)=$(format)", self->$(name));
+.   endif
+.endfor
+    smt_log_print (logfile, "");
+</method>
+
+<private name = "header">
+static void s_validate_items ($\(selftype) *self);
+static void s_get_properties ($\(selftype) *self);
+</private>
+
+<private name = "body">
+static void s_validate_items ($\(selftype) *self)
+{
+    char
+        *item_name;
+
+    //  Locate first child and check all items for validity
+    ipr_config_locate (self->table, "/config/+", "");
+    while (self->table->located) {
+        item_name = ipr_config_item (self->table);
+        if (streq (item_name, "echo"))
+            icl_console_print ("I: %s: %s", self->filename, ipr_config_value (self->table));
+        else
+.for path
+        $(first()?? 'if (' ? '&& ')strneq (item_name, "$(path.name)")$(last()?? ')'?'')
+.endfor
+            icl_console_print ("W: %s: unknown item '%s', ignored",
+                self->filename, item_name);
+        ipr_config_next (self->table);
+    }
+}
+
+static void s_get_properties ($\(selftype) *self)
+{
+    char
+        *value;                         //  Configured value
+.for path
+
+    //  All properties on $(path.name) path
+    ipr_config_locate (self->table, "/$(opf.root)/$(path.name:)", NULL);
+.   for property
+
+    //  Get $(name) property from config file or built-in defaults
+    value = ipr_config_get (self->table, "$(src)", NULL);
+.-
+.       if metat = "string"
+    if (value)
+        self->$(name) = value;
+    else
+        self->$(name) = "$(default?'':)";
+.-
+.       else
+    if (value)
+        self->$(name) = ($(type:)) atol (value);
+    else
+        self->$(name) = $(default?'0':);
+.   if defined (min)
+    if (self->$(name) < $(min)) {
+        icl_console_print ("W: %s: illegal value %d for $(name), using %d",
+            self->filename, self->$(name), $(min));
+        self->$(name) = $(min);
+    }
+.   endif
+.   if defined (max)
+    if (self->$(name) > $(max)) {
+        icl_console_print ("W: %s: illegal value %d for $(name), using %d",
+            self->filename, self->$(name), $(max));
+        self->$(name) = $(max);
+    }
+.   endif
+.       endif
+.   endfor
+.endfor
+}
+</private>
+
+<method name = "selftest">
+</method>
+
+</class>
+

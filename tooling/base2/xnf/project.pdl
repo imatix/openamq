@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<pdl
+    name     = "XNF"
+    version  = "2.1c0"
+    workflow = "scripted.pwl"
+    >
+
+<include filename = "prelude.pdl" />
+
+<!-- XNF toolkit -->
+<file name = "xnf.xnf"         class = "gsl data"            >XNF grammar</file>
+<file name = "xnf_base.xnf"    class = "public resource"     >XNF basic grammar</file>
+<file name = "xnf_gen.gsl"     class = "public resource"     >XNF code wrapper</file>
+<file name = "xnf_preproc.gsl" class = "public resource"     >XNF preprocessor</file>
+<file name = "xnf_inherit.gsl" class = "public resource"     >XNF inherit</file>
+<file name = "xnf_parse.gsl"   class = "public resource"     >XNF parser</file>
+<file name = "xnf_produce.gsl" class = "public resource"     >XNF code template</file>
+<file name = "xnf_doc.txt"     class = "generated"           >XNF documentation</file>
+
+<!-- DFL toolkit -->
+<file name = "dfl.xnf"         class = "gsl data"            >DFL grammar</file>
+<file name = "dfl_gen.gsl"     class = "generated resource"  >DFL code wrapper</file>
+<file name = "dfl_preproc.gsl" class = "generated resource"  >DFL preprocessor</file>
+<file name = "dfl_inherit.gsl" class = "generated resource"  >DFL inheritor</file>
+<file name = "dfl_parse.gsl"   class = "generated resource"  >DFL parser</file>
+<file name = "dfl_doc.txt"     class = "generated"           >DFL documentation</file>
+
+</pdl>

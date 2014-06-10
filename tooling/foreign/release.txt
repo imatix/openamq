@@ -1,0 +1,123 @@
+Foreign Release Notes
+
+Current project maintainers:
+
+    Overall:    Martin Lucina <mato@imatix.com>
+
+---------------------------------------------------------------------------
+1.1d8 - 2008/06/05
+
+ - Added native apr_atomic_casptr for x86_64 (BASE2-207)
+ - Disabled sendfile in APR build (FOR-16)
+
+1.1d7 - 2007/09/04
+
+ - PCRE PDL should inherit CCDEFINES from environment (FOR-18)
+
+1.1d6 - 2007/08/24
+
+ - add AIX 5.3 MT build support to 'c' script (BASE-59)
+
+1.1d5 - 2007/07/19
+
+ - c.bat and pal.bat do not accept file names with extensions (FOR-16)
+
+ - apr_socket_opt_get: Implement APR_SO_ERROR (FOR-17)
+
+1.1d4 - 2007/03/11
+
+ -  Integrated support for native atomic operations available on Solaris 10+
+    (BASE2-74)
+
+ -  Various build fixes for Solaris (FOR-14 and others)
+ 
+ -  Various build fixes for Win32 (FOR-15 and others)
+
+ -  Changed default memory allocator for MT builds on Linux and Solaris 
+    (BASE2-262)
+
+ -  Changed default build model to mt,release for Linux and Solaris
+    (BASE-55, also in base/)
+
+1.1d3 - 2006/06/07
+
+ -  Removed ezXML, no longer used
+ -  Patched APR SHA2 code to not export SHA symbols, otherwise we get a 
+    namespace conflict with the OpenSSL library
+
+1.1d2 - 2006/05/05
+
+ -  Added PCRE, ZLib libraries
+ -  Moved 'c' script from Base to Foreign
+
+1.1d0 - 2006/04/08
+
+ -  Added ezXML Library (Pieter)
+
+1.1c6 - 2006/03/16
+
+ -  [FOR-12] Disabled use of epoll/kqueue/port_create apr_pollset_poll ()
+    implementations on UNIX systems.
+
+ -  [FOR-1]  Added buffered read support to APR, at present only for systems
+    where apr_pollset_poll () uses poll (). This includes older versions of
+    Solaris and Linux 2.4 kernels.
+
+    Buffer size defaults to 8k, may be customized by setting the
+    APR_SOCKET_BUFFER_SIZE environment variable. If set to 0, buffering will be
+    turned off. 
+
+1.1c5 - 2006/01/24
+
+ - Packaging updated for BASE-22
+
+1.1c4 - 2005/12/14
+
+ - Fix for BASE2-130 (apr_pools.c)
+
+1.1c3 - 2005/12/13
+
+ - Fix problem with distsrc, use 'make distclean' instead of 'make clean'
+
+1.1c2 - 2005/11/29
+
+ - Updated apr and apr-util to 1.2.2
+ - Packaging fixes 
+
+1.1c1 - 2005/11/25
+
+ - BDB removed, not being used for now
+ - New patch management using vendor branches
+ - Improved error handling in build scripts
+ - No functional changes vs 1.1c0
+
+1.1c0 - 2005/11/17
+
+ - Added test case for pthread_rwlock_unlock bug in glibc
+
+1.1b2 - 2005/11/07
+
+ - Added patch to apr_pools.c for BASE2-99 
+ - This is an interim workaround which wraps all non-reentrant pool calls
+   with a mutex.  Note that the code is only enabled for the non debug
+   (!defined APR_POOL_DEBUG) functions.
+
+1.1b1 - 2005/09/05
+
+ - Fixed APR 1.2.1 patching
+
+1.1b0 - 2005/08/31
+
+ - Update to APR 1.2.1, APR-util 1.2.1
+
+1.1a2 - 2005/08/09
+
+ - Update to APR 1.1.1, APR-util 1.1.2
+
+1.1a1 - 2005/08/04
+
+ - Add patch for apr/threadproc/win32/thread.c issue from Robert
+
+1.1a0 - 
+
+ - Initial release after split from base2

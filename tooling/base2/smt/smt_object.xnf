@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<xnf
+    name    = "smt_object"
+    script  = "xnf_gen.gsl"
+    version = "1.1c1"
+    license = "gpl"
+    >
+smt_object provides the generation of iCL objects as SMT agents.
+
+<inherit xnf = "icl_stdc" />
+
+<produce filename = "smt_object_gen.gsl"     type = "wrap"    />
+<produce filename = "smt_object_preproc.gsl" type = "preproc" />
+<produce filename = "smt_object_inherit.gsl" type = "inherit" />
+<produce filename = "smt_object_parse.gsl"   type = "parse"   />
+<produce filename = "smt_object_doc.txt"     type = "gurudoc" />
+
+<entity name = "icl" tag = "class">
+    <attr name = "target" default = "smt" script = "smt_object.gsl">
+    Specifies the name of the target environment; the target is implemented by
+    a GSL script that generates code for a specific language environment.
+    The target can be inherited from a parent class.
+        <restrict value = "smt">SMT state machine</restrict>
+    </attr>
+    <allow entity = "event" />
+</entity>
+
+<entity name = "private">
+    <attr name = "name" default = "body" short = "name of the block">
+        <restrict value = "async header">issued after class header</restrict>
+        <restrict value = "async footer">issued at end of source</restrict>
+    </attr>
+</entity>
+
+<entity name = "method">
+    <attr name = "async">
+    Specifies whether the method should be implemented as an asynchronous
+    SMT method.
+        <restrict value = "0">Method is synchronous</restrict>
+        <restrict value = "1">Method is asynchronous</restrict>
+    </attr>
+    <attr name = "on_shutdown">
+    Specifies whether the method should be accepted in the shutting down state.
+        <restrict value = "0">Method is not accepted</restrict>
+        <restrict value = "1">Method is accepted</restrict>
+    </attr>
+    <attr name = "nextstate">
+    The next state that the dialog should enter after executing the actions.
+    </attr>
+    <allow entity = "possess" />
+    <allow entity = "release" />
+    <allow entity = "action" sequence = "after" />
+</entity>
+
+<entity name = "possess" cdata = "1">
+    Code to allow the agent to take possession of the data in the method.
+</entity>
+
+<entity name = "release" cdata = "1">
+    Code to allow the agent to release possession of the data in the method.
+    This code is turned into a callback function for the method queue and is
+    called either on failure to deliver the method, or when the method is
+    destroyed.
+</entity>
+
+<entity name = "action" cdata = "1">
+    <attr name = "name" />
+</entity>
+
+<entity name = "event">
+    An event to allow internal processing, for instance timers.
+    <attr name = "name" required = "1" />
+    <allow entity = "action" sequence = "after" />
+</entity>
+
+</xnf>

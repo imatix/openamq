@@ -1,0 +1,122 @@
+<?xml version="1.0" ?>
+     
+<!--
+     SMT messages for the SMTSSL agent
+     Written: 1998/05/30
+     Revised: 2001/03/14
+
+     To compile, use GSLgen with smtgen.gsl script.
+     -->
+
+<application        title  = "Smtssl messages"
+                    script = "smtmesg.gsl"
+                    module = "smtsslm" >
+
+    <!-- ------------------------------------------------------------------
+         Messages for SMT SSL agent
+         ------------------------------------------------------------------ -->
+    <agent          name   = "smtssl"           title = "SMT SSL agent" >
+        <message    name   = "open" >
+            <field  name   = "config"           title = "Configuration file to use"
+                    type   = "string" />
+
+            <method name   = "open"             title = "Open SSL port"
+                    type   = "request" />
+        </message>
+        <message    name   = "open ok" >
+            <field  name   = "port"             title = "SSL port opened"
+                    type   = "dbyte" />
+
+            <method name   = "open ok"          title = "SSL port opened OK"
+                    type   = "reply" />
+        </message>
+        <method     name   = "close"            title = "Close SSL port"
+                    type   = "request" />
+        <method     name   = "restart"          title = "Restart SSL connection"
+                    type   = "request" />
+        <message    name   = "accepted" >
+            <field  name   = "socket"           title = "Socket handle for SSL connection"
+                    type   = "qbyte" />
+            <field  name   = "user"             title = "User name"
+                    type   = "string" />
+            <field  name   = "cipher"           title = "Cipher used"
+                    type   = "string" />
+            <field  name   = "verify"           title = "Level of user verification"
+                    type   = "dbyte" />
+
+            <method name   = "accepted"         title = "Accept SSL connection"
+                    type   = "request" />
+        </message>
+        <message    name   = "read request" >
+            <field  name   = "size"             title = "Maximum size to read"
+                    type   = "qbyte" />
+
+            <method name   = "read request"     title = "Request read"
+                    type   = "request" />
+        </message>
+        <message    name   = "write request" >
+            <field  name   = "timeout"          title = "Timeout in seconds, zero = none"
+                    type   = "dbyte" />
+            <field  name   = "socket"           title = "Socket to write to"
+                    type   = "qbyte" />
+            <field  name   = "size"             title = "Amount of data to write"
+                    type   = "size" />
+            <field  name   = "data"             title = "Block of data to write"
+                    type   = "body" />
+            <field  name   = "reply"            title = "Whether OK reply is required"
+                    type   = "bool" />
+            <field  name   = "tag"              title = "User-defined request tag"
+                    type   = "qbyte" />
+
+            <method name   = "write request"    title = "Write SSL data"
+                    type   = "request" />
+        </message>
+        <message    name   = "put slice" >
+            <field  name   = "socket"           title = "Socket for output"
+                    type   = "qbyte" />
+            <field  name   = "filename"         title = "Name of file to send"
+                    type   = "string" />
+            <field  name   = "start"            title = "Starting offset; 0 = start"
+                    type   = "qbyte" />
+            <field  name   = "end"              title = "Ending offset; 0 = end"
+                    type   = "qbyte" />
+
+            <method name   = "put slice"        title = "Write file slice to SSL socket"
+                    type   = "request" />
+        </message>
+        <message    name   = "error" >
+            <field  name   = "code"             title = "Error code"
+                    type   = "qbyte" />
+
+            <method name   = "error"            title = "Signal SSL error"
+                    type   = "reply" />
+        </message>
+        <message    name   = "write ok" >
+            <field  name   = "socket"           title = "Socket used for i/o, or new socket"
+                    type   = "qbyte" />
+            <field  name   = "tag"              title = "User-defined request tag"
+                    type   = "qbyte" />
+
+            <method name   = "write ok"         title = "Write OK reply"
+                    type   = "reply" />
+        </message>
+        <message    name   = "read ok" >
+            <field  name   = "size"             title = "Size of result"
+                    type   = "size" />
+            <field  name   = "data"             title = "Read data"
+                    type   = "body" />
+
+            <method name   = "read ok"          title = "Read result data"
+                    type   = "reply" />
+        </message>
+        <message    name   = "put slice ok" >
+            <field  name   = "size"             title = "Amount of transmitted data"
+                    type   = "qbyte" />
+
+            <method name   = "put slice ok"     title = "File written okay"
+                    type   = "reply" />
+        </message>
+
+    </agent>
+
+</application>

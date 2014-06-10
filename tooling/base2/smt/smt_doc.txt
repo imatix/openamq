@@ -1,0 +1,918 @@
+SMT is a state machine code generator that's built on GSL and Libero.    
+This is the fifth major design iteration of SMT. In 1995, we built the   
+first version. Version 2 was a fuller threading micro kernel built in    
+1996 and used as the basis for Xitami. Version 3 was started in 1999 and 
+used for GSL/3 and GSL/4. SMT/4 was built in 2004 and used for the       
+initial OpenAMQ architectures. Version 5 was built in 2005 and combines  
+OS multithreads, full XNF inheritence, and generation from iCL classes in
+one glorious Model Oriented Programming (MOP) package.                   
+
+Summary of language
+===================
+
+This summary shows the hierarchy of elements you can use, with the
+required and optional attributes for each element.  The XML entity and
+attribute names are case-sensitive and we use only lower-case names.
+
+    <agent script name [before] [after] [copyright] [license] [role] [abstract] [target]
+         [version] [animate] [trace_size]>
+       <option name value/>
+       <inherit name [phase] [condition]>
+          <option .../>
+       </inherit>
+       <include filename [required]/>
+       <import class [condition]/>
+       <private [name]/>
+       <public [name]/>
+       <context name/>
+       <handler [name]>
+          <argument name type/>
+       </handler>
+       <state name [abstract] [template]>
+          <option .../>
+          <inherit .../>
+          <handler name/>
+          <event name [nextstate]>
+             <action [name]/>
+          </event>
+          <default [nextstate]>
+             <action [name]/>
+          </default>
+       </state>
+       <thread name [abstract] [template] [context] [schedule] [share]>
+          <option .../>
+          <inherit .../>
+          <context [name]/>
+          <handler name>
+             <argument .../>
+          </handler>
+          <state name [abstract] [template]>
+             <option .../>
+             <inherit .../>
+             <handler .../>
+             <event name [nextstate]>
+                <action .../>
+             </event>
+             <default .../>
+          </state>
+          <action [name]>
+             <call state [event]/>
+             <return/>
+          </action>
+       </thread>
+       <event name/>
+       <action [name]>
+          <call .../>
+          <return .../>
+       </action>
+       <catch event [error]/>
+       <method name [event] [priority] [message]>
+          <argument .../>
+          <possess/>
+          <release/>
+       </method>
+       <message name [priority]>
+          <argument .../>
+          <method name [event] [priority] [message]>
+             <argument .../>
+             <possess .../>
+             <release .../>
+          </method>
+          <possess .../>
+          <release .../>
+       </message>
+       <actionlist/>
+    </agent>
+
+Detailed specifications
+=======================
+
+All child entities are optional and can occur zero or more times without
+any specific limits unless otherwise specified.  The same tag may occur
+at different levels with different meanings, and in such cases will be
+detailed more than once here.
+
+The 'smt' item
+--------------
+
+An SMT agent.
+
+    <agent
+        script = "smt_gen.gsl"
+        name = "..."
+      [ before = "..." ]
+      [ after = "..." ]
+      [ copyright = "..." ]
+      [ license = "bsd | gpl"  ("gpl") ]
+      [ role = "..." ]
+      [ abstract = "0 | 1"  ("0") ]
+      [ target = "stdc | doc"  ("$(switches.target?'stdc':)") ]
+      [ version = "..." ]
+      [ animate = "0 | 1"  ("0") ]
+      [ trace_size = "..." ]
+        >
+        <option>
+        <inherit>
+        <include>
+        <import>
+        <private>
+        <public>
+        <context>
+        <handler>
+        <state>
+        <thread>
+        <event>
+        <action>
+        <catch>
+        <method>
+        <message>
+        <actionlist>
+    </agent>
+
+The smt item can have these attributes:
+
+abstract:
+    If set, the entity only exists in order to be inherited - no code is    
+    generated. The abstract attribute is optional. Its default value is "0".
+    It can take one of the following values:                                
+
+Value: Meaning:
+0: normal entity
+1: abstract entity
+
+role:
+    A file may fulfill a role. This serves two purposes: asserting that      
+    essential roles are fulfilled and helping to define the inheritence order
+    using the 'before' and 'after' attributes. The role attribute is         
+    optional.                                                                
+
+before:
+    Specifies a role before which this file should should be inherited. The
+    before attribute is optional.                                          
+
+after:
+    Specifies a role before which this file should should be inherited. The
+    after attribute is optional.                                           
+
+copyright:
+    This specifies the copyright string for the model. This string is stamped
+    into the generated sources, if specified. The copyright attribute is     
+    optional.                                                                
+
+license:
+    Specifies the license of the model. This license is applied to all models
+    inherited or built from the current model. The license attribute is      
+    optional. Its default value is "gpl". It can take one of the following   
+    values:                                                                  
+
+Value: Meaning:
+bsd: generates a BSD license header
+gpl: generates a GPL license header
+
+name:
+    Agent name. The name attribute is required.
+
+script:
+    GSL script to process the agent definition. The script attribute is
+    required. It can take one of the following values:                 
+
+Value: Meaning:
+smt_gen.gsl: The SMT processor
+
+target:
+    Specifies the name of the target environment; the target is implemented 
+    by a GSL script that generates code for a specific language environment.
+    The target can be inherited from a parent class. The target attribute is
+    optional. Its default value is "$(switches.target?'stdc':)". It can take
+    one of the following values:                                            
+
+Value: Meaning:
+stdc: Standard ANSI C + iMatix runtime
+doc: Documentation
+
+version:
+    Specifies the version of the class. This text can take any format but we
+    recommend this standard format: '2.4b1' which is major version 2, minor 
+    version 4, release b, update 1. This string is stamped into the project 
+    sources. The version attribute is optional.                             
+
+animate:
+    If set, the generated code contains animation that can be switched on and
+    off at runtime. This option can be overridden by a command-line switch   
+    (e.g. "-animate:0"). The animate option can be inherited from a parent   
+    class. The animate attribute is optional. Its default value is "0". It   
+    can take one of the following values:                                    
+
+Value: Meaning:
+0: do not animate
+1: generate animation code
+
+trace_size:
+    Allows default trace size to be over-ridden in this agent. The trace_size
+    attribute is optional.                                                   
+
+
+The 'option' item
+-----------------
+
+Passes an option to an inherited class. Options can be used in the template
+code generation logic, or in method handlers.                              
+
+    <option
+        name = "..."
+        value = "..."
+        />
+
+The option item can have these attributes:
+
+name:
+    The name of the option. The name attribute is required.
+
+value:
+    The value for the option. The value attribute is required.
+
+
+The 'inherit' item
+------------------
+
+
+
+    <inherit
+        name = "..."
+      [ phase = "preproc | parse" ]
+      [ condition = "..." ]
+        >
+        <option>
+    </inherit>
+
+The inherit item can have these attributes:
+
+name:
+    Name of entity to inherit from. The name attribute is required.
+
+phase:
+    The processing phase during which this inheritence is performed. The 
+    phase attribute is optional. It can take one of the following values:
+
+Value: Meaning:
+preproc: inherited in preprocessor
+parse: inherited in parser
+
+condition:
+    Specifies a condition which must be TRUE for the inheritence to occur.
+    The condition attribute is optional.                                  
+
+
+The 'include' item
+------------------
+
+The 'include' element permits direct inclusion from another file. The   
+included file must be a valid XML file which is included in the SMT tree
+as-is.                                                                  
+
+    <include
+        filename = "..."
+      [ required = "0 | 1"  ("1") ]
+        />
+
+The include item can have these attributes:
+
+filename:
+    The name of the XML-format file to be included in place of the 'include'
+    element. The filename attribute is required.                            
+
+required:
+    If set to zero, the include file is ignored if it is missing. The        
+    required attribute is optional. Its default value is "1". It can take one
+    of the following values:                                                 
+
+Value: Meaning:
+0: File is not required
+1: File is required
+
+
+The 'import' item
+-----------------
+
+Specifies other classes that this class refers to. Note if you want the   
+generated code to be correct you must define an import item for each class
+that you refer to in your class context or methods. By default, the import
+tag is inherited unless you specify inherit = "0".                        
+
+    <import
+        class = "..."
+      [ condition = "..." ]
+        />
+
+The import item can have these attributes:
+
+condition:
+    Specifies a condition which must be TRUE for the entity to be created.
+    The condition attribute is optional.                                  
+
+class:
+    The name of the class imported. The class attribute is required.
+
+
+The 'private' item
+------------------
+
+Private code blocks, which are copied to the generated code.
+
+    <private
+      [ name = "types | data | functions" ]
+        />
+
+The private item has this single attribute:
+
+name:
+    What kind of code is this? Type or function definitions? The name
+    attribute is optional. It can take one of the following values:  
+
+Value: Meaning:
+types: The code is inserted before type definitions
+data: The code is inserted before data definitions
+functions: The code is inserted before function definitions
+
+
+The 'public' item
+-----------------
+
+Public code blocks, which are copied to the generated header file.
+
+    <public
+      [ name = "include | types | functions" ]
+        />
+
+The public item has this single attribute:
+
+name:
+    What kind of code is this? Type or function definitions? The name
+    attribute is optional. It can take one of the following values:  
+
+Value: Meaning:
+include: The code is inserted in each pass - for iCL class collections.
+types: The code is inserted before type definitions
+functions: The code is inserted before function definitions
+
+
+The 'agent context' item
+------------------------
+
+Thread context block defined at agent level. To use a context block of this
+type, a thread should request a context block with this name.              
+
+    <context
+        name = "..."
+        />
+
+The agent context item has this single attribute:
+
+name:
+    Context name. The name attribute is required.
+
+
+The 'agent handler' item
+------------------------
+
+
+
+    <handler
+      [ name = "agent init | agent term" ]
+        >
+        <argument>
+    </handler>
+
+The agent handler item has this single attribute:
+
+name:
+    The name attribute is optional. It can take one of the following values:
+
+Value: Meaning:
+agent_init: 
+agent_term: 
+
+
+The 'argument' item
+-------------------
+
+
+
+    <argument
+        name = "..."
+        type = "..."
+        />
+
+The argument item can have these attributes:
+
+name:
+    The name attribute is required.
+
+type:
+    The type attribute is required.
+
+
+The 'agent state' item
+----------------------
+
+State common to all threads.
+
+    <state
+        name = "..."
+      [ abstract = "0 | 1"  ("0") ]
+      [ template = "..." ]
+        >
+        <option>
+        <inherit>
+        <handler>
+        <event>
+        <default>
+    </state>
+
+The agent state item can have these attributes:
+
+template:
+    If specified, defines an entity that acts as template for this entity.
+    The template attribute is optional.                                   
+
+abstract:
+    If set, the entity only exists in order to be inherited - no code is    
+    generated. The abstract attribute is optional. Its default value is "0".
+    It can take one of the following values:                                
+
+Value: Meaning:
+0: normal entity
+1: abstract entity
+
+name:
+    The name attribute is required.
+
+
+The 'state handler' item
+------------------------
+
+
+
+    <handler
+        name = "before state"
+        />
+
+The state handler item has this single attribute:
+
+name:
+    The name attribute is required. It can take one of the following values:
+
+Value: Meaning:
+before_state: 
+
+
+The 'agent state event' item
+----------------------------
+
+
+
+    <event
+        name = "..."
+      [ nextstate = "..." ]
+        >
+        <action>
+    </event>
+
+The agent state event item can have these attributes:
+
+name:
+    The name attribute is required.
+
+nextstate:
+    The nextstate attribute is optional.
+
+
+The 'agent state action' item
+-----------------------------
+
+
+
+    <action
+      [ name = "..." ]
+        />
+
+The agent state action item has this single attribute:
+
+name:
+    The name attribute is optional.
+
+
+The 'other' item
+----------------
+
+
+
+    <default
+      [ nextstate = "..." ]
+        >
+        <action>
+    </default>
+
+The other item has this single attribute:
+
+nextstate:
+    Defines a link to the 'nextstate' item with the corresponding 'name'
+    attribute. The nextstate attribute is optional.                     
+
+
+The 'thread state action' item
+------------------------------
+
+
+
+    <action
+      [ name = "..." ]
+        />
+
+The thread state action item has this single attribute:
+
+name:
+    The name attribute is optional.
+
+
+The 'thread' item
+-----------------
+
+
+
+    <thread
+        name = "..."
+      [ abstract = "0 | 1"  ("0") ]
+      [ template = "..." ]
+      [ context = "..." ]
+      [ schedule = "poll | cpu" ]
+      [ share = "..."  ("0") ]
+        >
+        <option>
+        <inherit>
+        <context>
+        <handler>
+        <state>
+        <action>
+    </thread>
+
+The thread item can have these attributes:
+
+template:
+    If specified, defines an entity that acts as template for this entity.
+    The template attribute is optional.                                   
+
+abstract:
+    If set, the entity only exists in order to be inherited - no code is    
+    generated. The abstract attribute is optional. Its default value is "0".
+    It can take one of the following values:                                
+
+Value: Meaning:
+0: normal entity
+1: abstract entity
+
+name:
+    The name attribute is required.
+
+context:
+    Defines a link to the 'context' item with the corresponding 'name'
+    attribute. The context attribute is optional.                     
+
+schedule:
+    The schedule attribute is optional. It can take one of the following
+    values:                                                             
+
+Value: Meaning:
+poll: 
+cpu: 
+
+share:
+    Does this thread share context with another thread? The share attribute
+    is optional. Its default value is "0".                                 
+
+
+The 'thread context' item
+-------------------------
+
+
+
+    <context
+      [ name = "..." ]
+        />
+
+The thread context item has this single attribute:
+
+name:
+    The name attribute is optional.
+
+
+The 'thread handler' item
+-------------------------
+
+
+
+    <handler
+        name = "thread new | thread init | thread destroy"
+        >
+        <argument>
+    </handler>
+
+The thread handler item has this single attribute:
+
+name:
+    The name attribute is required. It can take one of the following values:
+
+Value: Meaning:
+thread_new: 
+thread_init: 
+thread_destroy: 
+
+
+The 'thread state' item
+-----------------------
+
+State for a single thread.
+
+    <state
+        name = "..."
+      [ abstract = "0 | 1"  ("0") ]
+      [ template = "..." ]
+        >
+        <option>
+        <inherit>
+        <handler>
+        <event>
+        <default>
+    </state>
+
+The thread state item can have these attributes:
+
+template:
+    If specified, defines an entity that acts as template for this entity.
+    The template attribute is optional.                                   
+
+abstract:
+    If set, the entity only exists in order to be inherited - no code is    
+    generated. The abstract attribute is optional. Its default value is "0".
+    It can take one of the following values:                                
+
+Value: Meaning:
+0: normal entity
+1: abstract entity
+
+name:
+    The name attribute is required.
+
+
+The 'thread state event' item
+-----------------------------
+
+
+
+    <event
+        name = "..."
+      [ nextstate = "..." ]
+        >
+        <action>
+    </event>
+
+The thread state event item can have these attributes:
+
+name:
+    The name attribute is required.
+
+nextstate:
+    Defines a link to the 'nextstate' item with the corresponding 'name'
+    attribute. The nextstate attribute is optional.                     
+
+
+The 'thread action' item
+------------------------
+
+
+
+    <action
+      [ name = "..." ]
+        >
+        <call>
+        <return>
+    </action>
+
+The thread action item has this single attribute:
+
+name:
+    The name attribute is optional.
+
+
+The 'call' item
+---------------
+
+
+
+    <call
+        state = "..."
+      [ event = "..." ]
+        />
+
+The call item can have these attributes:
+
+state:
+    Defines a link to the 'state' item with the corresponding 'name'
+    attribute. The state attribute is required.                     
+
+event:
+    Defines a link to the 'event' item with the corresponding 'name'
+    attribute. The event attribute is optional.                     
+
+
+The 'return' item
+-----------------
+
+
+
+    <return>
+
+
+
+The 'agent event' item
+----------------------
+
+
+
+    <event
+        name = "..."
+        />
+
+The agent event item has this single attribute:
+
+name:
+    The name attribute is required.
+
+
+The 'agent action' item
+-----------------------
+
+
+
+    <action
+      [ name = "..." ]
+        >
+        <call>
+        <return>
+    </action>
+
+The agent action item has this single attribute:
+
+name:
+    The name attribute is optional.
+
+
+The 'catch' item
+----------------
+
+
+
+    <catch
+        event = "..."
+      [ error = "..." ]
+        />
+
+The catch item can have these attributes:
+
+error:
+    The error attribute is optional.
+
+event:
+    Defines a link to the 'event' item with the corresponding 'name'
+    attribute. The event attribute is required.                     
+
+
+The 'method' item
+-----------------
+
+
+
+    <method
+        name = "..."
+      [ event = "..."  ("$(name?)_m") ]
+      [ priority = "normal | high"  ("normal") ]
+      [ message = "..." ]
+        >
+        <argument>
+        <possess>
+        <release>
+    </method>
+
+The method item can have these attributes:
+
+name:
+    The name attribute is required.
+
+event:
+    Defines a link to the 'event' item with the corresponding 'name'
+    attribute. The event attribute is optional. Its default value is
+    "$(name?)_m".                                                   
+
+priority:
+    The priority attribute is optional. Its default value is "normal". It can
+    take one of the following values:                                        
+
+Value: Meaning:
+normal: Normal priority
+high: High priority
+
+message:
+    The message attribute is optional.
+
+
+The 'possess' item
+------------------
+
+Code to allow the agent to take possession of the data in the method.
+
+    <possess>
+
+
+
+The 'release' item
+------------------
+
+Code to allow the agent to release possession of the data in the method.
+This code is turned into a callback function for the method queue and is
+called either on failure to deliver the method, or when the method is   
+destroyed.                                                              
+
+    <release>
+
+
+
+The 'message' item
+------------------
+
+
+
+    <message
+        name = "..."
+      [ priority = "normal | high"  ("normal") ]
+        >
+        <argument>
+        <method>
+        <possess>
+        <release>
+    </message>
+
+The message item can have these attributes:
+
+name:
+    The name attribute is required.
+
+priority:
+    The priority attribute is optional. Its default value is "normal". It can
+    take one of the following values:                                        
+
+Value: Meaning:
+normal: Normal priority
+high: High priority
+
+
+The 'message method' item
+-------------------------
+
+
+
+    <method
+        name = "..."
+      [ event = "..."  ("$(name?)_m") ]
+      [ priority = "..."  ("normal") ]
+      [ message = "..." ]
+        >
+        <argument>
+        <possess>
+        <release>
+    </method>
+
+The message method item can have these attributes:
+
+name:
+    The name attribute is required.
+
+event:
+    Defines a link to the 'event' item with the corresponding 'name'
+    attribute. The event attribute is optional. Its default value is
+    "$(name?)_m".                                                   
+
+priority:
+    The priority attribute is optional. Its default value is "normal".
+
+message:
+    The message attribute is optional.
+
+
+The 'actionlist' item
+---------------------
+
+
+
+    <actionlist>
+
+

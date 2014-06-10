@@ -1,0 +1,220 @@
+Using command-line options
+==========================
+
+You can set these options from the command-line; they affect only
+the specific instance of the running server:
+
+    --port 7654                    Server port for client connections
+    --listen *                     Address (local network interface) to listen on
+    --user value                   User to run server as
+    --group value                  Group to run server as
+    --monitor 1                    Monitor interval, seconds
+    --record_stats 0               Record performance statistics
+    --heartbeat 2                  Heartbeat from client to server, seconds
+    --setup_timeout 5              Connection setup timeout, seconds
+    --close_timeout 5              Connection close timeout, seconds
+    --accept_retry_timeout 60      Timeout before retrying accept calls, seconds
+    --tcp_nodelay 1                TCP/IP NODELAY option
+    --tcp_rcvbuf value             TCP/IP receive buffer, in bytes
+    --tcp_sndbuf value             TCP/IP send buffer, in bytes
+    --frame_max 32768              Maximum size of AMQP content frames
+    --direct 0                     Enables Direct Mode for client connections
+    --log_path /var/log/demo       Active log file directory
+    --keep_logs 1                  Keep log files
+    --archive_cmd value            Archive command
+    --alert_log alert.log          Alert log file name
+    --daily_log daily.log          Daily log file name
+    --debug_log debug.log          Debug log file name
+    --trace 0                      Protocol trace level
+    --syslog 0                     Use syslog logging protocol
+    --batching 32768               Maximum size of Direct Mode batches
+
+Creating a configuration file
+=============================
+
+You can also set the above options in an XML text file, to affect
+all future instances of the running server. To create a new XML
+configuration file, copy the following block to an editor session,
+and then:
+
+ 1. Delete all options you want to leave as default.
+ 2. Delete this comment and update your name and the date.
+ 3. Save file as new demo_srv.cfg or merge with existing copy.
+ 4. Restart the server.
+
+    <?xml version="1.0"?>
+    <!--
+        Revised: yyyy/mm/dd by yourname
+     -->
+    
+    <config>
+        <server
+            port = "7654"
+            listen = "*"
+            user = "value"
+            group = "value"
+        />
+        <resources
+            monitor = "1"
+            record_stats = "0"
+        />
+        <tuning
+            heartbeat = "2"
+            setup_timeout = "5"
+            close_timeout = "5"
+            accept_retry_timeout = "60"
+            tcp_nodelay = "1"
+            tcp_rcvbuf = "value"
+            tcp_sndbuf = "value"
+            frame_max = "32768"
+            direct = "0"
+        />
+        <logging
+            log_path = "/var/log/demo"
+            keep_logs = "1"
+            archive_cmd = "value"
+            alert_log = "alert.log"
+            daily_log = "daily.log"
+            debug_log = "debug.log"
+            trace = "0"
+            syslog = "0"
+        />
+        <direct
+            batching = "32768"
+        />
+    </config>
+
+Setting server options
+===========================
+
+port = "7654":
+    Specifies the port on which the server should open its connections.
+    Default value is 7654.                                             
+listen = "*":
+    Specifies the network interface on which the server should listen for
+    connections. By default this is *, meaning all interfaces. You would 
+    choose to set an address when you use OpenAMQ on a server with       
+    multiple network interfaces, e.g. routing between two networks.      
+    Default value is *.                                                  
+user = "value":
+    If you specify a user and group, the server will switch to that user
+    and group after opening its port, thus dropping any privileges it   
+    previously had. Default value is not defined.                       
+group = "value":
+    If you specify a user and group, the server will switch to that user
+    and group after opening its port, thus dropping any privileges it   
+    previously had. Default value is not defined.                       
+
+Setting resources options
+===========================
+
+monitor = "1":
+    Specifies the interval in seconds at which the server will report its
+    message rates. If zero, no monitoring is shown. The recommended value
+    is 1, if monitoring is desired. Default value is 1.                  
+record_stats = "0":
+    Specifies whether or not the server records performance statistics in 
+    a format suitable for importing into a spreadsheet. If set, the server
+    creates a file called 'amq_server_stats_(portnumber).del' which       
+    contains performance statistics in a comma-delimited format. For this 
+    setting to take effect, the monitor option must also be set. Default  
+    value is 0. This option can be changed at runtime.                    
+
+Setting tuning options
+===========================
+
+heartbeat = "2":
+    Defines the timeout for connection heartbeating. Default value is 2.
+setup_timeout = "5":
+    Defines the maximum amount of time connection negotiation may take,  
+    before the connection is forcibly closed by the server. Default value
+    is 5.                                                                
+close_timeout = "5":
+    Defines the maximum amount of time the server will wait for a client
+    to send a connection.close-ok when closing the connection due to an 
+    exception. Default value is 5.                                      
+accept_retry_timeout = "60":
+    Defines the amount of time the server will wait before retrying an    
+    accept call if the call failed due to running out of file descriptors.
+    Default value is 60. Minimum value is 1.                              
+tcp_nodelay = "1":
+    If this value is 1, socket data is written immediately, which is     
+    usually good for latency. If this value is 0, data is buffered until 
+    there is a full packet, which is usually good for throughput. Default
+    value is 1.                                                          
+tcp_rcvbuf = "value":
+    If this value is greater than zero, all client connections will use  
+    the specified value. Note: setting this value is delicate, do not use
+    this option unless you know what you are doing. Default value is not 
+    defined.                                                             
+tcp_sndbuf = "value":
+    If this value is greater than zero, all client connections will use  
+    the specified value. Note: setting this value is delicate, do not use
+    this option unless you know what you are doing. Default value is not 
+    defined.                                                             
+frame_max = "32768":
+    Defines the maximum frame size the server will accept. Larger frame
+    sizes are useful for applications that create very large message   
+    headers but will cause congestion on multi-channel connections.    
+    Default value is 32768. Minimum value is 2048. Maximum value is    
+    2097152.                                                           
+direct = "0":
+    If set to 1, new connections will by default use Direct Mode.   
+    Applications can override this by setting the connection->direct
+    property on new connections. Default value is 0.                
+
+Setting logging options
+===========================
+
+log_path = "/var/log/demo":
+    Specifies the directory into which active log files are placed. To get
+    the old behaviour, set this option to 'logs'. Default value is        
+    /var/log/demo.                                                        
+keep_logs = "1":
+    Specifies whether or not the server should keep logs. If zero, the 
+    server will not keep logs. If 1, it will keep an alert log, a daily
+    log, and a debug log as specified. Default value is 1.             
+archive_cmd = "value":
+    If specified, this command is run on all archived log files. You can 
+    use this option to compress archived log files, or clean up old and  
+    unwanted files. When the command is run, the name of the archived log
+    file is provided as an argument to it. Default value is not defined. 
+alert_log = "alert.log":
+    The name of the alert log file, which records all alerts issued by the
+    server. Note that the server port number is always added to the name  
+    of the log file. Default value is alert.log.                          
+daily_log = "daily.log":
+    The name of the daily log file, which records all normal activity as
+    well as errors. Note that the server port number is always added to 
+    the name of the log file. Default value is daily.log.               
+debug_log = "debug.log":
+    The name of the debug log file, which records all normal activity,   
+    errors, and debug trace information. Note that the server port number
+    is always added to the name of the log file. Default value is        
+    debug.log.                                                           
+trace = "0":
+    Specifies the protocol debug level, which can be 0 (no tracing), 1    
+    (show information and protocol methods), 2 (show protocol animation), 
+    3 (show wire-level data). You should not use any tracing on production
+    servers except in low-volume scenarios. Default value is 0. This      
+    option can be changed at runtime.                                     
+syslog = "0":
+    Specifies whether or not to use the syslog protocol for logging. By   
+    default log files are written directly to disk. If this option is set 
+    to 1, uses the syslog protocol for all log files. Uses a priority     
+    depending on the type of log message (LOG_ERROR, LOG_INFO, LOG_DEBUG).
+    Uses the LOG_DAEMON facility. Has no effect on Windows. Overrides the 
+    keep_logs option. Default value is 0.                                 
+
+Setting direct options
+===========================
+
+batching = "32768":
+    Defines the maximum batch size for Direct Mode opportunistic batching
+    on message sends. Setting this higher will improve throughput, and   
+    usually with lower latency, but will cause higher memory consumption.
+    Setting this to zero will switch off batching. Any value less than   
+    2048 is treated as zero. Default value is 32768. Maximum value is    
+    2097152.                                                             
+
+

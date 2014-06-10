@@ -1,0 +1,68 @@
+<?xml?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<pdl
+    name      = "http"
+    version   = "1.0"
+    workflow  = "standard.pwl"
+    library   = "libhttp"
+    copyright = "Copyright (c) 1996-2009 iMatix Corporation"
+    >
+
+<include filename = "prelude.pdl" />
+<inherit filename = "../icl/icl_classes.pdl" />
+<inherit filename = "../ipr/ipr_classes.pdl" />
+<inherit filename = "../smt/smt_classes.pdl" />
+<inherit filename = "../opf/opf_classes.pdl" />
+<file name = "version.h" class = "c version">Project version file</file>
+
+<!-- HTTP server -->
+<file name = "http_config.opf"         class = "opf metadata"      >Configuration</file>
+<file name = "http_main.inc"           class = "private resource"  >Server mainline</file>
+<file name = "http_address.icl"        class = "icl public class"  >HTTP IP address class</file>
+<file name = "http_address_table.icl"  class = "icl public cont"   >HTTP IP address table</file>
+<file name = "http_request.icl"        class = "icl public class"  >HTTP request class</file>
+<file name = "http_response.icl"       class = "icl public class"  >HTTP response class</file>
+<file name = "http_driver_module.icl"  class = "ipr portal"        >Portal to drivers</file>
+<file name = "http_access_module.icl"  class = "ipr portal"        >Portal to access modules</file>
+<file name = "http_driver_context.icl" class = "icl public class"  >Context for drivers</file>
+<file name = "http_access_context.icl" class = "icl public class"  >Context for access modules</file>
+<file name = "http_driver_file.icl"    class = "async public"      >Driver for file requests</file>
+<file name = "http_driver_cgi.icl"     class = "async public"      >Driver for CGI requests</file>
+<file name = "http_driver_null.icl"    class = "async public"      >Driver that does nothing</file>
+<file name = "http_access_logger.icl"  class = "async public"      >Access logging module</file>
+<file name = "http_access_policy.icl"  class = "async public"      >Access policy engine</file>
+<file name = "http_access_refresh.icl" class = "async public"      >Refresh expired passwords</file>
+<file name = "http_access_dos.icl"     class = "async public"      >Denial-of-service guard</file>
+<file name = "http_refresh.pl"         class = "public resource"   >Example access refresher</file>
+<file name = "http_agent.smt"          class = "smt public module" >Server protocol agent</file>
+<file name = "http_server.icl"         class = "async public"      >Server command object</file>
+<file name = "http.icl"                class = "icl public data"   >Header file collection</file>
+
+<file name = "http_static.rc"          class = "ipr rc file"       >Static resources</file>
+<file name = "http_base.cfg"           class = "private resource"  >Base config file</file>
+<file name = "http_base.css"           class = "private resource"  >Base style sheet</file>
+
+<file name = "httpd.c"                 class = "main program"      >Webserver main</file>
+<file name = "libhttp"                 class = "public library"    >HTTP library</file>
+
+<directory name = "webpages">
+    <file name = "default.html"        class = "public resource"   >Default install HTML</file>
+    <file name = "default.css"         class = "public resource"   >Default install CSS</file>
+</directory>
+
+</pdl>

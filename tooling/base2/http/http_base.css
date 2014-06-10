@@ -1,0 +1,73 @@
+/*  X5 base style sheet
+    Copyright (c) 1991-2009 iMatix Corporation - www.imatix.com
+
+    You can override these styles by creating and editing http.css in your
+    webpages directory.  This CSS code is granted to the public domain.
+ */
+
+* {
+    margin: 0;
+    padding: 0;
+}
+BODY {
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+    background-color: white;
+}
+
+#error_head {
+    font-size: 160%;
+    margin: 10pt;
+    border-width: 0 0 1pt 0;
+    border-style: dashed;
+}
+
+#error_text {
+    font-size: 120%;
+    margin: 10pt;
+}
+
+#footer {
+    margin: 10pt;
+    border-width: 1pt 0 0 0;
+    border-style: dashed;
+    top: 90%;
+    position: absolute;
+    font-size: 85%;
+}
+
+#dir_head {
+    font-size: 160%;
+    margin: 10pt;
+    border-width: 0 0 1pt 0;
+    border-style: dashed;
+}
+#dir_text {
+    font-size: 110%;
+    margin: 10pt;
+}
+#dir_main {
+    margin-left: 30pt;
+}
+.dir_table {
+    width: 80%;
+}
+.dir_row {
+}
+.dir_name {
+    font-weight: bold;
+}
+.dir_size {
+    text-align: right;
+}
+.dir_time {
+    text-align: right;
+}
+A {
+    color: blue;
+    text-decoration: none;
+}
+A:hover {
+    color: white;
+    background-color: black;
+}

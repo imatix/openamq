@@ -1,0 +1,1523 @@
+<?xml version="1.0"?>
+<gdl
+    name      = "palguide"
+    author    = "iMatix Corporation &lt;amq@imatix.com&gt;"
+    copyright = "Copyright (c) 2004-2009 iMatix Corporation"
+    customer  = ""
+    product   = "OpenAMQ"
+    reference = ""
+    subtitle  = "The Protocol Automation Language"
+    title     = "The ASL PAL System"
+    version   = "1.2b1"
+    written   = "2007/04/06"
+>
+<header>Document Control
+
+<header>Change History
+
+<definition>
+
+<def_term>1.2b0</def_term>
+<def_value>&lt;timer&gt; lets you reset the script clock.
+</def_value>
+<def_term>1.2a1</def_term>
+<def_value>&lt;session&gt; can now specify server to connect to.
+</def_value>
+<def_term>1.2a0</def_term>
+<def_value>'Bounced' content renamed to 'Returned' content.
+</def_value>
+<def_term>1.1d2</def_term>
+<def_value>Added -c option for performance statistics (message latencies,
+and throughputs).
+</def_value>
+<def_term>1.1d2</def_term>
+<def_value>Content size argument was being ignored - fixed.
+</def_value>
+<def_term>1.1d2</def_term>
+<def_value>Default target set to 'stdc'.
+</def_value>
+<def_term>1.1d2</def_term>
+<def_value>&lt;while&gt; was not correctly produced, fixed.
+</def_value>
+<def_term>1.1d2</def_term>
+<def_value>Added progress indicator to repeat command.
+</def_value>
+<def_term>1.1d1</def_term>
+<def_value>Added ability to add message headers to content produced by
+external application (similar to web CGI applications).
+</def_value>
+<def_term>1.1d1</def_term>
+<def_value>Added &lt;exit status = "..."/&gt; command.
+</def_value>
+<def_term>1.1d0</def_term>
+<def_value>Added -a option which allows full animation of the script.
+</def_value>
+<def_term>1.1d0</def_term>
+<def_value>Added &lt;set ... cmdline = ""&gt; to allow variables to be set by
+command-line switches.
+</def_value>
+<def_term>1.1d0</def_term>
+<def_value>Added -r option to repeat script specified number of times,
+which can be infinite.
+</def_value>
+<def_term>1.1d0</def_term>
+<def_value>Added body_size variable, which can be used after a &lt;content
+exec&gt; to check size of generated content.
+</def_value>
+<def_term>1.1d0</def_term>
+<def_value>Added ability to run arbitrary programs (tested with Perl
+scripts).
+
+</def_value>
+</definition>
+
+</header>
+</header>
+<header>Overview
+
+<header>Introducing PAL
+
+<paragraph>And Base/2 begat ASL which begat PAL. PAL is a scripting system for
+ASL-based protocol clients.  Mainly, we built PAL to make it simple
+to write test cases for OpenAMQ.  There are several neat things
+about PAL.  One: the scripting language is easy to use. Two: it can
+be turned into code in any programming language.  Three: as AMQ
+evolves, the PAL scripting language automatically keeps up, since the
+PAL grammar (the stuff that defines what the scripting commands are)
+is produced automatically from the ASL specifications for AMQ.
+</paragraph>
+
+</header>
+<header>A Quick Start
+
+<paragraph>Build Base/2 and OpenAMQ. In the asl/pal directory, you'll find a
+collection of PAL examples.  Read these, and try them.  To build
+and run a PAL script, use the 'pal' command.
+</paragraph>
+
+</header>
+<header>Jargon and Conventions
+
+<definition>
+
+<def_term>ASL</def_term>
+<def_value>Abstract Server Language - an iMatix technology for defining
+protocols and building clients and servers that implement such
+protocols.  ASL is a language, a set of protocol standards, and
+a set of tools. ASL is itself constructed using XNF.
+</def_value>
+<def_term>XNF</def_term>
+<def_value>XML Normal Form - an iMatix technology for defining XML grammars
+and building code generators that implement such grammars. XNF
+is a language, and a set of tools.  XNF is constructed using XNF.
+The key point of XNF is to generate a full validating and
+denormalising parser and to couple this with hand-written
+back-end code generators (aka "targets").
+</def_value>
+<def_term>GSL</def_term>
+<def_value>Generator Scripting Lanuage - an iMatix technology used to build
+code generators.  GSL is a scripting language designed to work
+with tree-structured data (usually XML) and inject this data into
+a template-driven code generation process.  All iMatix code
+generators are written in GSL, and most are complex enough to
+benefit from being constructed using XNF.
+</def_value>
+<def_term>PAL</def_term>
+<def_value>Protocol Automation Language - an iMatix technology for writing
+scripts to automate the client half of a discussion carried out
+in a protocol built with ASL.  PAL is a add-on to ASL.
+</def_value>
+<def_term>PAL/P</def_term>
+<def_value>PAL implementation for a protocol called "P".  Since PAL is not
+a single language but a class of languages, all built from the
+same basis, we call the actually languages "PAL/" plus the name
+of the prototol.  Thus, "PAL/AMQ", "PAL/demo".
+</def_value>
+<def_term>Session</def_term>
+<def_value>Another name for "channel".  We use "channel" at the protocol
+level and "session" at the API level, mainly because "session"
+maps to existing APIs like JMS, while "channel" is common usage
+for multiplexing networking protocols such as ours.
+</def_value>
+</definition>
+
+</header>
+</header>
+<header>The Problem PAL Solves
+
+<header>ASL Refresher
+
+<paragraph>iMatix ASL - the Abstract Server Language - is a protocol and
+software-construction toolkit we built in order to help develop OpenAMQ.
+The concept of ASL is loosely based on the concept of formal grammars
+such as ASN.1, but in typical iMatix fashion is rather more aggressive
+in aiming to generate high-quality code and documentation.
+</paragraph>
+
+<paragraph>ASL is a formal language, a grammar.  It does not define the low-level
+wire-protocol but rather the higher-level language that a protocol
+carries.  We describe this language in terms of "methods", grouped
+into "classes".  The specific technology used to carry these methods
+depends on the specific implementation.  Thus, ASL is abstract.
+</paragraph>
+
+<paragraph>ASL is an extensible framework - a single ASL grammar can be fed to any
+number of different back-end "targets", each generating some different
+output.  Today we have targets for:
+</paragraph>
+<itemize>
+
+<item>A Standard C implementation of client and server layers.</item>
+<item>A Java implementation of client layers.</item>
+<item>Documentation in iMatix gurudoc format.</item>
+</itemize>
+
+<paragraph>This diagram shows the overall ASL code generation process:
+</paragraph>
+<example>
+
+<line> .----------------.</line>
+<line> |  ASL grammar   |         ASL grammar written as XML files, using</line>
+<line> | for protocol P |         inheritence and other XNF techniques.</line>
+<line> `----------------'</line>
+<line>         :</line>
+<line>+------------------+</line>
+<line>|  ASL front-end   |        GSL parser, generated from asl.xnf.</line>
+<line>|      parser      |        using the iMatix XNF toolkit.</line>
+<line>+------------------+</line>
+<line>         :</line>
+<line> .----------------.</line>
+<line> |  Denormalised, |         Data structure held in memory.</line>
+<line> | validated tree |</line>
+<line> `----------------'</line>
+<line>         :</line>
+<line>+------------------+</line>
+<line>|     Specific     |        GSL code generator, written by hand.</line>
+<line>|  back-end target |</line>
+<line>+------------------+</line>
+<line>         :</line>
+<line> .----------------.</line>
+<line> | Generated text |         Documentation or code as desired.</line>
+<line> |    outputs     |</line>
+<line> `----------------'</line>
+</example>
+
+<paragraph>We can summarise the approach that drives ASL:
+</paragraph>
+<enumerate>
+
+<item>Define an abstract and high-level syntax capable of supporting the full functionality required by all possible protocols in our domain.</item>
+<item>Implement the code generators for this abstract syntax.</item>
+<item>Use the syntax to define our full protocol.</item>
+</enumerate>
+
+<paragraph>Note the major benefit of using ASL: writing a large and rich protocol
+is very cheap, as 100% of the protocol support both at the client and
+server side is generated, leaving only the functional implementation of
+the protocol methods as work for the programmer.
+</paragraph>
+
+</header>
+<header>Large-scale Testing
+
+<paragraph>By making it cheap to design and implement functionality on top of a
+standard technical base, ASL also encourages very large and explicit
+protocols. While a hand-built protocol might use a single method for
+several purposes, ASL would encourage the definition of several
+individual methods. This clarity is very pleasant for the application
+developer, but it means that testing must also happen on a large scale.
+</paragraph>
+
+<paragraph>This - cheap large-scale testing - is the problem that PAL solves.
+</paragraph>
+
+</header>
+<header>The PAL Architecture
+
+<paragraph>These diagrams show how PAL fits into the toolchain. First, the process
+of constructing a PAL generator for a particular protocol, 'P':
+</paragraph>
+<example>
+
+<line>      .----------------.</line>
+<line>      |  ASL grammar   |         ASL grammar written as XML files, using</line>
+<line>      |    "p.asl"     |         inheritence and other XNF techniques.</line>
+<line>      `----------------'</line>
+<line>              :</line>
+<line>     +------------------+</line>
+<line>     |  ASL front-end   |        GSL parser, generated from asl.xnf.</line>
+<line>     |      parser      |        using the iMatix XNF toolkit.</line>
+<line>     |  "asl_gen.gsl"   |</line>
+<line>     +------------------+</line>
+<line>              :</line>
+<line>      .----------------.</line>
+<line>      |  Denormalised, |         Data structure held in memory.</line>
+<line>      | validated tree |</line>
+<line>      `----------------'</line>
+<line>              :</line>
+<line>     +------------------+</line>
+<line>     |       PAL        |        GSL code generator, hand-made.</line>
+<line>     |  back-end target |</line>
+<line>     |   "asl_pal.gsl"  |</line>
+<line>     +------------------+</line>
+<line>        :           :</line>
+<line>+-----------+   +-----------+</line>
+<line>|  PAL XNF  |   |  PAL stdc |    GSL code generators, hand-made</line>
+<line>|  driver   |   |   driver  |</line>
+<line>+-----------+   +-----------+</line>
+<line>      :               :</line>
+<line>.-----------.         :</line>
+<line>|   PAL/P   |         :          XNF grammar of PAL language</line>
+<line>|  grammar  |         :          specifically for protocol 'P'</line>
+<line>`-----------'         :</line>
+<line>      :               :</line>
+<line>.-----------.   .-----------.</line>
+<line>| front-end |   |   stdc    |    Components of a PAL generator</line>
+<line>| for PAL/P |   |  target   |    specifically for protocol 'P'</line>
+<line>`-----------'   `-----------'</line>
+<line></line>
+To illustrate, these are the commands that would be used to perform the
+above chain, for a protocol named 'P':
+<line>gsl -target:pal p.asl</line>
+<line>gsl p_pal.xnf</line>
+</example>
+
+<paragraph>Second, the process of turning a PAL script into executable code:
+</paragraph>
+<example>
+
+<line> .----------------.</line>
+<line> |  PAL/P script  |         PAL script written as XML files, using</line>
+<line> |  "example.pal" |         include and other XNF techniques.</line>
+<line> `----------------'</line>
+<line>         :</line>
+<line>+------------------+</line>
+<line>|  PAL/P front-end |        GSL parser, generated from p.asl</line>
+<line>|      parser      |        (see previous diagram).</line>
+<line>| "p_pal_gen.gsl"  |</line>
+<line>+------------------+</line>
+<line>         :</line>
+<line> .----------------.</line>
+<line> |  Denormalised, |         Data structure held in memory.</line>
+<line> | validated tree |</line>
+<line> `----------------'</line>
+<line>         :</line>
+<line>+------------------+</line>
+<line>|       stdc       |        GSL code generator, generated from</line>
+<line>|  back-end target |        p.asl (see previous diagram).</line>
+<line>| "p_pal_stdc.gsl" |</line>
+<line>+------------------+</line>
+<line>         :</line>
+<line> .----------------.</line>
+<line> |  Source code   |         Generated C test program.</line>
+<line> |  "example.c"   |</line>
+<line> `----------------'</line>
+</example>
+
+<paragraph>To illustrate, these are the commands that would be used to perform the
+above chain, for a script called "example":
+</paragraph>
+<example>
+
+<line>gsl example.pal</line>
+</example>
+
+<paragraph>The resulting test program is compiled and linked as usual.
+</paragraph>
+
+</header>
+</header>
+<header>The PAL Language
+
+<paragraph>PAL is not a single language but rather a combination of two things:
+</paragraph>
+<enumerate>
+
+<item>A standard set of control commands.</item>
+<item>The classes and methods defined for the specific protocol in question.</item>
+</enumerate>
+
+<paragraph>The standard commands provide loops, if blocks, variables etc.  The
+protocol method commands talk to the server.
+</paragraph>
+
+<header>Some Sample PAL Scripts
+
+<paragraph>As a basis for this tutorial we take the 'demo' protocol provided with
+ASL. Here is a sample PAL/demo script:
+</paragraph>
+<example>
+
+<line>&lt;?xml?&gt;</line>
+<line>&lt;pal</line>
+<line>    name = "hello"</line>
+<line>    script = "demo_pal_gen"</line>
+<line>    target = "stdc"</line>
+<line>    &gt;</line>
+<line>    &lt;echo&gt;</line>
+<line>    Hello world!</line>
+<line>    &lt;/echo&gt;</line>
+<line>&lt;/pal&gt;</line>
+</example>
+
+<paragraph>Here is a script that demonstrates some of the standard PAL control
+commands:
+</paragraph>
+<example>
+
+<line>&lt;?xml?&gt;</line>
+<line>&lt;pal</line>
+<line>    name = "loop1"</line>
+<line>    script = "demo_pal_gen"</line>
+<line>    target = "stdc"</line>
+<line>    &gt;</line>
+<line>    &lt;set name = "index" value = "0" /&gt;</line>
+<line>    &lt;repeat&gt;</line>
+<line>        &lt;inc name = "index" /&gt;</line>
+<line>        &lt;if name = "index" value = "10"&gt;</line>
+<line>            &lt;break/&gt;</line>
+<line>        &lt;/if&gt;</line>
+<line>        &lt;else&gt;</line>
+<line>            &lt;echo&gt;I can count up to $index&lt;/echo&gt;</line>
+<line>        &lt;/else&gt;</line>
+<line>    &lt;/repeat&gt;</line>
+<line>&lt;/pal&gt;</line>
+</example>
+
+<paragraph>And an equivalent, shorter version:
+</paragraph>
+<example>
+
+<line>&lt;?xml?&gt;</line>
+<line>&lt;pal</line>
+<line>    name = "loop2"</line>
+<line>    script = "demo_pal_gen"</line>
+<line>    target = "stdc"</line>
+<line>    &gt;</line>
+<line>    &lt;repeat times = "10" counter = "index"&gt;</line>
+<line>        &lt;echo&gt;I can count up to $index&lt;/echo&gt;</line>
+<line>    &lt;/repeat&gt;</line>
+<line>&lt;/pal&gt;</line>
+</example>
+
+<paragraph>To connect to a server and open a session we use the &lt;session&gt; control
+command. Here is a script that connects to a server and then displays
+the connection properties:
+</paragraph>
+<example>
+
+<line>&lt;?xml?&gt;</line>
+<line>&lt;pal</line>
+<line>    name = "session"</line>
+<line>    script = "demo_pal_gen"</line>
+<line>    target = "stdc"</line>
+<line>    &gt;</line>
+<line>    &lt;session&gt;</line>
+<line>        &lt;echo&gt;version_major=$version_major&lt;/echo&gt;</line>
+<line>        &lt;echo&gt;version_minor=$version_minor&lt;/echo&gt;</line>
+<line>        &lt;echo&gt;channel_max=$channel_max&lt;/echo&gt;</line>
+<line>        &lt;echo&gt;frame_max=$frame_max&lt;/echo&gt;</line>
+<line>        &lt;echo&gt;heartbeat=$heartbeat&lt;/echo&gt;</line>
+<line>        &lt;echo&gt;context_key=$context_key&lt;/echo&gt;</line>
+<line>        &lt;echo&gt;server_product=$server_product&lt;/echo&gt;</line>
+<line>        &lt;echo&gt;server_version=$server_version&lt;/echo&gt;</line>
+<line>        &lt;echo&gt;server_platform=$server_platform&lt;/echo&gt;</line>
+<line>        &lt;echo&gt;server_copyright=$server_copyright&lt;/echo&gt;</line>
+<line>        &lt;echo&gt;server_information=$server_information&lt;/echo&gt;</line>
+<line>    &lt;/session&gt;</line>
+<line>&lt;/pal&gt;</line>
+</example>
+
+<paragraph>These are the connection properties for the demo protocol. Other
+protocols such as AMQ may have other or different properties. You will
+want to read the API documentation for the protocol to know what these
+are.
+</paragraph>
+
+<paragraph>Note that the script does not specify what server to talk to, nor the IP
+port. These and other options are passed on the command-line. For the
+standard C PAL implementation run the script executable with "-h" to get
+a list of all options.
+</paragraph>
+
+<paragraph>Having established a session we can send methods to the server:
+</paragraph>
+<example>
+
+<line>&lt;?xml?&gt;</line>
+<line>&lt;pal</line>
+<line>    name = "single"</line>
+<line>    script = "demo_pal_gen"</line>
+<line>    target = "stdc"</line>
+<line>    &gt;</line>
+<line>    &lt;session&gt;</line>
+<line>        &lt;exchange_declare exchange = "myexchange" class = "fanout" /&gt;</line>
+<line>        &lt;queue_declare queue = "myqueue" scope = "default" /&gt;</line>
+<line>        &lt;queue_bind queue = "myqueue" scope = "default" exchange = "myexchange" /&gt;</line>
+<line>        &lt;basic_content size = "64000" message_id = "id-0001" /&gt;</line>
+<line>        &lt;basic_publish exchange = "myexchange" routing_key = "myqueue" /&gt;</line>
+<line>        &lt;basic_browse queue = "myqueue" scope = "default" /&gt;</line>
+<line>        &lt;basic_arrived&gt;</line>
+<line>            &lt;echo&gt;Message '$message_id' came back to us&lt;/echo&gt;</line>
+<line>        &lt;/basic_arrived&gt;</line>
+<line>        &lt;empty&gt;</line>
+<line>            &lt;echo&gt;Message did not come back, this is bad!&lt;/echo&gt;</line>
+<line>        &lt;/empty&gt;</line>
+<line>    &lt;/session&gt;</line>
+<line>&lt;/pal&gt;</line>
+</example>
+
+<paragraph>PAL lets us define often-used method arguments at the 'session' level.
+These are then inherited to methods that don't explicity specify them.
+So we can rewrite the above script to make it shorter:
+</paragraph>
+<example>
+
+<line>&lt;?xml?&gt;</line>
+<line>&lt;pal</line>
+<line>    name = "single2"</line>
+<line>    script = "demo_pal_gen"</line>
+<line>    target = "stdc"</line>
+<line>    &gt;</line>
+<line>    &lt;session</line>
+<line>        exchange = "myexchange"</line>
+<line>        queue = "myqueue"</line>
+<line>        scope = "default"</line>
+<line>        &gt;</line>
+<line>        &lt;exchange_declare class = "fanout" /&gt;</line>
+<line>        &lt;queue_declare /&gt;</line>
+<line>        &lt;queue_bind /&gt;</line>
+<line>        &lt;basic_content size = "64000" message_id = "id-0001" /&gt;</line>
+<line>        &lt;basic_publish routing_key = "myqueue" /&gt;</line>
+<line>        &lt;basic_browse /&gt;</line>
+<line>        &lt;basic_arrived&gt;</line>
+<line>            &lt;echo&gt;Message '$message_id' came back to us&lt;/echo&gt;</line>
+<line>        &lt;/basic_arrived&gt;</line>
+<line>        &lt;empty&gt;</line>
+<line>            &lt;echo&gt;Message did not come back, this is bad!&lt;/echo&gt;</line>
+<line>        &lt;/empty&gt;</line>
+<line>    &lt;/session&gt;</line>
+<line>&lt;/pal&gt;</line>
+</example>
+
+<paragraph>We can also create content bodies by reading data from test data files,
+or by running helper commands.  See the 'read' and 'exec' options for
+the content commands.  It's as simple as (for instance):
+</paragraph>
+<example>
+
+<line>&lt;basic_content exec = "perl -S myprog.pl" /&gt;</line>
+</example>
+
+<paragraph>Scripts can be made flexible by passing arguments on the command
+line.  Here is a simple example:
+</paragraph>
+<example>
+
+<line>&lt;?xml?&gt;</line>
+<line>&lt;pal</line>
+<line>    name = "cmdline"</line>
+<line>    script = "demo_pal_gen"</line>
+<line>    target = "stdc"</line>
+<line>    &gt;</line>
+<line>    &lt;set name = "number" value = "1234" cmdline = "N" /&gt;</line>
+<line>    &lt;set name = "string" value = "abcd" cmdline = "S" /&gt;</line>
+<line>    &lt;echo&gt;Number=$number, string=$string&lt;/echo&gt;</line>
+<line>&lt;/pal&gt;</line>
+</example>
+
+<paragraph>Which we can run with the options -N and -S:
+</paragraph>
+<example>
+
+<line>cmdline -N 9999 -S XXXX</line>
+</example>
+
+<paragraph>Lastly let's look at macros, which are ways of collecting repetitive
+commands into groups to save time:
+</paragraph>
+<example>
+
+<line>&lt;?xml?&gt;</line>
+<line>&lt;pal</line>
+<line>    name = "macros"</line>
+<line>    script = "demo_pal_gen"</line>
+<line>    target = "stdc"</line>
+<line>    &gt;</line>
+<line>    &lt;macro name = "queue new"&gt;</line>
+<line>        &lt;exchange_declare exchange = "stdqueue" class = "fanout" /&gt;</line>
+<line>        &lt;queue_declare queue = "$queue" scope = "default" /&gt;</line>
+<line>        &lt;queue_bind queue = "$queue" exchange = "stdqueue" /&gt;</line>
+<line>    &lt;/macro&gt;</line>
+<line>    &lt;macro name = "send message"&gt;</line>
+<line>        &lt;basic_content size = "$size" message_id = "id-$random" /&gt;</line>
+<line>        &lt;basic_publish exchange = "stdqueue" routing_key = "$queue" /&gt;</line>
+<line>    &lt;/macro&gt;</line>
+<line>    &lt;session&gt;</line>
+<line>        &lt;set name = "queue" value = "myqueue" /&gt;</line>
+<line>        &lt;invoke macro = "queue new" /&gt;</line>
+<line>        &lt;invoke macro = "send message"&gt;</line>
+<line>            &lt;set name = "size" value = "64000" /&gt;</line>
+<line>        &lt;/invoke&gt;</line>
+<line>        &lt;basic_browse queue = "myqueue" scope = "default" /&gt;</line>
+<line>        &lt;basic_arrived&gt;</line>
+<line>            &lt;echo&gt;Message '$message_id' came back to us&lt;/echo&gt;</line>
+<line>        &lt;/basic_arrived&gt;</line>
+<line>        &lt;empty&gt;</line>
+<line>            &lt;echo&gt;Message did not come back, this is bad!&lt;/echo&gt;</line>
+<line>        &lt;/empty&gt;</line>
+<line>    &lt;/session&gt;</line>
+<line>&lt;/pal&gt;</line>
+</example>
+
+<paragraph>If you use macros to any extent you'll want to look at the &lt;include&gt;
+command, described in the next section.
+</paragraph>
+
+</header>
+<header>The Standard PAL Commands
+
+<paragraph>These are the basic scripting commands, which can be nested to form
+scripts of any complexity:
+</paragraph>
+<example>
+
+<line>invoke  - invoke a macro</line>
+<line>server  - start a protocol server</line>
+<line>set     - define or modify a variable</line>
+<line>inc     - increment a counter variable</line>
+<line>dec     - decrement a counter variable</line>
+<line>echo    - echo text to the console</line>
+<line>abort   - echo text to the console and abort the script</line>
+<line>assert  - assert some condition is true</line>
+<line>repeat  - repeat a loop some number of times</line>
+<line>while   - repeat a loop while some condition is true</line>
+<line>break   - exit a loop</line>
+<line>if      - execute commands if a condition is true</line>
+<line>else    - execute commands if the previous if condition was false</line>
+<line>elsif   - combined if and else</line>
+<line>wait    - wait for the server to return data</line>
+<line>sleep   - pause the script</line>
+</example>
+
+<header>Basic Script Structure
+
+<paragraph>The basic structure of the script is:
+</paragraph>
+<example>
+
+<line>&lt;pal</line>
+<line>    name = "scriptname"</line>
+<line>    script = "palscript"</line>
+<line>    target = "stdc"</line>
+<line>    [ &lt;include filename = "filename" /&gt; ]...</line>
+<line>    [ &lt;macro name = "macroname"&gt;</line>
+<line>        [ script command ]...</line>
+<line>      &lt;/macro&gt; ]...</line>
+<line>    [ &lt;session&gt;</line>
+<line>        [ script command ]...</line>
+<line>      &lt;/session&gt; ]...</line>
+<line>&lt;/pal&gt;</line>
+</example>
+<itemize>
+
+<item>To write PAL scripts for the ASL demo protocol, use 'script = "demo_pal_gen"'.</item>
+<item>To write PAL scripts for the AMQ protocol, use 'script = "amq_pal_gen"'.</item>
+</itemize>
+
+</header>
+<header>The Include Command
+
+<paragraph>The &lt;include&gt; command copies the contents of another PAL file into the
+current script.  It has this syntax:
+</paragraph>
+<example>
+
+<line>&lt;include</line>
+<line>    filename = "scriptfile"</line>
+<line>    /&gt;</line>
+</example>
+<itemize>
+
+<item>The filename must include the file extension.  The included file should not have a &lt;pal&gt; level but may contain macros or script commands.</item>
+</itemize>
+
+</header>
+<header>The Macro Command
+
+<paragraph>The &lt;macro&gt; command defines a block of commands that can be reused in
+as a single command in the script.  It has this syntax:
+</paragraph>
+<example>
+
+<line></line>
+<line>&lt;macro</line>
+<line>    name = "macroname"&gt;</line>
+<line>    [ script command ]...</line>
+<line>&lt;/macro&gt;</line>
+</example>
+<itemize>
+
+<item>Macros have no effect until they are used through the 'invoke' command.</item>
+</itemize>
+
+</header>
+<header>The Session Command
+
+<paragraph>The &lt;session&gt; command defines a session:
+</paragraph>
+<example>
+
+<line>&lt;session</line>
+<line>  [ server = "servername" ]</line>
+<line>  [ failover = "msecs" ]</line>
+<line>    &gt;</line>
+<line>    [ script command ]...</line>
+<line>&lt;/session&gt;</line>
+</example>
+<itemize>
+
+<item>PAL may in future allow multiple sessions to be started in parallel, but for now sessions are executed serially.  Each session will restart in a new connection, whatever the state of previous sessions.</item>
+<item>The servername can be used to test multiple servers in a single script. This option is not used for general-purpose scripts.</item>
+<item>If the failover is set to an integer greater than zero, on a broken connection the script will pause for the specified number of milliseconds, and then try to reconnect to the same or alternate server.  To use alternate servers, specify multiple server names in the 'server' attribute, seperated by spaces.</item>
+</itemize>
+
+</header>
+<header>The Invoke Command
+
+<paragraph>The &lt;invoke&gt; command expands a macro:
+</paragraph>
+<example>
+
+<line>&lt;invoke</line>
+<line>    macro = "macroname"</line>
+<line>    /&gt;</line>
+</example>
+<itemize>
+
+<item>If the macro uses variables in commands, you can set these variables either before the &lt;invoke&gt; command, or inside it, using &lt;set&gt; commands.</item>
+</itemize>
+
+</header>
+<header>The Server Command
+
+<paragraph>The &lt;server&gt; commands starts or restarts a protocol server:
+</paragraph>
+<example>
+
+<line>&lt;server</line>
+<line>    name = "servername"</line>
+<line>  [ stdout = "filename" ]</line>
+<line>  [ stderr = "filename" ]</line>
+<line>  [ where = "directory" ]</line>
+<line>    /&gt;</line>
+</example>
+<itemize>
+
+<item>Do not specify a file extension (.exe) or your scripts will not be portable.</item>
+<item>If a protocol server was already started, this command stops the server and then restarts it.</item>
+<item>Only one protocol server can be started at a time.</item>
+<item>The name value can include arbitrary server arguments but not shell redirection commands.</item>
+<item>To redirect the server's output, use the stdout and stderr options.</item>
+</itemize>
+
+</header>
+<header>The Timer Command
+
+<paragraph>The &lt;timer&gt; commands shows or resets the script timer.
+</paragraph>
+<example>
+
+<line>&lt;timer</line>
+<line>  [ action = "show | reset" ]</line>
+<line>    /&gt;</line>
+</example>
+<itemize>
+
+<item>The action is optional and defaults to "reset".</item>
+</itemize>
+
+</header>
+<header>The Set Command
+
+<paragraph>The &lt;set&gt; command defines a variable. Variables can be strings or integers.
+You can use variables in repeat, while, and if blocks, and as symbols for
+templating arguments and strings. Untyped variables are typed according
+to their value.
+</paragraph>
+<example>
+
+<line>&lt;set</line>
+<line>    name = "variablename"</line>
+<line>  [ value = "newvalue" ]</line>
+<line>  [ type = "string | integer" ]</line>
+<line>    cmdline = "char"</line>
+<line>    /&gt;</line>
+</example>
+<itemize>
+
+<item>The value is optional, and defaults to "".</item>
+<item>If the value is purely numeric, the type will default to "integer", and if not the type will default to "string".</item>
+<item>The cmdline option specifies a single character. Do not use one of the command-line options already used by the PAL implementation (see section at the end of this document).</item>
+</itemize>
+
+</header>
+<header>The Inc Command
+
+<paragraph>The &lt;inc&gt; command increments an integer variable:
+</paragraph>
+<example>
+
+<line>&lt;inc</line>
+<line>    name = "variablename"</line>
+<line>    /&gt;</line>
+</example>
+
+</header>
+<header>The Dec Command
+
+<paragraph>The &lt;dec&gt; command decrements an integer variable:
+</paragraph>
+<example>
+
+<line>&lt;dec</line>
+<line>    name = "variablename"</line>
+<line>    /&gt;</line>
+</example>
+<itemize>
+
+<item>Decrementing a variable below zero is illegal and raises a fatal error. This is done to catch script errors - negative values are normally not meaningful in test scripts.</item>
+</itemize>
+
+</header>
+<header>The Random Command
+
+<paragraph>The &lt;random&gt; command sets a variable to a random value within a specified
+range:
+</paragraph>
+<example>
+
+<line>&lt;random</line>
+<line>    name = "variablename"</line>
+<line>  [ min = "minvalue" ]</line>
+<line>    max = "maxvalue"</line>
+<line>    /&gt;</line>
+</example>
+<itemize>
+
+<item>The minimum is optional, and defaults to zero.</item>
+</itemize>
+
+</header>
+<header>The Read Command
+
+<paragraph>The &lt;read&gt; command accepts a line of input from the console and assigns this
+to a variable:
+</paragraph>
+<example>
+
+<line>&lt;read</line>
+<line>    name = "variablename"</line>
+<line>  [ prompt = "promptstring" ]</line>
+<line>    /&gt;</line>
+</example>
+<itemize>
+
+<item>The prompt is optional; if defined, this will be shown to the user (with no newline) before the console waits for input.</item>
+</itemize>
+
+</header>
+<header>The Echo Command
+
+<paragraph>The &lt;echo&gt; command echoes a line of text:
+</paragraph>
+<example>
+
+<line>&lt;echo [trace = "1|2|3"]&gt;line of text&lt;/echo&gt;</line>
+</example>
+<itemize>
+
+<item>The text can use variables with the syntax: $variablename.</item>
+<item>The trace level set using a command-line switch.  Use the help option (-h) on the test program for details.</item>
+</itemize>
+
+</header>
+<header>The Assert Command
+
+<paragraph>The &lt;assert&gt; command tests a condition and aborts the script if the
+condition is false.
+</paragraph>
+<example>
+
+<line>&lt;assert</line>
+<line>    name = "variablename"</line>
+<line>  [ test = "eq | ne | gt | lt | ge | le" ]</line>
+<line>  [ value = "testvalue" ]</line>
+<line>    &gt;[line of text]&lt;/assert&gt;</line>
+</example>
+<itemize>
+
+<item>The variablename is a script variable, or a connection or session property, or a standard PAL variable.</item>
+<item>If the test and value are not specified, they default to "ne" and "0" or "" depending on the type of variable.</item>
+<item>If just the test is not specified, it defaults to "eq".</item>
+<item>If the assert statement includes a message, this is printed before an assertion failure.</item>
+</itemize>
+
+</header>
+<header>The Repeat Command
+
+<paragraph>The &lt;repeat&gt; command defines an iterative loop, which can run forever
+or for a specified number of times. The counter is global (do not use
+the same counter for two nested loops). To access the counter within
+the repeat loop, use $variablename.
+</paragraph>
+<example>
+
+<line>&lt;repeat</line>
+<line>  [ counter = "variablename" ]</line>
+<line>  [ times = "integer" ]</line>
+<line>  [ progress = "integer" ]</line>
+<line>    &gt;</line>
+<line>    [ script command ]...</line>
+<line>&lt;/repeat&gt;</line>
+</example>
+<itemize>
+
+<item>If the times attribute is not specified, the loop will run forever or until the script does a &lt;break/&gt;.</item>
+<item>The counter does not need to be previously defined. If no counter is specified, the repeat loop will create its own internal counter which cannot then be used as a symbolic value.</item>
+<item>If the progress option is set to an integer N, then after every N passes through the loop, the test script will print a dot to the standard error output.</item>
+</itemize>
+
+</header>
+<header>The While Command
+
+<paragraph>The &lt;while&gt; command defines a conditional loop, which runs so long as
+a specified condition is true:
+</paragraph>
+<example>
+
+<line>&lt;while</line>
+<line>    name = "variablename"</line>
+<line>  [ test = "eq | ne | gt | lt | ge | le" ]</line>
+<line>  [ value = "testvalue" ]</line>
+<line>  [ counter = "variablename" ]</line>
+<line>  [ progress = "integer" ]</line>
+<line>    &gt;</line>
+<line>    [ script command ]...</line>
+<line>&lt;/while&gt;</line>
+</example>
+<itemize>
+
+<item>See the &lt;assert&gt; command for an explanation of the test and value properties.</item>
+<item>If a counter is specified, this variable is automatically set to zero when the while loop starts and incremented each time the loop runs.  You can access the counter variable after the while loop.</item>
+<item>If the progress option is set to an integer N, then after every N passes through the loop, the test script will print a dot to the standard error output.</item>
+</itemize>
+
+</header>
+<header>The Break Command
+
+<paragraph>The &lt;break&gt; command exits the enveloping repeat or while loop and has
+this syntax:
+</paragraph>
+<example>
+
+<line>&lt;break/&gt;</line>
+<line></line>
+The If Command
+--------------
+</example>
+
+<paragraph>The &lt;if&gt; command defines a block that is executed if a specific condition
+is true:
+</paragraph>
+<example>
+
+<line>&lt;if</line>
+<line>    name = "variablename"</line>
+<line>  [ test = "eq | ne | gt | lt | ge | le" ]</line>
+<line>  [ value = "testvalue" ]</line>
+<line>    &gt;</line>
+<line>    [ script command ]...</line>
+<line>&lt;/if&gt;</line>
+</example>
+<itemize>
+
+<item>See the &lt;assert&gt; command for an explanation of the test and value properties.</item>
+</itemize>
+
+</header>
+<header>The Else Command
+
+<paragraph>The &lt;else&gt; command defines a block that is executed if the previous &lt;if&gt;
+condition was false:
+</paragraph>
+<example>
+
+<line>&lt;else&gt;</line>
+<line>    [ script command ]...</line>
+<line>&lt;/else&gt;</line>
+</example>
+
+</header>
+<header>The Elsif Command
+
+<paragraph>The &lt;elsif&gt; command defines a block that is executed if the previous &lt;if&gt;
+condition was false and some further condition is true:
+</paragraph>
+<example>
+
+<line>&lt;elsif</line>
+<line>    name = "variablename"</line>
+<line>  [ test = "eq | ne | gt | lt | ge | le" ]</line>
+<line>  [ value = "testvalue" ]</line>
+<line>    &gt;</line>
+<line>    [ script command ]...</line>
+<line>&lt;/elsif&gt;</line>
+</example>
+<itemize>
+
+<item>See the &lt;assert&gt; command for an explanation of the test and value properties.</item>
+</itemize>
+
+</header>
+<header>The Wait Command
+
+<paragraph>The &lt;wait&gt; command pauses the script for a number of milliseconds, or
+until content is received from the server, whichever is sooner:
+</paragraph>
+<example>
+
+<line>&lt;wait</line>
+<line>  [ timeout = "milliseconds" ]</line>
+<line>    /&gt;</line>
+</example>
+<itemize>
+
+<item>Inside a session the default timeout is 'forever'.  Outside a session, the default timeout is 'zero'.</item>
+</itemize>
+
+<paragraph>Here is an example of using the &lt;wait&gt; command:
+</paragraph>
+<example>
+
+<line>&lt;?xml?&gt;</line>
+<line>&lt;pal</line>
+<line>    name = "waiting"</line>
+<line>    script = "demo_pal_gen"</line>
+<line>    target = "stdc"</line>
+<line>    &gt;</line>
+<line>    &lt;set name = "index" value = "0" /&gt;</line>
+<line>    &lt;echo&gt;Waiting without an active connection...&lt;/echo&gt;</line>
+<line>    &lt;wait timeout = "1000" /&gt;</line>
+<line>    &lt;session&gt;</line>
+<line>        &lt;echo&gt;Waiting inside an active connection...&lt;/echo&gt;</line>
+<line>        &lt;wait timeout = "1000" /&gt;</line>
+<line>    &lt;/session&gt;</line>
+<line>    &lt;echo&gt;OK&lt;/echo&gt;</line>
+<line>&lt;/pal&gt;</line>
+</example>
+
+</header>
+<header>The Sleep Command
+
+<paragraph>The &lt;sleep&gt; command pauses the script for an exact number of milliseconds.
+Unlike it's cousin &lt;wait&gt;, the sleep time is not affected by any traffic on
+the session.
+</paragraph>
+<example>
+
+<line>&lt;sleep</line>
+<line>    timeout = "milliseconds"</line>
+<line>    /&gt;</line>
+</example>
+<itemize>
+
+<item>Timeout is required for &lt;sleep&gt;.</item>
+</itemize>
+
+</header>
+<header>The Abort Command
+
+<paragraph>The &lt;abort&gt; command echoes a line of text and halts the script.
+</paragraph>
+<example>
+
+<line>&lt;abort&gt;line of text&lt;/abort&gt;</line>
+</example>
+<itemize>
+
+<item>The text can use variables with the syntax: $variablename.</item>
+</itemize>
+
+</header>
+<header>The Exit Command
+
+<paragraph>The &lt;exit&gt; command halts the script.
+</paragraph>
+<example>
+
+<line>&lt;exit [status = "value"] &gt;</line>
+</example>
+<itemize>
+
+<item>The default status value is 0.</item>
+</itemize>
+
+</header>
+</header>
+<header>Protocol-Specific PAL Commands
+
+<header>An Example
+
+<paragraph>This script sends 10 messages to the server and then reads them back.
+It uses the simple browse commands - not asynchronous consumers - and
+is specific to the demo protocol (using AMQ one would probably use
+consumers and &lt;wait/&gt; commands to get messages):
+</paragraph>
+<example>
+
+<line>&lt;?xml?&gt;</line>
+<line>&lt;pal</line>
+<line>    name = "content"</line>
+<line>    script = "demo_pal_gen"</line>
+<line>    target = "stdc"</line>
+<line>    &gt;</line>
+<line>    &lt;session</line>
+<line>        queue    = "test-queue"</line>
+<line>        exchange = "test-exchange"</line>
+<line>        scope    = "test"&gt;</line>
+<line>        &lt;exchange_declare class = "fanout" /&gt;</line>
+<line>        &lt;queue_declare /&gt;</line>
+<line>        &lt;queue_bind&gt;</line>
+<line>            &lt;arguments&gt;</line>
+<line>                &lt;field name = "currency" value = "USD" /&gt;</line>
+<line>                &lt;field name = "symbol"   value = "MSFT" /&gt;</line>
+<line>            &lt;/arguments&gt;</line>
+<line>        &lt;/queue_bind&gt;</line>
+<line>        &lt;repeat times = "10" counter = "id"&gt;</line>
+<line>          &lt;basic_content size = "64000" content_type = "text/html" message_id = "id-$random"&gt;</line>
+<line>            &lt;headers&gt;</line>
+<line>              &lt;field name = "Numbering" value = "$id" /&gt;</line>
+<line>              &lt;field name = "Max-items" value = "100" /&gt;</line>
+<line>              &lt;field name = "Server-name" value = "http://www.openamq.org" /&gt;</line>
+<line>            &lt;/headers&gt;</line>
+<line>          &lt;/basic_content&gt;</line>
+<line>          &lt;basic_publish routing_key = "test-queue" /&gt;</line>
+<line>        &lt;/repeat&gt;</line>
+<line>        &lt;repeat&gt;</line>
+<line>            &lt;basic_browse /&gt;</line>
+<line>            &lt;basic_returned&gt;</line>
+<line>                &lt;echo&gt;Returned: $message_id&lt;/echo&gt;</line>
+<line>            &lt;/basic_returned&gt;</line>
+<line>            &lt;basic_arrived&gt;</line>
+<line>                &lt;inc name = "count" /&gt;</line>
+<line>                &lt;echo&gt;Arrived: $message_id, numbering=$headers-Numbering&lt;/echo&gt;</line>
+<line>            &lt;/basic_arrived&gt;</line>
+<line>            &lt;empty&gt;</line>
+<line>                &lt;break/&gt;</line>
+<line>            &lt;/empty&gt;</line>
+<line>        &lt;/repeat&gt;</line>
+<line>        &lt;echo&gt;Total number of messages exchanged: $count&lt;/echo&gt;</line>
+<line>    &lt;/session&gt;</line>
+<line>&lt;/pal&gt;</line>
+</example>
+
+</header>
+<header>General Principles
+
+<paragraph>ASL protocols have the useful property of being very high-level. That
+is, the protocol methods generally need little or no abstraction to be
+immediately obvious and useful to application developers. This makes it
+reasonable in PAL to simply expose the protocol methods directly to the
+scripting language. This strategy is helped by:
+</paragraph>
+<itemize>
+
+<item>The use of clear and consistent names for methods and method properties.</item>
+<item>The use of intelligent defaults for optional properties.</item>
+</itemize>
+
+<paragraph>ASL protocols share the same connection and channel initiation and
+tear-down architecture. The methods used to do this - such as
+Connection.Tune - are hidden from the PAL developer and are not exposed
+in the PAL script language. Specifically, we hide:
+</paragraph>
+<itemize>
+
+<item>All Connection class methods.</item>
+<item>The Channel.Open and Close methods.</item>
+<item>All methods sent by the server and received by the client. Since PAL is for client-side automation, these cannot be scripted.</item>
+</itemize>
+
+</header>
+<header>Content Commands
+
+<paragraph>For the purposes of explanation we will use the 'demo' protocol that is
+part of the ASL package.  The demo protocol defines one content class,
+"basic".
+</paragraph>
+
+<paragraph>For each content class, PAL provides a command to create the content
+and set its properties. E.g.
+</paragraph>
+<example>
+
+<line>&lt;basic_content</line>
+<line>  [ size = "bodysize"  ("1024") ]</line>
+<line>  [ fill = "random | null | repeat" ("random") ]</line>
+<line>  [ read = "..." ]</line>
+<line>  [ exec = "..." ]</line>
+<line>  [ headers = "0|(1)" ]</line>
+<line>  [ content_type = "propertyvalue" ]</line>
+<line>  [ content_encoding = "propertyvalue" ]</line>
+<line>  [ message_id = "propertyvalue" ]</line>
+<line>    &gt;</line>
+<line>    [ &lt;headers&gt;</line>
+<line>      [ &lt;field</line>
+<line>            name = "fieldname"</line>
+<line>          [ value = "fieldvalue" ]</line>
+<line>          [ type = "string | integer"  ("string") ]</line>
+<line>            /&gt; ]...</line>
+<line>    &lt;/headers&gt; ]</line>
+<line>  [ content text ]</line>
+<line>&lt;/basic_content&gt;</line>
+</example>
+<itemize>
+
+<item>The size attribute specifies the size in octets of the content buffer. Its default value is "1024".</item>
+<item>The fill attribute specifies the fill mode. It can be "random", which sets the body to random data, or "null", which sets it to binary zeroes, or "repeat", which repeats the content text up to the specified size.</item>
+<item>The body of the content item optionally provides a content text.  If this is set, it's reformatted as a single line of text, and used as message body.  This overrides the default fill ('random').</item>
+<item>The read attribute specifies a file from which to read the content body. This is useful when you want to send test messages with a specific format.</item>
+<item>The exec attribute specifies a command to run, so that the stdout of the command can be used as the content body.  The command must be the name of an executable program, on the path, with arguments as desired. The program receives the current content body as stdin, much like a web server CGI program.</item>
+<item>If the headers field is set to zero, the output of the executed program is not reparsed. If one, the output is reparsed to collect message properties and headers as follows: each line specifies a header field name, followed by ":", followed by a space and a value. Field names starting with "x-table-" are stored as-is (minus the x-table- prefix) in a field table with that name. Other fields must match known content properties. Hyphens are allowed in field names, and field names are case-insensitive.  The headers are ended with a blank line. Parsed headers create a CGI-like interface for calling programs.</item>
+<item>For each content property defined in the protocol (except field tables) PAL defines an attribute for the content command.</item>
+<item>For field tables, PAL defines a child entity with the same name, e.g. 'headers'.  Field tables are then constructed from one or more &lt;field&gt; definitions.</item>
+<item>After a content command, the script can access the content body size as a variables ($body_size in expressions, or body_size in assertions and conditions).</item>
+</itemize>
+
+</header>
+<header>Protocol Method Commands
+
+<paragraph>A protocol method command sends a protocol method to the server.  If the
+method is a synchronous method, the script waits for a response from the
+server.  If the method is asynchronous, the script continues without
+waiting.  The basic syntax for protocol method commands is:
+</paragraph>
+<example>
+
+<line>&lt;class_method [properties...]&gt;</line>
+<line>    &lt;field_table_name&gt;</line>
+<line>      [ &lt;field</line>
+<line>            name = "fieldname"</line>
+<line>          [ value = "fieldvalue" ]</line>
+<line>          [ type = "string | integer"  ("string") ]</line>
+<line>            /&gt; ]...</line>
+<line>    &lt;/field_table_name&gt;</line>
+<line>&lt;/class_method&gt;</line>
+</example>
+
+<paragraph>Properties that are not specified take a default value, which is zero
+for numeric properties, FALSE for Boolean properties, and NULL for
+strings and field tables.
+</paragraph>
+
+</header>
+<header>Processing Arrived Content
+
+<paragraph>For each content class, PAL provides a command that lets you process
+arrived messages. Contents do not necessarily arrive in a strict
+synchronous order - it depends on the protocol - so this command acts as
+a loop, and repeats for each arrived content at the moment it is
+invoked.
+</paragraph>
+<example>
+
+<line>&lt;basic_arrived</line>
+<line>  [ counter = "variablename" ]</line>
+<line>    &gt;</line>
+<line>    [ script command ]...</line>
+<line>&lt;/basic_arrived&gt;</line>
+<line>&lt;empty&gt;</line>
+<line>    [ script command ]...</line>
+<line>&lt;/empty&gt;</line>
+</example>
+<itemize>
+
+<item>If a counter is specified, this variable is automatically set to zero when the loop starts and incremented each time the loop runs.  You can access the counter variable after the loop.</item>
+<item>If there was no arrived content, the script executes the following &lt;empty&gt; command, if any.</item>
+</itemize>
+
+<paragraph>You can use these variables within an arrived loop:
+</paragraph>
+<itemize>
+
+<item>$body_size - size of content body.</item>
+<item>$body_text - content body as printable text.</item>
+<item>$exchange - original exchange to which content was sent.</item>
+<item>$routing_key - routing key specified in content.</item>
+<item>$producer_id - original producer id.</item>
+</itemize>
+
+</header>
+<header>Processing Returned Content
+
+<paragraph>We process returned content in a similar way to arrived content:
+</paragraph>
+<example>
+
+<line>&lt;basic_returned</line>
+<line>  [ counter = "variablename" ]</line>
+<line>    &gt;</line>
+<line>    [ script command ]...</line>
+<line>&lt;/basic_returned&gt;</line>
+<line>&lt;empty&gt;</line>
+<line>    [ script command ]...</line>
+<line>&lt;/empty&gt;</line>
+</example>
+<itemize>
+
+<item>If a counter is specified, this variable is automatically set to zero when the loop starts and incremented each time the loop runs.  You can access the counter variable after the loop.</item>
+<item>If there was no arrived content, the script executes the following &lt;empty&gt; command, if any.</item>
+</itemize>
+
+</header>
+<header>Synchronous Content Processing
+
+<paragraph>PAL does not provide any asynchronous content processing. The script
+runs as a single-threaded procedure from start to end. Content will
+arrive when the script is busy, i.e. during any command that talks to
+the server. To process content after such commands, use the 'arrived'
+commands. To process content while not doing such commands, use &lt;wait/&gt;
+and then use the arrived command.
+</paragraph>
+
+</header>
+</header>
+<header>PAL Variables
+
+<paragraph>PAL uses the convention '$name' to allow variable substitution.  This
+is allowed in:
+</paragraph>
+<itemize>
+
+<item>The body of &lt;echo&gt; and &lt;abort&gt; commands.</item>
+<item>All attributes except variablenames.</item>
+</itemize>
+
+<paragraph>PAL defines all connection and session properties as variables.  The
+API documentation for the protocol you are using will list these.  For
+the demo protocol they are:
+</paragraph>
+<itemize>
+
+<item>Connection properties:</item>
+</itemize>
+<example>
+
+<line>$channel_max</line>
+<line>$class_id</line>
+<line>$context_key</line>
+<line>$frame_max</line>
+<line>$heartbeat</line>
+<line>$method_id</line>
+<line>$reply_code</line>
+<line>$reply_text</line>
+<line>$server_copyright</line>
+<line>$server_information</line>
+<line>$server_platform</line>
+<line>$server_product</line>
+<line>$server_version</line>
+<line>$version_major</line>
+<line>$version_minor</line>
+</example>
+<itemize>
+
+<item>Session properties:</item>
+</itemize>
+<example>
+
+<line>$active</line>
+<line>$class_id</line>
+<line>$consumer_count</line>
+<line>$routing_key</line>
+<line>$exchange</line>
+<line>$message_count</line>
+<line>$method_id</line>
+<line>$queue</line>
+<line>$reply_code</line>
+<line>$reply_text</line>
+<line>$ticket</line>
+</example>
+
+<paragraph>Note that the standard ASL technique for returning values from protocol
+methods is via the session properties. Thus the variable 'message_count'
+holds the number of messages after a queue.browse request and a
+queue.browse-ok response.
+</paragraph>
+
+<paragraph>You should avoid using your own variables that conflict with the standard
+connection and session variables.
+</paragraph>
+
+<paragraph>PAL defines these built-in variables:
+</paragraph>
+<itemize>
+
+<item>$script - name of current PAL script.</item>
+<item>$connection - 1 if the connection is alive, else 0.</item>
+<item>$session - 1 if the session is alive, else 0.</item>
+<item>$random - a random integer in the range 0..32767, when used as an insertion value, produces a 4-digit hex string.</item>
+<item>$body_size - the body size of the last content to be created, arrived, or returned.</item>
+</itemize>
+
+<paragraph>PAL resolves a variable reference in this order:
+</paragraph>
+<enumerate>
+
+<item>First, in-built variables.</item>
+<item>Content properties, inside an arrived/returned loop.</item>
+<item>Session properties.</item>
+<item>Connection properties.</item>
+<item>Script variables and counters.</item>
+</enumerate>
+
+<paragraph>Here is a sample script that demonstrates various ways of using
+variables:
+</paragraph>
+<example>
+
+<line>&lt;?xml?&gt;</line>
+<line>&lt;pal</line>
+<line>    name = "symbols"</line>
+<line>    script = "demo_pal_gen"</line>
+<line>    target = "stdc"</line>
+<line>    &gt;</line>
+<line>    &lt;set name = "expect_major"   value = "9" /&gt;</line>
+<line>    &lt;set name = "exchange_class" value = "fanout" /&gt;</line>
+<line>    &lt;set name = "scope"          value = "test" /&gt;</line>
+<line>    &lt;set name = "queue"          value = "$scope\\-queue" /&gt;</line>
+<line>    &lt;set name = "exchange"       value = "$scope\\-exchange" /&gt;</line>
+<line>    &lt;set name = "times"          value = "100" /&gt;</line>
+<line>    &lt;set name = "size"           value = "64000" /&gt;</line>
+<line>    &lt;session</line>
+<line>        queue    = "$queue"</line>
+<line>        exchange = "$exchange"</line>
+<line>        scope    = "$scope"&gt;</line>
+<line>        &lt;echo&gt;Connected to $server_product/$server_version - $server_platform&lt;/echo&gt;</line>
+<line>        &lt;assert name = "version_major" value = "$expect_major" /&gt;</line>
+<line>        &lt;exchange_declare class = "$exchange_class" /&gt;</line>
+<line>        &lt;queue_declare /&gt;</line>
+<line>        &lt;queue_bind /&gt;</line>
+<line>        &lt;repeat times = "$times" counter = "id"&gt;</line>
+<line>          &lt;basic_content size = "$size" content_type = "text/html" message_id = "id-$id" /&gt;</line>
+<line>          &lt;basic_publish routing_key = "$queue" /&gt;</line>
+<line>        &lt;/repeat&gt;</line>
+<line>        &lt;repeat&gt;</line>
+<line>            &lt;basic_browse /&gt;</line>
+<line>            &lt;basic_returned&gt;</line>
+<line>                &lt;echo&gt;Returned: $message_id&lt;/echo&gt;</line>
+<line>            &lt;/basic_returned&gt;</line>
+<line>            &lt;basic_arrived&gt;</line>
+<line>                &lt;inc name = "count" /&gt;</line>
+<line>                &lt;echo&gt;Arrived: $message_id&lt;/echo&gt;</line>
+<line>            &lt;/basic_arrived&gt;</line>
+<line>            &lt;empty&gt;</line>
+<line>                &lt;break/&gt;</line>
+<line>            &lt;/empty&gt;</line>
+<line>        &lt;/repeat&gt;</line>
+<line>        &lt;echo&gt;Total number of messages exchanged: $count&lt;/echo&gt;</line>
+<line>    &lt;/session&gt;</line>
+<line>&lt;/pal&gt;</line>
+</example>
+
+</header>
+</header>
+<header>PAL Implementations
+
+<header>The StdC PAL Implementation
+
+<header>Command-Line Arguments
+
+<paragraph>The standard C implementation creates a command-line program that accepts
+these arguments:
+</paragraph>
+<example>
+
+<line>Syntax: program [options...]</line>
+<line>Options:</line>
+<line>  -s server        Server:port to connect to (localhost)</line>
+<line>  -t level         Set trace level (default = 0)</line>
+<line>                   0=none, 1=low, 2=medium, 3=high</line>
+<line>  -r count         Repeat script count times, 0=forever (1)</line>
+<line>  -c               Clock the script (0)</line>
+<line>  -a               Animate: show script commands</line>
+<line>  -e               Execute in single-step mode (0)</line>
+<line>  -q               Quiet mode: no messages</line>
+<line>  -v               Show version information</line>
+<line>  -h               Show summary of command-line options</line>
+<line>The order of arguments is not important. Switches and filenames</line>
+<line>are case sensitive. See documentation for detailed information.</line>
+</example>
+
+</header>
+<header>Performance Measurements
+
+<paragraph>The -c option clocks the script and produces performance measurement
+output.  Here is an example of a simple stress test script:
+</paragraph>
+<example>
+
+<line>&lt;?xml?&gt;</line>
+<line>&lt;pal</line>
+<line>    name = "stress"</line>
+<line>    script = "demo_pal_gen"</line>
+<line>    &gt;</line>
+<line>    This script sends a large number of messages to a queue and then</line>
+<line>    reads them back.  The number of messages can be specified on the</line>
+<line>    command-line.</line>
+<line>    &lt;!-- fails on win32, see FOR-6</line>
+<line>    &lt;server name = "demo_srv" where = ".." /&gt;</line>
+<line>    --&gt;</line>
+<line>    &lt;session scope = "default" exchange = "myexchange" queue = "myqueue" &gt;</line>
+<line>        &lt;set name = "number-of-messages" cmdline = "N" value = "1000" /&gt;</line>
+<line>        &lt;set name = "message-size" cmdline = "S" value = "1000" /&gt;</line>
+<line>        &lt;exchange_declare type = "fanout" /&gt;</line>
+<line>        &lt;queue_declare /&gt;</line>
+<line>        &lt;queue_bind /&gt;</line>
+<line>        &lt;repeat times = "$number-of-messages" counter = "index" progress = "100"&gt;</line>
+<line>            &lt;basic_content size = "$message-size" message_id = "id-$index" /&gt;</line>
+<line>            &lt;basic_publish routing_key = "myqueue" /&gt;</line>
+<line>        &lt;/repeat&gt;</line>
+<line>        &lt;while name = "arrived" test = "lt" value = "$number-of-messages" progress = "100"&gt;</line>
+<line>            &lt;basic_get /&gt;</line>
+<line>            &lt;basic_arrived&gt;</line>
+<line>                &lt;inc name = "arrived" /&gt;</line>
+<line>            &lt;/basic_arrived&gt;</line>
+<line>        &lt;/while&gt;</line>
+<line>    &lt;/session&gt;</line>
+<line>&lt;/pal&gt;</line>
+</example>
+
+<paragraph>Which produces this output (the figures are obviously just an example):
+</paragraph>
+<example>
+
+<line>...........</line>
+<line>...........</line>
+<line>16:41:26: I: elapsed time:781 msecs</line>
+<line>16:41:26: I: outgoing messages:1000 (976 Kbytes)</line>
+<line>16:41:26: I: incoming messages:1000 (976 Kbytes)</line>
+<line>16:41:26: I: total messages:2000 (1952 Kbytes) average:2560/sec (2499 Kbytes/sec)</line>
+<line>16:41:26: I: message latency min=280 max=410 mean=331 dev=37 msecs</line>
+</example>
+
+</header>
+</header>
+<header>Other Implementations
+
+<paragraph>There are no other implementations of PAL at present.
+</paragraph>
+
+</header>
+</header>
+</gdl>

@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<list>
+    <block-size="0" file="ipr_xml.c" line="309" pointer="0x82d0888p"/>
+    <block-size="0" file="ipr_xml_attr.c" line="277" pointer="0x82d08c0p"/>
+    <block-size="0" file="ipr_xml_attr.c" line="279" pointer="0x82db6f8p"/>
+    <block-size="0" file="ipr_xml_attr.c" line="277" pointer="0x82e2620p"/>
+    <block-size="0" file="ipr_xml_attr.c" line="279" pointer="0x82db738p"/>
+    <block-size="0" file="ipr_xml.c" line="309" pointer="0x82e0178p"/>
+    <block-size="0" file="ipr_xml_attr.c" line="277" pointer="0x82e01b0p"/>
+    <block-size="0" file="ipr_xml_attr.c" line="279" pointer="0x82e6c98p"/>
+    <block-size="0" file="ipr_xml_attr.c" line="277" pointer="0x82e8fc0p"/>
+    <block-size="0" file="ipr_xml_attr.c" line="279" pointer="0x82e8ff8p"/>
+    <block-size="0" file="ipr_xml.c" line="309" pointer="0x82eb2a8p"/>
+    <block-size="0" file="ipr_xml.c" line="311" pointer="0x82f2088p"/>
+</list>
+<list>
+    <ipr_xml zombie = "0" links = "1" containers = "0" file = "ipr_xml_list.c" line = "1111"  pointer = "0x82af478" />
+       <new file = "ipr_xmll.c" line = "1267" links = "1" />
+       <link file = "ipr_xml_list.c" line = "805" links = "2" />
+       <unlink file = "ipr_xmll.c" line = "1384" links = "1" />
+       <link file = "ipr_xml_list.c" line = "1111" links = "2" />
+    </ipr_xml>
+    <ipr_xml_attr zombie = "0" links = "1" containers = "1" file = "ipr_xml_attr_list.c" line = "1111"  pointer = "0x82ce5a0" />
+       <new file = "ipr_xml_attr.c" line = "801" links = "1" />
+       <link file = "ipr_xml_attr_list.c" line = "805" links = "2" />
+       <unlink file = "ipr_xml_attr.c" line = "803" links = "1" />
+       <link file = "ipr_xml_attr_list.c" line = "1111" links = "2" />
+    </ipr_xml_attr>
+    <ipr_xml_attr zombie = "0" links = "1" containers = "1" file = "ipr_xml_attr_list.c" line = "805"  pointer = "0x82d08f8" />
+       <new file = "ipr_xml_attr.c" line = "801" links = "1" />
+       <link file = "ipr_xml_attr_list.c" line = "805" links = "2" />
+    </ipr_xml_attr>
+    <ipr_xml zombie = "0" links = "1" containers = "1" file = "ipr_xml_list.c" line = "805"  pointer = "0x82e2658" />
+       <new file = "ipr_xmll.c" line = "1267" links = "1" />
+       <link file = "ipr_xml_list.c" line = "805" links = "2" />
+    </ipr_xml>
+    <ipr_xml_attr zombie = "0" links = "1" containers = "1" file = "ipr_xml_attr_list.c" line = "1111"  pointer = "0x82e49b0" />
+       <new file = "ipr_xml_attr.c" line = "801" links = "1" />
+       <link file = "ipr_xml_attr_list.c" line = "805" links = "2" />
+       <unlink file = "ipr_xml_attr.c" line = "803" links = "1" />
+       <link file = "ipr_xml_attr_list.c" line = "1111" links = "2" />
+    </ipr_xml_attr>
+    <ipr_xml_attr zombie = "0" links = "1" containers = "1" file = "ipr_xml_attr_list.c" line = "805"  pointer = "0x82e6cd8" />
+       <new file = "ipr_xml_attr.c" line = "801" links = "1" />
+       <link file = "ipr_xml_attr_list.c" line = "805" links = "2" />
+    </ipr_xml_attr>
+    <ipr_xml zombie = "0" links = "1" containers = "1" file = "ipr_xml_list.c" line = "805"  pointer = "0x82e9030" />
+       <new file = "ipr_xmll.c" line = "1267" links = "1" />
+       <link file = "ipr_xml_list.c" line = "805" links = "2" />
+    </ipr_xml>
+    <ipr_xml zombie = "0" links = "1" containers = "1" file = "ipr_xml_list.c" line = "805"  pointer = "0x82efda0" />
+       <new file = "ipr_xmll.c" line = "1662" links = "1" />
+       <link file = "ipr_xml_list.c" line = "805" links = "2" />
+    </ipr_xml>
+</list>
+<list>
+    <icl_rwlock file = "ipr_xml.c" line = "299"  pointer = "0x82b7830" />
+    <icl_rwlock file = "ipr_xml_list.c" line = "278"  pointer = "0x82ce810" />
+    <icl_rwlock file = "ipr_xml_attr_list.c" line = "278"  pointer = "0x82cc508" />
+    <icl_rwlock file = "ipr_xml_attr.c" line = "267"  pointer = "0x82c1ed8" />
+    <icl_rwlock file = "ipr_xml_attr.c" line = "267"  pointer = "0x82d55b0" />
+    <icl_rwlock file = "ipr_xml.c" line = "299"  pointer = "0x82d0b68" />
+    <icl_rwlock file = "ipr_xml_list.c" line = "278"  pointer = "0x82d30c8" />
+    <icl_rwlock file = "ipr_xml_attr_list.c" line = "278"  pointer = "0x82e28c8" />
+    <icl_rwlock file = "ipr_xml_attr.c" line = "267"  pointer = "0x82e4c20" />
+    <icl_rwlock file = "ipr_xml_attr.c" line = "267"  pointer = "0x82e6f48" />
+    <icl_rwlock file = "ipr_xml.c" line = "299"  pointer = "0x82db688" />
+    <icl_rwlock file = "ipr_xml_list.c" line = "278"  pointer = "0x82eb790" />
+    <icl_rwlock file = "ipr_xml_attr_list.c" line = "278"  pointer = "0x82edc78" />
+    <icl_rwlock file = "ipr_xml.c" line = "299"  pointer = "0x82f0010" />
+    <icl_rwlock file = "ipr_xml_list.c" line = "278"  pointer = "0x82f2578" />
+    <icl_rwlock file = "ipr_xml_attr_list.c" line = "278"  pointer = "0x82f4a60" />
+</list>
+<list>
+    <ipr_xml_attr_list zombie = "0" links = "1" containers = "0" file = "ipr_xml.c" line = "313"  pointer = "0x82cc098" />
+    </ipr_xml_attr_list>
+    <ipr_xml_attr_list zombie = "0" links = "1" containers = "0" file = "ipr_xml.c" line = "313"  pointer = "0x82d5140" />
+    </ipr_xml_attr_list>
+    <ipr_xml_attr_list zombie = "0" links = "1" containers = "0" file = "ipr_xml.c" line = "313"  pointer = "0x82ed808" />
+    </ipr_xml_attr_list>
+    <ipr_xml_attr_list zombie = "0" links = "1" containers = "0" file = "ipr_xml.c" line = "313"  pointer = "0x82f45f0" />
+    </ipr_xml_attr_list>
+</list>
+<list>
+    <ipr_xml_list zombie = "0" links = "1" containers = "0" file = "ipr_xml.c" line = "312"  pointer = "0x82c1a28" />
+    </ipr_xml_list>
+    <ipr_xml_list zombie = "0" links = "1" containers = "0" file = "ipr_xml.c" line = "312"  pointer = "0x82d2c18" />
+    </ipr_xml_list>
+    <ipr_xml_list zombie = "0" links = "1" containers = "0" file = "ipr_xml.c" line = "312"  pointer = "0x82eb2e0" />
+    </ipr_xml_list>
+    <ipr_xml_list zombie = "0" links = "1" containers = "0" file = "ipr_xml.c" line = "312"  pointer = "0x82f20c8" />
+    </ipr_xml_list>
+</list>

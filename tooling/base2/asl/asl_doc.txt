@@ -1,0 +1,760 @@
+ASL is the Abstract Syntax Layer. ASL a protocol specification language
+specifically designed to document and define a family of protocols. The
+ASL specifications are used as input to code generators that produce   
+framing code, class and method handlers, and documentation.            
+
+Summary of language
+===================
+
+This summary shows the hierarchy of elements you can use, with the
+required and optional attributes for each element.  The XML entity and
+attribute names are case-sensitive and we use only lower-case names.
+
+    <protocol version name [before] [after] [copyright] [license] [role] [desc] [target] [abstract]
+         [chassis] [basename]>
+       <inherit name [phase] [condition]>
+          <option name value/>
+       </inherit>
+       <include filename/>
+       <constant name value [class]/>
+       <class name [abstract] [template] [comment] [handler] [index]>
+          <option .../>
+          <inherit .../>
+          <doc [name] [test]/>
+          <see [name]/>
+          <chassis name [implement]/>
+          <field name [domain] [type] [global]>
+             <assert check [value] [method] [field] [rule]>
+                <value name [value]/>
+             </assert>
+             <doc .../>
+             <see .../>
+          </field>
+          <method name [abstract] [template] [synchronous] [content]>
+             <option .../>
+             <inherit .../>
+             <doc .../>
+             <see .../>
+             <chassis .../>
+             <field .../>
+             <response name/>
+          </method>
+          <context/>
+          <action name [sameas]>
+             <local/>
+             <header [export]/>
+             <footer [export]/>
+          </action>
+          <constructor/>
+          <destructor/>
+          <todo [owner]/>
+       </class>
+       <domain name type>
+          <assert .../>
+          <doc .../>
+          <see .../>
+       </domain>
+       <option .../>
+    </protocol>
+
+Detailed specifications
+=======================
+
+All child entities are optional and can occur zero or more times without
+any specific limits unless otherwise specified.  The same tag may occur
+at different levels with different meanings, and in such cases will be
+detailed more than once here.
+
+The 'asl' item
+--------------
+
+Defines the protocol. One MDF file defines exactly one protocol which may
+consist of many classes, each with appropriate methods.                  
+
+    <protocol
+        version = "..."
+        name = "..."
+      [ before = "..." ]
+      [ after = "..." ]
+      [ copyright = "..." ]
+      [ license = "bsd | gpl"  ("gpl") ]
+      [ role = "..." ]
+      [ desc = "..." ]
+      [ target = "..."  ("doc") ]
+      [ abstract = "0 | 1"  ("0") ]
+      [ chassis = "client | server" ]
+      [ basename = "..." ]
+        >
+        <inherit>
+        <include>
+        <constant>
+        <class>
+        <domain>
+        <option>
+    </protocol>
+
+The asl item can have these attributes:
+
+abstract:
+    If set, the entity only exists in order to be inherited - no code is    
+    generated. The abstract attribute is optional. Its default value is "0".
+    It can take one of the following values:                                
+
+Value: Meaning:
+0: normal entity
+1: abstract entity
+
+role:
+    A file may fulfill a role. This serves two purposes: asserting that      
+    essential roles are fulfilled and helping to define the inheritence order
+    using the 'before' and 'after' attributes. The role attribute is         
+    optional.                                                                
+
+before:
+    Specifies a role before which this file should should be inherited. The
+    before attribute is optional.                                          
+
+after:
+    Specifies a role before which this file should should be inherited. The
+    after attribute is optional.                                           
+
+copyright:
+    This specifies the copyright string for the model. This string is stamped
+    into the generated sources, if specified. The copyright attribute is     
+    optional.                                                                
+
+license:
+    Specifies the license of the model. This license is applied to all models
+    inherited or built from the current model. The license attribute is      
+    optional. Its default value is "gpl". It can take one of the following   
+    values:                                                                  
+
+Value: Meaning:
+bsd: generates a BSD license header
+gpl: generates a GPL license header
+
+name:
+    Specifies the name of the class. This name will be used to prefix all   
+    function names and will also be used as the filename for generated code.
+    The name attribute is required.                                         
+
+desc:
+    An optional one-line comment that describes the class. The desc attribute
+    is optional.                                                             
+
+target:
+    Specifies the name of the target environment; the target is implemented 
+    by a GSL script that generates code for a specific language environment.
+    The target can be inherited from a parent class. The target attribute is
+    optional. Its default value is "doc".                                   
+
+version:
+    Specifies the version of the class. This text can take any format but we
+    recommend this standard format: '2.4b1' which is major version 2, minor 
+    version 4, release b, update 1. This string is stamped into the project 
+    sources. The version attribute is required.                             
+
+chassis:
+    The name of the chassis that this protocol implements. The chassis
+    attribute is optional. It can take one of the following values:   
+
+Value: Meaning:
+client: client peer
+server: server peer
+
+basename:
+    The prefix used for all code generation objects. Defaults to the protocol
+    name plus chassis, can be overridden for specific types of output - see  
+    target code generators. The basename attribute is optional.              
+
+
+The 'inherit' item
+------------------
+
+
+
+    <inherit
+        name = "..."
+      [ phase = "preproc | parse" ]
+      [ condition = "..." ]
+        >
+        <option>
+    </inherit>
+
+The inherit item can have these attributes:
+
+name:
+    Name of entity to inherit from. The name attribute is required.
+
+phase:
+    The processing phase during which this inheritence is performed. The 
+    phase attribute is optional. It can take one of the following values:
+
+Value: Meaning:
+preproc: inherited in preprocessor
+parse: inherited in parser
+
+condition:
+    Specifies a condition which must be TRUE for the inheritence to occur.
+    The condition attribute is optional.                                  
+
+
+The 'option' item
+-----------------
+
+Passes an option to an inherited class. Options can be used in the template
+code generation logic, or in method handlers.                              
+
+    <option
+        name = "..."
+        value = "..."
+        />
+
+The option item can have these attributes:
+
+name:
+    The name of the option. The name attribute is required.
+
+value:
+    The value for the option. The value attribute is required.
+
+
+The 'include' item
+------------------
+
+The 'include' element permits textual-inclusion from another file.
+
+    <include
+        filename = "..."
+        />
+
+The include item has this single attribute:
+
+filename:
+    The name of the XML-format file to be included in place of the 'include'
+    element. The filename attribute is required.                            
+
+
+The 'constant' item
+-------------------
+
+Constants are used to define reply codes and other numeric or constants
+that form part of the protocol specifications.                         
+
+    <constant
+        name = "..."
+        value = "..."
+      [ class = "..." ]
+        />
+
+The constant item can have these attributes:
+
+name:
+    The name of the constant. The name attribute is required.
+
+value:
+    The value of the constants. The value attribute is required.
+
+class:
+    An arbitrary class name, which allows constants to be grouped for      
+    specific purposes such as documentation generation. The class attribute
+    is optional. Its default value is "".                                  
+
+
+The 'class' item
+----------------
+
+The class tag defines the class.
+
+    <class
+        name = "..."
+      [ abstract = "0 | 1"  ("0") ]
+      [ template = "..."  ("template") ]
+      [ comment = "..." ]
+      [ handler = "..." ]
+      [ index = "..." ]
+        >
+        <option>
+        <inherit>
+        <doc>
+        <see>
+        <chassis>
+        <field>
+        <method>
+        <context>
+        <action>
+        <constructor>
+        <destructor>
+        <todo>
+    </class>
+
+The class item can have these attributes:
+
+abstract:
+    If set, the entity only exists in order to be inherited - no code is    
+    generated. The abstract attribute is optional. Its default value is "0".
+    It can take one of the following values:                                
+
+Value: Meaning:
+0: normal entity
+1: abstract entity
+
+name:
+    Specifies the name of the class. This name will be used to prefix all   
+    function names and will also be used as the filename for generated code.
+    The name attribute is required.                                         
+
+template:
+    If specified, defines an entity that acts as template for this entity.   
+    The class template. The template attribute is optional. Its default value
+    is "template".                                                           
+
+comment:
+    An optional one-line comment that describes the class. The comment
+    attribute is optional.                                            
+
+handler:
+    The exception level for errors detected by this class. Should be the name
+    of a class that is able to handle exceptions. The handler attribute is   
+    optional.                                                                
+
+index:
+    This specifies the class index, 1 upwards. The index attribute is
+    optional.                                                        
+
+
+The 'doc' item
+--------------
+
+Documentation for the current element: this is included in the generated   
+documentation files in a suitable form. Should be in iMatix gurudoc format.
+
+    <doc
+      [ name = "..." ]
+      [ test = "..." ]
+        />
+
+The doc item can have these attributes:
+
+name:
+    Allows documentation of different types to be included in the ASL    
+    definitions. The name attribute is optional. Its default value is "".
+
+test:
+    Specifically for rules, provides the name of the conformance test that
+    checks the documented rule. The test attribute is optional.           
+
+
+The 'see' item
+--------------
+
+Defines a reference to an external definition of some kind.
+
+    <see
+      [ name = "..." ]
+        />
+
+The see item has this single attribute:
+
+name:
+    The name of an external reference. The name attribute is optional.
+
+
+The 'chassis' item
+------------------
+
+Defines a chassis, which can be 'server' or 'client'. This is the role of
+the peer that must or may accept and handle the class or method.         
+
+    <chassis
+        name = "client | server"
+      [ implement = "MUST | SHOULD | MAY" ]
+        />
+
+The chassis item can have these attributes:
+
+name:
+    The name of the chassis. The name attribute is required. It can take one
+    of the following values:                                                
+
+Value: Meaning:
+client: client peer
+server: server peer
+
+implement:
+    The implement attribute is optional. It can take one of the following
+    values:                                                              
+
+Value: Meaning:
+MUST: MUST be implemented
+SHOULD: SHOULD be implemented
+MAY: MAY be implemented
+
+
+The 'field' item
+----------------
+
+Defines a class or method field. The body of this entity documents the
+field.                                                                
+
+    <field
+        name = "..."
+      [ domain = "..." ]
+      [ type = "bit | octet | short | long | longlong | timestamp | shortstr | longstr | table" ]
+      [ global = "..."  ("0") ]
+        >
+        <assert>
+        <doc>
+        <see>
+    </field>
+
+The field item can have these attributes:
+
+name:
+    The name of the field. The name attribute is required.
+
+domain:
+    The domain for the field. Defines a link to the 'domain' item with the
+    corresponding 'name' attribute. The domain attribute is optional.     
+
+type:
+    The type of the field, which is a type primitive name. The type attribute
+    is optional. It can take one of the following values:                    
+
+Value: Meaning:
+bit: single bit
+octet: single octet
+short: 16-bit integer
+long: 32-bit integer
+longlong: 64-bit integer
+timestamp: 64-bit timestamp
+shortstr: short string
+longstr: long string
+table: field table
+
+global:
+    If 1, the field is global to all methods. Global fields may be kept out
+    of per-method APIs to reduce complexity. The global attribute is       
+    optional. Its default value is "0".                                    
+
+
+The 'assert' item
+-----------------
+
+Defines a field-level assertion that should be executed on incoming method
+fields.                                                                   
+
+    <assert
+        check = "eq | ne | gt | ge | lt | le | regexp | length | notnull | null | enum | syntax"
+      [ value = "..." ]
+      [ method = "..." ]
+      [ field = "..." ]
+      [ rule = "..." ]
+        >
+        <value>
+    </assert>
+
+The assert item can have these attributes:
+
+check:
+    The type of the assertion. The check attribute is required. It can take
+    one of the following values:                                           
+
+Value: Meaning:
+eq: equal to some value
+ne: not equal to some value
+gt: greater than some value
+ge: greater than or equal to some value
+lt: less than some value
+le: less than or equal to some value
+regexp: match regular expression
+length: max length, for strings
+notnull: not null, for strings
+null: null, for strings
+enum: one of a set of values
+syntax: validate data syntax
+
+value:
+    If specified, compare against this value. The value attribute is
+    optional.                                                       
+
+method:
+    If specified, compare with the specified field from this class. The
+    method attribute is optional.                                      
+
+field:
+    If specified, compare with this field. Must have the same or a compatible
+    type as the field being asserted. The field attribute is optional.       
+
+rule:
+    For syntax checks, the name of a standard rule that defines the allowed
+    syntax of the field. The rule attribute is optional.                   
+
+
+The 'value' item
+----------------
+
+Defines one of the valid values for a field, when used with the assert
+check "enum".                                                         
+
+    <value
+        name = "..."
+      [ value = "..." ]
+        />
+
+The value item can have these attributes:
+
+name:
+    The name of the enumerated value. Note that enumerations are always
+    numbered in order. The name attribute is required.                 
+
+value:
+    The value of the enumerated value. If not defined, is automatically    
+    assigned from 1 or the previous enum value upwards. The value attribute
+    is optional.                                                           
+
+
+The 'method' item
+-----------------
+
+Methods provide functionality for the component class. All methods inherit
+basic fields from the default method.                                     
+
+    <method
+        name = "..."
+      [ abstract = "0 | 1"  ("0") ]
+      [ template = "..."  ("template") ]
+      [ synchronous = "..."  ("0") ]
+      [ content = "..."  ("0") ]
+        >
+        <option>
+        <inherit>
+        <doc>
+        <see>
+        <chassis>
+        <field>
+        <response>
+    </method>
+
+The method item can have these attributes:
+
+abstract:
+    If set, the entity only exists in order to be inherited - no code is    
+    generated. The abstract attribute is optional. Its default value is "0".
+    It can take one of the following values:                                
+
+Value: Meaning:
+0: normal entity
+1: abstract entity
+
+name:
+    The name of the method, used in the API. The name attribute is required.
+
+template:
+    If specified, defines an entity that acts as template for this entity.
+    The method template. The template attribute is optional. Its default  
+    value is "template".                                                  
+
+synchronous:
+    Defines a synchronous method, for the purposes of documentation. We do  
+    not expect to generate parsers for these methods at the current level of
+    technology. The synchronous attribute is optional. Its default value is 
+    "0".                                                                    
+
+content:
+    Defines a content method. Content methods should be followed by a content
+    block in one or more frames. The content attribute is optional. Its      
+    default value is "0".                                                    
+
+
+The 'response' item
+-------------------
+
+For a synchronous request, defines the expected reply method. If this is
+not defined, a synchronous method is assumed to be a reply.             
+
+    <response
+        name = "..."
+        />
+
+The response item has this single attribute:
+
+name:
+    The name of the response method. Defines a link to the 'name' item with
+    the corresponding 'name' attribute. The name attribute is required.    
+
+
+The 'context' item
+------------------
+
+Defines a context block; one or more variables which will be held on a    
+per-session basis. The exact meaning of a context block depends on the ASL
+code generation scripts for the chosen target.                            
+
+    <context>
+
+
+
+The 'action' item
+-----------------
+
+Actions provide client or server implementation code for methods. This code
+is used in ways that depend on the ASL code generation scripts for the     
+chosen target. In general the action body is used in a layer which receives
+the methods from the protocol handler and which can then execute them in a 
+manner suitable for the client or server architecture.                     
+
+    <action
+        name = "..."
+      [ sameas = "..." ]
+        >
+        <local>
+        <header>
+        <footer>
+    </action>
+
+The action item can have these attributes:
+
+name:
+    The name of the action, which must correspond to the name of the method
+    that it implements. The name attribute is required.                    
+
+sameas:
+    If specified, indicates that the action body from the specified class    
+    should be used. Do not mix this attribute with an action body. The sameas
+    attribute is optional.                                                   
+
+
+The 'local' item
+----------------
+
+Local definitions used by the action.
+
+    <local>
+
+
+
+The 'header' item
+-----------------
+
+Defines a block of action code that should come before all bodies from the
+current and parent classes. Do not use for variable declarations, use     
+'local'.                                                                  
+
+    <header
+      [ export = "none | default | before | after"  ("default") ]
+        />
+
+The header item has this single attribute:
+
+export:
+    Specifies how this item may be inherited. The export attribute is
+    optional. Its default value is "default". It can take one of the 
+    following values:                                                
+
+Value: Meaning:
+none: may not be inherited
+default: inherited in the default manner
+before: inherited before existing items
+after: inherited after existing items
+
+
+The 'footer' item
+-----------------
+
+Defines a block of method code that should come after all bodies from the
+current and parent classes.                                              
+
+    <footer
+      [ export = "none | default | before | after"  ("default") ]
+        />
+
+The footer item has this single attribute:
+
+export:
+    Specifies how this item may be inherited. The export attribute is
+    optional. Its default value is "default". It can take one of the 
+    following values:                                                
+
+Value: Meaning:
+none: may not be inherited
+default: inherited in the default manner
+before: inherited before existing items
+after: inherited after existing items
+
+
+The 'constructor' item
+----------------------
+
+Defines a block of code that will be executed when a new class instance is
+created. The meaning of this block depends on the ASL code generation     
+scripts for the chosen target.                                            
+
+    <constructor>
+
+
+
+The 'destructor' item
+---------------------
+
+Defines a block of code that will be executed when a new class instance is
+destroyed. The meaning of this block depends on the ASL code generation   
+scripts for the chosen target.                                            
+
+    <destructor>
+
+
+
+The 'todo' item
+---------------
+
+Defines a change request, bug or other issue that needs changing in the ASL
+grammar. Todo items are formalised so that they can be extracted and       
+processed mechanically.                                                    
+
+    <todo
+      [ owner = "..." ]
+        />
+
+The todo item has this single attribute:
+
+owner:
+    The developer who registered the issue and will deal with it, specified
+    as an email address. The owner attribute is optional.                  
+
+
+The 'domain' item
+-----------------
+
+A field domain, like a type definition.
+
+    <domain
+        name = "..."
+        type = "bit | octet | short | long | longlong | shortstr | longstr | timestamp | table"
+        >
+        <assert>
+        <doc>
+        <see>
+    </domain>
+
+The domain item can have these attributes:
+
+name:
+    The name of the domain. The name attribute is required.
+
+type:
+    The type of the domain, which is a type primitive name. This is the same
+    type list as for fields. The type attribute is required. It can take one
+    of the following values:                                                
+
+Value: Meaning:
+bit: single bit
+octet: single octet
+short: 16-bit integer
+long: 32-bit integer
+longlong: 64-bit integer
+shortstr: short string
+longstr: long string
+timestamp: 64-bit timestamp
+table: field table
+

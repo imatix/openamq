@@ -1,0 +1,320 @@
+work order
+
+    OK - make async authentication with current mechanisms
+    OK - timeout in http agent waiting for authentication
+    OK - define XML format for digest-amqp
+    OK - define specification for digest-amqp
+    OK - implement digest-amqp backend using WireAPI
+    OK - implement digest-amqp test front-end using WireAPI
+    OK - implement digest-amqp in Zyre
+
+    - Vinoski's comments on RestMS, plus changes to product
+    --> release 1.4a3
+    - start on openssl
+
+
+- added Expires: optionally, 1 year on fixed content
+
+
+----------------------------------------
+IN PROGRESS
+
+- do not run as root
+- no user-extensible applications
+- default settings: paranoid
+- failed login attempts audited
+- log data secured offship
+- passwd files NOT modifiable by server process
+    - might be simpler too, save to shadow and don't touch original
+    - save to copy, allow diff...
+- webroot always in special space
+
+drivers
+    - lookup by mime type
+        - content types like blacklist, in access context
+    - lookup by extension
+    - lookup by magic file examination
+    - execute unconditionally
+
+whitelist/blacklist
+    - as access module
+    - influences forward/past access module behaviour
+    - configurable
+        - quotas per whitelist, etc.
+
+access modules
+    - get mime type for file (by extension or examination)
+    - get user group for user name
+
+Driver modules
+    tutorial in how to make driver modules
+    test framework
+    SSI example
+    CGI example
+    WebDav example
+    file example
+    extend parsing for file extensions
+    file type detection
+        - executable files
+        - by MIME type
+    how to add plugins to your server
+    available plugins on xitami.com
+    how to add config file / section
+
+Table management in policy
+    load table xyz into memory
+    table is text file in format:
+        key:value-string
+    groups
+    mime types
+    whitelist
+    blacklist
+    - load arbitrary table
+    - set default population
+    - use in policy rules
+
+Group definition
+    <user name = "xx" groups = "name, name, name" />
+    - load into hash table per user
+    - set groups (list) for user on authentication
+    - else 'users'
+
+MIME types
+    move from config into separate file
+    load pre-built mime types at start
+    allow user defined mime types on top
+    option to report all mime types known
+    http_mime.txt
+    http_mime_base.txt -> built-in
+
+SSL checks
+    Certificate date ranges are valid.
+    Certificates are used for their intended purpose (for example, the server certificate is not used for e-mail).
+    The certificate's public key is valid, all the way to a trusted root authority.
+    The certificate has not been revoked.
+
+IP address tracking
+    - log all ip addresses in dictionary
+    - save on exit, reload at startup
+        - number of fetches
+        - number of errors
+        - number of security violations
+    - policy for ip addresses
+        - quota nbr requests
+        - quota traffic per time unit
+        - quota wrong passwords
+        - quota security errors
+        - quote number of nonces
+
+how to make aliases for file plugin
+    - instance of plugin per alias
+    - alias prefix / => webpages
+    - make webpages just a default alias
+    - define aliases in config file
+    //  To implement aliases we need to look in the config for the file system
+    //  path corresponding to our provided URI path, and then we need to store
+    //  this fspath, and use it as a prefix when calculating the full path, in
+    //  place of always looking at webpages.  webpages should just be one of a
+    //  general case.
+    //
+
+Virtual host management
+    - vhost is object
+    - server has vhost list
+    - server has dictionary of hostnames -> vhosts
+    - each vhost is also portal client onto plugin's
+    - each vhost has its own config tree
+        - inherited off main config
+    - vhost list reloaded if main config file changed
+        - each vhost reloads its own config if changed
+
+    - webpages is vhosts/name/ by default
+    - vhost webroot can override but it's optional
+    - vhostroot can override 'vhosts'
+    - vhost handles pattern of Host names: *.xxx.com
+    - defined in main file
+        <vhost name = "xxx" hosts = "*.xxx.com" />
+    - optionally,
+            config = "filename"
+        - what sections can be overridden?
+        - environment section
+    - server must reload config if changed, after 1 second
+        - including vhost list
+    - do we allow plugin's per vhost?
+        - enable/disable, perhaps
+    - do we have config section per plugin?
+        - yes, and overrideable per vhost
+
+    - extend plugin registration to allow wildcard
+    - start on CGI plugin
+    - define dynamic loadable module interface
+        - it would be nice to have PHP plugin
+        - it would be nice to have Perl plugin
+
+Documentation, howto
+    - embedded in applications
+    - internal plugin API based on portals
+
+Dynamic configuration
+    - if config files change, reload them
+    - reprocess all config file options as done at startup
+
+Console management
+    - use CML for more useful structure
+        - attached to async objects
+        - speak CML internally to console app
+        - display as HTML, or export as AMQP
+        - ensure CML is independent of AMQP
+    - part of SMT
+    - experimental web interface
+        - using formio implementation
+        - cookies for authentication
+        - hierarchical state model
+            - back is allowed at all times
+
+Way of adding SMT modules into smt directory
+    - sub directories, perhaps
+
+extensions to request object
+    - parsed user/password
+    - cookie request
+
+extensions to response object
+    - cookie response
+        - expiration
+        - contents (longstr)
+        - domain... check how this works
+
+session objects
+    - can be managed centrally
+    - push/pop context
+    - mangle URL with context key
+    - insert context key into cookie
+    - nested hierarchical context, allows back
+
+Process environment
+    - sent to plugin as array of strings
+    - includes plugin environment variables if any
+        <plugin>
+            <set name = "" value = "" />
+        </plugin>
+    - all HTTP header fields as HTTP_whatever
+        - exported from HTTP header table
+    - current process environnent
+        - if environ = "1" for plugin
+
+
+Taken from CGI/1.1 specification:
+
+set_environment
+
+
+The following environment variables are not request-specific and are set
+for all requests:
+
+* SERVER_SOFTWARE - the name and version of the information server
+  software answering the request (and running the gateway). Format:
+  "name/version".
+
+OK
+
+* SERVER_NAME - the server's hostname, DNS alias, or IP address as it
+  would appear in self-referencing URLs.
+
+request->hostname
+
+* GATEWAY_INTERFACE - the revision of the CGI specification to which
+  this server complies. Format: "CGI/revision".
+
+"CGI/1.1"
+
+The following environment variables are specific to the request being
+fulfilled by the gateway program:
+
+* SERVER_PROTOCOL - the name and revision of the information protcol
+  this request came in with. Format: "protocol/revision".
+
+"HTTP/1.1"
+
+* SERVER_PORT - the port number to which the request was sent.
+
+port
+
+* REQUEST_METHOD - the method with which the request was made. For HTTP,
+  this is "GET", "HEAD", "POST", etc.
+
+request->request_method
+
+* PATH_INFO - the extra path information, as given by the client. In
+  other words, scripts can be accessed by their virtual pathname,
+  followed by extra information at the end of this path. The extra
+  information is sent as PATH_INFO. This information should be decoded
+  by the server if it comes from a URL before it is passed to the CGI
+  script.
+
+* PATH_TRANSLATED - the server provides a translated version of
+  PATH_INFO, which takes the path and does any virtual-to-physical
+  mapping to it.
+
+* SCRIPT_NAME - a virtual path to the script being executed, used for
+  self-referencing URLs.
+
+* QUERY_STRING - the information which follows the ? in the URL which
+  referenced this script. This is the query information. It should not
+  be decoded in any fashion. This variable should always be set when
+  there is query information, regardless of command line decoding.
+
+* REMOTE_HOST - the hostname making the request. If the server does not
+  have this information, it should set REMOTE_ADDR and leave this unset.
+
+* REMOTE_ADDR - the IP address of the remote host making the request.
+
+* AUTH_TYPE - if the server supports user authentication, and the script
+  is protected, this is the protocol-specific authentication method used
+  to validate the user.
+
+* REMOTE_USER - if the server supports user authentication, and the
+  script is protected, this is the username they have authenticated as.
+
+* CONTENT_TYPE - for queries which have attached information, such as
+  HTTP POST and PUT, this is the content type of the data.
+
+* CONTENT_LENGTH - the length of the said content as given by the
+  client.
+
+In addition to these, the header lines received from the client, if any,
+are placed into the environment with the prefix HTTP_ followed by the
+header name. Any - characters in the header name are changed to _
+characters. The server may exclude any headers which it has already
+processed, such as Authorization, Content-type, and Content-length.
+
+An example of this is the HTTP_ACCEPT variable which was defined in
+CGI/1.0. Another example is the header User-Agent.
+
+* HTTP_ACCEPT - the MIME types which the client will accept, as given by
+  HTTP headers. Other protocols may need to get this information from
+  elsewhere. Each item in this list should be separated by commas as per
+  the HTTP spec. Format: "type/subtype, type/subtype".
+
+* HTTP_USER_AGENT - the browser the client is using to send the request.
+  General format: "software/version library/version".
+
+In addition, these common extensions:
+
+* DOCUMENT_ROOT - location of root directory for agent, if any.
+
+* HTTPS - 1 if the request used the HTTPS (SSL/TLS) protocol, 0 if the
+  request used HTTP.
+
+* SCRIPT_PATH - the path (without name) of the script being executed.
+
+* SERVER_URL holds the full URL back to the server.
+
+CGI agent
+    - needs timer control
+    - need to get pipes working, should be easy
+    - start process, read from pipe
+    - ...?
+
+how about http_lrwp plugin?
+    - migrate existing LRWP users to Xitami/5

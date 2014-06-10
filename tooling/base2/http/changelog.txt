@@ -1,0 +1,50 @@
+Xitami/5 Changelog
+
+2009-04-21
+
+* changed: added --syslog support (--syslog option) (http://www.openamq.org/issue:51)
+
+2009-04-16
+
+* changed: removed archive_path from log file configuration (1.4, http://www.openamq.org/issue:48)
+* changed: log files are now written to /var/log/xitami (1.4, http://www.openamq.org/issue:48)
+
+2009/02/20
+
+* fixed: spurious client connection time-out messages (http://www.xitami.com/issue:3)
+
+2009/02/13
+
+* fixed: aborted if provided with invalid URIs
+* fixed: ported to Windows
+
+2009/01/23
+
+* added: server does CoreMark calculation at startup
+
+2009/01/15
+
+* implemented ETags with --etag fixed|float|none
+
+2009/01/14
+
+* implemented denial-of-service prevention, with --address_quota to limit threads per IP address.
+
+2009/01/12
+
+* implemented null driver, to test unresponsive applications and DoS attacks.
+
+2009/01/08
+
+* implemented authentication refresh module.  This lets you mirror your password data from external sources.  The example http_refresh.pl generates new randomized passwords for expired passwords (where the miss-quota has reached zero).
+
+2009/01/06
+
+* implemented extensible access and driver module system
+* http_base.cfg and http_base.css now built-in to Xitami binary, no longer external files
+* --index changed to --defaults and allows a list of filenames rather than just one file
+* automatically saves policy data to password and digest files (--password_guard)
+
+2009/01/05
+
+* implemented password guard policies: hit/miss quota, and expiry.

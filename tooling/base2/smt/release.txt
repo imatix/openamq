@@ -1,0 +1,189 @@
+5.0a0 - 
+
+ - Merged threadsafe branch
+
+4.2a6 - 2005/06/02
+
+ - Minor fix to avoid "unused state" errors with XNF 2.1b8
+
+4.2a5 - 2005/05/05
+
+ - JS: Added 'doc' target for generation and sample smt_doc.gsl
+       Use 'gsl -target:doc xxxx.smt'
+
+4.2a4 - 2005/05/02
+
+ - JS: Inheritence has been made more consistent.
+
+Release 4.2a3 - 2005-04-08
+1. Updated for XNF release 2.1a2.
+2. <field> is now <argument> for consistency with iCL.
+
+Release 4.2a2 - 2005-03-13
+1. Fixed bug in smt_socket_request_new that would cause segerr on an illegal
+   sequence of socket requests.  AFAICS this has never occurred.
+
+Release 4.2a1 - 2005-02-27
+1. Outgoing data was lost with APR sockets on win32 - fixed.
+
+2. Reversioned for accuracy with historical versions:
+
+    SMT/1.x was written by P.Hintjens in 1996.
+    SMT/2.x was first production version, used in Xitami.
+    SMT/3.x is current version in Base/1, used in GSL/4.x.
+    SMT/4.0 was major revision using XML-based dialogs.
+    SMT/4.1 was rewritten to work with iCL.
+    SMT/4.2 was ported to work with APR instead of sflsock.
+    Current version is 4.2.
+
+Release 4.2a0 - 2005-01-20
+
+1. Migrated to apr sockets.
+2. Removed SMT_CONNECT_ERROR, SMT_SEQUENCE_ERROR & SMT_SOCKET_CLOSED results.
+3. Added smt_thread_error method.
+4. Added smt_socket_peeraddr method.
+5. Changed "agent initialise" handler to "agent init", "thread initialise" to
+   "thread init" and "agent terminate" to "agent term".
+6. Added <agent-name>_animate method to control whether threads start with
+   animation or not.
+7. Moved to microsecond timing.
+
+Release 3.0c9 - 2005-01-02
+
+1. smt_socket_passive now takes a thread argument in order to return an
+   error code on failure.
+
+Release 3.0c8 - 2004-12-17
+
+1. Actions are all in generated functions.
+2. <call> and <return> produce meaningful generated action names.
+
+-- 2004-12-08 PH
+1. Renamed 'catch' to 'catcher' for C++ compatability
+
+Release 3.0c7 - 2004-11-30
+
+1. Default name of method event is <method-name>_m
+2. <method>s defined in place of <event>s are like event with name
+   <method-name>_m
+
+Release 3.0c6 - 2004-11-30
+
+1. Method sending functions now have name <agent-name>_<method-name>.
+2. event_data field is now silently freed when the next event is delivered or
+   the thread is destroyed.  No more explicit freeing.
+3. Macros to access event_data now have name <message-name>_m
+
+Release 3.0c5 - 2004-11-29
+
+1. Macros to cast event data have been shortened to <message-name>_m
+2. Methods can be defined with fields independently of messages.
+
+Release 3.0c4 - 2004-11-26
+
+1. <public> now has a name: 'types' or 'functions' to control place in header
+   file where it gets placed.
+
+Release 3.0c3 - 2004-11-23
+
+1. smt_socket_request_close now takes a smt_socket_t ** and nullifies the
+   pointer when the socket is closed.
+2. Handler 'thread create' has been renamed to 'thread new'
+3. Agent initialisation and thread create functions now take arguments defined 
+   inside the <handler> in the same way as method arguments in icl.
+
+Release 3.0c2 - 2004-11-16
+
+1. Changed API for smt_socket_request_accept to include smt_socket_t **connect
+   which defines where the result should be placed.  Formerly used 
+   thread->event_data.
+
+Release 3.0c1 - 2004-10-14
+
+1. Standardised type names: eg LOG_HANDLE -> smt_log_t, THREAD -> smt_thread_t
+2. Standardised file names: eg smtlog.* -> smt_log.*
+3. Module names: create_xxx_thread -> smt_xxx_thread_create
+4. Socket method names...  Note smt_socket_connect, smt_socket_passive &
+   smt_socket_request_accept.
+5. raise_exception (event) -> smt_thread_raise_exception (thread, event)
+6. smt_socket no longer uses VDESCR buffers.
+7. Use smt_socket_t instead of sock_t
+8. context types
+9. Simple server agents (smt_echo, smt_http, amqpfast_proto_*) now generate
+   their own main function.
+
+Release 3.0b2 - 2004-10-01
+
+1. Exceptions now occur in same state as socket function call at end of
+   action list.  Otherwise FSM passes to next state.
+
+Release 3.0b1 - 2004-09-26
+
+1. Pass THREAD * instead of THREAD really throughout.
+2. Added THREADFN typedef for thread constructors
+3. Changed event definitions from #define to enum
+4. Added action name comment to generated code
+5. Animation generated invalid code - fixed
+6. Fixed animation to accept animate = 1 option at agent level
+7. Added agent/thread names to animation (incomplete fix)
+
+Release 3.0a13 - 2004-09-22
+
+Pass THREAD * instead of THREAD throughout.
+
+Release 3.0a12 - 2004-09-20
+
+1. Updated for GSL support for value iteration.  code and <call>/<return>
+   may now be mixed freely inside <action> or <event>.
+
+Release 3.0a11 - 2004-09-17
+
+1. Added <call> and <return>.
+
+Release 3.0a10 - 2004-09-17
+
+1. thread_create no longer takes a queue_size argument.
+
+Release 3.0a9
+
+1. SMT_QUEUE_... becomes SMT_....
+
+Releast 3.0a8 - 2004-09-16
+
+1. To prevent catching of certain results where a 'catch other' is defined,
+   use <catch error=.../>
+2. Handler for 'thread on action removed' replaced by 'before action' and
+   'after action'.
+3. Action code may also be defined in <event> item.  If action items also exist
+   in-line code comes at the end.
+4. Added state inheriting.  <inherit state = .../> in thread item.
+
+Release 3.0a7 - 2004-09-13
+
+1. Changed socket timeouts to msecs.
+2. smtsock more robust against close following read/input.
+3. Animate <other> correctly.
+4. Improve FSM error messages.
+5. FSM is more fussy about select() errors - watch for return code
+   SMT_SELECT_ERROR
+
+Release 3.0ax - x Sep 2004
+
+1. Defined exception_raised
+2. Defined ANIMATION_ENABLED if animate:1 used during code generation [PH]
+3. Added arguments to agent initialise function (argc, argv, using C conventions) [PH]
+
+Release 3.0a6 - 9 Sep 2004
+
+1. Socket requests detect for expired thread
+2. Catch all other errors by using <catch event=.../>
+
+Release 3.0a5
+
+1. Added socket agent
+2. Added smt_sock_read_event
+
+Release 3.0a5 2004/09/08
+
+1. Generally use THREAD not THREAD *
+2. Inside modules and handler, thread->xxx becomes thread.s->xxx

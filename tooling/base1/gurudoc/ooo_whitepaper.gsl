@@ -1,0 +1,374 @@
+#   
+#   ooo_whitepaper.gsl - Gurudoc template for OpenOffice.org white paper
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+##########################   GENERATE_GDL_BEFORE   ##########################
+
+function generate_gdl_before 
+    title         = name
+    product       = "OpenKernel "
+    version       = "1.2"
+    imageheader   = "bopenk.jpg"
+    report        = ""
+    copyright     = "Copyright © 1991-2009 iMatix Corporation"
+
+    customer      = ""
+    email         = ""
+    month         = ""
+    project       = ""
+    reference     = ""
+    revised_day   = ""
+    revised_month = ""
+    revised_year  = ""
+    summary       = ""
+    year          = ""
+
+    g_header_level  = 0
+    g_figure_count  = 0
+
+    g_doc_file      = "tpl_whitepaper.sxw"
+    g_tpldir        = "_template"
+    g_wrkdir        = "_work"
+    g_tpl_content   = g_tpldir + "/content.xml"
+    g_wrk_content   = g_wrkdir + "/content.xml"
+    g_sxw_file      = base + ".sxw"
+endfunction
+
+
+##############################   DIR_UNLINK   ###############################
+
+function dir_unlink (path)
+    #***************************************************#
+    #           *** B E   C A R E F U L ***             #
+    #   Delete a directory recursively and its contents #
+    #***************************************************#
+    my.olddir = dir.cwd ()              #   Save the initial directory
+    dir.setcwd (my.path)                #   Change to the specified directory
+    dir.load ()                         #   Load files in the specified directory
+    for file
+        if directory
+            dir_unlink (name)           #   Recurse into the sub-directory
+            dir.delete (name)           #   Delete the sub-directory
+        else
+            file.delete (name)          #   Delete the current file
+        endif
+    endfor
+    dir.setcwd (my.olddir)              #   Change to the initial directory
+    dir.delete (my.path)                #   Delete the specified directory
+endfunction
+
+
+
+##########################   GENERATE_GDL_AFTER   ###########################
+
+function generate_gdl_after
+    #   Extract the template files in work and template directories.
+    zip.extract (g_doc_file, g_tpldir)
+    zip.extract (g_doc_file, g_wrkdir)
+
+    #   Output file with all fields updated.
+    output g_wrk_content
+    template 1
+.   include g_tpl_content
+.   endtemplate
+    close
+
+    olddir = dir.cwd ()
+    dir.setcwd (g_wrkdir)
+
+    #   Load in the "lst" scope, all files needed to be placed in the target document.
+    new lst
+        dir.load (lst, , 1)
+    endnew
+ 
+    #   Create OOo file from files in the "lst" scope.
+    zip.create (gdl->lst, "../" + g_sxw_file)
+
+    dir.setcwd (olddir)
+    delete gdl->lst
+
+    #   Clean all temporary files in sub-directories.
+    dir_unlink (g_wrkdir)
+    dir_unlink (g_tpldir)
+endfunction
+
+
+########################   GENERATE_HEADER_BEFORE   #########################
+
+function generate_header_before
+    g_header_level += 1
+
+    if defined (.)
+        report += "<text:p text:style-name=\"Heading $(g_header_level + 1)\">"
+        report += .?' '
+        report += '</text:p>\n'
+    endif
+endfunction
+
+
+#########################   GENERATE_HEADER_AFTER   #########################
+
+function generate_header_after
+    g_header_level -= 1
+endfunction
+
+
+#######################   GENERATE_PARAGRAPH_BEFORE   #######################
+
+function generate_paragraph_before
+    report += '<text:p text:style-name="Standard">\n'
+    report += .?
+    report += '</text:p>\n'
+endfunction
+
+
+#######################   GENERATE_PARAGRAPH_AFTER   ########################
+
+function generate_paragraph_after
+endfunction
+
+
+####################   FUNCTION GENERATE_QUOTE_BEFORE   #####################
+
+function generate_quote_before
+    report += '<text:p text:style-name="Standard">\n'
+    report += .?
+    report += '</text:p>\n'
+endfunction
+
+
+#####################   FUNCTION GENERATE_QUOTE_AFTER   #####################
+
+function generate_quote_after
+endfunction
+
+
+########################   GENERATE_EXAMPLE_BEFORE   ########################
+
+function generate_example_before
+endfunction
+
+
+########################   GENERATE_EXAMPLE_AFTER   #########################
+
+function generate_example_after
+endfunction
+
+
+#########################   GENERATE_LINE_BEFORE   ##########################
+
+function generate_line_before
+    report += '<text:p text:style-name="Preformatted text">\n'
+    report += '<text:span text:style-name="Source Text">\n'
+    report += '<text:s text:c="4"/>\n'
+    report += .?' '
+    report += '</text:span>\n'
+    report += '</text:p>\n'
+endfunction
+
+
+#########################   GENERATE_RULER_BEFORE   #########################
+
+function generate_ruler_before
+    report += '<text:p text:style-name="Horizontal Line"/>\n'
+endfunction
+
+
+#########################   GENERATE_ITEM_BEFORE   ##########################
+
+function generate_item_before
+    report += '<text:list-item>\n'
+    report += '<text:p>\n'
+    report += .?
+    report += '</text:p>\n'
+    report += '</text:list-item>\n'
+endfunction
+
+
+########################   GENERATE_ITEMIZE_BEFORE   ########################
+
+function generate_itemize_before
+    report += '<text:unordered-list>\n'
+endfunction
+
+
+########################   GENERATE_ITEMIZE_AFTER   #########################
+
+function generate_itemize_after
+    report += '</text:unordered-list>\n'
+endfunction
+
+#######################   GENERATE_ENUMERATE_BEFORE   #######################
+
+function generate_enumerate_before
+    report += '<text:ordered-list>\n'
+endfunction
+
+
+#######################   GENERATE_ENUMERATE_AFTER   ########################
+
+function generate_enumerate_after
+    report += '</text:ordered-list>\n'
+endfunction
+
+
+######################   GENERATE_DEFINITION_BEFORE   #######################
+
+function generate_definition_before
+endfunction
+
+
+#######################   GENERATE_DEFINITION_AFTER   #######################
+
+function generate_definition_after
+endfunction
+
+
+#######################   GENERATE_DEF_TERM_BEFORE   ########################
+
+function generate_def_term_before
+    report += '<text:p text:style-name="List Heading">\n'
+    report += '<text:span text:style-name="T1">\n'
+    report += .?' '
+    report += '</text:span>\n'
+    report += '</text:p>\n'
+endfunction
+
+
+#######################   GENERATE_DEF_VALUE_BEFORE   #######################
+
+function generate_def_value_before
+    report += '<text:p text:style-name="List Contents">\n'
+    report += '<text:span text:style-name="T2">\n'
+    report += .?
+    report += '</text:span>\n'
+    report += '</text:p>\n'
+endfunction
+
+
+#########################   GENERATE_TABLE_BEFORE   #########################
+
+function generate_table_before
+    report += '<style:style style:name="Table" style:family="table">\n'
+    report += '<style:properties style:width="16.999cm" table:align="margins"/>\n'
+    report += '</style:style>\n'
+
+    report += '<style:style style:name="Col" style:family="table-column">\n'
+    report += '<style:properties style:column-width="5.666cm" style:rel-column-width="21845*"/>\n'
+    report += '</style:style>\n'
+
+    report += '<style:style style:name="Cell" style:family="table-cell">\n'
+    report += '<style:properties fo:padding="0.097cm" fo:border="0.002cm simple #000000"/>\n'
+    report += '</style:style>\n'
+
+    report += '<table:table table:name="Dummy" table:style-name="Table">\n'
+    for tr
+        if count (th)
+            report += '<table:table-column table:style-name="Col"'
+            report += ' table:number-columns-repeated="'+count(th)+'"/>\n'
+        endif
+    endfor
+
+    first_row = 1
+endfunction
+
+
+#########################   GENERATE_TABLE_AFTER   ##########################
+
+function generate_table_after
+    report += '</table:table>\n'
+endfunction
+
+
+#######################   GENERATE_TABLE_ROW_BEFORE   #######################
+
+function generate_table_row_before
+    if count (th)
+        report += '<table:table-header-rows>\n'
+    endif
+    report += '<table:table-row>\n'
+endfunction
+
+
+#######################   GENERATE_TABLE_ROW_AFTER   ########################
+
+function generate_table_row_after
+    report += '</table:table-row>\n'
+    if count (th)
+        report += '</table:table-header-rows>\n'
+    endif
+    first_row = 0
+endfunction
+
+
+######################   GENERATE_TABLE_DATA_BEFORE   #######################
+
+function generate_table_data_before
+    if first_row
+        report += '<table:table-cell table:style-name="Cell" table:value-type="string">\n'
+        report += '<text:p text:style-name="Table Heading">\n'
+        report += .?
+        report += '</text:p>\n'
+        report += '</table:table-cell>\n'
+    else
+        report += '<table:table-cell table:style-name="Cell" table:value-type="string">\n'
+        report += '<text:p text:style-name="Table Contents">\n'
+        report += .?' '
+        report += '</text:p>\n'
+        report += '</table:table-cell>\n'
+    endif
+endfunction
+
+
+#########################   GENERATE_IMAGE_BEFORE   #########################
+
+function generate_image_before
+    report += '<text:p text:style-name="Standard">\n'
+    report += "image \"$(filename:)\" ($(width?0)x$(height?0))\n"
+    report += '</text:p>\n'
+endfunction
+
+
+########################   GENERATE_FIGURE_BEFORE   #########################
+
+function generate_figure_before
+    g_figure_count += 1
+
+    report += '<text:p text:style-name="Standard">\n'
+    report += "figure $(g_figure_count): $(filename:) ($(width?0)x$(height?0))\n"
+    report += '</text:p>\n'
+endfunction
+
+
+#########################   GENERATE_LINK_BEFORE   ##########################
+
+function generate_link_before
+    report += "<text:a xlink:type=\"simple\" xlink:href=\"$(.)\">"
+    report += .
+    report += "</text:a>\n"
+endfunction
+
+
+#########################   GENERATE_MAIL_BEFORE   ##########################
+
+function generate_mail_before
+    report += "<text:a xlink:type=\"simple\" xlink:mailto=\"$(.)\">"
+    report += .
+    report += "</text:a>\n"
+endfunction
+

@@ -1,0 +1,353 @@
+gdl
+    title     = Gurudoc
+    subtitle  = Documentation Processor
+    product   = Base
+    author    = iMatix Corporation <tools@imatix.com>
+    date      = 2002/10/08
+    copyright = Copyright (c) 1006-2009 iMatix Corporation
+    version   = 1.1
+end gdl
+
+Introduction
+************
+
+Gurudoc works by recognising layout, and converting this to GDL. We've
+tried to keep a balance between features and complexity, to give you
+something useful without becoming too formal. Basically, gurudoc relies
+on layout rules that also help to make the text readable in any case.
+For example, blank lines and indentation are significant in most places.
+One consequence of this is that the plain text file is very readable
+even before it is converted to any target.
+
+Gurudoc reads an input text file (with any name and extension except
+'.gdl') and creates an output file with the same name and the extension
+'.gdl'. It then processes this file as it would any normal input file.
+The '.gdl' file remains afterwards, so you can use it as the basis for
+further refinement if wanted. 
+
+Gurudoc 
+*******
+
+To use Gurudoc, use this command in a DOS box to build the GDL document
+from the plain text file:
+
+    mkgdl gddoc
+
+Then use the 'html_simple' (default) skin to get some output files with
+these commands:
+
+    gsl -gdl:gddoc gurudoc
+    start gddoc.htm
+
+and you can also use the framed skin :
+
+    gsl -tpl:html_frame -gdl:gddoc gurudoc
+    start gddoc.htm
+
+GDL is define in the 'gdl.xnf' file.
+
+Then, you can use 'skins' and 'templates' with Gurudoc processor to get
+some final outputs.
+
+Standard Gurudoc Definitions
+============================
+
+Gurudoc always check if the file start with 'gdl'. This block of
+informations end with a line starting with 'end gdl'. You can add
+informations to tune the results of Gurudoc.
+
+Chapter and Section Headers
+===========================
+
+Gurudoc handles four levels of headers. In the text these look like
+this:
+
+    Chapter Header
+    **************
+
+    Section Header
+    ==============
+
+    Subsection Header
+    -----------------
+
+    Subsubsection Header
+    ....................
+
+The line following the header text must start with 3 or more asterisks
+'*', equals '=', hyphens '-' or dots '.'. There is no way to specify H5
+or other headers. I recommend that you start the document with a chapter
+header.
+
+The header text line must come after a blank line, or at the start of
+the document.
+
+You can also request a horizontal rule by putting four or more
+underscore '_', plus '+', hash '#', or tilde '~' characters on a line by
+themselves:
+
+    ++++
+
+++++
+
+Paragraphs
+==========
+
+A paragraph is anything following a blank line that does not look like
+something else. Basically, any plain text following a blank line is
+given a <paragraph> tag. Note however the exceptions that follow...
+
+Preformatted Text
+=================
+
+If a line is indented by 4 or more spaces, or a tab, Gurudoc treats the
+line as 'preformatted' text and inserts a <example> tag. You can mix
+blank lines with preformatted text.
+
+Bulleted and Numbered Lists
+===========================
+
+Bulleted Lists
+--------------
+
+A paragraph starting with a hyphen '-', a plus '+' or a asterisk '*'
+followed by a space is considered to be a bulleted list item.
+
+Numbered Lists
+--------------
+
+A paragraph starting with a digit [0-9] followed by a dash '-', a dot
+'.' or a right parenthesis ')' and followed by a space is considered to
+be a numbered list item.
+
+Lists usage
+-----------
+
+You can put blank lines between list items, but it's not necessary.
+Cosmetically, when list items are short, blank lines are disturbing. But
+when list items are several lines, blank lines make the text more
+readable. Either way, Gurudoc is happy.
+
+For example:
+
+    - you can do unnumbered lists
+    + as many
+    * as you like
+    1- You can also do numbered lists
+    2. With numbers at the beginning of the line
+    3) As many as you like.
+       We should be able to span this one over
+       more lines than just one.
+
+- you can do unnumbered lists
++ as many
+* as you like
+1- You can also do numbered lists
+2. With numbers at the beginning of the line
+3) As many as you like.
+   We should be able to span this one over
+   more lines than just one.
+
+Definition Lists
+================
+
+A definition list is a line ending with a colon ':' and followed by some
+lines indented by one or more spaces.
+
+For example:
+
+    Indention of text:
+        Explanation one.
+    Second indention:
+        Explanation two.
+        We should be able to span this one over
+        more lines than just one.
+
+Indention of text:
+    Explanation one.
+Second indention:
+    Explanation two.
+    We should be able to span this one over
+    more lines than just one.
+
+You can put blank lines between definition items, but again, it's a
+matter of cosmetics. There should be a blank line before the first
+definition item, however.
+
+Quoted Text
+===========
+
+Quoted text is marked by indentation and a leading ", as follows:
+
+    "Life is a stage and we are all but actors in a play"
+    -- William Shakespear
+    
+Tables
+======
+
+Gurudoc tries to solve the most common case; a rectangular table
+consisting of a N columns and M rows.
+
+A table can start with a header, which is a line like this:
+
+    Some column:  Followed by some explanation:
+
+Some column:  Followed by some explanation:
+
+Here, the colons (':') are important. Gurudoc also wants one or more
+spaces after the first colon. The table header is optional; you can
+start immediately with table items. Either way, Gurudoc needs a blank
+line before the table. A table item looks like this:
+
+    Column: Explanation:
+    Table_item_with_some_spaces: Here is what is all means
+        We should be able to span this one over
+        more lines than just one.
+    Another_table_item: More things follow in this table.
+
+Column: Explanation
+Table_item_with_some_spaces: Here is what is all means
+    We should be able to span this one over
+    more lines than just one.
+Another_table_item: More things follow in this table.
+
+A bigger one:
+
+    Col 1: Col 2: Col 3: Col 4:
+    a11: a12: a13: a14
+    a21: a22: a23: a24
+    a31: a32: a33: a34
+    a41: a42: a43: a44
+
+Col 1: Col 2: Col 3: Col 4:
+a11: a12: a13: a14
+a21: a22: a23: a24
+a31: a32: a33: a34
+a41: a42: a43: a44
+
+The first column must be a single word - if you want several words, use
+underlines. Gurudoc replaces these by spaces. The explanation can come
+on several lines, which MUST be indented by one or more spaces.
+
+Figures and Images
+==================
+
+To insert a figure, use one of these conventions:
+
+    [Figure filename: caption]
+    [Figure "filename": caption]
+
+For example:
+
+    [Figure mainlogo.jpg: The iMatix logo]
+    [Figure "mainlogo.jpg": The iMatix logo]
+
+Gurudoc inserts a figure caption, numbering the figures in a document
+from 1 upwards. The caption is followed by an <image> tag to display the
+file. You can use a URI (a path) as the filename, or an URL (with a host
+name specifier); you must put an URL in quotes. My preference is to put
+image files locally with the GDL files, and use a simple filename
+without a path. This is just easier to manage and lets you put the GDL
+files plus images in any directory. If Gurudoc can find the image you
+specify, and it's a .GIF or .JPG file, it will insert the WIDTH= and
+HEIGHT= tags automatically.
+
+To insert a plain image, omit the 'Figure' keyword. For example:
+
+    [Figure mainlogo.jpg: The iMatix logo]
+    [mainlogo.jpg: The iMatix logo]
+    [Figure mainlogo.jpg]
+    [mainlogo.jpg]
+
+Hyperlinks
+==========
+
+If you use <name@address>, this is converted into a mailto: URL
+hyperlink. If you use <http://address/document> -- or any other URL --
+this is converted into a hyperlink as well. You can follow the URL by
+':description' if you like, e.g.
+<http://www.imatix.com:iMatix_Corporation's_Site>.
+
+Gurudoc does not presently allow links within the document or to other
+documents.
+
+Multi-file Documents
+====================
+
+To include text from another file, use this convention:
+
+    [See filename]
+
+This takes the text from the specified filename and inserts it in place of
+the line containing the [See] instruction.
+
+
+Special Characters
+==================
+
+Since you're not typing XML, Gurudoc replaces <, > and & by XML
+metacharacters. < and > are used to indicate hyperlinks.
+
+
+Limitations
+===========
+
+Lists and Examples
+------------------
+
+You can add example only at the end of a item.
+
+For example:
+
+    Here is a list of commands:
+    1. directory content
+
+        ls [Enter]
+    
+    2. get current directory
+
+        cd [Enter]
+
+Here is a list of commands:
+1. directory content
+
+    ls [Enter]
+    
+2. get current directory
+
+    cd [Enter]
+
+But you reset the counter of the list.
+
+Moreover, if you add a new indented paragraph in it like this:
+
+    Here is a list of commands:
+    1. directory content
+
+        ls [Enter]
+        
+       and for more detail
+       
+        ls -l [Enter]    
+
+Here is a list of commands:
+1. directory content
+
+    ls [Enter]
+    
+   and for more detail
+   
+    ls -l [Enter]    
+
+You can see that we lose the paragraph "and for more detail".
+
+Skins
+*****
+
+To be completed.
+
+Templates
+*********
+
+To be completed.
+

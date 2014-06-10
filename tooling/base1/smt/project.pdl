@@ -1,0 +1,121 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<pdl
+    name      = "SMT"
+    acronym   = "smt"
+    version   = "3.0c2"
+    copyright = "Copyright (c) 1991-2009 iMatix Corporation"
+    workflow  = "standard.pwl"
+    library   = "libsmt3" >
+
+<include filename = "prelude.pdl" />
+<file name = "version.h"    class = "c version"       >Project version file</file>
+
+<file name = "smtlib.c"     class = "library module"  >SMT kernel functions</file>
+<file name = "smtlib.h"     class = "public header"   >SMT kernel prototypes</file>
+<file name = "smtserv.c"    class = "library module"  >Windows service wrapper</file>
+<file name = "smttime.c"    class = "library module"  >Timer pseudo-agent</file>
+<file name = "smtecho.c"    class = "c/libero"        >Echo daemon agent</file>
+<file name = "smtlog.c"     class = "c/libero"        >Logging agent</file>
+<file name = "smtxlog.c"    class = "c/libero"        >Extended Logging agent</file>
+<file name = "smtoper.c"    class = "c/libero"        >Operator console agent</file>
+<file name = "smtpipe.c"    class = "c/libero"        >Transfer pipe agent</file>
+<file name = "smtpop.c"     class = "c/libero"        >POP3 email agent</file>
+<file name = "smtrdns.c"    class = "c/libero"        >Reverse-DNS agent</file>
+<file name = "smtrdnsl.c"   class = "library module"  >Reverse-DNS functions</file>
+<file name = "smtsimu.c"    class = "c/libero"        >Network simulation agent</file>
+<file name = "smtsimu.h"    class = "public header"   >Network simulation agent</file>
+<file name = "smtslot.c"    class = "c/libero"        >Timeslot agent</file>
+<file name = "smtsmtp.c"    class = "c/libero"        >SMTP email agent</file>
+<file name = "smtsock.c"    class = "c/libero"        >TCP/IP Socket agent</file>
+<file name = "smttran.c"    class = "c/libero"        >TCP/IP transfer agent</file>
+<file name = "smttst1.c"    class = "c/libero"        >Test socket agent</file>
+<file name = "smttst2.c"    class = "c/libero"        >Test timeslot agent</file>
+<file name = "smttst3.c"    class = "c/libero"        >Test reverse-DNS agent</file>
+<file name = "smtmem.h"     class = "public header"   >Thread-aware memory wrapper</file>
+<file name = "smtdefn.h"    class = "private resource">SMT agents and definitions</file>
+<file name = "smthead.h"    class = "private resource">Header for generated smt3.h</file>
+<file name = "smtpriv.h"    class = "private resource">Project header file</file>
+<file name = "smtxlog.h"    class = "private resource">Definitions for log agent</file>
+<file name = "echocli.c"    class = "main program"    >Echo protocol client</file>
+<file name = "echod.c"      class = "main program"    >Echo protocol server</file>
+<file name = "smtschm.c"    class = "public resource" >Libero schema for SMT agents</file>
+<file name = "smttest.gsl"  class = "public resource" >SMT agent testing platform</file>
+<file name = "smtexdr.gsl"  class = "public resource" >Generate SMT messages as EXDR</file>
+<file name = "smtmesg.gsl"  class = "public resource" >Generate SMT messages as native</file>
+<file name = "smtmsg.xml"   class = "fat module"      >SMT message definitions</file>
+<file name = "smtsslm.xml"  class = "fat module"      >SMT SSL message definitions</file>
+
+<file name = "sysman.c"     class = "main program"    >System manager server</file>
+<file name = "syscli.c"     class = "main program"    >System manager client</file>
+<file name = "sysmana.c"    class = "c/libero"        >System manager server agent</file>
+<file name = "sysclia.c"    class = "c/libero"        >System manager client agent</file>
+<file name = "sysman.h"     class = "private resource">System manager definitions</file>
+
+<file name = "tstpop.c"     class = "main program"    >Test POP3 agent</file>
+<file name = "tstpop.l"     class = "c dialog"        >Test POP3 agent dialog</file>
+<file name = "tstpop.cfg"   class = "private resource">Test POP3 configuration</file>
+<file name = "tstrdns.c"    class = "main program"    >Test RDNS agent</file>
+<file name = "tstslot.c"    class = "main program"    >Test timeslot agent</file>
+<file name = "tstsmtp.c"    class = "main program"    >Test SMTP agent</file>
+<file name = "tstsmtp.l"    class = "c dialog"        >Test SMTP agent dialog</file>
+<file name = "tstsmtp.cfg"  class = "private resource">Test SMTP configuration</file>
+<file name = "tstsock.c"    class = "main program"    >Test socket agen</file>
+<file name = "tsttime.c"    class = "main program"    >Test timer agent</file>
+
+<!-- Deliverables -->
+<file name = "libsmt3"      class = "public library"  >SMT runtime library</file>
+
+<!-- Documentation, not working at present 
+<file name = "prelude.def"  class = "private resource">Documentation prelude</file>
+<file name = "smtdoc.txt"   class = "htmlpp document" >SMT documentation source</file>
+<file name = "smtdoc1.txt"  class = "htmlpp document" >SMT documentation body</file>
+<file name = "smtdoc2.txt"  class = "htmlpp document" >SMT documentation in one file</file>
+<file name = "im0096c.gif"  class = "web resource"    >iMatix logo</file>
+<file name = "smt100.gif"   class = "web resource"    >SMT logo</file>
+-->
+
+<!-- smt3.h is the single header file used by SMT applications -->
+<actions when = "after" >
+  <generate>
+    <collect into = "smt3.h" class = "public header" >
+      <file name = "smthead.h"  />
+      <file name = "smtlib.h"   />
+      <file name = "smtdefn.h"  />
+      <file name = "smttime.h"  />
+      <file name = "smtserv.h"  />
+      <file name = "smtmsg.h"   />
+      <file name = "smtsslm.h"  />
+      <file name = "smtrdnsl.h" />
+      <file name = "smtxlog.h"  />
+    </collect>
+  </generate>
+</actions>
+
+<use>
+    <library name = "libsfl" />
+</use>
+
+<class name = "gsl data" inherit = "private resource">
+    <generate>
+        <execute command = "gsl3 -q -quiet:1" />
+    </generate>
+</class>
+</pdl>
+

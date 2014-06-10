@@ -1,0 +1,161 @@
+<?xml?>
+<!--
+    The Object Property Framework
+    Yet Another Production from The iMatix Industrial Bit Factory
+
+    OPF generates classes that provide a management framework for
+    object properties. A typical use is for configuration data.
+
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<opf
+    name    = "demo_client_config"
+    comment = "Client configuration properties"
+    script  = "opf_gen"
+    root    = "config"
+    config  = "wireapi.cfg"
+    >
+
+<public>
+extern $\(selftype)
+    *demo_client_config;                //  Global properties object
+</public>
+
+<private>
+$\(selftype)
+    *demo_client_config = NULL;         //  Global properties
+</private>
+
+<path name = "tuning">
+    <property name = "tcp nodelay" type = "Bool" default = "1">
+    TCP/IP NODELAY option
+    <doc>
+    If this value is 1, socket data is written immediately, which is
+    usually good for latency.  If this value is 0, data is buffered
+    until there is a full packet, which is usually good for throughput.
+    </doc>
+    </property>
+
+    <property name = "tcp rcvbuf" type = "int">
+    TCP/IP receive buffer, in bytes
+    <doc>
+    If this value is greater than zero, the connection to the server will
+    use the specified value.  Note: setting this value is delicate, do not
+    use this option unless you know what you are doing.
+    </doc>
+    </property>
+
+    <property name = "tcp sndbuf" type = "int">
+    TCP/IP send buffer, in bytes
+    <doc>
+    If this value is greater than zero, the connection to the server will
+    use the specified value.  Note: setting this value is delicate, do not
+    use this option unless you know what you are doing.
+    </doc>
+    </property>
+
+    <property name = "high water" type = "int" default = "0">
+    High water mark for message flow control
+    <doc>
+    Number of messages in arrived queue when message flow from server is stopped.
+    If this property is 0, message flow is never switched off.
+    </doc>
+    </property>
+
+    <property name = "low water" type = "int" default = "0">
+    Low water mark for message flow control
+    <doc>
+    Number of messages in arrived queue when message flow from server is
+    started again after it had been switched off on high water mark.
+    </doc>
+    </property>
+
+    <property name = "direct" type = "int" default = "0">
+    Enables Direct Mode for connections
+    <doc>
+    If set to 1, new connections will by default use Direct Mode.  Applications
+    can override this by setting the connection->direct property on new connections.
+    </doc>
+    </property>
+</path>
+
+<path name = "direct">
+    <property name = "batching" type = "int" max = "2097152" default = "32768">
+    Maximum size of Direct Mode batches
+    <doc>
+    Defines the maximum batch size for Direct Mode opportunistic batching on
+    message sends.  Setting this higher will improve throughput, and usually
+    with lower latency, but will cause higher memory consumption.  Setting
+    this to zero will switch off batching.  Any value less than 2048 is
+    treated as zero.
+    </doc>
+    </property>
+
+    <property name = "on overflow" type = "char *" default = "trim">
+    Sets action for high-water overflow
+    <doc>
+    Specifies how the WireAPI stack should handle an overflow condition, as
+    defined by the arrived message queue reaching the high-water mark.  The
+    allowed actions are: 'warn' - issue a message to the console, 'trim' -
+    discard old messages to make space for new ones, 'drop' - drop new incoming
+    messages, and 'kill' - assert an error and kill the application.
+    </doc>
+    </property>
+</path>
+
+<path name = "chrono">
+    <property name = "enabled" type = "int" default = "1" prefix = "chrono">
+    Enable chrono pingbacks?
+    <doc>
+    Specifies whether chrono pingbacks are enabled or not.  If not, then any
+    any chrono information in contents will be ignored.  By default chrono
+    pingbacks are enabled.
+    </doc>
+    </property>
+
+    <property name = "floor" type = "int" default = "100" prefix = "chrono">
+    Floor for chrono pingbacks
+    <doc>
+    Specifies the floor for pingbacks.  Only pingbacks that show an
+    end-to-end latency greater or equal to the floor will be reported. If
+    you set this to zero, all pingbacks will be reported.
+    </doc>
+    </property>
+
+    <property name = "density" type = "int" default = "1" prefix = "chrono">
+    Sample density as permille
+    <doc>
+    Specifies the sampling density, as a permille.  Valid values are 1 to
+    1000.  By default 1/1000th of messages will be sampled.  The sampling
+    is randomized if the density is less than 1000 permille.
+    </doc>
+    </property>
+
+    <property name = "batch" type = "int" default = "150" prefix = "chrono">
+    Batch size for chrono pingbacks
+    <doc>
+    Specifies the batching size for chrono pingback messages.  These track
+    the latency of contents passing through the architecture.  A chrono
+    pingback is about 15 characters long, so the default batch and promille
+    settings will result in one pingback message every 10,000 received
+    messages.  If you set the batch size too low, you may get excessive back
+    chatter on the network and if you make it too high, you may get latency
+    spikes.
+    </doc>
+    </property>
+</path>
+
+</opf>

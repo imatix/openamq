@@ -1,0 +1,40 @@
+<?xml?>
+<pal script = "demo_pal_gen">
+    This script demonstrates how to build a content body explicitly.
+    <session queue = "test-queue" exchange = "test-exchange">
+        <exchange_declare type = "fanout" />
+        <queue_declare />
+        <queue_bind />
+
+        <basic_content>Single line of content data (testing $server_product)</basic_content>
+        <basic_publish routing_key = "test-queue" />
+        <basic_get />
+        <basic_arrived>
+            <echo>Message arrived: $body_size octets</echo>
+        </basic_arrived>
+
+        <basic_content>
+        Broken line of content data (testing $server_product)
+        </basic_content>
+        <basic_publish routing_key = "test-queue" />
+        <basic_get />
+        <basic_arrived>
+            <echo>Message arrived: $body_size octets</echo>
+        </basic_arrived>
+
+        <basic_content>
+        Multiple
+        lines
+        of
+        content
+        data
+        (testing $server_product)
+        </basic_content>
+        <basic_publish routing_key = "test-queue" />
+        <basic_get />
+        <basic_arrived>
+            <echo>Message arrived: $body_size octets</echo>
+        </basic_arrived>
+    </session>
+</pal>
+

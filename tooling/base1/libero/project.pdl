@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<pdl
+    name      = "Libero"
+    acronym   = "lr"
+    version   = "2.41"
+    copyright = "Copyright (c) 1991-2009 iMatix Corporation"
+    workflow  = "standard.pwl"
+    library   = "liblr">
+
+<include filename = "prelude.pdl" />
+<file name = "version.h"    class = "c version"       >Project version file</file>
+
+<file name = "lr.c"         class = "main program"    >Main Libero program</file>
+<file name = "lrcalc.c"     class = "c/libero"        >Expression calculator functions</file>
+<file name = "lreval.c"     class = "c/libero"        >Logic evaluator functions</file>
+<file name = "lrcode.c"     class = "c/libero"        >Code generator functions</file>
+<file name = "lrload.c"     class = "c/libero"        >Parser functions</file>
+<file name = "lrdump.c"     class = "sub program"     >Debugging functions</file>
+<file name = "lrfree.c"     class = "sub program"     >Memory clean-up functions</file>
+<file name = "lrsort.c"     class = "sub program"     >Sort dialog structures</file>
+<file name = "lrglib.c"     class = "library module"  >General library functions</file>
+<file name = "lrlibr.c"     class = "library module"  >Private library functions</file>
+<file name = "lroptn.c"     class = "library module"  >Option parsing functions</file>
+<file name = "lrsymb.c"     class = "library module"  >Symbol table management functions</file>
+<file name = "lrpriv.h"     class = "private resource">Main private resource file</file>
+<file name = "lrschema.asm" class = "public resource" >Schema for 80x86 assembler programming</file>
+<file name = "lrschema.awk" class = "public resource" >Schema for Awk programming</file>
+<file name = "lrschema.bsh" class = "public resource" >Schema for GNU bash programming</file>
+<file name = "lrschema.c"   class = "public resource" >Schema for C programming</file>
+<file name = "lrschema.c99" class = "public resource" >Schema for C99 programming</file>
+<file name = "lrschema.cob" class = "public resource" >Schema for COBOL programming</file>
+<file name = "lrschema.cpp" class = "public resource" >Schema for C++ programming</file>
+<file name = "lrschema.cs"  class = "public resource" >Schema for C# programming</file>
+<file name = "lrschema.csh" class = "public resource" >Schema for Unix C shell programming</file>
+<file name = "lrschema.jav" class = "public resource" >Schema for Java programming</file>
+<file name = "lrschema.ksh" class = "public resource" >Schema for Unix Korn shell programming</file>
+<file name = "lrschema.mst" class = "public resource" >Schema for MS Test programming</file>
+<file name = "lrschema.pas" class = "public resource" >Schema for Delphi programming</file>
+<file name = "lrschema.pl"  class = "public resource" >Schema for Perl programming</file>
+<file name = "lrservice.pl" class = "public resource" >Schema for Perl programming, service</file>
+<file name = "lrschema.py"  class = "public resource" >Schema for Python programming</file>
+<file name = "lrschema.php" class = "public resource" >Schema for PHP programming</file>
+<file name = "lrschema.rex" class = "public resource" >Schema for Rexx programming</file>
+<file name = "lrschema.sh"  class = "public resource" >Schema for Unix Bourne shell programming</file>
+<file name = "lrschema.sql" class = "public resource" >Schema for PL/SQL programming</file>
+<file name = "lrschema.vb"  class = "public resource" >Schema for Visual Basic programming</file>
+<file name = "lrmesg.txt"   class = "public resource" >Message file</file>
+<file name = "prelude.h"    class = "private resource">Libero prelude file</file>
+
+<!-- Deliverables -->
+<file name = "lr"           class = "public command"  >Main program executable</file>
+<file name = "lr.ini"       class = "public resource" >Default initialisation file</file>
+
+<file name = "lr_eg.ini"    class = "private resource">Example initialisation file</file>
+<file name = "template"     class = "private resource">Example of a template file</file>
+
+<!-- Documentation 
+<file name = "lrdoc.txt"    class = "htmlpp document" >Libero documentation source</file>
+<file name = "lrdoc.htm"    class = "htmlpp output"   >Libero documentation HTML</file>
+<file name = "lrindex.txt"  class = "private resource">Index</file>
+<file name = "lrintr.txt"   class = "private resource">Introduction</file>
+<file name = "lrinst.txt"   class = "private resource">Installation</file>
+<file name = "lruser.txt"   class = "private resource">User Guide</file>
+<file name = "lrexam.txt"   class = "private resource">Examples</file>
+<file name = "lrlang.txt"   class = "private resource">Languages</file>
+<file name = "lrtech.txt"   class = "private resource">Technical Reference</file>
+<file name = "anchor.def"   class = "generated resource">Documentation links</file>
+<file name = "prelude.def"  class = "private resource">Documentation prelude</file>
+<file name = "leebehro.gif" class = "web resource"    >Spelling image</file>
+<file name = "lr_tiny.gif"  class = "web resource"    >Libero image, small</file>
+  -->
+</pdl>

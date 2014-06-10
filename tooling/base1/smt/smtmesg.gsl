@@ -1,0 +1,454 @@
+.----------------------------------------------------------------------------!
+.-                                                                           !
+.-  smtmesg.gsl - Generate SMT messages as native                            !
+.-                                                                           !
+.-  Copyright (c) 1991-2009 iMatix Corporation                               !
+.-                                                                           !
+.-  ------------------ GPL Licensed Source Code ------------------           !
+.-  iMatix makes this software available under the GNU General               !
+.-  Public License (GPL) license for open source projects.  For              !
+.-  details of the GPL license please see www.gnu.org or read the            !
+.-  file license.gpl provided in this package.                               !
+.-                                                                           !
+.-  This program is free software; you can redistribute it and/or            !
+.-  modify it under the terms of the GNU General Public License as           !
+.-  published by the Free Software Foundation; either version 2 of           !
+.-  the License, or (at your option) any later version.                      !
+.-                                                                           !
+.-  This program is distributed in the hope that it will be useful,          !
+.-  but WITHOUT ANY WARRANTY; without even the implied warranty of           !
+.-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            !
+.-  GNU General Public License for more details.                             !
+.-                                                                           !
+.-  You should have received a copy of the GNU General Public                !
+.-  License along with this program in the file 'license.gpl'; if            !
+.-  not, write to the Free Software Foundation, Inc., 59 Temple              !
+.-  Place - Suite 330, Boston, MA 02111-1307, USA.                           !
+.-                                                                           !
+.-  You can also license this software under iMatix's General Terms          !
+.-  of Business (GTB) for commercial projects.  If you have not              !
+.-  explicitly licensed this software under the iMatix GTB you may           !
+.-  only use it under the terms of the GNU General Public License.           !
+.-                                                                           !
+.-  For more information, send an email to info@imatix.com.                  !
+.-  --------------------------------------------------------------           !
+.----------------------------------------------------------------------------!
+.-
+.-----------------------------------------------------------------------------
+.-  Data types
+.-----------------------------------------------------------------------------
+.define datatype_char      = "char  "
+.define datatype_byte      = "byte  "
+.define datatype_word      = "word  "
+.define datatype_dbyte     = "dbyte "
+.define datatype_qbyte     = "qbyte "
+.define datatype_long      = "qbyte "
+.define datatype_string    = "char *"
+.define datatype_bool      = "Bool  "
+.define datatype_size      = "word  "
+.define datatype_body      = "void *"
+.define datatype_hsize     = "qbyte "
+.define datatype_hbody     = "byte *"
+.define datatype_pointer   = "void *"
+.-
+.-----------------------------------------------------------------------------
+.-  Start header file
+.-----------------------------------------------------------------------------
+.output "$(module).h"
+/*---------------------------------------------------------------------------
+ *  $(module).h - prototypes for $(application.title?:).
+ *
+ *  Generated from $(filename) by $(script) using GSL.
+ *  DO NOT MODIFY THIS FILE.
+ *
+ *  For documentation and updates see http://www.imatix.com.
+ *---------------------------------------------------------------------------*/
+#ifndef INCLUDE_$(MODULE)
+#define INCLUDE_$(MODULE)
+
+.for . as service
+/*---------------------------------------------------------------------------
+ *  Definitions and prototypes for $(service.name:) - $(service.title?:).
+ *---------------------------------------------------------------------------*/
+
+.- Allow methods with no messages by creating a temporary dummy message
+.    for method
+.        new message after method
+.            move method to message
+.        endnew
+.    endfor
+.-
+.    for message
+.-----------------------------------------------------------------------------
+.-  Define structure to hold message data
+.-----------------------------------------------------------------------------
+.        if count (field)
+typedef struct {
+.            for field
+.                define dt = "$(datatype_$(type:):)"
+    $(dt:)$(name:c);                    /*  $(field.title?:)                 */
+.            endfor field
+} struct_$(service.name:c)_$(message.name:c);
+.            if defined (short)
+
+typedef struct_$(service.name:c)_$(message.name:c) $(short:UPPER);
+.            endif
+
+int
+put_$(service.name:c)_$(message.name:c) (
+          byte **_buffer,
+.            variable = 0
+.            for field
+.                if field.type = "string" | field.type = "body" | field.type = "hbody"
+.                    variable = 1
+.                endif
+.                define dt = "$(datatype_$(type:):)"
+.                if index (field) < count (message.field)
+    const $(dt:)$(name:c),              /*  $(field.title?:)                 */
+.                else
+    const $(dt:)$(name:c));             /*  $(field.title?:)                 */
+.                endif
+.            endfor field
+
+int
+get_$(service.name:c)_$(message.name:c) (
+    byte *_buffer,
+    struct_$(service.name:c)_$(message.name:c) **params);
+
+void
+free_$(service.name:c)_$(message.name:c) (
+    struct_$(service.name:c)_$(message.name:c) **params);
+
+.        endif
+.        for method
+/*---------------------------------------------------------------------------
+ *  Definitions and prototypes for $(method.name:) - $(method.title?:).
+ *---------------------------------------------------------------------------*/
+
+extern char *$(SERVICE.NAME:c)_$(METHOD.NAME:c);
+
+#define declare_$(service.name:c)_$(method.name:c)(_event, _priority)          \\
+    method_declare (agent, $(SERVICE.NAME:c)_$(METHOD.NAME:c), _event, _priority)
+
+/*  Send event - $(method.name:)                                             */
+
+.            if count (message.field)
+int 
+lsend_$(service.name:c)_$(method.name:c) (
+    const QID  *_to,
+    const QID  *_from,
+          char *_accept,
+          char *_reject,
+          char *_expire,
+          word _timeout,
+.                for message.field
+.                    define dt = "$(datatype_$(type:):)"
+.                    if index (field) < count (message.field)
+    const $(dt:)$(field.name:c),    /*  $(field.title?:)                 */
+.                    else
+    const $(dt:)$(field.name:c));   /*  $(field.title?:)                 */
+.                    endif
+.                endfor field
+
+.            else
+#define lsend_$(service.name:c)_$(method.name:c)(_to, _from,                   \\
+    _accept, _reject, _expire, _timeout)                                     \\
+        event_send (_to,                                                     \\
+                    _from,                                                   \\
+                    $(SERVICE.NAME:c)_$(METHOD.NAME:c),                        \\
+                    NULL, 0,                                                 \\
+                    _accept, _reject, _expire, _timeout)
+.            endif
+.-----------------------------------------------------------------------------
+.-  Define quick send macro
+.-----------------------------------------------------------------------------
+.            if count (message.field)
+#define send_$(service.name:c)_$(method.name:c)(_to,                           \\
+.                for message.field
+.                    if index (field) < count (message.field)
+            $(field.name:c),                                                 \\
+.                    else
+            $(field.name:c))                                                 \\
+.                    endif
+.                endfor field
+       lsend_$(service.name:c)_$(method.name:c)(_to,                           \\
+            &thread-> queue-> qid,                                           \\
+            NULL, NULL, NULL, 0,                                             \\
+.                for message.field
+.                    if index (field) < count (message.field)
+            $(field.name:c),                                                 \\
+.                    else
+            $(field.name:c))
+.                    endif
+.                endfor field
+.            else
+#define send_$(service.name:c)_$(method.name:c)(_to)                           \\
+        event_send (_to,                                                     \\
+                    &thread-> queue-> qid,                                   \\
+                    $(SERVICE.NAME:c)_$(METHOD.NAME:c),                        \\
+                    NULL, 0,                                                 \\
+                    NULL, NULL, NULL, 0)
+.            endif
+
+.        endfor method
+
+.    endfor message
+.endfor
+
+#endif                                  /*  Included                         */
+.-
+.output "$(module).c"
+/*---------------------------------------------------------------------------
+ *  $(module).c - functions for $(application.title?:).
+ *
+ *  Generated from $(filename) by $(script) using GSL
+ *  DO NOT MODIFY THIS FILE.
+ *
+ *  For documentation and updates see http://www.imatix.com.
+ *---------------------------------------------------------------------------*/
+
+#include "sfl.h"                        /*  SFL header file                  */
+#include "smtlib.h"                     /*  SMT header file                  */
+#include "$(module).h"                  /*  Definitions & prototypes         */
+
+.for . as service
+/*---------------------------------------------------------------------------
+ *  Message functions for $(service.name:) - $(service.title?:).
+ *---------------------------------------------------------------------------*/
+
+.    for message
+.        if count (field)
+
+/*  ---------------------------------------------------------------------[<]-
+    Function: put_$(service.name:c)_$(message.name:c)
+
+    Synopsis: Formats a $(message.name:) message, allocates a new buffer,
+    and returns the formatted message in the buffer.  You should free the
+    buffer using mem_free() when finished.  Returns the size of the buffer
+    in bytes.
+    ---------------------------------------------------------------------[>]-*/
+
+int
+put_$(service.name:c)_$(message.name:c) (
+    byte **_buffer,
+.            variable = 0
+.            for field
+.                if field.type = "string" | field.type = "body" | field.type = "hbody"
+.                    variable = 1
+.                endif
+.                define dt = "$(datatype_$(type:):)"
+.                if index (field) < count (message.field)
+    const $(dt:)$(name:c),              /*  $(field.title?:)                 */
+.                else
+    const $(dt:)$(name:c))              /*  $(field.title?:)                 */
+.                endif
+.            endfor field
+{
+    struct_$(service.name:c)_$(message.name:c)
+        *_struct_ptr;
+.            if variable = 1
+    int
+        _total_size = sizeof (struct_$(service.name:c)_$(message.name:c));
+    char
+        *_ptr;
+
+.                memory_size = ""
+.                for field
+.                    if field.type =  "size" | field.type = "hsize"
+.                        memory_size = name
+.                    endif
+.                    if field.type = "string"
+    _total_size += $(name:c) ? strlen ($(name:c)) + 1 : 0;
+.                    elsif field.type =  "body" | field.type = "hbody"
+    _total_size += $(memory_size:c);
+.                    endif
+.                endfor
+    _struct_ptr = mem_alloc (_total_size);
+.            else
+
+    _struct_ptr = mem_alloc (sizeof (struct_$(service.name:c)_$(message.name:c)));
+.            endif
+    *_buffer = (byte *) _struct_ptr;
+    if (_struct_ptr)
+      {
+.            if variable
+        _ptr = (char *) _struct_ptr + sizeof (struct_$(service.name:c)_$(message.name:c));
+.            endif
+.            memory_size = ""
+.            for field
+.                if field.type =  "size" | field.type = "hsize"
+.                    memory_size = name
+.                endif
+.                if field.type = "string"
+        if ($(name:c))
+          {
+            _struct_ptr-> $(name:c)         = (char *) _ptr;
+            strcpy ((char *) _ptr, $(name:c));
+            _ptr += strlen ($(name:c)) + 1;
+          }
+        else
+            _struct_ptr-> $(name:c)         = NULL;
+.                elsif field.type =  "body" | field.type = "hbody"
+        _struct_ptr-> $(name:c)         = (byte *) _ptr;
+        memcpy (_ptr, $(name:c), $(memory_size:c));
+        _ptr += $(memory_size:c);
+.                    memory_size = ""
+.                elsif field.type =  "pointer"
+        _struct_ptr-> $(name:c)         = (void *) $(name:c);
+.                else
+        _struct_ptr-> $(name:c)         = $(name:c);
+.                endif
+.            endfor field
+
+.            if variable
+        return _total_size;
+.            else
+        return sizeof (*_struct_ptr);
+.            endif
+      }
+    else
+        return 0;
+}
+
+
+/*  ---------------------------------------------------------------------[<]-
+    Function: get_$(service.name:c)_$(message.name:c)
+
+    Synopsis: Accepts a buffer containing a $(message.name:) message,
+    and unpacks it into a new struct_$(service.name:c)_$(message.name:c) structure. Free the
+    structure using free_$(service.name:c)_$(message.name:c)() when finished.
+    ---------------------------------------------------------------------[>]-*/
+
+int
+get_$(service.name:c)_$(message.name:c) (
+    byte *_buffer,
+    struct_$(service.name:c)_$(message.name:c) **params)
+{
+.            variable = 0
+.            for field
+.                if field.type = "string" | field.type = "body" | field.type = "hbody"
+.                    variable = 1
+.                endif
+.            endfor
+    struct_$(service.name:c)_$(message.name:c)
+        *_struct_ptr;
+.            if variable
+    char
+        *_ptr;
+.            endif
+
+    _struct_ptr = (struct_$(service.name:c)_$(message.name:c) *) _buffer;
+    *params = mem_alloc (sizeof (struct_$(service.name:c)_$(message.name:c)));
+    if (*params)
+      {
+.            if variable
+        _ptr = (char *) _struct_ptr + sizeof (struct_$(service.name:c)_$(message.name:c));
+.            endif
+.            memory_size = ""
+.            for field
+.                if field.type =  "size" | field.type = "hsize"
+.                    memory_size = name
+.                endif
+.                if field.type = "string"
+        if (_struct_ptr-> $(name:c))
+          {
+            (* params)-> $(name:c)          = mem_strdup (_ptr);
+            _ptr += strlen ((* params)-> $(name:c)) + 1;
+          }
+        else
+            (* params)-> $(name:c)          = NULL;
+.                elsif field.type =  "body" | field.type = "hbody"
+        (* params)-> $(name:c)          = mem_alloc (_struct_ptr-> $(memory_size:c) + 1);
+        memcpy ((* params)-> $(name:c), _ptr, _struct_ptr-> $(memory_size:c));
+        *((byte *)(* params)-> $(name:c) + _struct_ptr-> $(memory_size:c)) = 0;
+        _ptr += _struct_ptr-> $(memory_size:c);
+.                    memory_size = ""
+.                else
+        (* params)-> $(name:c)          = _struct_ptr-> $(name:c);
+.                endif
+.            endfor
+        return 0;
+      }
+    else
+        return -1;
+}
+
+
+/*  ---------------------------------------------------------------------[<]-
+    Function: free_$(service.name:c)_$(message.name:c)
+
+    Synopsis: frees a structure allocated by get_$(service.name:c)_$(message.name:c)().
+    ---------------------------------------------------------------------[>]-*/
+
+void
+free_$(service.name:c)_$(message.name:c) (
+    struct_$(service.name:c)_$(message.name:c) **params)
+{
+.            for field
+.                if type = "string" | type = "body" | type = "hbody"
+    mem_free ((*params)-> $(field.name:c));
+.                endif
+.            endfor field
+    mem_free (*params);
+    *params = NULL;
+}
+
+.        endif
+.        for method
+char *$(SERVICE.NAME:c)_$(METHOD.NAME:c) = "$(SERVICE.NAME) $(METHOD.NAME)";
+
+.            if count (message.field)
+/*  ---------------------------------------------------------------------[<]-
+    Function: lsend_$(service.name:c)_$(name:c)
+
+    Synopsis: Sends a $(method.name:) - $(method.title?:)
+              event to the $(service.name:) agent
+    ---------------------------------------------------------------------[>]-*/
+
+int 
+lsend_$(service.name:c)_$(method.name:c) (
+    const QID  *_to,
+    const QID  *_from,
+          char *_accept,
+          char *_reject,
+          char *_expire,
+          word _timeout,
+.                for message.field
+.                    define dt = "$(datatype_$(type:):)"
+.                    if index (field) < count (message.field)
+    const $(dt:)$(field.name:c),    /*  $(field.title?:)                 */
+.                    else
+    const $(dt:)$(field.name:c))    /*  $(field.title?:)                 */
+.                    endif
+.                endfor field
+{
+    byte *_body;
+    int   _size,
+          _rc;
+    _size = put_$(service.name:c)_$(message.name:c)
+                (&_body,
+.                for message.field 
+.                    define dt = "$(datatype_$(type:):)"
+.                    if index (field) < count (message.field)
+                 $(name:c),
+.                    else
+                 $(name:c));
+.                    endif
+.                endfor field
+    if (_size)
+      {
+        _rc = event_send (_to, _from, $(SERVICE.NAME:c)_$(METHOD.NAME:c),
+                          _body, _size,
+                          _accept, _reject, _expire, _timeout);
+        mem_free (_body);
+        return _rc;
+      }
+    else
+        return -1;
+}
+
+.            endif # count (field)
+.        endfor method
+.    endfor message
+.endfor
+

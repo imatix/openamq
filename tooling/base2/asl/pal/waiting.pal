@@ -1,0 +1,13 @@
+<?xml?>
+<pal script = "demo_pal_gen">
+    This script demonstrates how to pause the script.
+    <set name = "index" value = "0" />
+    <echo>Waiting without an active connection...</echo>
+    <wait timeout = "1000" />
+    <session>
+        <echo>Waiting inside an active connection...</echo>
+        <wait timeout = "1000" />
+    </session>
+    <echo>OK</echo>
+</pal>
+

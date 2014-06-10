@@ -1,0 +1,255 @@
+<?xml?>
+<!--
+    GSL/dir - Directory manipulation object
+
+    Copyright (c) 1991-2009 iMatix Corporation
+
+    ------------------ GPL Licensed Source Code ------------------
+    iMatix makes this software available under the GNU General
+    Public License (GPL) license for open source projects.  For
+    details of the GPL license please see www.gnu.org or read the
+    file license.gpl provided in this package.
+
+    This program is free software; you can redistribute it and/or             
+    modify it under the terms of the GNU General Public License as            
+    published by the Free Software Foundation; either version 2 of            
+    the License, or (at your option) any later version.                       
+                                                                              
+    This program is distributed in the hope that it will be useful,           
+    but WITHOUT ANY WARRANTY; without even the implied warranty of            
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             
+    GNU General Public License for more details.                               
+                                                                               
+    You should have received a copy of the GNU General Public                  
+    License along with this program in the file 'license.gpl'; if             
+    not, write to the Free Software Foundation, Inc., 59 Temple               
+    Place - Suite 330, Boston, MA 02111-1307, USA.                            
+                                                                              
+    You can also license this software under iMatix's General Terms           
+    of Business (GTB) for commercial projects.  If you have not               
+    explicitly licensed this software under the iMatix GTB you may            
+    only use it under the terms of the GNU General Public License.            
+                                                                              
+    For more information, send an email to info@imatix.com.                   
+    --------------------------------------------------------------            
+ -->
+
+<gxl script = "ggobjt.gsl" filename = "ggdir" title = "GSL/dir package" >
+
+<object name = "dir" title = "Directory Functions" >
+
+
+<!-------------------------------------------------------------------------->
+
+<function name = "load" >
+    <parameter name = "scope"   pass = "extended scope" compulsory = "0" />
+    <parameter name = "path"    pass = "value"          compulsory = "0" />
+    <parameter name = "recurse" pass = "value"          compulsory = "0" />
+<body>
+  {
+    GGCODE_TCB
+        *tcb = gsl_thread-> tcb;
+    char
+        *error_text;
+    XML_ITEM
+        *xml_parent;
+
+    xml_parent = extended_scope_xml (&tcb-> scope_stack,
+                                     scope ? scope-> scope : NULL,
+                                     tcb-> ignorecase,
+                                     &error_text);
+    if (! xml_parent)
+      {
+        if (error_text)
+            strcpy (object_error, error_text);
+        else
+            sprintf (object_error, "Unknown data scope: %s",
+                                    extended_scope_string (scope-> scope));
+        return -1;
+      }
+
+    if (path &&path-> value.type == TYPE_UNDEFINED)
+      {
+        result-> culprit = path-> culprit;
+        return 0;
+      }
+
+    result-> value.type = TYPE_NUMBER;
+    result-> value.n    = (long) dir_list (xml_parent, 
+        path ? string_value (&path-> value) : ".",
+        (Bool) (recurse? number_value (&recurse-> value): 0));
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "create" >
+    <parameter name = "path" pass = "value" compulsory = "1" />
+<body>
+  {
+    result-> value.n    = make_dir (string_value (&path-> value));
+    result-> value.type = TYPE_NUMBER;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "delete" >
+    <parameter name = "path"    pass = "value" compulsory = "1" />
+    <parameter name = "recurse" pass = "value" compulsory = "0" />
+<body>
+  {
+    result-> value.n = (long) dir_unlink (
+        string_value (&path-> value),
+        (Bool) (recurse? number_value (&recurse-> value): 0));
+    result-> value.type = TYPE_NUMBER;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "cwd" >
+<body>
+  {
+    char
+        * strptr = get_curdir ();
+
+    result-> value.s    = mem_strdup (strptr);
+    result-> value.type = TYPE_STRING;
+    mem_free (strptr);
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "setcwd" >
+    <parameter name = "path" pass = "value" compulsory = "1" />
+<body>
+  {
+    result-> value.n    = set_curdir (string_value (&path-> value));
+    result-> value.type = TYPE_NUMBER;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "files" >
+    <parameter name = "path"    pass = "value" compulsory = "1" />
+    <parameter name = "recurse" pass = "value" compulsory = "0" />
+<body>
+  {
+    result-> value.n    = (long) dir_files (string_value (&path-> value),
+        (Bool) (recurse? number_value (&recurse-> value): 0));
+    result-> value.type = TYPE_NUMBER;
+  }
+</body>
+</function>
+
+</object>
+
+<!-------------------------------------------------------------------------->
+
+<extra>
+static long dir_list    (XML_ITEM *xml_parent, const char *path, Bool recurse);
+static long dir_unlink  (const char *path, Bool recurse);
+
+static long
+dir_list (XML_ITEM *xml_parent, const char *path, Bool recurse)
+{
+    DIRST
+        dir;
+    Bool
+        dir_rc;
+    long
+        count = 0;
+    char
+        *full_dir;
+    XML_ITEM
+        *xml_item;
+    char
+        char9 [9];
+
+    dir_rc = open_dir (&dir, path);
+    while (dir_rc)
+      {
+        xml_item = xml_new (xml_parent, "file", NULL);
+        xml_put_attr (xml_item, "name",  dir. file_name);
+        xml_put_attr (xml_item, "size",  strprintf ("%lu", dir. file_size));
+        sprintf (char9, "%8.8lu", timer_to_date (dir. file_time));
+        xml_put_attr (xml_item, "date", char9);
+        sprintf (char9, "%8.8lu", timer_to_time (dir. file_time));
+        xml_put_attr (xml_item, "time", char9);
+        xml_put_attr (xml_item, "mode",  strprintf ("%u", dir. file_mode));
+        xml_put_attr (xml_item, "attrs", strprintf ("%u", dir. file_attrs));
+        xml_put_attr (xml_item, "links", strprintf ("%u", dir. file_nlink));
+        xml_put_attr (xml_item, "owner", dir. owner);
+        xml_put_attr (xml_item, "group", dir. group);
+        xml_put_attr (xml_item, "path", path);
+        xml_put_attr (xml_item, "directory", (dir. file_attrs &ATTR_SUBDIR) != 0 ? "1" : "0");
+
+        if (recurse
+        &&(dir. file_attrs &ATTR_SUBDIR) != 0)
+          {
+            full_dir = locate_path (path, dir.file_name);
+
+            count += dir_list (xml_parent, full_dir, TRUE);
+
+            mem_free (full_dir);
+          }
+        else
+            count += 1;
+
+        dir_rc = read_dir (&dir);
+      }
+    close_dir (&dir);
+
+    return (count);
+}
+
+static long
+dir_unlink (const char *path, Bool recurse)
+{
+    DIRST
+        dir;
+    Bool
+        dir_rc;
+    long
+        count = 0;
+    char
+        *old_dir;
+
+    old_dir = get_curdir ();
+    if (set_curdir (path) == 0) {
+        dir_rc = open_dir (&dir, ".");
+        while (dir_rc)
+          {
+            if (recurse
+            &&(dir. file_attrs &ATTR_SUBDIR) != 0)
+              {
+                count += dir_unlink (dir. file_name, TRUE);
+                remove_dir (dir. file_name);
+              }
+            else
+              {
+                file_delete (dir. file_name);
+                count += 1;
+              }
+            dir_rc = read_dir (&dir);
+          }
+        close_dir (&dir);
+
+        set_curdir (old_dir);
+    }
+    mem_free (old_dir);
+    remove_dir (path);
+
+    return (count);
+}
+</extra>
+
+</gxl>

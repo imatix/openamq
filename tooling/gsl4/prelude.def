@@ -1,0 +1,75 @@
+.---------------------------------------------------------------------
+.-  prelude.def   htmlpp documentation definitions
+.-
+.-  I like to use a single file to collect all definitions such as
+.-  links to external pages, headers, footers, etc.
+.---------------------------------------------------------------------
+
+.-  The complete $(SERVER) tree is mirrored at $(LOCAL)
+.define SERVER          ""
+.define LOCAL           %(SITE)
+.define imatix          http://www.imatix.com/
+.define info            mailto:info@imatix.com
+.define version         %(vgsln)
+
+.block header
+<HTML><HEAD><!--Revised: $(revised) By: $(author)-->
+<TITLE>$(TITLE)</TITLE></HEAD>
+<BODY BACKGROUND="newstone.gif">
+<TABLE WIDTH=100%><TR><TD ALIGN=LEFT>
+ | <A HREF="/index.htm"> iMatix home page</A><BR>
+ | $(*FIRST_PAGE=&lt;&lt;) | $(*PREV_PAGE=&lt;)
+ | $(*NEXT_PAGE=&gt;) | $(*LAST_PAGE=&gt;&gt;)
+<TD ALIGN=RIGHT>
+<IMG SRC="gslgen.gif" ALT="GSLgen" WIDTH=100 HEIGHT=75 ALIGN=RIGHT HSPACE=10>
+<FONT SIZE=4><B>GSLgen</B><BR><FONT SIZE=2>Version $(version)
+</TABLE>
+<HR>
+.end
+
+.block footer
+<HR><TABLE WIDTH=100%><TR><TD ALIGN=LEFT WIDTH=60%>
+ | $(*FIRST_PAGE=&lt;&lt;) | $(*PREV_PAGE=&lt;)
+ | $(*NEXT_PAGE=&gt;) | $(*LAST_PAGE=&gt;&gt;)
+<BR><FONT SIZE=2>
+.build index
+<TD ALIGN=RIGHT NOWRAP>
+<A HREF="/index.htm">
+<IMG SRC="im0096c.gif" WIDTH=96 HEIGHT=36 ALT="iMatix" BORDER=0>
+</A>
+<BR><FONT SIZE=2>Copyright &#169; 1996-99 iMatix</TABLE>
+</BODY></HTML>
+.endblock
+
+.-  Browsers do not generally like an empty anchor.  We do not want
+.-  to show anything, since anchors often come just before headers.
+.-  One possibility is a non-breaking space, which is what we use.
+.-
+.block anchor
+<A NAME="$(ANCHOR)">&nbsp;</A>
+.endblock
+
+.block index_open
+.block index_entry
+.if "$(INDEX_PAGE)" eq "$(PAGE)"
+| <EM>$(INDEX_TITLE)</EM>
+.else
+| $(*INDEX_PAGE="$(INDEX_TITLE)")
+.endif
+.endblock
+
+.block dir_open
+<PRE>
+.block dir_entry
+$(*DIR_HREF="$(DIR_NAME)") $(DIR_SIZE) $(DIR_DATE) $(DIR_TIME)  $($(DIR_EXT))
+.block dir_close
+</PRE>
+.endblock
+
+.-  In the directory entry block (above), we translate each extension into
+.-  a descriptive text using $($(DIR_EXT)).  For instance, ".txt" -> "Text".
+.-  The filetype.def file lists various such extensions.  Add your own to
+.-  cover the types of file you provide.  If you fail to define some file
+.-  extension, htmlpp will give you an error message like '.txt undefined'.
+
+.include filetype.def

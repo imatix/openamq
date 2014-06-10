@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2007 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<pdl
+    name      = "PCRE"
+    acronym   = "PCRE"
+    version   = "6.6"
+    copyright = "Copyright (c) 1997-2005 University of Cambridge"
+    workflow  = "standard.pwl"
+    library   = "libpcre">
+
+<include filename = "prelude.pdl" />
+
+<file name = "pcre_chartables.c"      class = "generated program" />
+<file name = "pcre_compile.c"         class = "sub program"     />
+<file name = "pcre_config.c"          class = "sub program"     />
+<file name = "pcre_dfa_exec.c"        class = "sub program"     />
+<file name = "pcre_exec.c"            class = "sub program"     />
+<file name = "pcre_fullinfo.c"        class = "sub program"     />
+<file name = "pcre_get.c"             class = "sub program"     />
+<file name = "pcre_globals.c"         class = "sub program"     />
+<file name = "pcre_info.c"            class = "sub program"     />
+<file name = "pcre_maketables.c"      class = "sub program"     />
+<file name = "pcre_ord2utf8.c"        class = "sub program"     />
+<file name = "pcre_refcount.c"        class = "sub program"     />
+<file name = "pcre_study.c"           class = "sub program"     />
+<file name = "pcre_tables.c"          class = "sub program"     />
+<file name = "pcre_try_flipped.c"     class = "sub program"     />
+<file name = "pcre_ucp_searchfuncs.c" class = "sub program"     />
+<file name = "pcre_valid_utf8.c"      class = "sub program"     />
+<file name = "pcre_version.c"         class = "sub program"     />
+<file name = "pcre_xclass.c"          class = "sub program"     />
+<file name = "pcre.h"                 class = "public header"   />
+<file name = "pcre_internal.h"        class = "private resource"/>
+<file name = "pcre_scanner.h"         class = "private resource"/>
+<file name = "pcre_printint.src"      class = "private resource"/>
+<file name = "ucpinternal.h"          class = "private resource"/>
+<file name = "ucp.h"                  class = "private resource"/>
+<file name = "ucptable.c"             class = "private resource"/>
+<file name = "config.h"               class = "private resource"/>
+<!-- dftables is duplicated here so that it gets cleaned up.   -->
+<!-- see <actions> below                                       -->
+<file name = "dftables.c"             class = "main program"     >To generate pcre_chartables.c</file>
+<file name = "pcregrep.c"             class = "main program"     >Test</file>
+<file name = "pcredemo.c"             class = "main program"     >Test</file>
+<file name = "pcretest.c"             class = "main program"     >Test for POSIX library</file>
+<file name = "AUTHORS"                class = "documentation"   />
+<file name = "ChangeLog"              class = "documentation"   />
+<file name = "COPYING"                class = "documentation"   />
+<file name = "INSTALL"                class = "documentation"   />
+<file name = "LICENCE"                class = "documentation"   />
+<file name = "NEWS"                   class = "documentation"   />
+<file name = "NON-UNIX-USE"           class = "documentation"   />
+<file name = "README"                 class = "documentation"   />
+
+<!-- Deliverables -->
+<file name = "libpcre"                class = "public library"  />
+
+<!-- Build dftables during the generate phase, and use it to
+     generate pcre_chartables.c                                -->
+<actions>
+  <generate>
+    <execute target = "win32">
+        call c -q -l dftables
+        dftables pcre_chartables.c
+    </execute>
+    <execute target = "unix">
+        c -q -l dftables
+        dftables pcre_chartables.c
+    </execute>
+  </generate>
+</actions>
+
+</pdl>

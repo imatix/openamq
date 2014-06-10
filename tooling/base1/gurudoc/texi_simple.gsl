@@ -1,0 +1,320 @@
+#
+#   texi_simple.gsl - Template GDL module
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+function generate_texi_header
+    body += "\\input texinfo @c -*-texinfo-*-\n"
+    body += "\n"
+    body += "@c %**start of header\n"
+    body += "@setfilename $(name:)\n"
+    body += "@settitle $(title:)\n"
+    body += "@c %** end of header\n"
+    body += "\n"
+endfunction
+
+
+function generate_texi_titlepage
+    body += "@titlepage\n"
+    body += "@title $(title:)\n"
+    body += "@subtitle $(subtitle:)\n"
+    body += "@author $(author:)\n"
+    body += "@end titlepage\n"
+    body += "\n"
+endfunction
+
+
+function generate_texi_menu
+    menu = ""
+    for header
+        s = string.trim (.?'?')
+        menu += "* $(s:)::  $(s:)\n"
+    endfor
+    
+    if (menu <> "")
+        body += "@menu\n"
+        body += "$(menu:)"
+        body += "@end menu\n"
+        body += "\n"
+    endif
+endfunction
+
+
+function generate_texi_top_node
+    for header
+        s = string.trim (.?'?')
+        if (item () = 1)
+            body += "@node Top, $(s:), , \n"
+            body += "@top $(subtitle:)\n"
+            body += "\n"
+            body += "$(title:)\n"
+            body += "\n"
+            body += "$(copyright:)\n"
+            body += "\n"
+        endif
+    endfor
+endfunction
+
+
+function generate_texi_node (node)
+    body += "@node $(string.trim (my.node):),,,\n"
+endfunction
+
+
+function generate_texi_end_doc
+    body += "@bye\n"
+endfunction
+
+
+#####################   FUNCTION GENERATE_GDL_BEFORE   ######################
+
+function generate_gdl_before 
+    g_header_level = 0
+    
+    body = ""
+    
+    generate_texi_header ()
+    generate_texi_titlepage ()
+    generate_texi_top_node ()
+    generate_texi_menu ()
+endfunction
+
+
+######################   FUNCTION GENERATE_GDL_AFTER   ######################
+
+function generate_gdl_after
+    generate_texi_end_doc ()
+
+    output base + ".texi"
+    >$(body:)
+    close
+endfunction
+
+
+####################   FUNCTION GENERATE_HEADER_BEFORE   ####################
+
+function generate_header_before
+    g_header_level += 1
+    
+    if defined (.)
+        generate_texi_node (.)
+        if    g_header_level = 1
+            body += "@chapter $(.)"
+        elsif g_header_level = 2
+            body += "@section $(.)"
+        elsif g_header_level = 3
+            body += "@subsection $(.)"
+        elsif g_header_level = 4
+            body += "@subsubsection $(.)"
+        endif
+        body += "\n"
+        generate_texi_menu ()
+    endif
+endfunction
+
+
+####################   FUNCTION GENERATE_HEADER_AFTER   #####################
+
+function generate_header_after
+    g_header_level -= 1
+endfunction
+
+
+##################   FUNCTION GENERATE_PARAGRAPH_BEFORE   ###################
+
+function generate_paragraph_before
+    body += string.replace (., '&lt;|<,&gt;|>,@|@@')
+endfunction
+
+
+###################   FUNCTION GENERATE_PARAGRAPH_AFTER   ###################
+
+function generate_paragraph_after
+    body += "\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_QUOTE_BEFORE   #####################
+
+function generate_quote_before
+    body += string.replace (., '&lt;|<,&gt;|>,@|@@')
+endfunction
+
+
+#####################   FUNCTION GENERATE_QUOTE_AFTER   #####################
+
+function generate_quote_after
+    body += "\n"
+endfunction
+
+
+###################   FUNCTION GENERATE_EXAMPLE_BEFORE   ####################
+
+function generate_example_before
+    body += "@example\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_EXAMPLE_AFTER   ####################
+
+function generate_example_after
+    body += "@end example\n\n"
+endfunction
+
+
+#####################   FUNCTION GENERATE_LINE_BEFORE   #####################
+
+function generate_line_before
+    body += "$(.?)\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_RULER_BEFORE   #####################
+
+function generate_ruler_before
+endfunction
+
+
+#####################   FUNCTION GENERATE_ITEM_BEFORE   #####################
+
+function generate_item_before
+    body += "@item $(.)"
+endfunction
+
+
+###################   FUNCTION GENERATE_ITEMIZE_BEFORE   ####################
+
+function generate_itemize_before
+    body += "@itemize\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_ITEMIZE_AFTER   ####################
+
+function generate_itemize_after
+    body += "@end itemize\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_ENUMERATE_BEFORE   ###################
+
+function generate_enumerate_before
+    body += "@enumerate\n"
+endfunction
+
+
+###################   FUNCTION GENERATE_ENUMERATE_AFTER   ###################
+
+function generate_enumerate_after
+    body += "@end enumerate\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_DEFINITION_BEFORE   ##################
+
+function generate_definition_before
+    body += "@table @samp\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_DEFINITION_AFTER   ###################
+
+function generate_definition_after
+    body += "@end table\n\n"
+endfunction
+
+
+###################   FUNCTION GENERATE_DEF_TERM_BEFORE   ###################
+
+function generate_def_term_before
+    body += "@item $(.)\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_DEF_VALUE_BEFORE   ###################
+
+function generate_def_value_before
+    body += "$(.)"
+endfunction
+
+
+####################   FUNCTION GENERATE_TABLE_BEFORE   #####################
+
+function generate_table_before
+    for table_row where item () = 1
+        cols = count (table_data)
+    endfor
+    body += "@multitable @columnfractions" + (" $(1/cols) " * cols) + "\n"
+endfunction
+
+
+#####################   FUNCTION GENERATE_TABLE_AFTER   #####################
+
+function generate_table_after
+    body += "@end multitable\n\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_TABLE_ROW_BEFORE   ###################
+
+function generate_table_row_before
+    first_col = 1
+endfunction
+
+
+###################   FUNCTION GENERATE_TABLE_ROW_AFTER   ###################
+
+function generate_table_row_after
+    body += "\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_TABLE_DATA_BEFORE   ##################
+
+function generate_table_data_before
+    if (first_col)
+        first_col = 0
+        body += "@item $(.?)"
+    else
+        body += " @tab $(.?)"
+    endif
+endfunction
+
+
+####################   FUNCTION GENERATE_IMAGE_BEFORE   #####################
+
+function generate_image_before
+    if defined (caption)
+        body += "@center{$(caption:)}\n"
+    endif
+    body += "@image{$(file.basename (filename):),$(width:)pt,$(height:)pt}\n\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_FIGURE_BEFORE   ####################
+
+function generate_figure_before
+    body += "@image{$(file.basename (filename):),$(width:)pt,$(height:)pt}\n\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_ANCHOR_BEFORE   ####################
+
+function generate_anchor_before
+    body += "<$(name:)$(":"+.?)>\n"
+endfunction
+

@@ -1,0 +1,175 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<xnf
+    name    = "fsm"
+    script  = "xnf_gen.gsl"
+    version = "0.1"
+    >
+This is an example of an XNF grammar, used to generate
+state machines according to the Libero model.
+
+<inherit xnf = "xnf_base" />
+
+<produce filename = "fsm_preproc.gsl" type = "preproc" />
+<produce filename = "fsm_parse.gsl"   type = "parse"   />
+<produce filename = "fsm_inherit.gsl" type = "inherit" />
+<produce filename = "fsm_gen.gsl"     type = "wrap"    />
+<produce filename = "fsm_doc.txt"     type = "gurudoc" />
+
+<rule phase = "wrap" when = "after">
+if global.errno = 0
+    [gsl].include ("fsm_$(target).gsl")
+endif
+</rule>
+
+<entity name = "fsm" tag = "fsm" template = "top">
+    Defines the state machine.
+    <allow entity = "include" />
+    <allow entity = "state"   />
+    <allow entity = "module"  />
+    <allow entity = "doc"     />
+    <allow entity = "todo"    />
+
+    <attr name = "name" required = "1" short = "state machine name">
+    Specifies the name of the state machine.  This name will be used to
+    prefix all function names and will also be used as the filename
+    for generated code.
+    </attr>
+    <attr name = "comment" short = "short description">
+    An optional one-line comment that describes the state machine.
+    </attr>
+    <attr name = "version" short = "version number" default = "1.0">
+    Specifies the version of the class. This text can take any format but we
+    recommend this standard format: '2.4b1' which is major version 2, minor
+    version 4, release b, update 1.  This string is stamped into the project
+    sources.
+    </attr>
+    <attr name = "copyright" default = "Copyright(c) iMatix Corporation">
+    This specifies the copyright string for the class. This string is stamped
+    into the project sources. The copyright can be inherited from a parent
+    class.
+    </attr>
+</entity>
+
+<entity name = "include" >
+    The 'include' element permits textual-inclusion from another file.
+
+    <attr name = "filename" required = "1" >
+    The name of the XML-format file to be included in place of the
+    'include' element.
+    </attr>
+    <rule when = "attrs" phase = "preproc">
+    if !defined (fsm.load_file (filename))
+        preproc_error ("Error loading include file: $(filename): $(xml.error?)")
+    endif
+    </rule>
+</entity>
+
+<entity name = "state" tag = "state" unique = "1">
+    A state is a formal definition of the states that the
+    program can be in.  The program always starts in the
+    first state and ends if the current event specifies a
+    blank nextstate.
+    <allow entity = "event"   />
+
+    <attr name = "name" required = "1" short = "state name">
+    Specifies the name of the state.  This does not appear
+    in the generated code except as an internal name.
+    </attr>
+    <attr name = "template" short = "template state" default = "defaults">
+    Specifies the name of the template state, which defaults
+    to the Libero convention of "defaults".
+    </attr>
+</entity>
+
+<entity name = "event" tag = "event">
+    One of the allowed events in the state.
+    <allow entity = "action"   />
+    <allow entity = "call"     />
+    <allow entity = "return"   />
+
+    <attr name = "name" required = "1" short = "event name">
+    Specifies the name of the event.  This will be a constant
+    in the generated code.
+    </attr>
+    <attr name = "nextstate" short = "next state name">
+    Specifies the name of the state into which the fsm will
+    move after processing all the actions for this event.
+    If not specified, the fsm will stay in the same state.
+    If blank, the fsm will end.
+    </attr>
+</entity>
+
+<entity name = "action" tag = "action">
+    The actions to perform for the event.
+
+    <attr name = "name" required = "1" short = "action name">
+    Specifies the name of the action. This will be a function
+    in the generated code.
+    </attr>
+</entity>
+
+<entity name = "call" tag = "call">
+    A call to another state.
+
+    <attr name = "state" required = "1" short = "state to call">
+    This is the state we will call.
+    </attr>
+    <attr name = "event" required = "1" short = "event to pass to state">
+    This is the event that the state will receive.
+    </attr>
+    <link from = "state" />
+</entity>
+
+<entity name = "return" tag = "return">
+    Return to the parent state.
+</entity>
+
+<entity name = "module" tag = "action" cdata = "1">
+    The implementation of a particular action in the
+    target programming language.
+
+    <attr name = "name" required = "1" short = "action name">
+    Specifies the name of the action, the name of the function.
+    </attr>
+</entity>
+
+<entity name = "doc" tag = "doc" cdata = "1">
+    Documentation for the current element: this is included in the
+    generated documentation files in a suitable form.  Should be in
+    iMatix gurudoc format.
+
+    <attr name = "domain" short = "documentation domain">
+    Allows documentation of different types to be included in the ASL
+    definitions.
+    </attr>
+</entity>
+
+<entity name = "todo" tag = "todo" cdata = "1">
+    Defines a change request, bug or other issue that needs work.
+    Todo items are formalised so that they can be extracted and
+    processed mechanically.
+
+    <attr name = "owner" short = "issue owner">
+    The developer who registered the issue and will deal with it, specified
+    as an email address.
+    </attr>
+</entity>
+
+</xnf>

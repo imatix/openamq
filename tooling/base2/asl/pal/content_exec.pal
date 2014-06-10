@@ -1,0 +1,17 @@
+<?xml?>
+<pal script = "demo_pal_gen">
+    This script demonstrates how to build a content body by running a
+    command.
+    <session queue = "test-queue" exchange = "test-exchange">
+        <exchange_declare type = "fanout" />
+        <queue_declare />
+        <queue_bind />
+        <basic_content exec = "ls" />
+        <basic_publish routing_key = "test-queue" />
+        <basic_get />
+        <basic_arrived>
+            <echo>Message arrived: $body_size octets</echo>
+        </basic_arrived>
+    </session>
+</pal>
+

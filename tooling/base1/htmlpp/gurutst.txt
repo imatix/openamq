@@ -1,0 +1,81 @@
+This is a small test of GURU MODE
+*********************************
+
+This is the first header
+========================
+
+And this is the first subheader
+-------------------------------
+Some international characters
+ëõÜ íùè
+
+Indention in the second subheader
+---------------------------------
+
+Indention of text:
+  Explanation one
+Second indention:
+  Explanation two
+
+1. You can do numbered lists
+2. With numbers at the beginning of the line
+3. As many as you like
+
+Section B
+*********
+
+Header two : Lists
+==================
+
+- you can also do unnumbered lists
+- as many as you like
+
+Here is normal text. bla bla bla bla bla bla bal balsëflkjs glksj
+sfkljhs kgjh aslkdjfha slkgjh alskjdfhalskugh laskudfh lsakuh dfg
+asdfkjhs kguhsakfuh salkguhas lkudgh laskdufh lsakugdh lkasuhd f
+asgkuash kguhsa kdfuh aksudfh kasudfh ksauhdg kuashdf kuash df
+
+Let's have a normal ruler below.
+....
+
+
+    Indented text.
+                Format with PRE!
+
+
+Subheader 2.1 : Tables and links.
+---------------------------------
+
+Column: Explanation:
+Table_item_with_some_spaces: Here is what is all means
+    We should be able to span this one over
+    more lines than just one.
+Another_table_item: More things follow in this table.
+
+ Oh yeah: The links. Note how this line ends in a colon:
+ but when we indent it, it is not treated as a table header.
+
+You can mail to
+  <me@xxxxx.net>
+or
+  <myself@another.xxxx.com>
+or look at the iMatix site
+  <http://www.imatix.com>
+
+  You can use colons if you indent the line. Below two links alone!
+  <me@xxxx.net> <http://www.xxx.zz>
+
+
+Subheader 2.2 : The figures.
+----------------------------
+Here is a figure with "Figure" and explanation
+[Figure filename.gif: explanation of that graphic file]
+
+And another figure without "Figure"
+["filename.gif" : another image file]
+
+This has no explanation:
+[filename2.gif]
+
+The last one has no explanation, but "Figure"
+[Figure filename.gif]

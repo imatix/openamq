@@ -1,0 +1,289 @@
+#
+#   html_simple.gsl - Template GDL module
+#
+#   Copyright (c) 1991-2009 iMatix Corporation
+#
+#   ------------------ GPL Licensed Source Code ------------------
+#   iMatix makes this software available under the GNU General
+#   Public License (GPL) license for open source projects.  For
+#   details of the GPL license please see www.gnu.org or read the
+#   file license.gpl provided in this package.
+#   
+#   This program is free software; you can redistribute it and/or
+#   modify it under the terms of the GNU General Public License as
+#   published by the Free Software Foundation; either version 2 of
+#   the License, or (at your option) any later version.
+#   
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#   
+#   You should have received a copy of the GNU General Public
+#   License along with this program in the file 'license.gpl'; if
+#   not, write to the Free Software Foundation, Inc., 59 Temple
+#   Place - Suite 330, Boston, MA 02111-1307, USA.
+#   
+#   You can also license this software under iMatix's General Terms
+#   of Business (GTB) for commercial projects.  If you have not
+#   explicitly licensed this software under the iMatix GTB you may
+#   only use it under the terms of the GNU General Public License.
+#   
+#   For more information, send an email to info@imatix.com.
+#   --------------------------------------------------------------
+
+##########################   GENERATE_GDL_BEFORE   ##########################
+
+function generate_gdl_before 
+    g_header_level = 0
+    g_header_count = 0
+    g_figure_count = 0
+
+    title       = name
+    index       = ""
+    product     = "OpenKernel "
+    version     = "1.2"
+    imageheader = "bopenk.jpg"
+    body        = ""
+    copyright   = "Copyright © 1991-2009 iMatix Corporation"
+endfunction
+
+
+##########################   GENERATE_GDL_AFTER   ###########################
+
+function generate_gdl_after
+    output base + ".htm"
+    template 1
+.   include "tpl_simple.htm"
+.   endtemplate
+    close
+endfunction
+
+
+########################   GENERATE_HEADER_BEFORE   #########################
+
+function generate_header_before
+    g_header_level += 1
+
+    if defined (.)
+        body += "<h$(g_header_level)>"
+    
+        if g_header_level <= page
+            g_header_count += 1
+
+            body += "<a name=\"TOC$(g_header_count)\">$(.)</a>"
+
+            if g_header_level = 1
+                echo "Processing chapter $(.)"
+            endif
+        
+            index += "<a href=\"#TOC$(g_header_count)\">$(.)</a>"
+            index += " | \n"
+        else
+            body += "$(.)"
+        endif
+    
+        body += "</h$(g_header_level)>\n"
+    endif
+endfunction
+
+
+#########################   GENERATE_HEADER_AFTER   #########################
+
+function generate_header_after
+    g_header_level -= 1
+endfunction
+
+
+#######################   GENERATE_PARAGRAPH_BEFORE   #######################
+
+function generate_paragraph_before
+    body += "<p>$(.)</p>\n"
+endfunction
+
+
+#######################   GENERATE_PARAGRAPH_AFTER   ########################
+
+function generate_paragraph_after
+endfunction
+
+
+########################   GENERATE_EXAMPLE_BEFORE   ########################
+
+function generate_example_before
+    body += "<pre>\n"
+endfunction
+
+
+########################   GENERATE_EXAMPLE_AFTER   #########################
+
+function generate_example_after
+    body += "</pre>\n"
+endfunction
+
+
+#########################   GENERATE_LINE_BEFORE   ##########################
+
+function generate_line_before
+    body += "    $(.?)\n"
+endfunction
+
+
+#########################   GENERATE_RULER_BEFORE   #########################
+
+function generate_ruler_before
+    body += "<hr>\n"
+endfunction
+
+
+#########################   GENERATE_ITEM_BEFORE   ##########################
+
+function generate_item_before
+    body += "<li>$(.)</li>\n"
+endfunction
+
+
+########################   GENERATE_ITEMIZE_BEFORE   ########################
+
+function generate_itemize_before
+    body += "<ul>\n"
+endfunction
+
+
+#######################   GENERATE_ENUMERATE_BEFORE   #######################
+
+function generate_enumerate_before
+    body += "<ol>\n"
+endfunction
+
+
+#######################   GENERATE_ENUMERATE_AFTER   ########################
+
+function generate_enumerate_after
+    body += "</ol>\n"
+endfunction
+
+
+########################   GENERATE_ITEMIZE_AFTER   #########################
+
+function generate_itemize_after
+    body += "</ul>\n"
+endfunction
+
+
+######################   GENERATE_DEFINITION_BEFORE   #######################
+
+function generate_definition_before
+    body += "<dl>\n"
+endfunction
+
+
+#######################   GENERATE_DEFINITION_AFTER   #######################
+
+function generate_definition_after
+    body += "</dl>\n"
+endfunction
+
+
+#######################   GENERATE_DEF_TERM_BEFORE   ########################
+
+function generate_def_term_before
+    body += "<dt><b>$(.?)</b></dt>\n"
+endfunction
+
+
+#######################   GENERATE_DEF_VALUE_BEFORE   #######################
+
+function generate_def_value_before
+    body += "<dd>$(.)</dd>\n"
+endfunction
+
+
+#########################   GENERATE_TABLE_BEFORE   #########################
+
+function generate_table_before
+    body += "<p>\n"
+    body += "<center>\n"
+    body += "<table border=\"1\" width=\"90%\">\n"
+    first_row = 1
+endfunction
+
+
+#########################   GENERATE_TABLE_AFTER   ##########################
+
+function generate_table_after
+    body += "</table>\n"
+    body += "</center>\n"
+    body += "</p>\n"
+endfunction
+
+
+#######################   GENERATE_TABLE_ROW_BEFORE   #######################
+
+function generate_table_row_before
+    body += "<tr>\n"
+endfunction
+
+
+#######################   GENERATE_TABLE_ROW_AFTER   ########################
+
+function generate_table_row_after
+    body += "</tr>\n"
+    first_row = 0
+endfunction
+
+######################   GENERATE_TABLE_DATA_BEFORE   #######################
+
+function generate_table_data_before
+    if first_row
+        body += "<th>$(.?)</th>\n"
+    else
+        body += "<td>$(.?)</td>\n"
+    endif
+endfunction
+
+
+#########################   GENERATE_IMAGE_BEFORE   #########################
+
+function generate_image_before
+    body += "<img src=\"$(filename:)\""
+    if defined (height)
+        body += " height=\"$(height)\""
+    endif
+    if defined (width)
+        body += " width=\"$(width)\""
+    endif
+    body += " />\n"
+endfunction
+
+
+########################   GENERATE_FIGURE_BEFORE   #########################
+
+function generate_figure_before
+    g_figure_count += 1
+
+    body += "<center>\n"
+    body += "<table border=\"1\">\n"
+    body += "<tr>"
+    body += "<td align=\"center\">\n"
+    body += "<b>"
+    body += "<i>"
+    body += "Figure $(g_figure_count) $(caption?:)"
+    body += "</i>"
+    body += "</b>"
+    body += "<br>\n"
+    body += "</td>\n"
+    body += "</tr>\n"
+    body += "</table>\n"
+    body += "</center>\n"
+
+    body += "<img src=\"$(filename:)\""
+    if defined (height)
+        body += " height=\"$(height)\""
+    endif
+    if defined (width)
+        body += " width=\"$(width)\""
+    endif
+    body += "/>\n"
+endfunction
+

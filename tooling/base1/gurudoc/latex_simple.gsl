@@ -1,0 +1,453 @@
+#
+#   html_simple.gsl - Template GDL module
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+#########################   GLOBALS   #########################
+
+# This is for the table-parameters and examples parts
+marker = "\\mark{mark}"
+
+# Track joined entities
+join = 0
+
+# Track adjacent paragraphs
+parlast = 0
+
+#########################   LATEX_IMAGE   #########################
+
+function limg(string) 
+    my.basename = file.basename(my.string)
+    my.type = string.substr(my.string, string.length(base), , )
+    
+    # pdflatex supports jpeg, png, pdf; but not gif or eps
+    if (file.exists(my.basename + ".pdf"))
+        return my.basename + ".pdf"
+    elsif (file.exists(my.basename + ".png"))
+        return my.basename + ".png"
+    elsif (file.exists(my.basename + ".jpg"))
+        return my.basename + ".jpg"
+    else
+        return my.string        
+    endif
+endfunction
+
+#########################   LATEX_GURUDOC   #########################
+
+function lguru(string) 
+    # Replace Gurudoc special characters
+    my.string = string.replace(my.string, "&amp;|&")
+    my.string = string.replace(my.string, "&gt;|>")
+    my.string = string.replace(my.string, "&lt;|<")
+    
+    return my.string
+endfunction
+
+#########################   LATEX_ESCAPE   #########################
+
+function lesc(string) 
+    return lfilter(my.string, "\\$^~&%#{}_<>")
+endfunction
+
+#########################   LATEX_FILTER   #########################
+
+function lfilter(string, special) 
+    if (defined(my.string) & string.lexcmp(my.string, ""))
+        my.old_string = my.string
+        
+        # Replace Gurudoc special characters
+        my.old_string = lguru(my.old_string) 
+    
+        # Escape special characters
+        my.i = 0
+        my.special_len = string.length(my.special)
+        while (my.i < my.special_len)
+            
+            # For the current special character
+            my.current_special = string.substr(my.special, my.i, , 1) 
+            my.new_string = ""
+            while (1)
+                my.match = string.locate(my.old_string, my.current_special) ?
+                if (defined(my.match))
+                    my.new_string += string.prefix(my.old_string, my.current_special)
+                    
+                    if (my.current_special = "\\")
+                        my.new_string += "x\\backslashx"
+                    elsif (my.current_special = "~")
+                        my.new_string += "\\verb1~1"
+                    elsif (my.current_special = "^")
+                        my.new_string += "\\verb1^1"
+                    elsif (my.current_special = ">")
+                        my.new_string += "$" + my.current_special + "$"
+                    elsif (my.current_special = "<")
+                        my.new_string += "$" + my.current_special + "$"
+                    else
+                        my.new_string += "\\" + my.current_special
+                    endif
+                    
+                    my.old_string = string.defix(my.old_string, my.current_special)
+                else
+                    last    
+                endif
+            endwhile
+            my.new_string += my.old_string
+            my.old_string = my.new_string
+            my.i += 1
+        endwhile
+        return string.replace(my.new_string, "x\\backslashx|$\\backslash$")
+    else
+        return my.string
+    endif
+endfunction
+
+
+##########################   HANDLE JOIN CLOSE  #############################
+
+function handle_join_close(entity, type, plast)
+    parlast = my.plast
+    # Close joined entity
+    if join > 0    
+        if my.type <> "paragraph" | join > 1
+            join = 0
+            body += "\\end{samepage} \\pagebreak[0]\n"
+        endif 
+    endif
+endfunction
+
+##########################   GENERATE_GDL_BEFORE   ##########################
+
+function generate_gdl_before 
+    g_header_level = 0
+    g_header_count = 0
+    g_figure_count = 0
+
+    index = ""
+    body  = ""
+endfunction
+
+
+##########################   GENERATE_GDL_AFTER   ###########################
+
+function generate_gdl_after
+    output base + ".tex"
+    template 1
+.   include "tpl_latex.tex"
+.   endtemplate
+    close
+endfunction
+
+
+########################   GENERATE_HEADER_BEFORE   #########################
+
+function generate_header_before
+    g_header_level += 1
+
+    if defined (.)
+        length = string.length(.)
+        appendix = lesc("$(string.substr(., , length - 2, ))")
+    
+        if (g_header_level = 1)
+            body  += "\\chapter{" + appendix + "}\n"
+        elsif (g_header_level = 2)
+            body  += "\\section{" + appendix + "}\n"
+        elsif (g_header_level = 3)
+            body  += "\\subsection{" + appendix + "}\n"
+        elsif (g_header_level = 4)
+            body  += "\\subsubsection{" + appendix + "}\n"
+        endif
+    
+        if g_header_level <= page
+            g_header_count += 1
+        endif
+    endif
+endfunction
+
+
+#########################   GENERATE_HEADER_AFTER   #########################
+
+function generate_header_after
+    g_header_level -= 1
+    
+    # Close joined entity
+    if join > 0    
+        join = 0
+        body += "\\end{samepage}\n"
+    endif
+    
+    parlast = 0
+endfunction
+
+
+#######################   GENERATE_PARAGRAPH_BEFORE   #######################
+
+function generate_paragraph_before
+    if join = 0
+        if string.substr(., string.length(.) - 2, , ) = ":\n"
+            #Joined entity
+            body += "\\begin{samepage}\n"
+            join = 1
+        endif
+    else
+        join += 1    
+    endif
+
+    if parlast = 1
+        parlast = 0
+        body += "\\vspace{\\auxparskip}\n"
+    endif
+    body += "\n$(lesc(.))"
+endfunction
+
+
+#######################   GENERATE_PARAGRAPH_AFTER   ########################
+
+function generate_paragraph_after
+    handle_join_close(., "paragraph", 1)
+endfunction
+
+
+####################   FUNCTION GENERATE_QUOTE_BEFORE   #####################
+
+function generate_quote_before
+    body += "\\begin{quote}$(lesc(.))\\end{quote}"
+endfunction
+
+
+#####################   FUNCTION GENERATE_QUOTE_AFTER   #####################
+
+function generate_quote_after
+    handle_join_close(., "quote", 0)
+endfunction
+
+
+########################   GENERATE_EXAMPLE_BEFORE   ########################
+
+function generate_example_before
+    verbatim = 1
+    body += "{\\scriptsize \\begin{quote} \\begin{verbatim}\n"
+    
+    # Mark
+    body += marker
+endfunction
+
+
+########################   GENERATE_EXAMPLE_AFTER   #########################
+
+function generate_example_after
+    verbatim = 0
+    
+    # Filter the mark
+    mark = string.locate(body, marker)
+    new_body = string.substr(body, , mark - 1, ) + lguru(string.substr(body, mark + string.length(marker), , ))
+    body = new_body
+    body += "\\end{verbatim} \\end{quote}}"
+    handle_join_close(., "example", 0)
+endfunction
+
+
+#########################   GENERATE_LINE_BEFORE   ##########################
+
+function generate_line_before
+    if join = 0 | string.trim(.?"") <> ""
+        if verbatim
+            body += "$(.?)\n"
+        else
+            body += "$(lesc(.)?)\n"
+        endif
+    else
+        # Allow a break at empty lines in the middle of an example block
+        body += "\\end{verbatim}\\pagebreak[0]\\begin{verbatim}\n"
+    endif
+endfunction
+
+
+#########################   GENERATE_RULER_BEFORE   #########################
+
+function generate_ruler_before
+    body += "\n\\hrulefill\n"
+    parlast = 0
+endfunction
+
+
+#########################   GENERATE_ITEM_BEFORE   ##########################
+
+function generate_item_before
+    jaux = ""
+    if join > 0    
+        jaux = "\\pagebreak[0]"
+    endif
+    body += "\\item $(lesc(.))" + jaux + "\n"
+endfunction
+
+########################   GENERATE_ITEMIZE_BEFORE   ########################
+
+function generate_itemize_before
+    body += "\\begin{compactitem}\n"
+endfunction
+
+
+#######################   GENERATE_ENUMERATE_BEFORE   #######################
+
+function generate_enumerate_before
+    body += "\\begin{compactenum}\n"
+endfunction
+
+
+#######################   GENERATE_ENUMERATE_AFTER   ########################
+
+function generate_enumerate_after
+    body += "\\end{compactenum}"
+    handle_join_close(., "enumerate", 0)
+endfunction
+
+
+########################   GENERATE_ITEMIZE_AFTER   #########################
+
+function generate_itemize_after
+    body += "\\end{compactitem}"
+    handle_join_close(., "itemize", 0)
+endfunction
+
+
+######################   GENERATE_DEFINITION_BEFORE   #######################
+
+function generate_definition_before
+    body += "\\begin{description}\n"
+endfunction
+
+
+#######################   GENERATE_DEFINITION_AFTER   #######################
+
+function generate_definition_after
+    body += "\\end{description}"
+    handle_join_close(., "definition", 0)
+endfunction
+
+
+#######################   GENERATE_DEF_TERM_BEFORE   ########################
+
+function generate_def_term_before
+    body += "\\item[$(lesc(.)?)] "
+endfunction
+
+
+#######################   GENERATE_DEF_VALUE_BEFORE   #######################
+
+function generate_def_value_before
+    jaux = ""
+    if join > 0    
+        jaux = "\\pagebreak[0]\n"
+    endif
+    body += "$(lesc(.))" + jaux + "\n"
+endfunction
+
+
+#########################   GENERATE_TABLE_BEFORE   #########################
+
+function generate_table_before
+    # Just a mark
+    body += marker
+    
+    # Save for later
+    table_before = "\\begin{center}\n"
+    table_before += "\\begin{tabular}\n"
+    first_row = 1
+endfunction
+
+
+#########################   GENERATE_TABLE_AFTER   ##########################
+
+function generate_table_after
+    # Complete column parameters
+    cell_size = 1 / (cut_row + 1)
+    col_format = "|"
+    while cut_row > 0
+        col_format += "p{$(cell_size%.2f)\\textwidth}|"
+        cut_row -= 1
+    endwhile
+    table_before += "{" + col_format + "}\n\\hline\n"
+    
+    # Generate table after
+    body += "\\end{tabular}\n"
+    body += "\\end{center}\n"
+    
+    # Replace the mark
+    mark = string.locate(body, marker)
+    new_body = string.substr(body, , mark - 1, ) + table_before + string.substr(body, mark + string.length(marker), , )
+    body = new_body
+    
+    handle_join_close(., "table", 0)
+endfunction
+
+
+#######################   GENERATE_TABLE_ROW_BEFORE   #######################
+
+function generate_table_row_before
+    cut_row = 0
+endfunction
+
+
+#######################   GENERATE_TABLE_ROW_AFTER   ########################
+
+function generate_table_row_after
+    body += "\\\\\n\\hline\n"
+    first_row = 0
+endfunction
+
+######################   GENERATE_TABLE_DATA_BEFORE   #######################
+
+function generate_table_data_before
+    data = "$(lesc(.?""))"
+    
+    if first_row
+        data = "\\textbf{" + data + "}"
+    endif
+    
+    if (cut_row)
+        data = "& " + data
+    endif
+    cut_row += 1
+
+    body += data
+endfunction
+
+
+#########################   GENERATE_IMAGE_BEFORE   #########################
+
+function generate_image_before
+    body += "\\begin{center}"
+    body += "\\includegraphics{$(limg(filename))}\n"
+    body += "\\end{center}\n"
+    
+    handle_join_close(., "image", 0)
+endfunction
+
+
+########################   GENERATE_FIGURE_BEFORE   #########################
+
+function generate_figure_before
+    g_figure_count += 1
+ 
+    body += "\\begin{figure}[h]\n"
+    body += "\\centering\n"
+    body += "\\caption{$(lesc(caption) ? :)}"
+    body += "\\includegraphics{$(limg(filename))}\n"
+    body += "\\end{figure}\n"
+    
+    handle_join_close(., "figure", 0)
+endfunction
+

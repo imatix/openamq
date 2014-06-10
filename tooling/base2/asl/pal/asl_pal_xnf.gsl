@@ -1,0 +1,721 @@
+.#  ----------------------------------------------------------------------------
+.#  Generate PAL XNF for a specific protocol
+.#
+.#  Copyright (c) 1996-2009 iMatix Corporation
+.#
+.#  This program is free software; you can redistribute it and/or modify
+.#  it under the terms of the GNU General Public License as published by
+.#  the Free Software Foundation; either version 2 of the License, or (at
+.#  your option) any later version.
+.#
+.#  This program is distributed in the hope that it will be useful, but
+.#  WITHOUT ANY WARRANTY; without even the implied warranty of
+.#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.#  General Public License for more details.
+.#
+.#  For information on alternative licensing for OEMs, please contact
+.#  iMatix Corporation.
+.#
+.#  PAL is not user customisable. While we encourage experimentation
+.#  some things are best left to the realms of darkness, and PAL's
+.#  internals is one of those things.  If nonetheless you insist on
+.#  going forwards, be warned that what you are reading is not an XNF
+.#  model definition but rather an XNF target script that generates an
+.#  XNF model definition for the PAL dialect of a given ASL grammar.
+.#  Similarly, asl_pal_stdc.gsl is not a GSL script for C but a GSL
+.#  script that generates an XNF target script - for a PAL dialect for
+.#  a given ASL grammar - that generates C.  We hope that helps.
+.#  ----------------------------------------------------------------------------
+.
+.open_output ("$(protocol.name)_pal.xnf")
+<?xml?>
+<!--
+    *** GENERATED FROM $(arg?filename) BY $(script) USING GSL/4 ***
+
+.   if defined (copyright)
+    $(copyright:)
+.   endif
+.   $(license:lower)_license (" ")
+ -->
+<xnf
+    name      = "$(protocol.name)_pal"
+    script    = "xnf_gen.gsl"
+    version   = "1.0"
+.   if defined (copyright)
+    copyright = "$(copyright)"
+.   endif
+.   license   = "$(license)"
+    >
+This is the protocol automation language grammar for the $(protocol.name)
+protocol. The PAL grammar is generated automatically from the client-side
+protocol specifications.
+
+<inherit xnf = "xnf_base" />
+
+<produce filename = "$(protocol.name)_pal_gen.gsl" type = "wrap" />
+<produce filename = "$(protocol.name)_pal_preproc.gsl" type = "preproc" />
+<produce filename = "$(protocol.name)_pal_inherit.gsl" type = "inherit" />
+<produce filename = "$(protocol.name)_pal_parse.gsl" type = "parse" />
+<produce filename = "$(protocol.name)_pal_codegen.gsl" type = "codegen" />
+<produce filename = "$(protocol.name)_pal_doc.txt" type = "gurudoc" />
+
+<rule phase = "wrap" when = "after">
+if global.errno = 0
+    [gsl].include ("$(protocol.name)_pal_$\(global.top.target).gsl")
+    generate_automation (global.top)
+endif
+</rule>
+
+<entity name = "pal" template = "top">
+    Defines the automation language.
+    <allow entity = "doc" />
+    <allow entity = "macro" />
+    <allow entity = "include" />
+    <inherit name = "scripting" />
+    <attr name = "name" short = "script name">
+    Specifies the name of the script. This name will used as the filename
+    for generated code.
+    </attr>
+    <attr name = "comment" short = "Short description">
+    An optional one-line comment that describes the script.
+    </attr>
+    <attr name = "target" default = "stdc" short = "Target platform">
+    Specifies the name of the target environment; the target is implemented by
+    a PAL back-end script in GSL that generates code for a specific language
+    environment. The target can be inherited from a parent script.
+    </attr>
+    <attr name = "export" default = "default" >
+    Specifies how this item may be inherited.
+        <restrict value = "none" >may not be inherited</restrict>
+        <restrict value = "default">inherited in the default manner</restrict>
+        <restrict value = "before" >inherited before existing items</restrict>
+        <restrict value = "after" >inherited after existing items</restrict>
+    </attr>
+    <rule phase = "parse">
+    pal.in_session = 0
+    pal.name ?= file.basename (filename)
+    </rule>
+</entity>
+
+<entity name = "doc" cdata = "1" unique = "0">
+    Documentation for the test script. Should be in iMatix gurudoc
+    format.
+</entity>
+
+<entity name = "include">
+    The 'include' element permits textual-inclusion from another file.
+    <attr name = "filename" required = "1" phase = "preproc">
+    The name of the XML-format file to be included in place of the
+    'include' element.
+    </attr>
+    <rule phase = "preproc" when = "attrs">
+    xml after include from filename
+    </rule>
+</entity>
+
+<entity name = "macro" disconnect = "1">
+    Defines a macros, a block of scripting code that can defined
+    once and then used many times.
+    <inherit name = "scripting" />
+    <attr name = "name" required = "1" short = "name of macro" />
+</entity>
+
+<entity name = "scripting" abstact = "1">
+    <allow entity = "session" inherit = "none" />
+    <allow entity = "invoke"  inherit = "none" />
+    <allow entity = "server"  inherit = "none" />
+    <allow entity = "timer"   inherit = "none" />
+    <allow entity = "set"     inherit = "none" />
+    <allow entity = "inc"     inherit = "none" />
+    <allow entity = "dec"     inherit = "none" />
+    <allow entity = "read"    inherit = "none" />
+    <allow entity = "random"  inherit = "none" />
+    <allow entity = "echo"    inherit = "none" />
+    <allow entity = "assert"  inherit = "none" />
+    <allow entity = "repeat"  inherit = "none" />
+    <allow entity = "while"   inherit = "none" />
+    <allow entity = "break"   inherit = "none" />
+    <allow entity = "if"      inherit = "none" />
+    <allow entity = "else"    inherit = "none" />
+    <allow entity = "elsif"   inherit = "none" />
+    <allow entity = "wait"    inherit = "none" />
+    <allow entity = "sleep"   inherit = "none" />
+    <allow entity = "abort"   inherit = "none" />
+    <allow entity = "exit"    inherit = "none" />
+.   for class where name <> "direct" by index
+.       for method where !method.internal & count (chassis, name <> "client")
+    <allow entity = "$(class.name)_$(method.name:c)" inherit = "none" />
+.           if count (field, name = "nowait")
+    <allow entity = "$(class.name)_$(method.name:c)_nowait" inherit = "none" />
+.           endif
+.       endfor
+.   endfor
+.   for class where count (field)
+    <allow entity = "$(class.name)_content" inherit = "none" />
+    <allow entity = "$(class.name)_arrived" inherit = "none" />
+    <allow entity = "$(class.name)_returned" inherit = "none" />
+.   endfor
+    <allow entity = "empty"   inherit = "none" />
+</entity>
+
+<entity name = "session">
+    Defines a new session within the main connection.
+    <inherit name = "scripting" />
+    <attr name = "virtual_host" default = "/" />
+    <attr name = "server" short = "Name of server">
+    If specified, forces the session to connect to this server
+    address.  Otherwise the address is supplied by default or
+    specified by the user. 
+    </attr>
+    <attr name = "timeout" short = "Timeout" default = "30000">
+    Specifies the connection timeout for synchronous commands, in 
+    milliseconds.  If the server does not respond within this timeout
+    the script will end with a failure.  Defaults to 30 seconds.
+    </attr>
+    <attr name = "failover" short = "Failover">
+    If an integer greater than zero, on a broken connection the script
+    will pause for the specified number of seconds, and then try to
+    reconnect to the same or alternate server.  To use alternate
+    servers, specify multiple server names in the 'server' attribute,
+    seperated by spaces.
+    </attr>
+    <attr name = "direct" short = "Use Direct Mode" default = "0">
+    If not zero, the script will use Direct Mode to publish and receive
+    messages.  This is a fast out-of-band protocol documented on 
+    http://wiki.amqp.org.
+    </attr>
+    <rule phase = "parse" when = "before">
+    if pal.in_session
+        abort "E: session not allowed inside another session"
+    endif
+    pal.in_session = 1
+    </rule>
+    <rule phase = "parse" when = "after">
+    pal.in_session = 0
+    </rule>
+    <rule phase = "codegen" when = "before">
+    pal.session_index = (pal.session_index?0) + 1
+    produce_session_header ()
+    </rule>
+    <rule phase = "codegen" when = "after">
+    produce_session_footer ()
+    </rule>
+</entity>
+
+<entity name = "invoke">
+    Invokes a macro.  The macro is inserted after the contents of the
+    invoke block, if any.
+    <inherit name = "scripting" />
+    <attr name = "macro" required = "1" short = "macro name to invoke" />
+    <rule phase = "parse">
+    for pal.macro where name = .macro
+        for . as child
+            copy child to invoke
+        endfor
+    endfor
+    </rule>
+</entity>
+
+<entity name = "server">
+    Starts or restarts a protocol server.  If the server was already running
+    (from the test script), stops and then restarts it.  The server is always
+    killed when the script ends.  The script can optionally redirect the
+    server's stderr and stdout output.
+    <inherit name = "scripting" />
+    <attr name = "name"   required = "1" short = "name of server executable" />
+    <attr name = "port"                  short = "specific port to run on" />
+    <attr name = "stdout" default = ""   short = "redirect standard output" />
+    <attr name = "stderr" default = ""   short = "redirect standard error" />
+    <attr name = "where"  default = "."  short = "where to run server" />
+    <rule phase = "codegen">
+    produce_server ()
+    </rule>
+</entity>
+
+<entity name = "timer">
+    Restarts the script timer.
+    <attr name = "action" default = "reset" short = "timer action">
+        <restrict value = "reset">reset timer</restrict>
+        <restrict value = "show">show timer</restrict>
+    </attr>
+    <rule phase = "codegen">
+    produce_timer ()
+    </rule>
+</entity>
+
+<entity name = "set">
+    Define a variable.  Variables can be strings or integers.  You
+    can use variables in repeat, while, and if blocks, and as symbols
+    for templating arguments and strings.  Untyped variables are typed
+    according to their value.
+    <attr name = "name"  required = "1" short = "name of variable" />
+    <attr name = "value" default = "" short = "new value of variable" />
+    <attr name = "type" short = "variable type">
+        <restrict value = "string">string variable</restrict>
+        <restrict value = "integer">integer variable</restrict>
+    </attr>
+    <attr name = "cmdline" short = "command line switch" />
+    <rule phase = "parse">
+    set.value ?= ""
+    if !defined (set.type)
+        if regexp.match ("^[0-9]+$", set.value)
+            set.type = "integer"
+        else
+            set.type = "string"
+        endif
+    endif
+
+    assume_variable (name, type, value)
+    if defined (.cmdline)
+        new pal.option
+            option.name   = name
+            option.type   = type
+            option.value  = value
+            option.switch = cmdline
+        endnew
+    endif
+    </rule>
+    <rule phase = "codegen">
+    produce_set ()
+    </rule>
+</entity>
+
+<rule phase = "wrap" when = "before">
+function assume_variable (name, type, value)
+    if count (pal.variable, variable.name = my.name) = 0
+        new pal.variable
+            variable.name  = my.name
+            variable.type  = my.type
+            variable.value = my.value
+        endnew
+    else
+        for pal.variable where name = my.name
+            if variable.type <> my.type
+                abort "E: '$\(my.name)' was previously defined as '$\(variable.type)'"
+            endif
+        endfor
+    endif
+endfunction
+</rule>
+
+<entity name = "inc">
+    Increments an integer variable.
+    <attr name = "name" required = "1" short = "name of variable" />
+    <rule phase = "parse">
+    assume_variable (name, "integer", 0)
+    </rule>
+    <rule phase = "codegen">
+    produce_inc ()
+    </rule>
+</entity>
+
+<entity name = "dec">
+    Decrements an integer variable.  Decrementing a variable below zero
+    is illegal and raises a fatal error.
+    <attr name = "name" required = "1" short = "name of variable" />
+    <rule phase = "parse">
+    assume_variable (name, "integer", 0)
+    </rule>
+    <rule phase = "codegen">
+    produce_dec ()
+    </rule>
+</entity>
+
+<entity name = "read">
+    Read a line of input from the console and assign it to a string
+    variable.
+    <attr name = "name" required = "1" short = "name of variable" />
+    <attr name = "prompt" short = "prompt to user" />
+    <rule phase = "parse">
+    read.value ?= ""
+    read.type = "string"
+    assume_variable (name, type, value)
+    </rule>
+    <rule phase = "codegen">
+    produce_read ()
+    </rule>
+</entity>
+
+<entity name = "random">
+    Define an integer variable, set to a random value within the
+    specified interval.
+    <attr name = "name"  required = "1" short = "name of variable" />
+    <attr name = "min"   default = "0"  short = "minimum value" />
+    <attr name = "max"   required = "1" short = "maximum value" />
+    <rule phase = "parse">
+    random.value ?= ""
+    random.type = "integer"
+    assume_variable (name, type, value)
+    </rule>
+    <rule phase = "codegen">
+    produce_random ()
+    </rule>
+</entity>
+
+<entity name = "echo" cdata = "1">
+    Echoes a line of text, which can include connection or session
+    properties as symbols specified by $name, e.g. $version_major.
+    <attr name = "trace" default = "0" short = "trace level">
+    If 0, the echo is printed all the time.  If 1 to 3, is printed
+    only at the corresponding trace level.
+    </attr>
+    <rule phase = "codegen">
+    produce_echo ()
+    </rule>
+</entity>
+
+<entity name = "assert" key = "" cdata = "1">
+    Define an assertion that tests a condition and aborts the script if
+    the condition is false.  If the assert tag contains a message, will
+    first print the message.
+    <inherit name = "condition" />
+    <rule phase = "codegen">
+    produce_assert ()
+    </rule>
+</entity>
+
+<entity name = "condition" abstract = "1">
+    The conditional variable can be
+    any connection or session property, or a variable.  The value
+    can be a literal string or number, with templating of properties
+    and variables done using the $name syntax.  The default test if
+    a test and value is not specified is "not empty" for strings
+    and "not zero" for numbers.  If a value is specified, the default
+    test is "eq".
+    <attr name = "name" required = "1" short = "conditional variable" />
+    <attr name = "test" short = "type of test">
+        <restrict value = "eq">test equals, as strings</restrict>
+        <restrict value = "ne">test not equals, as stringsd</restrict>
+        <restrict value = "gt">test greater than, numeric</restrict>
+        <restrict value = "lt">test less than, numeric</restrict>
+        <restrict value = "ge">test greater, numeric</restrict>
+        <restrict value = "le">test less or equal to, numeric</restrict>
+    </attr>
+    <attr name = "value" short = "value to test against" />
+</entity>
+
+<entity name = "repeat">
+    Defines an iterative loop, which can run forever or for a specified
+    number of times.  The counter is global to the session (do not use
+    the same counter for two nested loops).  To access the counter within
+    the repeat loop, use the $name syntax.
+    <attr name = "counter"  short = "name of counter" />
+    <attr name = "times"    short = "number of iterations" />
+    <attr name = "progress" short = "show progress indicator" />
+    <inherit name = "scripting" />
+    <rule phase = "parse" when = "before">
+    pal.nesting = (pal.nesting?0) + 1
+    if defined ([0].counter)
+        repeat.show_counter = 1
+    else
+        pal.counters = (pal.counters?0) + 1
+        repeat.counter = "repeat_counter_$\(pal.counters)"
+        repeat.show_counter = 0
+    endif
+    counter = "$\(counter:c)"
+    assume_variable (counter, "integer", 0)
+    </rule>
+    <rule phase = "parse" when = "after">
+    pal.nesting = pal.nesting - 1
+    </rule>
+    <rule phase = "codegen" when = "before">
+    produce_repeat_header ()
+    </rule>
+    <rule phase = "codegen" when = "after">
+    produce_repeat_footer ()
+    </rule>
+</entity>
+
+<entity name = "while" key = "">
+    Defines a conditional loop, which runs so long as a specified
+    condition is true. The conditional variable can be any connection
+    or session property, or a variable.  The value can be a literal
+    string or number, with templating of properties and variables
+    done using the $name syntax.  The default test if a test and value
+    is not specified is "not empty" for strings and "not zero" for
+    numbers.  If a value is specified, the default test is "eq".
+    The counter is global to the session (do not use the same counter
+    for two nested loops). To access the counter within the while loop,
+    use the $name syntax.    
+    <attr name = "counter" short = "name of counter" />
+    <attr name = "progress" short = "show progress indicator" />
+    <inherit name = "condition" />
+    <inherit name = "scripting" />
+    <rule phase = "parse" when = "before">
+    pal.nesting = (pal.nesting?0) + 1
+    if defined ([0].counter)
+        counter = "$\(counter:c)"
+        assume_variable (counter, "integer", 0)
+    endif
+    </rule>
+    <rule phase = "parse" when = "after">
+    pal.nesting = pal.nesting - 1
+    </rule>
+    <rule phase = "codegen" when = "before">
+    produce_while_header ()
+    </rule>
+    <rule phase = "codegen" when = "after">
+    produce_while_footer ()
+    </rule>
+</entity>
+
+<entity name = "if" key = "">
+    Defines a conditional block.
+    <inherit name = "condition" />
+    <inherit name = "scripting" />
+    <rule phase = "codegen" when = "before">
+    produce_if_header ()
+    </rule>
+    <rule phase = "codegen" when = "after">
+    produce_if_footer ()
+    </rule>
+</entity>
+
+<entity name = "else">
+    Defines an else block, used after an if block.
+    <inherit name = "scripting" />
+    <rule phase = "codegen" when = "before">
+    produce_else_header ()
+    </rule>
+    <rule phase = "codegen" when = "after">
+    produce_else_footer ()
+    </rule>
+</entity>
+
+<entity name = "elsif" key = "">
+    Defines a conditional else block, used after an if block.
+    <inherit name = "condition" />
+    <inherit name = "scripting" />
+    <rule phase = "codegen" when = "before">
+    produce_elsif_header ()
+    </rule>
+    <rule phase = "codegen" when = "after">
+    produce_elsif_footer ()
+    </rule>
+</entity>
+
+<entity name = "wait">
+    Pauses the script for up to timeout milliseconds, or until content is 
+    received from the server, whichever is sooner.
+    <attr name = "timeout" default = "0" short = "timeout in milliseconds" />
+    <rule phase = "codegen">
+    produce_wait ()
+    </rule>
+</entity>
+
+<entity name = "sleep">
+    Pauses the script for timeout milliseconds.  Unlike the &lt;wait&gt;
+    command, the sleep time is not affected by any traffic on the session.
+    <attr name = "timeout" required = "1" short = "timeout in milliseconds" />
+    <rule phase = "codegen">
+    produce_sleep ()
+    </rule>
+</entity>
+
+<entity name = "break">
+    Exits the parent repeat or while loop.
+    <rule phase = "parse">
+    if (pal.nesting?0) = 0
+        abort "E: break not valid outside a repeated block"
+    endif
+    </rule>
+    <rule phase = "codegen">
+    produce_break ()
+    </rule>
+</entity>
+
+<entity name = "abort" cdata = "1">
+    Echoes a line of text and halts the script.
+    <rule phase = "codegen">
+    produce_abort ()
+    </rule>
+</entity>
+
+<entity name = "exit" cdata = "1">
+    Halts the script, optionally with a return status.
+    <attr name = "status" default = "0" short = "exit status" />
+    <rule phase = "codegen">
+    produce_exit ()
+    </rule>
+</entity>
+
+.macro output_entity_fields (name)
+.   for field where !field.global & field.name <> "nowait"
+.       if metat = "integer"
+    <attr name = "$(name)" short = "$(string.trim(.)?:left)" />
+.       elsif metat = "string"
+    <attr name = "$(name)" short = "$(string.trim(.)?:left)" />
+.       elsif type = "table"
+    <allow entity = "$(my.name)_$(name)" occurs = "0/1" />
+.       endif
+.   endfor
+.endmacro
+
+.macro generate_method (nowait)
+<entity name = "$(class.name)_$(method.name:c)$(my.nowait??'_nowait')">
+.       if method.content
+    <attr name = "content" short = "content buffer to transfer" />
+.       endif
+.       output_entity_fields ("$(class.name)_$(method.name:c)")
+    <rule phase = "parse">
+    if !in_session
+        abort "E: $(class.name)_$(method.name:c) only valid in a session"
+    endif
+    </rule>
+    <rule phase = "codegen">
+    produce_$(class.name)_$(method.name:c)$(my.nowait??'_nowait') ()
+    </rule>
+</entity>
+
+.endmacro
+.
+.macro output_entity_tables (name)
+.   for field where !field.global & type = "table"
+<entity name = "$(my.name)_$(name)" tag = "$(name)">
+    Defines a $(name) field table.
+    <allow entity = "table field" />
+</entity>
+
+.       if !defined (protocol.had_table)
+.           protocol.had_table = 1
+<entity name = "table field" tag = "field">
+    <attr name = "name" required = "1" short = "name of field" />
+    <attr name = "value" short = "field value" />
+    <attr name = "type" default = "string" short = "field type">
+        <restrict value = "string">string field</restrict>
+        <restrict value = "integer">integer field</restrict>
+        <restrict value = "void">void field</restrict>
+    </attr>
+</entity>
+
+.       endif
+.   endfor
+.endmacro
+.
+.for class where name <> "direct" by index
+.   for method where !method.internal & count (chassis, name <> "client")
+.       generate_method (0)             #   Normal versions
+.       if count (field, name = "nowait")
+.           generate_method (1)         #   Nowait versions where needed
+.       endif
+.
+.       output_entity_tables ("$(class.name)_$(method.name:c)")
+.   endfor
+.endfor
+.for class where count (field)
+<entity name = "$(class.name)_content" cdata = "1">
+    Creates a content buffer for use by the script.  Content buffers
+    are automatically destroyed when the script ends. The body of the
+    content provides the body unless the random fill is used.
+    <attr name = "name" short = "name of content buffer">
+    Specifies the name of the content buffer.
+    </attr>
+    <attr name = "size" short = "size of content buffer">
+    Specifies the size in octets of the content buffer.  If not specified
+    takes the size of the content where supplied, otherwise defaults to
+    1024 bytes.
+    </attr>
+    <attr name = "fill" default = "random" short = "fill mode">
+    Specifies the fill mode.  If the $(class.name)_content entity has a
+    non-blank body, that is used for the content body and the fill mode
+    is ignored unless it is "repeat".
+        <restrict value = "random">random values</restrict>
+        <restrict value = "null">binary zeroes</restrict>
+        <restrict value = "repeat">repeat the entity body</restrict>
+    </attr>
+    <attr name = "exec" short = "command to read content from">
+    Specifies the name of a command to run, and get content from.  The
+    command's standard output is used as the content body.  The size
+    attribute is ignored, and the content body is always the size of
+    the command's stdout.  The current content body, if any, is sent
+    to the command's stdin.
+    </attr>
+    <attr name = "headers" default = "1" short = "parse headers?">
+    Used only in combination with exec.  If zero, the output of the
+    executed program is not reparsed. If one, the output is reparsed
+    to collect message properties and headers as follows: each line
+    specifies a header field name, followed by ":", followed by a
+    space and a value.  Field names starting with "x-table-" are
+    stored as-is (minus the x-table- prefix) in a field table with
+    that name.  Other fields must match known content properties.
+    Hyphens are allowed in field names.  The headers are ended with
+    a blank line. Parsed headers create a CGI-like interface for
+    calling programs.
+    </attr>
+    <attr name = "read" short = "file to read content from">
+    Specifies the name of a file to read the content body from.  The
+    size attribute is ignored, and the content body is always the size
+    of the file. Do not define 'read' if 'exec' is defined.  Note: the
+    name of the file can be specified using variables, allowing a PAL
+    script to "serve up" arbitrary files.
+    </attr>
+.   output_entity_fields ("$(class.name)_content")
+    <rule phase = "parse">
+    if defined (content.)
+        size = string.length (content.)
+    endif
+    </rule>
+    <rule phase = "codegen">
+    produce_$(class.name)_content ()
+    </rule>
+</entity>
+
+.   output_entity_tables ("$(class.name)_content")
+<entity name = "$(class.name)_arrived">
+    Repeat script block for each arrived content.
+    <attr name = "counter" short = "name of counter" />
+    <inherit name = "scripting" />
+    <rule phase = "parse" when = "before">
+    pal.nesting = (pal.nesting?0) + 1
+    if defined ([0].counter)
+        counter = "$\(counter:c)"
+        assume_variable (counter, "integer", 0)
+    endif
+    </rule>
+    <rule phase = "parse" when = "after">
+    pal.nesting = pal.nesting - 1
+    </rule>
+    <rule phase = "codegen" when = "before">
+    produce_$(class.name)_arrived_header ("arrived")
+    </rule>
+    <rule phase = "codegen" when = "after">
+    produce_$(class.name)_arrived_footer ("arrived")
+    </rule>
+</entity>
+
+<entity name = "$(class.name)_returned">
+    Repeat script block for each returned content.
+    <attr name = "counter" short = "name of counter" />
+    <inherit name = "scripting" />
+    <rule phase = "parse" when = "before">
+    pal.nesting = (pal.nesting?0) + 1
+    if defined ([0].counter)
+        counter = "$\(counter:c)"
+        assume_variable (counter, "integer", 0)
+    endif
+    </rule>
+    <rule phase = "parse" when = "after">
+    pal.nesting = pal.nesting - 1
+    </rule>
+    <rule phase = "codegen" when = "before">
+    produce_$(class.name)_arrived_header ("returned")
+    </rule>
+    <rule phase = "codegen" when = "after">
+    produce_$(class.name)_arrived_footer ("returned")
+    </rule>
+</entity>
+
+.endfor
+<entity name = "empty">
+    Conditional block executed if previous arrived or returned block
+    did not process any content.
+    <inherit name = "scripting" />
+    <rule phase = "codegen" when = "before">
+    produce_empty_header ()
+    </rule>
+    <rule phase = "codegen" when = "after">
+    produce_empty_footer ()
+    </rule>
+</entity>
+
+</xnf>

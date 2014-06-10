@@ -1,0 +1,388 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<xnf
+    name    = "xnf"
+    script  = "xnf_gen.gsl"
+    version = "2.1c0"
+    license = "gpl"
+    >
+An XNF file defines the grammar for an XML file.  The mod_xnf.gsl script
+works on this grammar to generate textual documentation of the language,
+and to generate customized GSL processors for the language in question.
+These processors can act as validating parsers, and as code generators.
+The principle change from XNF/1.0 is the addition of the script attribute
+and produce elements, so that all the information needed to generate an
+XNF grammar is embedded in the XML file.
+
+<inherit name = "xnf_base"/>
+
+<produce filename = "xnf_gen.gsl"      type = "wrap"    />
+<produce filename = "xnf_preproc.gsl"  type = "preproc" />
+<produce filename = "xnf_inherit.gsl"  type = "inherit" />
+<produce filename = "xnf_parse.gsl"    type = "parse"   />
+<produce filename = "xnf_doc.txt"      type = "gurudoc" />
+
+<rule phase = "wrap" when = "before">
+[gsl].include ("xnf_produce.gsl")
+</rule>
+
+<rule phase = "wrap" when = "after">
+if global.errno = 0
+    for xnf.produce
+        produce_$(type) (xnf, "$(filename)")
+    endfor
+endif
+</rule>
+
+<entity name = "xnf" tag = "xnf" cdata = "1" template = "top">
+    The 'xnf' item contains the set of entities and classes that define
+    the language grammar.  It also contains functions and error handlers
+    that are included in any eventual language processor produced from
+    the grammar, and include definitions that let you construct XNF files
+    from reusable fragments.
+
+    <allow entity = "include"     />
+    <allow entity = "produce"     />
+    <allow entity = "entity"      />
+    <allow entity = "errorhandler"/>
+    <allow entity = "xnf rule"    />
+
+    <attr name = "name" required = "1" >
+    This attribute is used when generating code, to name the resulting
+    output files.  It should be the name of the XML language that the XNF
+    grammar defines.
+    </attr>
+    <attr name = "script" default = "xnf_gen.gsl" short = "Script name">
+    Specifies the GSL template used to generate code for the component.
+    </attr>
+    <attr name = "version" required = "1" short = "Version number">
+    Specifies the version of the component. This text can take any format but we
+    recommend this standard format: '2.4b1' which is major version 2, minor version
+    4, release b, update 1.
+    </attr>
+</entity>
+
+<entity name = "include" key = "filename">
+    The 'include' item specifies the name of an XNF fragment to be included
+    in the main XNF file.  An XNF include file does not contain a root xnf
+    item, but a set of entity, class, function, or errorhandler entities.
+    The XNF processor will load partial XNF files specified in any include
+    entities before processing the remainder of the XNF file.
+    <attr name = "filename" required = "1" phase = "preproc">
+    Specifies the full or relative name of a partial XNF file.
+    </attr>
+
+    <rule when = "attrs" phase = "preproc">
+    my.include_file = xnf.load_file (filename)
+    if defined (my.include_file)
+        move my.include_file after my.include
+    else
+        preproc_error ("Error loading include file: $(filename): $(xml.error?)")
+    endif
+    </rule>
+</entity>
+
+<entity name = "produce" key = "type">
+    Specifies output wanted from the grammar.  You must define at least one
+    produce entity if you want to do anything useful with the grammar.  The
+    parser and code generator are built as hierarchical tree descent functions
+    as described in the XNF user's guide.  The wrapper is a generic GSL script
+    that invokes the parser and code generator for any given XML file of the
+    correct type.  The gurudoc documentation file can be used as-is or can be
+    processed into other kinds of documentation automatically.
+    <attr name = "filename" required = "1">
+    Specifies the file to generate.
+    </attr>
+    <attr name = "type" required = "1">
+    Specifies what to generate.
+        <restrict value = "wrap"      >generates a wrapper</restrict>
+        <restrict value = "preproc"   >generates a preprocessor</restrict>
+        <restrict value = "inherit"   >generates an inheritor</restrict>
+        <restrict value = "parse"     >generates a parser</restrict>
+        <restrict value = "codegen"   >generates a code generator</restrict>
+        <restrict value = "gurudoc"   >generates documentation in gurudoc format</restrict>
+    </attr>
+</entity>
+
+<entity name = "entity" cdata = "1" unique = "1"
+    inherit = "overlay" sequence = "after" >
+    The 'entity' item defines an XNF entity.  XNF entities are either
+    expressed with a body, or as a list of allowed child entities.
+    
+    <inherit name = "default"      />
+    
+    <allow entity = "allow"        />
+    <allow entity = "entity rule"  />
+    <allow entity = "attr"         />
+    <allow entity = "link"         />
+
+    <attr name = "name" required = "1">
+    Specifies the name of the entity, which is unique in the PFL file.
+    </attr>
+    <attr name = "tag">
+    The tag (XML item name) that is used to refer to this item in the
+    language.  The default value is the same as the entity name.
+    </attr>
+    <attr name = "cdata" default = "0">
+    Specifies whether the entity contains a value that is used for
+    code generation or documentation.  The cdata tag may be used by tools
+    such an XNF editor.
+        <restrict value = "0">entity does not use a value</restrict>
+        <restrict value = "1">entity uses a value</restrict>
+    </attr>
+    <attr name = "key">
+    Specifies the name of the field that identifies this entity.
+    </attr>
+    <attr name = "unique" default = "1">
+    If set, the entity, as identified by its key, must be unique.
+        <restrict value = "0" >may be repeated</restrict>
+        <restrict value = "1" >must be unique</restrict>
+    </attr>
+    <attr name = "inherit" default = "overlay">
+    Specifies the type of inheritence to apply to an entity of this type.
+        <restrict value = "none"   >No inheritence</restrict>
+        <restrict value = "insert" >Insert if item doesn't exist</restrict>
+        <restrict value = "overlay">Overlay if item exists; insert otherwise</restrict>
+    </attr>
+    <attr name = "sequence" default = "before">
+    Specifies whether inserted entities should be placed before or after
+    existing entities of the same type.
+        <restrict value = "before">Insert before existing items</restrict>
+        <restrict value = "after" >Insert after existing items</restrict>
+    </attr>
+    <attr name = "disconnect" default = "0">
+    Specifies whether arbitrary children, not specified with 'allow' entities
+    are allowed.
+        <restrict value = "0">unspecified children are not permitted</restrict>
+        <restrict value = "1">all children must be specified</restrict>
+    </attr>
+    <attr name = "export" default = "default" >
+    Specifies how this item may be inherited.
+        <restrict value = "none" >may not be inherited</restrict>
+        <restrict value = "default">inherited in the default manner</restrict>
+        <restrict value = "before" >inherited before existing items</restrict>
+        <restrict value = "after" >inherited after existing items</restrict>
+    </attr>
+
+    <rule phase = "parse" when = "before">
+    #   Set default value for tag
+    if my.entity.abstract ? 0 = 0
+        my.entity.tag ?= my.entity.name ?
+    endif
+    
+    #   Set default value for key
+    if !defined (my.entity.key)
+        if defined (my.entity->attr (name = "name"))
+            my.entity.key = "name"
+        endif
+    elsif key <> "" & !defined (my.entity->attr (name = my.entity.key))
+        parse_error ("Unknown key field: '$(key:)'$(my.location)")
+    endif
+    </rule>
+</entity>
+
+<entity name = "allow" key = "entity" inherit = "overlay" sequence = "after">
+    The 'allow' item defines a child entity that can occur or must occur within
+    the current entity.
+    <attr name = "entity" required = "1">
+    Specifies the name of a child entity.  The entity must be defined in the XNF
+    file.
+    </attr>
+    <attr name = "occurs" default = "0+">
+    Specifies whether the child entity is required or optional, and whether it
+    can occur multiple times or not.
+        <restrict value = "1"  >entity is required</restrict>
+        <restrict value = "1+" >entity is required and can occur more than once</restrict>
+        <restrict value = "0+" >entity is can occur zero or more times</restrict>
+        <restrict value = "0/1">entity is optional</restrict>
+    </attr>
+    <attr name = "inherit" >
+    Specifies the type of inheritence to apply to the allowed entity,
+    over-riding the default inheritence for entities of that type.
+        <restrict value = "none"   >No inheritence</restrict>
+        <restrict value = "insert" >Insert if item doesn't exist</restrict>
+        <restrict value = "overlay">Overlay if item exists; insert otherwise</restrict>
+    </attr>
+    <attr name = "sequence" >
+    Specifies whether inserted entities should be placed before or after
+    existing entities of the same type, over-riding the default sequence
+    for entities of that type.
+        <restrict value = "before">Insert before existing items</restrict>
+        <restrict value = "after" >Insert after existing items</restrict>
+    </attr>
+    <attr name = "export" default = "default" >
+    Specifies how this item may be inherited.
+        <restrict value = "none" >may not be inherited</restrict>
+        <restrict value = "default">inherited in the default manner</restrict>
+        <restrict value = "before" >inherited before existing items</restrict>
+        <restrict value = "after" >inherited after existing items</restrict>
+    </attr>
+    
+    <link from = "entity"/>
+</entity>
+
+<entity name = "entity rule" tag = "rule" cdata = "1" 
+        inherit = "insert" sequence = "after">
+    The 'rule' item provides GSL processor code for a specific entity.  A
+    single XNF file may define rules for multiple processors, e.g. 'parse'
+    and 'code'.  The processor works through the input XML file, and executes
+    any rule code specified for each entity.  By default, the rule code
+    executes before the processor goes to work on any child entities.  The
+    GSL code is taken from the rule item value.
+    <attr name = "phase" default = "parse" >
+    The processing phase during which this rule is executed.
+        <restrict value = "wrap"    >rule is used in wrapper generation</restrict>
+        <restrict value = "preproc" >rule is used in preprocessor</restrict>
+        <restrict value = "inherit" >rule is used in inheritence</restrict>
+        <restrict value = "parse"   >rule is used in parser</restrict>
+        <restrict value = "codegen" >rule is used in code generation</restrict>
+        <restrict value = "gurudoc" >rule is used in gurudoc generation</restrict>
+    </attr>
+    <attr name = "when" default = "before" >
+    Specifies whether the rule is applied before or after child items are
+    processed.  You will usually either define one rule (before) or define
+    both a 'before' and 'after' rule.
+        <restrict value = "before">rule code executes before processing child items</restrict>
+        <restrict value = "after" >rule code executes after processing child items</restrict>
+        <restrict value = "links" >rule code executes after processing entity links (children)</restrict>
+        <restrict value = "attrs" >rule code executes after processing entity attributes</restrict>
+    </attr>
+</entity>
+
+<entity name = "link" key = "entity">
+    The 'link' item specifies a 1:1 link to another entity.
+    <attr name = "from" required = "1" >
+    Specifies the name of the attribute in the current entity on which the
+    link is based.
+    </attr>
+    <attr name = "entity" >
+    Specifies the target entity of the link; the default is an entity with
+    the same name as the 'from' attribute.
+    </attr>
+    <attr name = "field"  default = "name" >
+    Specifies the name of the field in the target entity that identifies
+    the target of the link.
+    </attr>
+    <attr name = "required" default = "1">
+    Specifies whether the link target must exist or not.
+        <restrict value = "0">the link target is optional</restrict>
+        <restrict value = "1">the link target must exist</restrict>
+    </attr>
+    <attr name = "disconnect" default = "0">
+    Specifies whether the item being linked to should be inherited to the
+    item being linked from,
+        <restrict value = "0">inherit the linked item</restrict>
+        <restrict value = "1">do not inherit the linked item</restrict>
+    </attr>
+    <allow entity = "link rule"  />
+    <link from = "from" entity = "attr" disconnect = "1" />
+    <link from = "entity"               disconnect = "1" />
+</entity>
+
+<entity name = "link rule" tag = "rule"
+        cdata = "1" inherit = "insert" sequence = "after">
+    Rule attached to a link.
+    'parse'/'before'.
+    <attr name = "phase" default = "parse" >
+    The processing phase during which this rule is executed.
+        <restrict value = "parse"   >rule is used in parser</restrict>
+    </attr>
+    <attr name = "when" default = "before" >
+    Specifies whether the rule is applied before or after child items are
+    processed.  You will usually either define one rule (before) or define
+    both a 'before' and 'after' rule.
+        <restrict value = "before">rule code executes before calculating link</restrict>
+        <restrict value = "inherit">rule code executes before inheriting link</restrict>
+        <restrict value = "after" >rule code executes after inheriting link</restrict>
+    </attr>
+</entity>
+
+<entity name = "attr" >
+    The 'attr' item defines an entity attribute, possibly with restrictions on
+    the allowed values.
+    <allow entity = "restrict" />
+
+    <attr name = "name" required = "1">
+    The name of the attribute.
+    </attr>
+    <attr name = "required" default = "0">
+    Specifies whether the attribute is required or not.
+        <restrict value = "0">the attribute is optional</restrict>
+        <restrict value = "1">the attribute is required</restrict>
+    </attr>
+    <attr name = "default">
+    Specifies a default value for the attribute.  If the grammar does not
+    define a default, an empty value ("") is used as default.  If you use
+    the default specification, there is no meaning in specifying 'required'
+    as well.
+    </attr>
+    <attr name = "inherit" default = "1" short = "inherit y/n">
+    Specifies whether the attribute can be inherited from parent classes.
+        <restrict value = "0" >may be inherited</restrict>
+        <restrict value = "1" >is not inherited</restrict>
+    </attr>
+    <attr name = "phase" default = "parse" >
+    The processing phase during which this attribute is validated.
+        <restrict value = "preproc" >validated in preprocessor</restrict>
+        <restrict value = "parse"   >validated in parser</restrict>
+    </attr>
+    
+</entity>
+
+<entity name = "restrict" cdata = "1" key = "value">
+    The 'restrict' item defines one of a set of possible values for an
+    attribute.  If the attribute contains one or more restrict definitions,
+    the attribute can only take one of these values.  Otherwise it can take
+    any value.
+
+    <attr name = "value" required = "1">
+    Specifies one of the allowed attribute values.
+    </attr>
+</entity>
+
+<entity name = "xnf rule" tag = "rule" cdata = "1" 
+        inherit = "insert" sequence = "after">
+    Rule attached to the xnf.
+    <attr name = "phase" default = "parse" >
+    The processing phase during which this rule is executed.
+        <restrict value = "wrap"    >rule is used in wrapper generation</restrict>
+        <restrict value = "preproc" >rule is used in preprocessor</restrict>
+        <restrict value = "inherit" >rule is used in inheritence</restrict>
+        <restrict value = "parse"   >rule is used in parser</restrict>
+        <restrict value = "codegen" >rule is used in code generation</restrict>
+        <restrict value = "gurudoc" >rule is used in gurudoc generation</restrict>
+    </attr>
+    <attr name = "when" default = "before" >
+    Specifies the rule attach point.
+        <restrict value = "before">rule code executes before processing child items</restrict>
+        <restrict value = "after">rule code executes after processing child items</restrict>
+    </attr>
+</entity>
+
+<entity name = "errorhandler" cdata = "1" inherit = "none">
+    The 'errorhandler' entity provides GSL code for an error handler.  If
+    this entity is not defined, the GSL processer gets a default error
+    handler.  The error handler must be a function with the name
+    'xnf_xxxx_error' where xxxx is the name of the rule (e.g. 'parse' or
+    'code').  The error handler receives a single argument, being an error
+    message.  You can define your own error handler to provide more context
+    to the user in cases of errors.
+</entity>
+
+</xnf>

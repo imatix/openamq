@@ -1,0 +1,999 @@
+<html>
+<head>
+<title>body</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="gdstyle.css" type="text/css">
+</head>
+<body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0">
+<table width="100%" height="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr valign="top">
+    <td width="5" bgcolor="#DDDDDDD">&nbsp;</td>
+    <td>
+      <a name="TOC121"><h1>Hacking Boom</h1></a>
+      <p>This section is for developers who are familiar with Boom and want to extend it with new workflows, new builders, and so on. Boom was made for walking, so to speak, and if you're thinking about hacking it, you'll find a rich set of tools waiting for you. You can hack Boom at several levels, somewhat like a bloodythirsty video game. No coincidence that the architects of the popular video game chose a name that resembled "Boom" closely. Or maybe it was the other way around. Anyhow, you may find that Boom resembles an explosive Russian doll: every layer you open up will take you into a deeper and more profound understanding of how to create total software chaos. I hope you are ready. </p>
+<h2><a name="TOC122">The PWL Language</a></h2>
+<p>PWL is the Boom Project Workflow Language. PWL is an XML language, which we describe formally using a grammar notion similar to BNF. </p>
+<h3><a name="TOC123">Summary of Language</a></h3>
+<p>This summary shows the hierarchy of elements you can use, with the required and optional attributes for each element.  The XML entity and attribute names are case-sensitive and we use only lower-case names. </p>
+<pre>
+&lt;pwl name&gt;
+   &lt;include filename [required]/&gt;
+   &lt;inherit filename/&gt;
+   &lt;state name [inherit]&gt;
+      &lt;event name [internal] [nextstate]&gt;
+         &lt;action name/&gt;
+      &lt;/event&gt;
+   &lt;/state&gt;
+   &lt;target name script [label] [pathsep] [inherit] [output]/&gt;
+&lt;/pwl&gt;
+</pre>
+<h3><a name="TOC124">Detailed Specifications</a></h3>
+<p>All child entities are optional and can occur zero or more times without any specific limits unless otherwise specified.  The same tag may occur at different levels with different meanings, and in such cases will be detailed more than once here. </p>
+<h4><a name="TOC125">The 'pwl' Item</a></h4>
+<p>A PWL file defines a project builder workflow. The workflow defines the states and the events that the build and install process moves through. Each valid event provokes a series of actions, which are implemented as rules for different target systems. The PWL structure lets you formalise an abitrary building process. For more enlightenment on the state-machine concept used in PWL, see the iMatix Libero tool. </p>
+<pre>
+&lt;pwl
+    name = "..."
+    &gt;
+    &lt;include&gt;
+    &lt;inherit&gt;
+    &lt;state&gt;
+    &lt;target&gt;
+&lt;/pwl&gt;
+</pre>
+<p>The pwl item has this single attribute: </p>
+<dl>
+<dt><b>name</b></dt>
+<dd>This is the name of the workflow. The name attribute is required. </dd>
+</dl>
+<h4><a name="TOC126">The 'include' Item</a></h4>
+<p>The 'include' element permits textual-inclusion from another file. The included file must be a valid XML file containing a set of states. These are included in the PWL tree as-is. </p>
+<pre>
+&lt;include
+    filename = "..."
+  [ required = "0 | 1"  ("1") ]
+    /&gt;
+</pre>
+<p>The include item can have these attributes: </p>
+<dl>
+<dt><b>filename</b></dt>
+<dd>The name of the XML-format file to be included in place of the 'include' element. The filename attribute is required. </dd>
+<dt><b>required</b></dt>
+<dd>If set to zero, the include file is ignored if it is missing. The required attribute is optional. Its default value is "1". It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>0</td>
+<td>File is not required</td>
+</tr>
+<tr>
+<td>1</td>
+<td>File is required</td>
+</tr>
+</table></center></p><h4><a name="TOC127">The 'inherit' Item</a></h4>
+<p>The 'inherit' element permits reference to a base set of states which should be used if the states are not already defined in the PWL file. </p>
+<pre>
+&lt;inherit
+    filename = "..."
+    /&gt;
+</pre>
+<p>The inherit item has this single attribute: </p>
+<dl>
+<dt><b>filename</b></dt>
+<dd>The name of the PWL-format file to read the base states from. The filename attribute is required. </dd>
+</dl>
+<h4><a name="TOC128">The 'state' Item</a></h4>
+<p>The workflow contains one or more states that define a specific point in the project lifecycle. The state defines the events allowed at that point, and the consequence of each event. </p>
+<pre>
+&lt;state
+    name = "..."
+  [ inherit = "..." ]
+    &gt;
+    &lt;event&gt;
+&lt;/state&gt;
+</pre>
+<p>The state item can have these attributes: </p>
+<dl>
+<dt><b>name</b></dt>
+<dd>The name of the state. The name attribute is required. </dd>
+<dt><b>inherit</b></dt>
+<dd>The state can inherit from another state in the workflow. All events in the inherited state are included in the current state if not already defined there. Boom allows multiple inheritence. The inherit attribute is optional. </dd>
+</dl>
+<h4><a name="TOC129">The 'event' Item</a></h4>
+<p>Events are either internal - produced by the workflow actions - or external, provoked by user commands. An event causes zero or more workflow actions. </p>
+<pre>
+&lt;event
+    name = "..."
+  [ internal = "0 | 1"  ("0") ]
+  [ nextstate = "..." ]
+    &gt;
+    &lt;action&gt;
+&lt;/event&gt;
+</pre>
+<p>The event item can have these attributes: </p>
+<dl>
+<dt><b>name</b></dt>
+<dd>The name of the event. The name attribute is required. </dd>
+<dt><b>internal</b></dt>
+<dd>If 1, the event is treated as an internal workflow event and never shown to the user or accepted from the user. The internal attribute is optional. Its default value is "0". It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>0</td>
+<td>Event is external</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Event is internal</td>
+</tr>
+</table></center></p><dl>
+<dt><b>nextstate</b></dt>
+<dd>If this is specified, the workflow will continue into the next state as specified. The last action in the action list must generate an internal event that is handled in the next state. The nextstate attribute is optional. </dd>
+</dl>
+<h4><a name="TOC130">The 'action' Item</a></h4>
+<p>A workflow action is implemented by some user code. </p>
+<pre>
+&lt;action
+    name = "..."
+    /&gt;
+</pre>
+<p>The action item has this single attribute: </p>
+<dl>
+<dt><b>name</b></dt>
+<dd>The name of the action. The name attribute is required. </dd>
+</dl>
+<h4><a name="TOC131">The 'target' Item</a></h4>
+<p>The target defines a platform for which we generate a packaging script. </p>
+<pre>
+&lt;target
+    name = "..."
+    script = "..."
+  [ label = "..." ]
+  [ pathsep = "..."  ("/") ]
+  [ inherit = "..." ]
+  [ output = "..." ]
+    /&gt;
+</pre>
+<p>The target item can have these attributes: </p>
+<dl>
+<dt><b>name</b></dt>
+<dd>The abbreviated name of the platform. The name attribute is required. </dd>
+<dt><b>label</b></dt>
+<dd>The long name of the platform. The label attribute is optional. </dd>
+<dt><b>script</b></dt>
+<dd>The GSL script file that contains the rule actions code. The script attribute is required. </dd>
+<dt><b>pathsep</b></dt>
+<dd>Specifies the path separator for this target. The pathsep attribute is optional. Its default value is "/". </dd>
+<dt><b>inherit</b></dt>
+<dd>The target can inherit its rules from another target. All rules in the inherited target are included in the current target if they are not already defined there. The inherit attribute is optional. </dd>
+<dt><b>output</b></dt>
+<dd>This is the name + extension of the packaging script that Boom will build for this target. If empty, Boom does not build any output file and simply calls all target rules so that these can - if wanted - generate other output files. The output attribute is optional. </dd>
+</dl>
+<h2><a name="TOC132">Guerilla Warfare</a></h2>
+<h3><a name="TOC133">In Seven Easy Steps</a></h3>
+<p>Just in case you forgot, here is a summary of how Boom actually works. </p>
+<ol>
+<li><p>You define a project definition using PDL, which is an XML language. Your PDL file can take data from other PDL files through the &lt;include&gt; and &lt;inherit&gt; mechanisms.</li>
+<li><p>Each project PDL refers to a single workflow file, which is a PWL file. PWL is another XML language that also supports include and inherit. So, the first thing Boom does is to load up your PDL, and its matching PWL, do all the include and inherit stuff, and check that everything looks legit.</li>
+<li><p>Via the PWL, your project knows about one or more targets. Each target tells Boom: "generate a builder with this name". So, Boom works through each target, and produces a builder according to specifications. What are these specifications? They are the PWL structure. Each builder implements a workflow.  This magic happens in GSL scripts called "pwl_xxx.gsl" which are specified by the target definitions.  Each target has such a magic GSL script, which I call a "target script".</li>
+<li><p>The target scripts generate two things: (a) a workflow engine, and (b) a series of blocks of shell code that do each workflow action.  So, if the workflow has an action called "Install Deliverables", the target script has a matching function that produces the final shell script. This is complex work and often means climbing through the PDL data structures looking for the necessary information.</li>
+<li><p>All this happens when you do "boom", which looks for a project file called "project.pdl".  If all works, you get a number of builder scripts called "boomake" or "boomake.bat" or whatever the target asked for.  These builder scripts are tools aimed at the programmer and/or person doing the installation.  So, if you distribute your project you will also have to distribute the builder scripts.  Luckily Boom does this for you.</li>
+<li><p>Boom will turn your project into simple distributable packages that contain either the source code (original project code plus all generated code, including builder scripts), or the compiled and linked binary programs (which are by definition not portable).</li>
+<li><p>Boom lets you collect multiple projects into a "product", which sits in a parent directory.  There is a product workflow, and the target scripts for each target include actions that are used only when building a product.  These actions look the same as the project actions (build, install, clean,...) but work in bulk, on all projects in the product.  This is much easier and safer than trying to build individual projects.  When building products, Boom installs projects into something called a "temporary install tree" so that projects can refer to header files, commands, and libraries built by other projects in the same product, but not yet installed.  The temporary install tree also provides the set of files that are packaged into the binary installable product intended for end-users, and this packaging is done either by some standard packaging scripts, or by your own custom packaging scripts.  Whew!</li>
+</ol>
+<h3><a name="TOC134">Getting Warmed Up</a></h3>
+<p>Any good hacker needs to be familiar with his tools. In some games it may be fun to pick up the green oblong box just in case a water sprite asks for it, but since we're supposed to be serious here, I'll try to walk through the various levels at which we can hack Boom, and note the tools and skills you will need at each level. </p>
+<dl>
+<dt><b>Extending the Boom classes</b></dt>
+<dd>You will have to understand how PDL classes work and how to define them.  After that, you can specify new classes in your projects, or in shared PDL files that (like classes.pdl) are inherited by more than one project.  This topic has already been covered in the text and we won't go into it again. </dd>
+<dt><b>Changing the Boom workflows</b></dt>
+<dd>You will have to understand the PWL language and the workflow model. You can easily add new events (user actions) or change the flow of control for events.  Don't change the standard workflows - make a copy with a new name and edit that.  Look at "Extending Boom" for more details. </dd>
+<dt><b>Changing the generated builders</b></dt>
+<dd>You may find errors in the generated builders (boomake).  You can change the GSL scripts that generate these (pwl_xxxx.gsl).  If you find real bugs, tell us so that we can fix the original code.  You can also change the generated code for other reasons.  If you make real changes, consider making a new target.  You will have to know GSL and your target platform.  Look at "Extending Boom" for more details. </dd>
+<dt><b>Defining new targets</b></dt>
+<dd>You can define new targets for the builder scripts, and these can be based partly on existing targets (inheriting any code needed).  To do this kind of thing you need to know the PWL language, and you have to have understood how the existing target scripts (pwl_xxxx.gsl) are put together, since defining a new target means writing a new target script.  If you have to port Boom to a totally new platform - say OpenVMS - than you will have to understand how the workflow engine works so that you can rewrite that part of the target script - see McIgor, later.  Look at "Extending Boom" for more details. </dd>
+<dt><b>Writing product packagers</b></dt>
+<dd>Product packages are shell scripts that mangle the temporary install tree into something resembling an "installable package".  To do this kind of work, you have to understand your installer, and know how to drive it from a shell script.  Finally, you have to understand how Boom creates a temporary install tree.  Boom allows you to refine the product packaging process by passing arguments to the packager. Look at "Extending Boom" for more details. </dd>
+<dt><b>Generating new and wonderful makefiles</b></dt>
+<dd>Makefiles are not easy to generate, and you will see that Boom goes through contortions in order to generate the feeble ones it makes by default.  A good makefile knows all the dependencies in a project, and you can work out most of these mechanically by walking the PDL tree and (if necessary) scanning the source code itself.  To do this well you will have to know how makefiles work on your chosen target platform, and you will have to be ready to write some solid GSL code that does the hard work.  Look at "Extending Boom" for more details.  </dd>
+<dt><b>Adding support for new languages</b></dt>
+<dd>By which we mean new compiled languages.  Boom has support for C built in, but is extensible to other languages.  There are two ways of doing this, really.  You can call external commands during the build process.  Thus, you can define a class for (e.g.) Java code that calls the Java compiler during the build process.  The easiest way to do this is to use a BEX, so you should read-up on what BEXes are and how they work.  The second way is to extend the existing code generation scripts to "know" about your new language.  This is a good approach if the compilation process is not portable, since the code generation scripts are already organized on a per-target basis.  To extend the code generation model to support new languages you will have to change the PDL language, and this means knowing a little about XNF.  Look at "Extending Boom" for more details.  </dd>
+<dt><b>Writing Boom Extensions (BEXes)</b></dt>
+<dd>A Boom Extension is a nice way to add your own intelligence to the code generation processes in Boom.  Since there are several places that you can add BEXes, you should be familiar with the GSL code in question.  You will also have to study the PDL data model a little so that you know the context in which your BEX works. This topic has already been covered in the section "Writing BEXes". </dd>
+<dt><b>Adding new concepts to PDL</b></dt>
+<dd>PDL represents a snapshot of one vision of a project model.  You can extend and adapt this as you like.  For example: the existing PDL definition knows about just one compiled programming language, C, and you may want to add your own.  It is easy enough, but you have to know how to play with XNF definitions, and you have to be familiar with the PDL grammer in pdl.xnf, since you will be changing this. Look at "Extending Boom" for more details. </dd>
+<dt><b>Adding new concepts to PWL</b></dt>
+<dd>PWL represents an abstracted workflow model.  You can extend this model, if you ever reach its limits.  See above comments for hacking PDL: you must know how to play with an XNF grammar.  You will also need to understand how Boom workflows work - see McIgor, later on. Look at "Extending Boom" for more details. </dd>
+<dt><b>Inventing your own XML languages</b></dt>
+<dd>Ah, now you're getting there.  Boom is just an example.  Feel free to define any model you can imagine... make it solid using XNF, and turn that into little tree-walking, code generating, singing and dancing GSL scripts using the XNF tools.  Look at the "XNF User's Guide" for more details. </dd>
+<dt><b>Extending the GSL language</b></dt>
+<dd>At some point you may reach the limits of what GSL can do itself. Admittedly I'm scraping the bottom of the barrel here, but this is what open source is all about.  Maybe you want to hook Boom into your custom-built configuration management system, and you want to do this with BEXes that update your CMS tables, which happen to be sitting in an Oracle database.  No panic.  OK, panic.  But GSL is easily extensible itself, using a model called "GXL", or GSL Extension Language.  Take a look at the GSL project in Base and you will see that many of the interesting functions, such as string and math manipulation, are implemented as GXLs.  See the GSL documentation for more details. </dd>
+</dl>
+<h3><a name="TOC135">Warstrapping</a></h3>
+<p>Warstrapping is like bootstrapping but under fire. In other words, you need to get Boom up and running fast, and you don't want to or can't afford to install the full Base package. Or perhaps you're trying to build Base itself and you are in the interesting situation we call "deadlock". </p>
+<p>This is how to get Boom up and running with the bare minimum of red tape. </p>
+<ol>
+<li><p>You need a binary of GSL/3.x.  Put this on your path or stick it into the Boom directory.</li>
+<li><p>Regenerate the Boom parsers: "gsl parsers".</li>
+<li><p>Rebuild the Boom project: "boom".</li>
+<li><p>Install Boom: "boomake install".</li>
+<li><p>Make sure your PATH includes the install binary directory.</li>
+<li><p>Set INCDIR and LIBDIR to the install include and lib directories.</li>
+</ol>
+<p>After which you should be able to use Boom just dandily. </p>
+<h3><a name="TOC136">Docstrapping</a></h3>
+<p>Docstrapping is like boot strapping but aimed at documentation. You need Boom's documentation at hand but you can't or won't go through the Gurudoc process that generates the HTML file you are looking at right now. </p>
+<p>The Boom documentation is available as a set of ordinary text files, meant to be readable without further mangling.  The most vital of these files is "boom.txt", which is this documentation in its original source format. </p>
+<p>Secondly, you can generate summaries of all the important Boom languages and structures.  You have to have Boom working (see above).  Then, do this: </p>
+<pre>
+gsl -autodoc:1 boom
+</pre>
+<p>Which generates a number of text files you can look at, and use as quick references: </p>
+<dl>
+<dt><b>classes.txt</b></dt>
+<dd>Summary of all default classes. </dd>
+<dt><b>pdl.txt</b></dt>
+<dd>Summary and detailed explanation of the PDL language. </dd>
+<dt><b>pwl.txt</b></dt>
+<dd>Summary and detailed explanation of the PWL language. </dd>
+<dt><b>xnf.txt</b></dt>
+<dd>Summary and detailed explanation of the XNF language, which I'll come back to in a second. </dd>
+<dt><b>standard.txt</b></dt>
+<dd>How to use the standard workflow (and there are matching files for the simple, scripted, and product workflows). </dd>
+</dl>
+<h2><a name="TOC137">McIgor The Hunchbacked Workflow Engine</a></h2>
+<p>The core of every generated builder is a workflow engine. Yes, it is possible to build a workflow engine not only in a Unix shell language, but also in the DOS batch file language that Windows still uses.  It's not pretty, but still it's worth understanding, since one day you may have to make your own target scripts. </p>
+<p>The workflow engine works like any finite state machine (FSM), which of course you learned all about in coding school along with n-trees and discrete networks.  I presume you're like most people who read this - either you never studied FSMs at all, or you were asleep during that part of the computer science course.  In which case, relax.  I'm going to give you a rapid introduction to the subject, and that should be enough to show you why and how we use FSMs in Boom.  If you already know all this, you can just skip this section entirely. </p>
+<h3><a name="TOC138">Introduction to Finite State Machines</a></h3>
+<p>FSMs can model the behavior of a system, and any code that implements an FSM implements a software model of a system. This sounds simple but it is actually quite profound. It is rare to conceive of problems as "systems" that we can model, and the exceptions show this: neural networks, fractal systems, artificial lifeforms, etc. Wierd and wonderful things, but hardly the stuff of the common job of programming? Most programmers work by translating a mental model of a problem (and its solution) into code. A good programmer can do this accurately for large and complex models. But in most programming languages the distance between the mental model and its software implementation is very large. This is bad: even the best mind cannot focus on different scales at the same time.  An architect thinks in terms of spaces and separations, not bricks and mortar. </p>
+<p>We've already discussed the notion of "ultrafat" languages and using XML plus GSL code generation as a general approach to creating and using models. We can go one step further, and try to find models that are not only "ultrafat", but which are reusable in many domains and thus able to act as reusable abstract languages. FSMs fall into this rare and valuable category. Whether you are concerned with the behavior of a single TCP/IP packet as it traverses a network or the behavior of an online booking for a skiing holiday, an FSM lets you model the problem from beginning to end. What is more, you can adjust the level of detail to make a model that is just precise enough to capture the problem, no more and no less. </p>
+<p>So, what is the FSM model? Overall, it captures a process, a set of actions and consequences. An FSM is very much oriented towards the "how" rather than the "what", at the opposite end of the spectrum from models such as objects, which model data rather than process. An FSM process works as a set of "states", each with a clear name and meaning. We say "the object/process finds itself in one of these states", and the set of states is finite and closed, hence the name. In each state, we list the events that are possible. In general, an "event" is a trigger, a piece of information that says "this happened" or "we want to do this". Events are like the methods on an object, and we sometimes use the term "method". In any case, an event is abstract. The connection between the event and the work done is defined by the state machine. In one state, an event may do one thing. In another state, it may do another thing. We call these things "actions". In a simplistic FSM, one event provokes one action. In realistically complex FSMs, one event provokes a list of actions, executed in order. When all the actions have finished their work the FSM goes into a (possibly) new state. </p>
+<p>Writing a FSM is very different from writing code in a "normal" language in which we define logic as a series of steps (in a procedural language like C, Java, or Perl), as blocks of code that handle methods (in an object-oriented language), as an inverted pyramid of ever more powerful functions (in a language such as Lisp, Scheme, or Forth), or as a model whose's implementation depends entirely on an intelligent agent (in a modeling language such as XML-over-GSL).  A FSM program is defined as a set of states, each state listing a set of events, and each event listing a set of actions.  In a readable form it might look something like this: </p>
+<pre>
+Left-Expr-First:
+    (--) Normal                             -&gt; Left-Expr-Next
+          + Save-Left-Expr-Position
+          + Concat-Token-To-Left-Expr
+          + Get-Next-Token
+    (--) String                             -&gt; Left-String-Next
+          + Save-Left-Expr-Position
+          + Concat-Token-To-Left-Expr
+          + Get-Next-Token
+    (--) Relator                            -&gt;
+          + Signal-Expr-Or-String-Expected
+          + Terminate-The-Program
+    (--) Finished                           -&gt;
+          + Signal-Expr-Or-String-Expected
+          + Terminate-The-Program
+Left-Expr-Next:
+    (--) Normal                             -&gt; Left-Expr-Next
+          + Concat-Token-To-Left-Expr
+          + Get-Next-Token
+    (--) String                             -&gt;
+          + Signal-Relator-Expected
+          + Terminate-The-Program
+    (--) Relator                            -&gt; Right-Expr-First
+          + Get-Next-Token
+    (--) Finished                           -&gt;
+          + Signal-Relator-Expected
+          + Terminate-The-Program
+</pre>
+<p>Which comes from somewhere inside the guts of Libero.  Here we see two states, each with the same list of four events, but very different handling for each event.  Libero is, by the way, one of the first tools we wrote at iMatix, and one we still use when we have to write complex code in the form of FSMs.  Libero epitomises the principle of using abstract models that do not depend on irrelevant details such as the programming language: it will happily generate code in a multitude of languages ranging from assembler to Java. </p>
+<p>You can - and if you are keen to broaden your understanding of just how plastic software actually is - study Libero and consider how it could work on some of the problems you have solved in the last few weeks or months. </p>
+<p>It would have been possible to use Libero in Boom.  But GSL makes it rather easier: where it took several months to write Libero originally, we can implement similar state machines in XML in a few hours.  Here is the same fragment, expressed as XML: </p>
+<pre>
+&lt;state name = "Left-Expr-First"&gt;
+    &lt;event name = "Normal" next-state = "Left-Expr-Next"&gt;
+        &lt;action name = "Save-Left-Expr-Position" /&gt;
+        &lt;action name = "Concat-Token-To-Left-Expr" /&gt;
+        &lt;action name = "Get-Next-Token" /&gt;
+    &lt;/event&gt;
+    &lt;event name = "String" next-state = "Left-String-Next"&gt;
+        &lt;action name = "Save-Left-Expr-Position" /&gt;
+        &lt;action name = "Concat-Token-To-Left-Expr" /&gt;
+        &lt;action name = "Get-Next-Token" /&gt;
+    &lt;/event&gt;
+    &lt;event name = "Relator"&gt;
+        &lt;action name = "Signal-Expr-Or-String-Expected" /&gt;
+        &lt;action name = "Terminate-The-Program" /&gt;
+    &lt;/event&gt;
+    &lt;event name = "Finished"&gt;
+        &lt;action name = "Signal-Expr-Or-String-Expected" /&gt;
+        &lt;action name = "Terminate-The-Program" /&gt;
+    &lt;/event&gt;
+&lt;/state&gt;
+&lt;state name = "Left-Expr-Next"&gt;
+    &lt;event name = "Normal" next-state = "Left-Expr-Next"&gt;
+        &lt;action name = "Concat-Token-To-Left-Expr" /&gt;
+        &lt;action name = "Get-Next-Token" /&gt;
+    &lt;/event&gt;
+    &lt;event name = "String"&gt;
+        &lt;action name = "Signal-Relator-Expected" /&gt;
+        &lt;action name = "Terminate-The-Program" /&gt;
+    &lt;/event&gt;
+    &lt;event name = "Relator" next-state = "Right-Expr-First"&gt;
+        &lt;action name = "Get-Next-Token" /&gt;
+    &lt;/event&gt;
+    &lt;event name = "Finished"&gt;
+        &lt;action name = "Signal-Relator-Expected" /&gt;
+        &lt;action name = "Terminate-The-Program" /&gt;
+    &lt;/event&gt;
+&lt;/state&gt;
+</pre>
+<p>And where the C code in Libero that turns a dialog description into usable code runs to about 10,000 lines, the GSL code that turns the above XML into an equivalent chunk of code can be as short as 100 lines.  Working at about 100x the speed of C, producing equivalent results... it's interesting stuff.  But GSL is another story. </p>
+<h3><a name="TOC139">The FSM as a Programming Tool</a></h3>
+<p>The key to an FSM's value is that it splits complex problems into three distinct pieces: </p>
+<ul>
+<li><p>First, there is the overall state machine description. Done well, we can describe any problem, no matter how complex, in a few pages at most. This fits very nicely into the mind of a moderately good programmer especially since the description is itself split into states which are independently digestable. For example, the FSM description of the Xitami web server HTTP core is about 600 lines of code, covering 18 states.</li>
+<li><p>Secondly, there is the "real work", the code that fulfills each action. This is broken into largely independent blocks of code that may share data but do not interact otherwise, except through the machinations of the FSM. These blocks of code are - if the FSM is designed correctly - small enough to understand and write well. Taking the example of Xitami again, the core HTTP engine has about 90 actions, giving a total of 3300 lines of code. An average of 40 lines per action falls very smoothly into what I can understand on a cold foggy Monday morning when I'm only half awake and the coffee machine is broken.</li>
+<li><p>Thirdly, a layer of generated code brings these two levels together. This generated code implements the FSM, the states and event transitions, and calls the programmer actions as needed.</li>
+</ul>
+<p>When we use FSMs, we typically go through three design phases: </p>
+<ol>
+<li><p>Design solution to problem as FSM, and make it work with empty actions that do nothing except allow the FSM to run through the motions. This typically 5-10% of the time, say one or two days for a project of a month.</li>
+<li><p>Gradually fill-in each of the actions, writing and testing them one by one until the program does everything it has to.  This takes 80-90% of the work.</li>
+<li><p>Throw way the original FSM design, write a new one that puts the actions together in the _right_ way, and make final adjustments to the actions to suit.  This takes 5-10% of the work again.</li>
+</ol>
+<p>With Boom, this is exactly what happened. We made a first workflow, and implemented the workflow actions (in the target scripts). After a month or so of use, we redesigned the workflows from scratch - to look more like a standard "make" model - but had to make only small changes to the target scripts. </p>
+<p>Not all FSMs are used as the basis for code generation.  In fact, it is a rare approach, and Libero is one of the few tools that does this for general programming, as compared to niche tools that do this for compiler design or telecommunications.  But it is a really satisfying and effective way of slicing up large and difficult problems.  We get pieces that we can understand easily and implement better.  Not only that, but the approach lends itself naturally to both gradual development from prototype through to production version, and the "plan to throw one away, you will anyhow" approach to software construction. </p>
+<p>Let me relist the main attractions of using FSMs: </p>
+<ul>
+<li><p>They let you work at an arbitrary level of abstraction, and are thus applicable to an unlimited range of problems from the micro to the macro.</li>
+<li><p>They are free and independent of technical detail, so let you think in ways that are not bound to programming languages and the way they try to get you to think.</li>
+<li><p>They are formal, and can therefore be turned into equivalent code, which is what we are after.  However, unlike most other formal methods, FSMs can remain understandable and simple if (and this is a big "if") the designer uses the right level of abstraction.</li>
+<li><p>They allow the automatic generation of a critical layer of code, and this generated code does a much better job than any hand-written code could.</li>
+<li><p>They can be implemented on any platform, in any language.</li>
+<li><p>They allow gradual implementation from prototype to production.</li>
+<li><p>They let you make late but fundamental redesigns at a very low cost.</li>
+<li><p>They work very well in the XML-plus-GSL way of looking at problems.</li>
+</ul>
+<p>Now the main difficulties with FSMs: </p>
+<ul>
+<li><p>They are strange and somewhat outside the mainstream of software culture, with the exception of some domains, namely telecommunications and compiler construction.  This means you are unlikely to find people with experience or understanding of FSMs if you choose to use them.</li>
+<li><p>They ignore the language wars, and this means that anyone with passionate views on programming languages will dislike FSMs (unless they become FSM zealots, which is not a pretty sight either).</li>
+<li><p>They work best when used well, and that demands a certain skill, experience, and culture.  This is hard or even impossible to pick out of thin air: people need about 3-4 days to "get" the FSM model, and a guiding hand during that time.</li>
+<li><p>FSMs only work well when coupled with a code generator: trying to make them by hand is enough to put you off programming forever.  But code generation is a mysterious art for most programmers, and this puts FSMs behind two layers of ignorance.</li>
+<li><p>A bad FSM model is worse than none at all.</li>
+</ul>
+<p>To be 100% accurate, we have to split the concept of an "FSM" into two distinct things. First, there is the model, our diagram of states and events and actions. Second, there is the underlying code, written in whatever programming language our compiler or interpreter accepts. For most programmers unused to the capacity of code generation to create abstract models, and in most textbooks that discuss finite-state machines and other algorithmic models, the "FSM" is the second thing, and the first thing exists only as a paper diagram, documentation, or an idea. For us, the FSM is the model, and only the model. The code is the "engine" and it is as important but hidden as the engine in a car is to the average driver. </p>
+<h3><a name="TOC140">Using FSMs for the Boom Problem</a></h3>
+<p>OK, we've seen that FSMs are - if you believe me - a good way of describing certain types of problem and turning that description into code that does a hard job better than any programmer could do. </p>
+<p>The next step is a leap of faith: Boom's work - namely, turning projects from raw source code into distributable packages - is one of those problems that falls nicely under the hand of an FSM approach. This is the point where most people will say: "hey, makefiles do not use states. Why should Boom?" And it is a good question to ask.  The only reasonable answer is that the designers of make did not look at the problem in those terms.  However, I believe they were wrong, and I'll try to explain why. </p>
+<p>I'll give one illustration of how a project can and does exist in different states. Take the "clean" action. This deletes all files that we "do not need". But this is a fluid concept. "Do not need" has a different meaning for someone building from a downloaded source package, and for someone working from sources stored in a CVS. When I clean a project, do I remove generated code or not? If I'm a careful and tidy programmer, the answer is "yes, if I have the tools to rebuild the generated code, otherwise no".  If I don't care very much, I'll answer "nah, just leave my directory filled with clutter so that I don't know what is important and what is not." </p>
+<p>Does a "clean" action delete object files, libraries and executables? Presumably "yes", if you are a developer, but "no" if you downloaded the binary package. So, even a simple project with compiled code has at least two states, namely "source" and "binary", and a more realistic project will have a third, "raw source code without generated files". </p>
+<p>Having chopped our process into states, we now see that events do not make sense in all states.  Can we say "install" on a raw project? Can we say "create distribution" on a source project?  Can we say "build" on a binary distribution?  Right.  Depending on the context, our world looks somewhat different. </p>
+<p>It is possible to do this within a makefile, but only by ignoring the real distinction and making each action responsible for checking that it "makes sense".  Compare that to a FSM, in which the meaning of each action is clearly described within the context of the state: </p>
+<pre>
+&lt;state name = "repository"&gt;
+  &lt;event name = "build"&gt;
+    &lt;action name = "check project files exist" /&gt;
+    &lt;action name = "produce generated files"   /&gt;
+    &lt;action name = "check source files exist"  /&gt;
+    &lt;action name = "build binary files"        /&gt;
+  &lt;/event&gt;
+&lt;/state&gt;
+...
+&lt;state name = "source"&gt;
+  &lt;event name = "build"&gt;
+    &lt;action name = "check source files exist"  /&gt;
+    &lt;action name = "build binary files"        /&gt;
+  &lt;/event&gt;
+&lt;/state&gt;
+</pre>
+<h3><a name="TOC141">Making the FSM Come to Life</a></h3>
+<p>Having decided on a FSM language - and in Boom's case this is PWL - we then have to turn that language into code.  It is fairly messy work but since we're doing the same kind of work as a compiler, having done the work one time, we can reapply it to any instance. </p>
+<p>And here we come to the real reason for using FSMs in Boom: it lets us turn any arbitrary project building workflow into code automatically. It would probably have been less work to hard-code our "standard" workflow as a MS-DOS batch file and Unix shell script. But not nearly as useful. </p>
+<p>Now we come to the guts of the problem: how to turn a FSM description into live code.  It is a problem with a standard answer. </p>
+<p>An FSM always has a cycle consisting of one or more "state transitions". This is the technical term for the change from one state to another, provoked (or driven) by an event, and leading to a series of internal actions.  The FSM that implements a Boom workflow goes through two sets of cycles.  Firstly, it processes each argument on the command line. Secondly, it does this with a full execution of the state machine for each argument, going from state to next state until there is nothing left to do.  These two cycles are linked together to give something like the following logic: </p>
+<pre>
+restart:
+    current event is "ok"
+    current state is first state in PWL
+    transition:
+        if current event is not defined
+            current event is next command-line argument
+        if current event is still not defined
+            current event is "empty"
+        check current event is valid in state
+        do actions for current state/event
+        current state is next state
+    loop while current state is defined
+loop while there are command line arguments to process
+
+</pre>
+<ul>
+<li><p>First, the state machine always starts with the first state and an event called "ok". An event is always "consumed" during a state transition, and we don't want to consume one of the command-line arguments, so we invent an "ok" event, consume that to get the FSM rolling, and then get on with the real work.</li>
+<li><p>Secondly, we allow the actions to generate events (one event per list of actions).  If we get an event like this, we consume it with a state transition, do our actions, and repeat the process.</li>
+<li><p>Thirdly, we pick-up events from the command-line.  We only do this when no event was produced by the actions.</li>
+<li><p>Fourthly, we invent an event called "empty" if we really need one, and there seems to be nothing available anywhere else. The workflow has to provide some kind of handling for this special event (you can see that the standard workflows respond by showing a page of help text).</li>
+</ul>
+<p>It is not as simple as "run the entire state machine for each event", since we need to string these events together if we want sensible results. For example, the standard workflows kick-off with an "ok" event, then generate an internal event that determines the project status, then process one command-line argument, if any are present. </p>
+<p>At particular moments, the FSM will restart its state machine from zero, so to speak. This happens when a state/event transition does not specify a next state - this is equivalent to telling the workflow engine "stop the machine here!" And if you look at the two cycles that the pseudo-code goes through, you'll see this mechanism. </p>
+<p>Taking the Unix target script as an example, here is the (slightly stripped down) code, a mix of GSL and Unix shell that generates the core of the FSM engine: </p>
+<pre>
+&gt;state=$(pwl-&gt; state.name)
+&gt;event=ok
+&gt;while [ -n "$state" ]; do
+&gt;    case "$state" in
+for pwl.state
+    &gt;    $(name:c))
+    &gt;        case "$event" in
+    &gt;        "")
+    &gt;            if [ "$1" ]; then
+    &gt;                event=$1
+    &gt;                shift
+    &gt;            else
+    &gt;                event=empty
+    &gt;            fi
+    &gt;            continue
+    &gt;        ;;
+    for event
+        &gt;        $(name:c))
+        &gt;            event=
+        for action
+            &gt;            a_$(name:c)
+        endfor
+        if defined (nextstate)
+            &gt;            state=$(nextstate:c)
+            &gt;            continue
+        else
+            #    Process multiple actions on command line
+            &gt;            [ -n "$1" ] &amp;&amp; continue 2
+            &gt;            state=
+        endif
+        &gt;        ;;
+    endfor
+    &gt;        *)
+    &gt;            echo "$event is not allowed here, state=$state"
+    &gt;            exit 1
+    &gt;        ;;
+    &gt;        esac
+    &gt;    ;;
+endfor
+&gt;    esac
+&gt;done
+</pre>
+<p>If you compare this with the actual code in pwl_unix.gsl you will see that I've edited out a few things: debugging, handling of inherited states, and exception handling. Debugging is simple: we echo the FSM's progress. Useful if you're writing the FSM engine and you want to test that it actually works. </p>
+<p>Inherited states are more fun. PWL lets you say - and this is useful - "oh, by the way, this state also does everything that state X can do", meaning it borrows any necessary event handling from state X. Take a look at standard.pwl and the "defaults" state.  There are two ways to implement inheritance in a FSM.  One is to copy the events during code generation, so that the generated code reflects the results of inheritance.  The second is to do the inheritance at run time, using the following logic: "if current event not present in current state, set current state to inherit state and try again". </p>
+<p>The second approach makes the code a little more compact, and since we're already generating quite hefty shell scripts, this is the approach we use in Boom. </p>
+<p>Last little refinement: exception handling. This sounds sophisticated, and perhaps it is, but it is very simple to implement in an FSM engine. Remember that a state/event transition provokes a series of "actions". These are chunks of shell script that do the meaty work inside the builder. These actions can detect errors, errors that are serious enough to demand a halt to the whole process. Exception handling means signalling such an error to the FSM engine, and stopping the workflow. We do this with a single shell variable, "exception", which you will see being cleared and tested at various points in the target scripts. </p>
+<p>How does the generated code do its "actions"?  In Unix shell, these are functions, and the target script builds them as follows: </p>
+<pre>
+for pwl.action by name
+    &gt;# $(format_title (action.name, 77, "-"):)
+    &gt;
+    &gt;a_$(name:c)() {
+    &gt;:
+    invoke_rule (name)
+    &gt;}
+    &gt;
+endfor
+</pre>
+<p>Which uses the "invoke_rule" function provided by pwl_lib.gsl.  What this does is to go and look for a GSL macro with the right name and the right prefix, possibly something like this: </p>
+<pre>
+.macro unix_check_operating_context ()
+    event=source
+    [ -d CVS ] &amp;&amp; event=repository
+.endmacro
+</pre>
+<p>The invoke_rule function is sly - it will use the notion of inherited targets to say "well, if I can't find a rule for target X, perhaps there is one for target Y". This lets us do neat stuff like creating a new target - imagine "linux" - that is exactly the same as an existing one - imagine "unix" - except for a handful of functions. We define those in our linux target script and allow invoke_rule to automatically pick-up the others from the unix target script. </p>
+<p>Finally, the generated builder provides help for the poor befuddled user.  Help comes in the form of an explanation of the commands available to the user (in the current state).  Note that getting the help to appear at the "right" moment is part of the reason that the basic FSM logic is a little byzantine.  This code generates a help page per state: </p>
+<pre>
+for pwl.state
+    &gt;actions_$(name:c)() {
+    &gt;    echo "The actions you can use in this state are:"
+    for event where (internal?0) = 0
+        &gt;echo "$(event.name):"
+        &gt;$(format_block (event., '    echo "  ', '"', '.'):)
+    endfor
+    &gt;    return
+    &gt;}
+    &gt;
+endfor
+</pre>
+<p>For Windows/DOS, we use blocks of code and goto statements instead of functions.  The result is much the same.  Now, let's try the debug option.  Take a generated builder, find the line "debug=" and change it to "debug=1".  Now run the builder with some commands.  Here is what we get when we debug the build and install commands for a project like GSL (I've edited the output from the compiler to show just the FSM steps): </p>
+<pre>
+$ boomake build install
+State: initial
+Event: ok
+Action: check operating context
+State: initial check
+Event: repository
+State: repository
+Get event from user
+State: repository
+Event: build
+Action: check project files exist
+Action: produce generated files
+Action: check source files exist
+Action: build binary files
+Building application...
+State: initial
+Event: ok
+Action: check operating context
+State: initial check
+Event: repository
+State: repository
+Get event from user
+State: repository
+Event: install
+Action: check binary files exist
+Action: install deliverables
+Installing GSLgen...
+$ _
+</pre>
+<h3><a name="TOC142">Alternative FSM Engines</a></h3>
+<p>The current target scripts implement the workflow FSM as nested case statements.  This is a stupid but simple way to build an FSM engine. It is simple because it involves very little work, but it is stupid because it generates large amounts of code, and for large FSMs, this code becomes unmangeable. </p>
+<p>If you are interested in writing FSMs for other types of work, you should look at the table-driven model used by Libero.  The basic FSM logic is similar: take event and state, do actions, go to next state. But the information can be stored compactly as tables that are then navigated by more-or-less standard code. </p>
+<p>Hand-made FSMs - the kind we design here using modeling languages like PWL - are small by definition. Traditionally, FSMs are produced by code and can rapidly become very large. In compiler construction, state machines can be used for parsing, and can become huge. In such cases, simple tables are not good enough, and we have to compress the tables using a variety of approaches. </p>
+<p>A Boom workflow has perhaps five states and ten events. If you write FSMs with ten to twenty states and a similar number of events, you will want to look at using a table-driven approach. If you start using more than a hundred states and events, you will have to start thinking about compressing the tables. </p>
+<h2><a name="TOC143">Extending Boom</a></h2>
+<p>I've said, and shown, that Boom was designed to be changed, and that much of its apparent complexity is aimed exactly at making this process easier.  Rather than randomly going and changing the Boom source code, the idea is that you can follow clear recipes for making changes in particular directions. </p>
+<p>So, this section is broken into a series of recipes.  If you don't find the one you're looking for, ask us, and we'll explain and add it to the documentation. </p>
+<p>When you make changes, it is a good idea (as in "very good idea") to not change the existing source code unless you are actually fixing a bug.  Make a copy of the file you want to edit, and change the copy. There are only a few files that Boom knows about intrinsically, and these are the probably last ones you should be playing with. </p>
+<p>When you make changes, you can also send them to us. Note that we will only include these in the "master" version of Boom if you transfer the copyright to us.  You can do this with an email that says something like this: </p>
+<blockquote> "Please find attached my changes for such-and-such.  I hereby declare that (a) this work is entirely my own creation, except for those parts originally derived from the Boom source code, and (b) I formally transfer my ownership of the attached work to iMatix Corporation." </blockquote>
+<p>This is not necessary for small patches or corrections. But it is necessary for anything significant. We will not distribute your work unless we can incorporate it under our dual-licensing model. This is not a bad deal - your changes will become part of the GPL source code and may one day be used by clients who help pay for more development in Boom. If you make serious contributions, don't hesitate to ask us for money - we are a business and happy to pay for _good_ code. Please do take the time to test your changes on all platforms as necessary. </p>
+<h3><a name="TOC144">Changing the Boom Workflows</a></h3>
+<dl>
+<dt><b>Rationale</b></dt>
+<dd>Changing the workflows is the simplest way to change the behavior of the builder scripts. </dd>
+<dt><b>General principles</b></dt>
+<dd>Take an existing workflow file, make a copy with a different name. Edit that file, make the changes you want.  Create a test project and configure it to use that workflow.  Run the builder in debug mode and check that it does what you want. </dd>
+<dt><b>Useful files</b></dt>
+<dd>standard.pwl, pwl_win32.gsl, pwl_unix.gsl, pwl_lib.gsl. </dd>
+<dt><b>Before you start</b></dt>
+<dd>Study the PWL language and existing workflows. </dd>
+<dt><b>Alternatives</b></dt>
+<dd>Adding intelligence to your projects and/or custom classes. </dd>
+<dt><b>For beginners</b></dt>
+<dd>Reorganize the workflows, add new events that reuse the existing actions.  Your only change: the .pwl file. </dd>
+<dt><b>For hackers</b></dt>
+<dd>Add new actions and add new macros to pwl_win32.gsl and pwl_unix.gsl. Extend the workflow with new concepts or improve the existing concepts.  Your changes: the .pwl file, and the target scripts. </dd>
+<dt><b>For gurus</b></dt>
+<dd>Conceive of entirely new workflows that do things we never thought of.  Write new target scripts that implement your workflows. </dd>
+<dt><b>For wizards</b></dt>
+<dd>Extend the PWL and PDL languages to support new concepts.  Start using Boom not as a tool but as a language for developing your own ideas about how to build projects, where "build" and "project" can take any meaning you like. </dd>
+</dl>
+<h3><a name="TOC145">Changing the Generated Builders</a></h3>
+<dl>
+<dt><b>Rationale</b></dt>
+<dd>Fine-tuning the generated builders to fix problems, improve reliability, or handle situations we never thought of. </dd>
+<dt><b>General principles</b></dt>
+<dd>Work backwards from the generated code to the target script (pwl_win32.gsl and pwl_unix.gsl).  Edit the target scripts, reconfigure your project, and test until you are satisfied.  Send us your patches. </dd>
+<dt><b>Useful files</b></dt>
+<dd>pwl_win32.gsl, pwl_unix.gsl. </dd>
+<dt><b>Before you start</b></dt>
+<dd>Be prepared to retest your changes with every project you can get your hands on, and on both Windows and Unix.  If you never looked at GSL, this would be a good time to start. </dd>
+<dt><b>Alternatives</b></dt>
+<dd>None - if you find errors in the generated builders that you need to fix, this is the way to do it. </dd>
+<dt><b>For beginners</b></dt>
+<dd>Tell us the problem, provide us with an example PDL and we'll fix the bug. </dd>
+<dt><b>For hackers</b></dt>
+<dd>Edit the target script, test your changes, and tell us about them.  We will make the same changes in all target scripts and include them in the next release of Boom. </dd>
+<dt><b>For gurus</b></dt>
+<dd>Fix and test on Windows and Unix.  Send us your changes. </dd>
+</dl>
+<h3><a name="TOC146">Defining New Targets</a></h3>
+<dl>
+<dt><b>Rationale</b></dt>
+<dd>Adding targets lets you cover new terrain easily.  A "target" can be an operating system not covered by Boom, a variant on an already-supported operating system, a particular development environment, or any other platform that you use to "build" your projects. </dd>
+<dt><b>General principles</b></dt>
+<dd>Add the target to targets.pwl, create a new target script by copying one of the existing ones (pwl_win32.gsl, pwl_unix.gsl), and make sure you use the correct macro names.  Boom will generate code for that target along with the existing ones. If you want to generate builders for a single target only, specify this in your project definition. </dd>
+<dt><b>Useful files</b></dt>
+<dd>targets.pwl, bootstrap.gsl, pwl_lib.gsl. </dd>
+<dt><b>Before you start</b></dt>
+<dd>Make sure you understand how Boom generates a builder and how the workflow engine works.  If you create a totally new target, you will have to make an implementation of the workflow engine.  Read pwl_lib.gsl and try to understand what functions it provides - your target script will be much easier to write if you use the existing code in pwl_lib.gsl. </dd>
+<dt><b>Alternatives</b></dt>
+<dd>None.  Dig in. </dd>
+<dt><b>For beginners</b></dt>
+<dd>Create a target script that inherits most of its actions from one of the existing ones.  Easy to do - look at pwl_msvc.gsl for an example. </dd>
+<dt><b>For hackers</b></dt>
+<dd>Take an existing target script and convert it to the platform of your choice.  If you want (e.g.) to generate a builder for OpenVMS, take the Unix target script and convert that to DCL (the OpenVMS command language). </dd>
+<dt><b>For gurus</b></dt>
+<dd>Make entirely new workflows and make new target scripts to match.  </dd>
+</dl>
+<h3><a name="TOC147">Writing Product Packagers</a></h3>
+<dl>
+<dt><b>Rationale</b></dt>
+<dd>A product packager takes the temporary install tree and turns it into something that can be distributed.  Boom comes with two simple packagers and you may find it useful to write your own. </dd>
+<dt><b>General principles</b></dt>
+<dd>A packager is an external command, a batch file or a shell script.  To tell Boom to use your packager, rather than the default ones, define one or more "packager" items for your distribution.  You can run as many packagers as you like.  The packager has to understand the basics of the install tree, namely the meaning of the bin, lib, and include directories.  You can also pass arguments to the packager. </dd>
+<dt><b>Useful files</b></dt>
+<dd>pkg_zip.bat, pkg_tgz as examples. </dd>
+<dt><b>Before you start</b></dt>
+<dd>You must have organized your work into projects under a product.  Look at the Base project.pdl if you need an example. </dd>
+<dt><b>Alternatives</b></dt>
+<dd>You can write external scripts that do the packaging, and you can invoke these in the project.pdl using something like this in your project or product PDL file: </dd>
+</dl>
+<pre>
+&lt;actions when = "after"&gt;
+  &lt;install&gt;
+    &lt;execute command = "mypackager options..." /&gt;
+  &lt;/install&gt;
+&lt;/actions&gt;
+</pre>
+<dl>
+<dt><b>For beginners</b></dt>
+<dd>Try writing a general-purpose packager that will turn a temporary install tree into a Windows installer, a Debian package, or whatever else takes your fancy. </dd>
+<dt><b>For hackers</b></dt>
+<dd>Consider how to tell the packager to do useful things during installation, such as creating initial configuration files, etc. </dd>
+<dt><b>For gurus</b></dt>
+<dd>Add information to classes to make your packager work correctly. </dd>
+<dt><b>For wizards</b></dt>
+<dd>Bypass the packager entirely by using a BEX to generate installer scripts from the project/product trees.  Reduce the packager to "create package from script and copy somewhere useful". </dd>
+</dl>
+<h3><a name="TOC148">Generating New and Wonderful Makefiles</a></h3>
+<dl>
+<dt><b>Rationale</b></dt>
+<dd>For traditional developers, Boom is just a little too different from makefiles to be obvious.  No problem - get Boom to build a makefile that works with your favorite make tool. </dd>
+<dt><b>General principles</b></dt>
+<dd>Read makefile.gsl. </dd>
+<dt><b>Before you start</b></dt>
+<dd>Understand how makefiles work, and how to use them in the context of Boom.  Little things like the temporary install tree are worth understanding.  Note that dependencies are defined in the class structure, with the exception of C source code. </dd>
+<dt><b>Alternatives</b></dt>
+<dd>Ignore make, and rebuild entire projects (slow) or individual files by hand (errorprone). </dd>
+<dt><b>For beginners</b></dt>
+<dd>Stay away.  This is stuff that can hurt your brain. </dd>
+<dt><b>For hackers</b></dt>
+<dd>Disect the makefile generation code in makefile.gsl and improve it. If you need to, use the current target name ("unix" or "win32") to generate non-portable makefile code. </dd>
+<dt><b>For gurus</b></dt>
+<dd>Extend the makefile to handle installation into the temporary install tree, and final installation into IBASE.  Extend the makefile to work through all subdirectories of a multi-directory project. </dd>
+</dl>
+<h3><a name="TOC149">Adding Support for New Compilers</a></h3>
+<dl>
+<dt><b>Rationale</b></dt>
+<dd>Boom knows about C compilers.  It's not a lot of knowledge but it does make life a little simpler for the developer.  If you find yourself doing other compilations, you can extend Boom to do the same kind of thing for your funky new language. </dd>
+<dt><b>General principles</b></dt>
+<dd>If your compiler is complex and/or non-portable, take pity on your users and yourself and write shell scripts that do the hard work, much as we have done for C.  Next, you can either compile by hand in your projects or classes, or you can compile automatically by making some changes to PDL and the target scripts. </dd>
+<dt><b>Useful files</b></dt>
+<dd>pdl.xnf, pwl_unix.gsl, pwl_win32.gsl. </dd>
+<dt><b>Before you start</b></dt>
+<dd>Look at the PDL grammar and XNF concepts. </dd>
+<dt><b>Alternatives</b></dt>
+<dd>Hard-code compilation instructions in your classes and/or project definitions using the "execute" command.  Disadvantage of this: you provide no information that can be used by - e.g. - makefiles. </dd>
+<dt><b>For beginners</b></dt>
+<dd>You can use the "execute" command to do the dirty work.  Define new classes for your funky sources so that you can also tell Boom stuff like "there is a dependent file, called xxx.o, which is generated and which you can delete when we clean up". </dd>
+<dt><b>For hackers</b></dt>
+<dd>Go into pdl.xnf and change the "compile" definition to allow your language.  You will see that the choices are currently restricted to "c".  After you change the PDL grammar, do a "boom build" to rebuild everything.  Or, "gsl parsers" if you are in a hurry. Then, go into pwl_unix.gsl and pwl_win32.gsl and add support for your funky language.  If you don't feel like editing these files, you can write a BEX that produces the necessary shell script code, and embed the BEX through your funky class.  Note that a BEX can (and often must) key off the current target name to generate the correct code.  (Hint: use the GSL "if" statement.) </dd>
+<dt><b>For gurus</b></dt>
+<dd>Since you're adding new languages, extend the generate_version() function in pwl_lib.gsl to generate a version header for your language.  You will also want to change the PDL grammar to allow this - check out the definition of "version". </dd>
+<dt><b>For wizards</b></dt>
+<dd>Our notion of "compile" and "link" may be derived from a world view that is heavily tainted by our use of C.  If you're using more modern languages where such quaint concepts do not apply, and instead you have phases like "glorp" and "glue", you may feel the urge to make your own variant on PDL.  </dd>
+</dl>
+<h3><a name="TOC150">Adding New Concepts to PDL</a></h3>
+<dl>
+<dt><b>Rationale</b></dt>
+<dd>PDL tries to be simultaneously general and precise.  This does not always work, and you may find yourself asking "why does PDL not let me define such-and-such a concept".  A good question, and the answer is usually this: a design that does not work the way you expect is a design that you should hack until it does. </dd>
+<dt><b>General principles</b></dt>
+<dd>Edit pdl.xnf and run "gsl parsers" to rebuild the PDL parsers. Find the places in the target scripts which refer to the PDL construct you're changing, and change those scripts.  Generate with a test project and repeat until you have what you want. </dd>
+<dt><b>Useful files</b></dt>
+<dd>pdl.xnf, xnf.xnf, mod_pdl.gsl, pwl_win32.gsl, pwl_unix.gsl. </dd>
+<dt><b>Before you start</b></dt>
+<dd>Understand XNF and make sure you're happy with it before hacking PDL.  Secondly, any change to PDL will have an impact on the target scripts, and on the various other scripts that "know" about the PDL data tree structure.  Adding stuff is easy.  But changing fundamental parts of PDL will imply a lot of work. </dd>
+<dt><b>Alternatives</b></dt>
+<dd>None, I'm afraid.  You cannot be half a hacker. </dd>
+<dt><b>For beginners</b></dt>
+<dd>Extend existing PDL concepts, for instance to add support for new compiled languages. </dd>
+<dt><b>For hackers</b></dt>
+<dd>Add concepts that take Boom in new and exciting directions. </dd>
+<dt><b>For gurus</b></dt>
+<dd>Undo the work done by the eager hackers, and show them how the original PDL concept should have been used. </dd>
+<dt><b>For wizards</b></dt>
+<dd>Define your own grammars.  PDL is just one view.  You can create a new project grammar, a target script, and a workflow in a few days.  The hard work is sitting in reusable GSL libraries. </dd>
+</dl>
+<h3><a name="TOC151">Adding new Concepts to PWL</a></h3>
+<dl>
+<dt><b>Rationale</b></dt>
+<dd>PWL is a modeling language for workflows.  As such, it does not need to be very complex.  The most likely area you will want to play with is the definition of targets.  You will see that Boom lets you define a series of attributes per target.  This may not be enough for you, especially if you use targets to do things that we've not thought of. </dd>
+<dt><b>General principles</b></dt>
+<dd>Edit the PWL grammer: pwl.xnf, and rebuild the parsers using the command "gsl parsers".  If you make big changes to PWL, you will have to change mod_pwl.gsl and possible the target scripts and pwl_lib.gsl as well. </dd>
+<dt><b>Useful files</b></dt>
+<dd>pwl.xnf, xnf.xnf, mod_pwl.gsl, boom.gsl. </dd>
+<dt><b>Before you start</b></dt>
+<dd>If you find yourself eager to change PWL's finite state machine concepts, don't.  PWL is a small language because we've spent the last 20 years using FSMs and discovering their essential simplicity. Read the section on McIgor the Hunchbacked Workflow Engine. </dd>
+<dt><b>For beginners</b></dt>
+<dd>Nope. </dd>
+<dt><b>For hackers</b></dt>
+<dd>Make small and useful changes to the existing PWL structures, especially the target entity. </dd>
+<dt><b>For gurus</b></dt>
+<dd>Consider using PWL in other types of work, following McIgor's footsteps. </dd>
+<dt><b>For wizards</b></dt>
+<dd>Reinvent your own workflow language - it does not even have to be based on an FSM model.  You can use any abstraction or modeling approach you want.  Boom does not care - so long as you are ready to write a target script that turns your workflow language into working code. </dd>
+</dl>
+<h2><a name="TOC152">The XML Normal Form (XNF) Tool</a></h2>
+<ul>
+<li><p>split XNF into own project</li>
+<li><p>as example, make patch tool</li>
+<li><p>patch, xnf, gurudoc in gaggle?</li>
+</ul>
+<p>Patch </p>
+<pre>
+- find pattern
+- skip N lines
+- insert block
+- delete N lines
+- delete until pattern
+- global replace pattern with substitute
+- assert pattern
+- include contents of other file
+- ...?
+
+</pre>
+<p>An XNF file defines the grammar for an XML file. The mod_xnf.gsl script works on this grammar to generate textual documentation of the language, and to generate customized GSL processors for the language in question. These processors can act as validating parsers, and as code generators. </p>
+<h3><a name="TOC153">Summary of Language</a></h3>
+<p>This summary shows the hierarchy of elements you can use, with the required and optional attributes for each element.  The XML entity and attribute names are case-sensitive and we use only lower-case names. </p>
+<pre>
+&lt;xnf name&gt;
+   &lt;include filename/&gt;
+   &lt;entity name [tag] [class] [sameas] [cdata]&gt;
+      &lt;allow entity [occurs]/&gt;
+      &lt;body entity/&gt;
+      &lt;rule [disconnect] [when]/&gt;
+      &lt;attr [required] [default]&gt;
+         &lt;restrict value/&gt;
+      &lt;/attr&gt;
+   &lt;/entity&gt;
+   &lt;class&gt;
+      &lt;allow .../&gt;
+      &lt;body .../&gt;
+      &lt;rule .../&gt;
+      &lt;attr .../&gt;
+   &lt;/class&gt;
+   &lt;function/&gt;
+   &lt;errorhandler/&gt;
+&lt;/xnf&gt;
+</pre>
+<h3><a name="TOC154">Detailed Specifications</a></h3>
+<p>All child entities are optional and can occur zero or more times without any specific limits unless otherwise specified.  The same tag may occur at different levels with different meanings, and in such cases will be detailed more than once here. </p>
+<h4><a name="TOC155">The 'xnf' Item</a></h4>
+<p>The 'xnf' item contains the set of entities and classes that define the language grammar. It also contains functions and errorhandlers that are included in any eventual language processor produced from the grammar, and include definitions that let you construct XNF files from reusable fragments. </p>
+<pre>
+&lt;xnf
+    name = "..."
+    &gt;
+    &lt;include&gt;
+    &lt;entity&gt;
+    &lt;class&gt;
+    &lt;function&gt;
+    &lt;errorhandler&gt;
+&lt;/xnf&gt;
+</pre>
+<p>The xnf item has this single attribute: </p>
+<dl>
+<dt><b>name</b></dt>
+<dd>This attribute is used when generating code, to name the resulting output files. It should be the name of the XML language that the XNF grammar defines. The name attribute is required. </dd>
+</dl>
+<h4><a name="TOC156">The 'include' Item</a></h4>
+<p>The 'include' item specifies the name of an XNF fragment to be included in the main XNF file. An XNF include file does not contain a root xnf item, but a set of entity, class, function, or errorhandler entities. The XNF processor will load partial XNF files specified in any include entities before processing the remainder of the XNF file. </p>
+<pre>
+&lt;include
+    filename = "..."
+    /&gt;
+</pre>
+<p>The include item has this single attribute: </p>
+<dl>
+<dt><b>filename</b></dt>
+<dd>Specifies the full or relative name of a partial XNF file. The filename attribute is required. </dd>
+</dl>
+<h4><a name="TOC157">The 'entity' Item</a></h4>
+<p>The 'entity' item defines an XNF entity. XNF entities are either expressed with a body, or as a list of allowed child entities. </p>
+<pre>
+&lt;entity
+    name = "..."
+  [ tag = "..." ]
+  [ class = "..." ]
+  [ sameas = "..." ]
+  [ cdata = "0 | 1"  ("0") ]
+    &gt;
+    &lt;allow&gt;
+    &lt;body&gt;, optional
+    &lt;rule&gt;, optional
+    &lt;attr&gt;
+&lt;/entity&gt;
+</pre>
+<p>The entity item can have these attributes: </p>
+<dl>
+<dt><b>name</b></dt>
+<dd>Specifies the name of the entity, which is unique in the PFL file. The name attribute is required. </dd>
+<dt><b>tag</b></dt>
+<dd>If supplied, it tells the XNF processor that this entity matches an XML entity tag. Otherwise the entity is used as part of the grammar but not mapped to an XML entity. A tag definition is required if the entity is defined with attributes. The tag attribute is optional. </dd>
+<dt><b>class</b></dt>
+<dd>Specifies the name of a class. The entity will inherit the contents of the class, and the class tag and description if it does not already have a tag and description. The class attribute is optional. </dd>
+<dt><b>sameas</b></dt>
+<dd>For documentation, specifies that the entity is equivalent to the one specified. The sameas attribute is optional. </dd>
+<dt><b>cdata</b></dt>
+<dd>Specifies whether the entity contains a value that is used for code generation or documentation. The cdata tag may be used by tools such an XNF editor. The cdata attribute is optional. Its default value is "0". It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>0</td>
+<td>entity does not use a value</td>
+</tr>
+<tr>
+<td>1</td>
+<td>entity uses a value</td>
+</tr>
+</table></center></p><h4><a name="TOC158">The 'allow' Item</a></h4>
+<p>The 'allow' item defines a child entity that can occur or must occur within the current entity. </p>
+<pre>
+&lt;allow
+    entity = "..."
+  [ occurs = "1 | 1+ | 0+ | 0/1"  ("0+") ]
+    /&gt;
+</pre>
+<p>The allow item can have these attributes: </p>
+<dl>
+<dt><b>entity</b></dt>
+<dd>Specifies the name of a child entity. The entity must be defined in the XNF file. The entity attribute is required. </dd>
+<dt><b>occurs</b></dt>
+<dd>Specifies whether the child entity is required or optional, and whether it can occur multiple times or not. The occurs attribute is optional. Its default value is "0+". It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>1</td>
+<td>entity is required</td>
+</tr>
+<tr>
+<td>1+</td>
+<td>entity is required and can occur more than once</td>
+</tr>
+<tr>
+<td>0+</td>
+<td>entity is can occur zero or more times</td>
+</tr>
+<tr>
+<td>0/1</td>
+<td>entity is optional</td>
+</tr>
+</table></center></p><h4><a name="TOC159">The 'body' Item</a></h4>
+<p>The 'body' item tells that XNF processor that the body of this entity is defined by another entity. Use this construct when you have the same allow list used in several places. </p>
+<pre>
+&lt;body
+    entity = "..."
+    /&gt;
+</pre>
+<p>The body item has this single attribute: </p>
+<dl>
+<dt><b>entity</b></dt>
+<dd>Specifies the name of another entity in the XNF file that provides the structure of this entity. The body tag refers to an entity that is constructed from an allow list. The entity attribute is required. </dd>
+</dl>
+<h4><a name="TOC160">The 'rule' Item</a></h4>
+<p>The 'rule' item provides GSL processor code for a specific entity. A single XNF file may define rules for multiple processors, e.g. 'parse' and 'code'. The processor works through the input XML file, and executes any rule code specified for each entity. By default, the rule code executes before the processor goes to work on any child entities. The GSL code is taken from the rule item value. </p>
+<pre>
+&lt;rule
+  [ disconnect = "0 | 1"  ("0") ]
+  [ when = "before | after"  ("before") ]
+    /&gt;
+</pre>
+<p>The rule item can have these attributes: </p>
+<dl>
+<dt><b>disconnect</b></dt>
+<dd>Specifies whether child items are automatically processed or not. If 'disconnect' is specified, the child items must be manually processed in rule code for the parent. The disconnect option gives you a level of manual control in the generated processor that can be very valuable. The disconnect attribute is optional. Its default value is "0". It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>0</td>
+<td>children are automatically processed</td>
+</tr>
+<tr>
+<td>1</td>
+<td>children must be processed manually</td>
+</tr>
+</table></center></p><dl>
+<dt><b>when</b></dt>
+<dd>Specifies whether the rule is applied before or after child items are processed. You will usually either define one rule (before) or define both a 'before' and 'after' rule. The when attribute is optional. Its default value is "before". It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>before</td>
+<td>rule code executes before processing child items</td>
+</tr>
+<tr>
+<td>after</td>
+<td>rule code executes after processing child items</td>
+</tr>
+</table></center></p><h4><a name="TOC161">The 'attr' Item</a></h4>
+<p>The 'attr' item defines an entity attribute, possibly with restrictions on the allowed values. </p>
+<pre>
+&lt;attr
+  [ required = "0 | 1"  ("0") ]
+  [ default = "..." ]
+    &gt;
+    &lt;restrict&gt;
+&lt;/attr&gt;
+</pre>
+<p>The attr item can have these attributes: </p>
+<dl>
+<dt><b>required</b></dt>
+<dd>Specifies whether the attribute is required or not. The required attribute is optional. Its default value is "0". It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>0</td>
+<td>the attribute is optional</td>
+</tr>
+<tr>
+<td>1</td>
+<td>the attribute is required</td>
+</tr>
+</table></center></p><dl>
+<dt><b>default</b></dt>
+<dd>Specifies a default value for the attribute. If the grammar does not define a default, an empty value ("") is used as default. If you use the default specification, there is no meaning in specifying 'required' as well. The default attribute is optional. </dd>
+</dl>
+<h4><a name="TOC162">The 'restrict' Item</a></h4>
+<p>The 'restrict' item defines one of a set of possible values for an attribute. If the attribute contains one or more restrict definitions, the attribute can only take one of these values. Otherwise it can take any value. </p>
+<pre>
+&lt;restrict
+    value = "..."
+    /&gt;
+</pre>
+<p>The restrict item has this single attribute: </p>
+<dl>
+<dt><b>value</b></dt>
+<dd>Specifies one of the allowed attribute values. The value attribute is required. </dd>
+</dl>
+<h4><a name="TOC163">The 'class' Item</a></h4>
+<p>The 'class' item defines an XNF entity class. Classes do not form part of the grammar but allow you to normalize entities to avoid duplication. When two or more entities have the same body or structure, you can define one class and base the entities on that class. </p>
+<pre>
+&lt;class&gt;
+    &lt;allow&gt;
+    &lt;body&gt;, optional
+    &lt;rule&gt;, optional
+    &lt;attr&gt;
+&lt;/class&gt;
+</pre>
+<h4><a name="TOC164">The 'function' Item</a></h4>
+<p>The 'function' entity provides GSL code for the specified processor. The function item value is appended to the generated processor. It is intended to hold GSL functions that are referenced in rule code. </p>
+<pre>
+&lt;function&gt;
+</pre>
+<h4><a name="TOC165">The 'errorhandler' Item</a></h4>
+<p>The 'errorhandler' entity provides GSL code for an error handler. If this entity is not defined, the GSL processer gets a default error handler. The error handler must be a function with the name 'xnf_xxxx_error' where xxxx is the name of the rule (e.g. 'parse' or 'code'). The error handler receives a single argument, being an error message. You can define your own error handler to provide more context to the user in cases of errors. </p>
+<pre>
+&lt;errorhandler&gt;
+</pre>
+<h3><a name="TOC166">XNF User's Guide</a></h3>
+<h4><a name="TOC167">Principles</a></h4>
+<p>XNF is a tool for describing XML grammars.  You can compare it to XSL (XML stylesheets) although there are differences.  Like XSL, you can use XNF for validating XML, but this is not the main reason for using it.  In Boom, and similar tools, we use XML as a language to model things that we want to turn into code.  This code generation approach is significantly more ambitious than the XML transformations that XSL provides.  XNF makes this possible with less pain than otherwise. </p>
+<p>In overall terms, XNF is a grammar that uses simple concepts taken from BNF, or Backaus Normal Form, a style of grammars used to specify languages informally, and formally in compiler construction tools. </p>
+<p>XNF lets you generate XML parsers and code generators written in GSL. While it's easy to do this for simple XML models, it becomes hard for complex models such as those used in PDL and PWL.  Simply writing GSL code to validate a PDL tree, for instance, would stretch the patience of most programmers. </p>
+<p>We split a normal GSL model-to-code process into three steps: </p>
+<ol>
+<li><p>Load the XML model, and do any necessary pre-processing using hand-written GSL.  For example, resolving any &lt;include&gt; or &lt;inherit&gt; items.</li>
+<li><p>Pass the XML tree to a validating parser.  This parser has to work through each item and attribute, checking that the XML model is valid.  It can make adjustments to the tree, calculate data, set default values, etc.</li>
+<li><p>Pass the validated XML tree to a code generator.  This works through the data using a tree-walking algorithm to generate code for each item depending on the context.</li>
+</ol>
+<p>The first two steps are always needed.  The third step is optional and in Boom, for example, we do not use it.  There are certain types of problem where </p>
+<h4><a name="TOC168">Worked Example</a></h4>
+<h4><a name="TOC169">The Generated Parser</a></h4>
+
+      <p>
+    </td>
+  </tr height="40">
+    <td width="5" bgcolor="#DDDDDDD">&nbsp;</td>
+    <td valign="bottom" class="footer">iMatix Corporation &amp;lt;tools@imatix.com&amp;gt; - Copyright (c) 2002-2009 iMatix Corporation</td>
+  </tr>
+</body>
+</html>

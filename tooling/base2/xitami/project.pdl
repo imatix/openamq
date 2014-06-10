@@ -1,0 +1,36 @@
+<?xml?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<pdl
+    name      = "Xitami"
+    version   = "5.0a1"
+    workflow  = "standard.pwl"
+    copyright = "Copyright (c) 1996-2009 iMatix Corporation"
+    >
+
+<include filename = "prelude.pdl" />
+<file name = "version.h" class = "c version">Project version file</file>
+
+<file name = "xitami.c"                class = "main program"      >Xitami server main</file>
+<file name = "xitami"                  class = "public command"    >Xitami server binary</file>
+<directory name = "webpages">
+    <file name = "default.html"        class = "public resource"   >Default install HTML</file>
+    <file name = "default.css"         class = "public resource"   >Default install CSS</file>
+</directory>
+<file name = "xitami.sln"              class = "private resource"  >MSVC 2008 solution</file>
+
+</pdl>

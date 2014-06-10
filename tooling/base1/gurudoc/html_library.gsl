@@ -1,0 +1,57 @@
+#
+#   html_library.gsl - Standard GSL functions for gurudoc html templates
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+#   Replace all hyperlinks in line
+
+function hyper_link (line)
+    my.line = string.convch (my.line, "\n", " ")
+    while 1
+        #   Format <a@host>
+        if regexp.match ('(.*)&lt;([^@]+@[^&]+)&gt;(.*)', my.line, pre, addr, post)
+            my.line = pre + '<a href="mailto:$(addr:)">$(addr:)</a>' + post
+
+        #   Format <xxx://host/uri:description>
+        elsif regexp.match ('(.*)&lt;(\\w+://[^:]+):([^&]+)&gt;(.*)', my.line, pre, addr, desc, post)
+            my.line = pre + '<a href="$(addr:)">$(desc:)</a>' + post
+
+        #   Format <xxx://host/uri>
+        elsif regexp.match ('(.*)&lt;(\\w+://[^&]+)&gt;(.*)', my.line, pre, addr, post)
+            my.line = pre + '<a href="$(addr:)">$(addr:)</a>' + post
+        else
+            last
+        endif
+    endwhile
+    return (my.line)
+endfunction
+
+function fmt ()
+    return (hyper_link (.?''))
+endfunction
+
+#   Test code
+if 0
+    a = hyper_link ("&lt;http://imatix.com&gt;")
+    echo a
+    a = hyper_link ("this is &lt;http://imatix.com&gt; a link")
+    echo a
+    a = hyper_link ("this is &lt;http://imatix.com:a link&gt;")
+    echo a
+    a = hyper_link ("this is &lt;http://imatix.com:a link&gt; to &lt;ph@imatix.com&gt;")
+    echo a
+endif

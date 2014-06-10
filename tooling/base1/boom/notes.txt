@@ -1,0 +1,35 @@
+Supporting the configure/make worldview
+
+Option 1:
+    configure -> creates make shell, make.bat
+    make -> runs boomake build, boomake install, boomake clean
+
+Option 2:
+    configure -> renames makefile.xxx to Makefile
+    make -> proper Makefile with targets
+
+Option 3 (alternate):
+    Windows:
+        - generate dsw product workspace
+        - dsp per project
+        - make.bat invokes msdev
+
+Product makefiles
+    Unix:   product-level makefile
+            calls individual makefiles per project
+            configure renames makefiles
+                - depending on cvs/non-cvs
+                
+
+    
+
+
+- need some way to conditionally include/exclude components
+    - e.g. gsl with/wo mysql
+    <if> in pdl
+    #define in source code
+
+- replace mkdep with GSL code to scan sources
+- can 'make' automatically install into TIT?
+
+   

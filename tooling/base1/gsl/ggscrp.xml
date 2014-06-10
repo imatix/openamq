@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+     
+<application        title  = "ggscrp messages"
+                    script = "smtmesg.gsl"
+                    module = "ggscrpm" >
+
+    <!-- ------------------------------------------------------------------
+         Messages for GSL parser agent
+         ------------------------------------------------------------------ -->
+    <agent          name   = "ggscrp"           title = "GSL parser agent" >
+
+        <method     name   = "file"             title = "Load script file"
+                    type   = "internal" />
+        <method     name   = "text"             title = "Load script text"
+                    type   = "internal" />
+        <method     name   = "wait"             title = "Wait request"
+                    type   = "internal" />
+        <message    name   = "done" >
+            <field  name   = "job"              title = "Job id"
+                    type   = "pointer" />
+            <field  name   = "script_source"    title = "Script structure"
+                    type   = "pointer" />
+
+            <method name   = "done"             title = "Done reply"
+                    type   = "unknown" />
+        </message>
+        <message    name   = "error" >
+            <field  name   = "job"              title = "Job id"
+                    type   = "pointer" />
+            <field  name   = "error_name"       title = "Error file name"
+                    type   = "string" />
+            <field  name   = "error_line"       title = "Error line"
+                    type   = "word" />
+            <field  name   = "error_text"       title = "Error message text"
+                    type   = "string" />
+
+            <method name   = "error"            title = "Error reply"
+                    type   = "reply" />
+        </message>
+
+    </agent>
+
+</application>

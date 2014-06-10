@@ -1,0 +1,780 @@
+<?xml version="1.0" ?>
+
+<!-- Written:    2000/12/21  iMatix SMT kernel team <smt@imatix.com>
+     Revised:    2003/01/17                                                 -->
+
+<application        title  = "SMT standard messages"
+                    script = "smtmesg.gsl"
+                    module = "smtmsg" >
+
+
+    <!-- ------------------------------------------------------------------
+         Messages for SMT kernel
+         ------------------------------------------------------------------ -->
+    <agent          name   = "smtlib"           title = "SMT kernel" >
+        <message    name   = "shutdown" >
+            <field  name   = "signal"           title = "Signal that provoked shutdown"
+                    type   = "word" />
+
+            <method name   = "shutdown"
+                    type   = "request" />
+        </message>
+
+    </agent>
+
+    <!-- ------------------------------------------------------------------
+         Messages for SMT Log agent
+         ------------------------------------------------------------------ -->
+    <agent          name   = "smtlog"           title = "SMT Log agent" >
+        <method     name   = "plain"
+                    type   = "request" />
+        <method     name   = "stamp"
+                    type   = "request" />
+        <method     name   = "close"
+                    type   = "request" />
+        <message    name   = "filename" >
+            <field  name   = "filename"
+                    type   = "string" />
+
+            <method name   = "cycle"
+                    type   = "request" />
+            <method name   = "open"
+                    type   = "request" />
+            <method name   = "append"
+                    type   = "request" />
+        </message>
+        <message    name   = "text" >
+            <field  name   = "text"
+                    type   = "string" />
+
+            <method name   = "put"
+                    type   = "request" />
+        </message>
+
+    </agent>
+
+<!-- ------------------------------------------------------------------
+     Messages for SMT Extended Logging Agent
+     ------------------------------------------------------------------ -->
+<agent          name   = "smtxlog"          title = "SMT Extended Logging Agent">
+    <message    name   = "open" >
+        <field  name   = "log path"         title = "Path for logfiles, or empty"
+                type   = "string" />
+        <field  name   = "log file"         title = "Name of logfile"
+                type   = "string" />
+        <field  name   = "log format"       title = "Desired logging format"
+                type   = "string" />
+        <field  name   = "cycle when"       title = "When to cycle logfile"
+                type   = "string" />
+        <field  name   = "cycle how"        title = "How to cycle logfile"
+                type   = "string" />
+        <field  name   = "cycle time"       title = "For time-based cycling"
+                type   = "string" />
+        <field  name   = "cycle date"       title = "For date-based cycling"
+                type   = "string" />
+        <field  name   = "cycle size"       title = "For size-based cycling"
+                type   = "string" />
+        <field  name   = "cycle lines"      title = "For size-based cycling"
+                type   = "string" />
+        <field  name   = "cycle argument"   title = "For other cycle methods"
+                type   = "string" />
+
+        <method name   = "open"
+                type   = "request" />
+    </message>
+    <message    name   = "log" >
+        <field  name   = "file name"        title = "Filename used for request"
+                type   = "string" />
+        <field  name   = "value_size"       title = "Value size"
+                type   = "size" />
+        <field  name   = "value"            title = "Value to log"
+                type   = "body" />
+
+        <method name   = "log"
+                type   = "request" />
+    </message>
+    <message    name   = "put" >
+        <field  name   = "message"          title = "Line of text to log"
+                type   = "string" />
+
+        <method name   = "put"
+                type   = "request" />
+    </message>
+    <method     name   = "cycle"
+                type   = "request" />
+    <method     name   = "clear"
+                type   = "request" />
+    <method     name   = "close"
+                type   = "request" />
+
+</agent>
+    <!-- ------------------------------------------------------------------
+         Messages for Operator agent
+         ------------------------------------------------------------------ -->
+    <agent          name   = "smtoper"          title = "Operator agent" >
+        <message    name   = "set log" >
+            <field  name   = "agent name"       title = "Name of logging agent"
+                    type   = "string" />
+            <field  name   = "thread name"      title = "Name of logging thread"
+                    type   = "string" />
+
+            <method name   = "set log"
+                    type   = "request" />
+        </message>
+        <message    name   = "message" >
+            <field  name   = "text"             title = "Text of message"
+                    type   = "string" />
+
+            <method name   = "error"
+                    type   = "request" />
+            <method name   = "warning"
+                    type   = "request" />
+            <method name   = "info"
+                    type   = "request" />
+        </message>
+        <method     name   = "enable"
+                    type   = "request" />
+        <method     name   = "disable"
+                    type   = "request" />
+
+    </agent>
+
+    <!-- ------------------------------------------------------------------
+         Messages for Reverse DNS agent
+         ------------------------------------------------------------------ -->
+    <agent          name   = "smtrdns"          title = "Reverse DNS agent" >
+        <message    name   = "get host name" >
+            <field  name   = "ip address"       title = "IP address in network order"
+                    type   = "qbyte" />
+            <field  name   = "ip string"        title = "Alternative address in string format"
+                    type   = "string" />
+            <field  name   = "request tag"      title = "User-defined request tag"
+                    type   = "qbyte" />
+
+            <method name   = "get host name"
+                    type   = "request" />
+        </message>
+        <message    name   = "get host ip" >
+            <field  name   = "host name"        title = "Host name to look-up"
+                    type   = "string" />
+            <field  name   = "request tag"      title = "User-defined request tag"
+                    type   = "qbyte" />
+
+            <method name   = "get host ip"
+                    type   = "request" />
+        </message>
+        <message    name   = "host name" >
+            <field  name   = "ip address"       title = "IP address in network order"
+                    type   = "qbyte" />
+            <field  name   = "host name"        title = "Host name"
+                    type   = "string" />
+            <field  name   = "request tag"      title = "User-defined request tag"
+                    type   = "qbyte" />
+
+            <method name   = "host name"
+                    type   = "reply" />
+        </message>
+        <message    name   = "host ip" >
+            <field  name   = "ip address"       title = "IP address in network order"
+                    type   = "qbyte" />
+            <field  name   = "host name"        title = "Host name"
+                    type   = "string" />
+            <field  name   = "request tag"      title = "User-defined request tag"
+                    type   = "qbyte" />
+
+            <method name   = "host ip"
+                    type   = "reply" />
+        </message>
+        <method     name   = "host error"
+                    type   = "reply" />
+        <method     name   = "host end"
+                    type   = "reply" />
+        <method     name   = "host timeout"
+                    type   = "reply" />
+
+    </agent>
+
+    <!-- ------------------------------------------------------------------
+         Messages for Time slot agent
+         ------------------------------------------------------------------ -->
+    <agent          name   = "smtslot"          title = "Time slot agent" >
+        <message    name   = "specification" >
+            <field  name   = "times"            title = "Time slot specification"
+                    type   = "string" />
+
+            <method name   = "specify"
+                    type   = "request" />
+        </message>
+        <method     name   = "reset"
+                    type   = "request" />
+        <method     name   = "on"
+                    type   = "request" />
+        <method     name   = "off"
+                    type   = "request" />
+        <method     name   = "finish"
+                    type   = "request" />
+        <message    name   = "error" >
+            <field  name   = "message"          title = "Error message"
+                    type   = "string" />
+
+            <method name   = "error"
+                    type   = "reply" />
+        </message>
+        <method     name   = "switch on"
+                    type   = "reply" />
+        <method     name   = "switch off"
+                    type   = "reply" />
+
+    </agent>
+
+    <!-- ------------------------------------------------------------------
+         Messages for Socket I/O agent
+         ------------------------------------------------------------------ -->
+    <agent          name   = "smtsock"          title = "Socket i/o agent" >
+        <message    name   = "read" >
+            <field  name   = "timeout"          title = "Timeout in seconds, zero = none"
+                    type   = "dbyte" />
+            <field  name   = "socket"           title = "Socket to read from"
+                    type   = "qbyte" />
+            <field  name   = "max size"         title = "Size of receiving buffer"
+                    type   = "dbyte" />
+            <field  name   = "min size"         title = "Minimum data to read, zero = all"
+                    type   = "dbyte" />
+            <field  name   = "tag"              title = "User-defined request tag"
+                    type   = "pointer" />
+
+            <method name   = "read"             title = "Read from socket"
+                    type   = "request" />
+            <method name   = "readr"            title = "Repeated read from socket"
+                    type   = "request" />
+        </message>
+        <message    name   = "write" >
+            <field  name   = "timeout"          title = "Timeout in seconds, zero = none"
+                    type   = "dbyte" />
+            <field  name   = "socket"           title = "Socket to write to"
+                    type   = "qbyte" />
+            <field  name   = "size"             title = "Amount of data to write"
+                    type   = "size" />
+            <field  name   = "data"             title = "Block of data to write"
+                    type   = "body" />
+            <field  name   = "reply"            title = "Whether OK reply is required"
+                    type   = "bool" />
+            <field  name   = "tag"              title = "User-defined request tag"
+                    type   = "pointer" />
+
+            <method name   = "write"            title = "Write to socket"
+                    type   = "request" />
+        </message>
+        <message    name   = "close" >
+            <field  name   = "timeout"          title = "Timeout in seconds, zero = none"
+                    type   = "dbyte" />
+            <field  name   = "socket"           title = "Socket to write to"
+                    type   = "qbyte" />
+            <field  name   = "reply"            title = "Whether OK reply is required"
+                    type   = "bool" />
+            <field  name   = "tag"              title = "User-defined request tag"
+                    type   = "pointer" />
+
+            <method name   = "close"            title = "Close socket"
+                    type   = "request" />
+        </message>
+        <message    name   = "readh" >
+            <field  name   = "timeout"          title = "Timeout in seconds, zero = none"
+                    type   = "dbyte" />
+            <field  name   = "socket"           title = "Socket to read from"
+                    type   = "qbyte" />
+            <field  name   = "max size"         title = "Size of receiving buffer"
+                    type   = "qbyte" />
+            <field  name   = "min size"         title = "Minimum data to read, zero = all"
+                    type   = "qbyte" />
+            <field  name   = "tag"              title = "User-defined request tag"
+                    type   = "pointer" />
+
+            <method name   = "readh"            title = "Huge read from socket"
+                    type   = "request" />
+            <method name   = "readrh"           title = "Repeated huge read from socket"
+                    type   = "request" />
+        </message>
+        <message    name   = "writeh" >
+            <field  name   = "timeout"          title = "Timeout in seconds, zero = none"
+                    type   = "dbyte" />
+            <field  name   = "socket"           title = "Socket to write to"
+                    type   = "qbyte" />
+            <field  name   = "size"             title = "Amount of data to write"
+                    type   = "hsize" />
+            <field  name   = "data"             title = "Block of data to write"
+                    type   = "hbody" />
+            <field  name   = "reply"            title = "Whether OK reply is required"
+                    type   = "bool" />
+            <field  name   = "tag"              title = "User-defined request tag"
+                    type   = "pointer" />
+
+            <method name   = "writeh"           title = "Huge write to socket"
+                    type   = "request" />
+        </message>
+        <message    name   = "input" >
+            <field  name   = "timeout"          title = "Timeout in seconds, zero = none"
+                    type   = "dbyte" />
+            <field  name   = "socket"           title = "Socket to wait on"
+                    type   = "qbyte" />
+            <field  name   = "tag"              title = "User-defined request tag"
+                    type   = "pointer" />
+
+            <method name   = "input"            title = "Wait for socket input"
+                    type   = "request" />
+        </message>
+        <message    name   = "output" >
+            <field  name   = "timeout"          title = "Timeout in seconds, zero = none"
+                    type   = "dbyte" />
+            <field  name   = "socket"           title = "Socket to wait on"
+                    type   = "qbyte" />
+            <field  name   = "tag"              title = "User-defined request tag"
+                    type   = "pointer" />
+
+            <method name   = "output"           title = "Wait for socket output"
+                    type   = "request" />
+        </message>
+        <message    name   = "connect" >
+            <field  name   = "timeout"          title = "Timeout in seconds, zero = none"
+                    type   = "dbyte" />
+            <field  name   = "type"             title = "Type, UDP or TCP"
+                    type   = "string" />
+            <field  name   = "host"             title = "Host, name or dotted address, or NULL"
+                    type   = "string" />
+            <field  name   = "service"          title = "Service, as name or port in ASCII, or NULL"
+                    type   = "string" />
+            <field  name   = "port"             title = "16-bit host port, or 0"
+                    type   = "dbyte" />
+            <field  name   = "address"          title = "32-bit host address, or 0"
+                    type   = "qbyte" />
+            <field  name   = "tag"              title = "User-defined request tag"
+                    type   = "pointer" />
+
+            <method name   = "connect"          title = "Connect to socket"
+                    type   = "request" />
+        </message>
+        <message    name   = "flush" >
+            <field  name   = "socket"           title = "Socket for operation"
+                    type   = "qbyte" />
+            <field  name   = "alltypes"         title = "All request types, or just read?"
+                    type   = "bool" />
+
+            <method name   = "flush"            title = "Flush socket"
+                    type   = "request" />
+        </message>
+        <message    name   = "read reply" >
+            <field  name   = "size"             title = "Amount of data read"
+                    type   = "size" />
+            <field  name   = "data"             title = "Block of data read"
+                    type   = "body" />
+            <field  name   = "tag"              title = "User-defined request tag"
+                    type   = "pointer" />
+
+            <method name   = "read ok"
+                    type   = "reply" />
+            <method name   = "read closed"
+                    type   = "reply" />
+            <method name   = "read timeout"
+                    type   = "reply" />
+        </message>
+        <message    name   = "readh reply" >
+            <field  name   = "size"             title = "Amount of data read"
+                    type   = "hsize" />
+            <field  name   = "data"             title = "Block of data read"
+                    type   = "hbody" />
+            <field  name   = "tag"              title = "User-defined request tag"
+                    type   = "pointer" />
+
+            <method name   = "readh ok"
+                    type   = "reply" />
+            <method name   = "readh closed"
+                    type   = "reply" />
+            <method name   = "readh timeout"
+                    type   = "reply" />
+        </message>
+        <message    name   = "connect ok" >
+            <field  name   = "socket"           title = "New socket"
+                    type   = "qbyte" />
+            <field  name   = "tag"              title = "User-defined request tag"
+                    type   = "pointer" />
+
+            <method name   = "connect ok"
+                    type   = "reply" />
+        </message>
+        <message    name   = "reply"            title = "General reply" >
+            <field  name   = "tag"              title = "User-defined request tag"
+                    type   = "pointer" />
+
+            <method name   = "ok"
+                    type   = "reply" />
+            <method name   = "closed"
+                    type   = "reply" />
+            <method name   = "timeout"
+                    type   = "reply" />
+        </message>
+        <message    name   = "error" >
+            <field  name   = "message"          title = "Error message"
+                    type   = "string" />
+            <field  name   = "tag"              title = "User-defined request tag"
+                    type   = "pointer" />
+
+            <method name   = "error"
+                    type   = "reply" />
+        </message>
+
+    </agent>
+
+    <!-- ------------------------------------------------------------------
+         Messages for Transfer agent
+         ------------------------------------------------------------------ -->
+    <agent          name   = "smttran"          title = "Transfer agent" >
+        <message    name   = "putb" >
+            <field  name   = "socket"           title = "Socket for output"
+                    type   = "qbyte" />
+            <field  name   = "size"             title = "Amount of data to send"
+                    type   = "size" />
+            <field  name   = "data"             title = "Block of data to send"
+                    type   = "body" />
+            <field  name   = "pipe"             title = "Transfer pipe, if any"
+                    type   = "string" />
+
+            <method name   = "put block"
+                    type   = "request" />
+        </message>
+        <message    name   = "getb" >
+            <field  name   = "socket"           title = "Socket for input"
+                    type   = "qbyte" />
+            <field  name   = "pipe"             title = "Transfer pipe, if any"
+                    type   = "string" />
+
+            <method name   = "get block"
+                    type   = "request" />
+        </message>
+        <message    name   = "puth" >
+            <field  name   = "socket"           title = "Socket for output"
+                    type   = "qbyte" />
+            <field  name   = "size"             title = "Amount of data to send"
+                    type   = "hsize" />
+            <field  name   = "data"             title = "Block of data to send"
+                    type   = "hbody" />
+            <field  name   = "pipe"             title = "Transfer pipe, if any"
+                    type   = "string" />
+
+            <method name   = "put huge"
+                    type   = "request" />
+        </message>
+        <message    name   = "geth" >
+            <field  name   = "socket"           title = "Socket for input"
+                    type   = "qbyte" />
+            <field  name   = "pipe"             title = "Transfer pipe, if any"
+                    type   = "string" />
+
+            <method name   = "get huge"
+                    type   = "request" />
+        </message>
+        <message    name   = "putf" >
+            <field  name   = "socket"           title = "Socket for output"
+                    type   = "qbyte" />
+            <field  name   = "filename"         title = "Name of file to send"
+                    type   = "string" />
+            <field  name   = "filetype"         title = "0=binary, 1=ASCII"
+                    type   = "dbyte" />
+            <field  name   = "start"            title = "Starting offset; 0 = start"
+                    type   = "qbyte" />
+            <field  name   = "end"              title = "Ending offset; 0 = end"
+                    type   = "qbyte" />
+            <field  name   = "pipe"             title = "Transfer pipe, if any"
+                    type   = "string" />
+
+            <method name   = "put file"
+                    type   = "request" />
+        </message>
+        <message    name   = "getf" >
+            <field  name   = "socket"           title = "Socket for input"
+                    type   = "qbyte" />
+            <field  name   = "filename"         title = "Name of file to receive"
+                    type   = "string" />
+            <field  name   = "filetype"         title = "0=binary, 1=ASCII"
+                    type   = "dbyte" />
+            <field  name   = "start"            title = "Starting offset; 0 = start"
+                    type   = "qbyte" />
+            <field  name   = "end"              title = "Ending offset; 0 = end"
+                    type   = "qbyte" />
+            <field  name   = "append"           title = "1 = append existing"
+                    type   = "bool" />
+            <field  name   = "maxsize"          title = "Max. size, -1 = no limit"
+                    type   = "qbyte" />
+            <field  name   = "pipe"             title = "Transfer pipe, if any"
+                    type   = "string" />
+
+            <method name   = "get file"
+                    type   = "request" />
+        </message>
+        <message    name   = "putb ok" >
+            <field  name   = "size"             title = "Amount of transmitted data"
+                    type   = "dbyte" />
+
+            <method name   = "putb ok"
+                    type   = "reply" />
+        </message>
+        <message    name   = "getb ok" >
+            <field  name   = "size"             title = "Amount of data received"
+                    type   = "size" />
+            <field  name   = "data"             title = "Block of data received"
+                    type   = "body" />
+
+            <method name   = "getb ok"
+                    type   = "reply" />
+        </message>
+        <message    name   = "puth ok" >
+            <field  name   = "size"             title = "Amount of transmitted data"
+                    type   = "qbyte" />
+
+            <method name   = "puth ok"
+                    type   = "reply" />
+        </message>
+        <message    name   = "geth ok" >
+            <field  name   = "size"             title = "Amount of data received"
+                    type   = "hsize" />
+            <field  name   = "data"             title = "Block of data received"
+                    type   = "hbody" />
+
+            <method name   = "geth ok"
+                    type   = "reply" />
+        </message>
+        <message    name   = "putf ok" >
+            <field  name   = "size"             title = "Amount of transmitted data"
+                    type   = "qbyte" />
+
+            <method name   = "putf ok"
+                    type   = "reply" />
+        </message>
+        <message    name   = "getf ok" >
+            <field  name   = "size"             title = "Amount of transmitted data"
+                    type   = "qbyte" />
+
+            <method name   = "getf ok"
+                    type   = "reply" />
+        </message>
+        <message    name   = "pipe create" >
+            <field  name   = "name"             title = "Name of pipe"
+                    type   = "string" />
+            <field  name   = "input rate"       title = "Input rate, bytes/s"
+                    type   = "qbyte" />
+            <field  name   = "output rate"      title = "Output rate, bytes/s"
+                    type   = "qbyte" />
+
+            <method name   = "pipe create"
+                    type   = "request" />
+        </message>
+        <method     name   = "clear pipes"
+                    type   = "request" />
+        <method     name   = "commit"
+                    type   = "request" />
+        <method     name   = "closed"
+                    type   = "reply" />
+        <message    name   = "error" >
+            <field  name   = "reason"           title = "Error message"
+                    type   = "string" />
+
+            <method name   = "error"
+                    type   = "reply" />
+        </message>
+
+    </agent>
+
+    <!-- ------------------------------------------------------------------
+         Messages for Unattended Process Monitor agent
+         ------------------------------------------------------------------ -->
+    <agent          name   = "smtupm"           title = "Unattended Process Monitor agent" >
+        <message    name   = "message" >
+            <field  name   = "ident"
+                    type   = "dbyte" />
+            <field  name   = "string"
+                    type   = "string" />
+
+            <method name   = "put block"
+                    type   = "request" />
+        </message>
+
+    </agent>
+
+
+    <!-- ------------------------------------------------------------------
+         Messages for POP3 agent
+         ------------------------------------------------------------------ -->
+    <agent          
+      name = "smtpop"            
+      title = "POP3 agent" >
+      <message  
+        name = "connection" >
+            <field  name = "server"               title = "pop3 server name"
+                    type = "string" />
+            <field  name = "user"                 title = "user name"
+                    type = "string" />
+            <field  name = "password"             title = "user password"
+                    type = "string" />
+            <method name = "connect"
+                    type = "request" />
+      </message>
+
+
+        <message name = "connect_ok"    type = "reply" >
+          <field  name = "msg_cnt" title = "count of new messages on server"
+                    type = "long"  />
+          <field  name = "msg_size"title = "messages total size (bytes)"
+                    type = "long" />
+          <method name = "connect_ok"
+                  type = "reply" />
+        </message>
+
+        <message  name = "error" type = "reply" >
+          <field  name = "reason" type = "string" 
+                  title = "why connection failed" />
+          <field  name = "code"   type = "dbyte" />
+
+          <method name = "error" />
+        </message>
+
+        <message  name = "empty" type = "request" title = "no argument for these requests" >
+          <method name = "get_session_info" title = "ask for message count on server" />
+          <method name = "quit"             title = "quit command" />
+          <method name = "quit_ok"          title = "quit response" />
+        </message>
+
+        <message  name = "session_info" type = "reply" >
+          <field  name = "count"  type = "long"  title = "message count" />
+          <field  name = "size"   type = "long" title = "messages total size in bytes" />
+          <method name = "session_info" />
+        </message>
+
+        <message  name = "msg_session_info" type = "reply" >
+          <field  name = "msg_id"  type = "long"   title = "requested message id" />
+          <field  name = "size"    type = "long" title = "messages total size in bytes" />
+          <method name = "msg_session_info" />
+        </message>
+
+        <message  name = "msg_id"  type = "request" >
+          <field  name = "msg_id"           type = "long"   title = "message id, zero=all" />
+          <field  name = "attach_dir"       type = "string" title = "directory where attchment will be stored" />
+          <method name = "get_msg_header"   title = "ask for message header" />
+          <method name = "get_msg"          title = "ask for entire message" />
+          <method name = "delete_msg"       title = "delete message from server" />
+          <method name = "delete_ok"        title = "delete ok response" />
+          <method name = "get_msg_info"     title = "ask for message info" />
+        </message>
+
+        <message  name = "msg_header"  type = "reply">
+          <field  name = "msg_id"         type = "long"   title = "message id requested" />
+          <field  name = "from"           type = "string" title = "message sender" />
+          <field  name = "to"             type = "string" title = "people the message was addressed to" />
+          <field  name = "cc"             type = "string" title = "people the message is carbon copied to" />
+          <field  name = "date"           type = "string" title = "date the message was received" />
+          <field  name = "subject"        type = "string" title = "guess what" />
+          <method name = "msg_header" title = "mail info" />
+        </message>
+
+        <message  name = "msg"  type = "reply">
+          <field  name = "msg_id"         type = "long"   title = "message id requested" />
+          <field  name = "from"           type = "string" title = "message sender" />
+          <field  name = "to"             type = "string" title = "people the message was addressed to" />
+          <field  name = "cc"             type = "string" title = "people the message is carbon copied to" />
+          <field  name = "date"           type = "string" title = "date the message was received" />
+          <field  name = "subject"        type = "string" title = "guess what" />
+          <field  name = "body"           type = "string" title = "the text body" />
+          <field  name = "attachments"    type = "string" title = "attachment names, separated by semi-colon" />
+          <field  name = "attach_dir"     type = "string" title = "directory where attach have been stored" />
+          <method name = "msg" title = "complete message" />
+        </message>
+    </agent>
+
+
+    <!-- ------------------------------------------------------------------
+         Messages for SMTP agent
+         ------------------------------------------------------------------ -->
+   <agent          
+     name = "smtsmtp"
+     title = "SMTP agent" >
+        <message    name = "message">
+            <field  name = "smtp_server"
+                    type = "string" />
+            <field  name = "msg_body"
+                    type = "string"  />
+            <field  name = "sender_uid"
+                    type = "string"  />
+            <field  name = "dest_uids"
+                    type = "string"  />
+            <field  name = "subject"
+                    type = "string" />
+            <method name = "send_message"
+                    type = "request"  />
+            <method name = "open_message"
+                    type = "request"  />
+        </message>
+        <message    name = "chunk">
+            <field  name = "chunk"
+                    type = "string"  />
+            <method name = "message chunk"
+                    type = "request"  />
+        </message>
+        <method name = "close_message"
+                type = "request"  />
+
+
+        <message    name = "reply" >
+            <field  name = "code"
+                    type = "qbyte"   title = "error code" />
+            <field  name = "msg"
+                    type = "string"  title = "error description" />
+            <method name = "ok"
+                    type = "reply"  />
+            <method name = "error"
+                    type = "reply"  />
+        </message>
+    </agent>
+
+
+    <!-- ------------------------------------------------------------------
+         Messages for TMTP agent
+         ------------------------------------------------------------------ -->
+   <agent          
+     name = "smttmtp"
+     title = "TMTP agent" >
+     <message   name = "write">
+       <field   name = "host"             title = "Remote host"
+                type = "string" />
+       <field   name = "port"
+                type = "string" />
+       <field   name = "size"             title = "Amount of data to write"
+                type = "size" />
+       <field   name = "data"             title = "Block of data to write"
+                type = "body" />
+       <method  name = "write" />
+     </message>
+
+     <message   name = "listen">
+       <field   name = "port"
+                type = "string" />
+       <method  name = "listen" />
+     </message>
+
+     <method    name = "write ok" />
+     <method    name = "listen ok" />
+
+     <message   name = "error" >
+       <field   name = "message" 
+                type = "string" />
+       <method  name = "write error" />
+       <method  name = "listen error" />
+     </message>
+
+     <message   name = "incoming message">
+       <field   name = "size"             title = "Amount of data to write"
+                type = "size" />
+       <field   name = "data"             title = "Block of data read"
+                type = "body" />
+       <method  name = "incoming data" />
+     </message>
+   </agent>
+
+</application>

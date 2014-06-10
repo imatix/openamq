@@ -1,0 +1,83 @@
+.---------------------------------------------------------------------
+.-  prelude.def   SFL standard links and definitions
+.-                Assumes that files are in /html/sfl/*.htm
+.-
+.-  Written:      1996/03/08  Pieter Hintjens
+.-  Revised:      1999/02/03  Pieter Hintjens
+.---------------------------------------------------------------------
+
+.-  The complete $(SERVER) tree is mirrored at $(LOCAL)
+.define SERVER          ""
+.define LOCAL           %(SITE)
+
+.-  Don't bore us with all the information messages
+.define SILENT          1
+.define LINEMAX         0
+.define version_no      %(vsfl)
+.define version         %(vsfln)
+
+.define sfl             /pub/sfl
+.define imatix          http://www.imatix.com/
+.define info-zip        http://quest.jpl.nasa.gov/Info-Zip/Info-Zip.html
+.define gnugpl          /html/gnugpl.htm
+.define info            mailto:info@imatix.com
+
+.define src             $(sfl)/src
+.define bin             $(sfl)/bin
+.define doc             $(sfl)/doc
+
+.define sflsrc.zip      $(src)/sflsrc$(version_no).zip
+.define sflsrc.tgz      $(src)/sflsrc$(version_no).tgz
+.define sfldoc.zip      $(doc)/sfldoc$(version_no).zip
+.define sfldoc.tgz      $(doc)/sfldoc$(version_no).tgz
+.define sflbig.zip      $(doc)/sflbig$(version_no).zip
+.define sflbig.tgz      $(doc)/sflbig$(version_no).tgz
+
+.block header
+<HTML><HEAD><!--Revised: $(revised) By: $(author)-->
+<TITLE>$(TITLE)</TITLE></HEAD>
+<BODY BACKGROUND="newstone.gif">
+<TABLE WIDTH=100%><TR><TD ALIGN=LEFT>
+ | <A HREF="/index.htm"> iMatix home page</A><BR>
+ | $(*FIRST_PAGE=&lt;&lt;) | $(*PREV_PAGE=&lt;)
+ | $(*NEXT_PAGE=&gt;) | $(*LAST_PAGE=&gt;&gt;)
+<TD ALIGN=RIGHT>
+<IMG SRC="sfl80c.gif" ALT="SFL Logo" WIDTH=80 HEIGHT=60 ALIGN=RIGHT HSPACE=10>
+<FONT SIZE=5><B>SFL</B><BR><FONT SIZE=2>Version $(version)
+</TABLE>
+<HR>
+.end
+
+.block footer
+<HR><TABLE WIDTH=100%><TR><TD ALIGN=LEFT WIDTH=60%>
+ | $(*FIRST_PAGE=&lt;&lt;) | $(*PREV_PAGE=&lt;)
+ | $(*NEXT_PAGE=&gt;) | $(*LAST_PAGE=&gt;&gt;)
+<TD ALIGN=RIGHT NOWRAP>
+<A HREF="/index.htm">
+<IMG SRC="im0096c.gif" WIDTH=96 HEIGHT=36 ALT="iMatix" BORDER=0 ALIGN=RIGHT>
+</A>
+<FONT SIZE=2>Copyright &#169; 1996-2009 iMatix Corporation</TABLE>
+</BODY></HTML>
+.endblock
+
+.block anchor
+<A NAME="$(ANCHOR)">&nbsp;</A>
+.end
+
+.block dir_open
+<PRE>
+.block dir_entry
+$(*DIR_HREFL="$(DIR_NAME)") $(DIR_SIZE) $(DIR_DATE) $(DIR_TIME)  $($(DIR_EXT))
+.block dir_close
+</PRE>
+.end
+
+.block toc_open
+<MENU>
+.block toc_entry
+<LI><A HREF="$(TOC_HREF)">$(TOC_TITLE)</A></LI>
+.block toc_close
+</MENU>
+.end
+
+.include filetype.def

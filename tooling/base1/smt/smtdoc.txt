@@ -1,0 +1,34 @@
+#   smtdoc.txt - SMT documentation
+#                                                                            
+#   Synopsis:   This file lists all source files that comprise the SMT and
+#               for which srcdoc must generate documentation.  To produce
+#               the documentation, do this:
+#
+#                   srcdoc smtdoc.txt
+#                   htmlpp ...?
+#
+#               You need to install the srcdoc and htmlpp packages: you can
+#               download these from http://www.imatix.com as zip files in
+#               /pub/tools/srcdoc.zip and /pub/tools/htmlpp.zip.
+#
+
+<<Files>>
+smtlib.h smtlib.c
+smtdefn.h
+smtauth.c
+smtecho.c
+smthttp.c
+smtftpc.c
+smtftpd.c
+smtrdns.c
+smtlog.c
+smtoper.c
+smtslot.c
+smtsock.c
+smttime.c
+smttran.c
+smtsimu.h smtsimu.c
+smtupm.h  smtupmd.c smtupmc.c
+
+<<Header>>
+.include smtdoc1.txt

@@ -1,0 +1,4340 @@
+gdl
+    title     = Boom Guide
+    subtitle  = Using and Abusing Boom
+    product   = Base Boom
+    author    = iMatix Corporation &lt;tools@imatix.com&gt;
+    date      = 2005/03/15
+    copyright = Copyright (c) 1996-2009 iMatix Corporation
+    version   = 2.4
+end gdl
+
+Introduction
+************
+
+    "The issue is not one of power, but of coping with the
+    human difficulty in understanding complex structures."
+    -- Leif Svalgaard
+
+Boom is a portable command-line toolkit that automates the build process
+for software projects. In simple terms, Boom takes a project description
+and turns this into various platform-dependent scripts and makefiles
+that do the hard work of turning source code into executable files. It
+actually does a lot more than this, and is extensible.
+
+We'll start with the main Boom Questions. You're going to ask these
+sooner or later, so we'll get them out of the way and then get down to
+business. But first, a word from our sponsor.
+
+The Legal Stuff
+===============
+
+Please read this section before anything else. You may have downloaded
+this as "free software", but there are some very specific strings
+attached.  You do not have to accept these conditions, in which case
+you should remove Boom and Base from your system.
+
+Copyright and Licensing
+-----------------------
+
+Boom is part of the iMatix Base product. Base is the property
+of iMatix Corporation, a company registered in Brussels, Belgium. iMatix
+provides Base under a dual-licensing scheme: GPL (the GNU General
+Public License) and/or an iMatix commercial license falling under our
+General Terms of Business (GTB). The GPL license ensures that the
+Base source code is freely available today and forever to all
+software developers, whatever the future disposition of iMatix. The GPL
+license establishes the rights of software developers to access and use
+Base freely, under a set of conditions including one key condition:
+any work derived from the GPL-licensed Base source code must itself
+be covered by the GPL.  Please read the file "license.gpl" for details.
+
+However, we also provide Base under an iMatix commercial license
+falling under our General Terms of Business. This GTB license - which is
+negotiable and changes over time - lets you use Base as commercial
+source code, which is what it is.  You would be able to take the
+commercially-licensed source code and use it in commercial products sold
+under arbitrary (non-GPL) licenses.
+
+In this way, Base is really aimed at two groups of customers. One:
+free software developers who use the GPL for their work. Two: paying
+customers who are ready to help us finance development of Base. If
+you fall into the third group (commercial software developers who are
+looking for source code to steal) you will just have to delete this
+package from your hard drive and go back to your keyboard. Base is
+most categorically not public-domain software. You may not take our
+GPL-licensed source code and turn it into commercial products sold under
+a non-GPL license. That would be theft of our intellectual property, and
+we would sue.
+
+Base includes a number of open source packages which are _not_ our
+property and which are provided under their original licenses.  If you
+use these in commercial closed-source products you will have to refer to
+the original license in each case.
+
+Contributions
+-------------
+
+We welcome patches, contributions, and so on. However, if you make
+changes to our sources, and you want these changes included in the
+'official' version, you will have to:
+
+1. Transfer the copyright of this work to us.
+2. Accept that we may rewrite your changes in any way we see fit.
+3. Do not complain if this takes months or even years.
+
+This is not a complex procedure: a simple email agreeing to these
+conditions is enough for us. If you do significant improvements to our
+packages, we are willing to pay for the work. If you are really good, we
+may even offer you a job. But at the end of the day, every line of code
+in our projects must belong to us, or we cannot apply our dual-licensing
+model.
+
+This is our condition for making Base available as open source. We
+think it's more than fair, but hey: if you don't agree, you are free to
+take the package and make your own version. This is what the GPL is all
+about. Long live Richard Stallman.
+
+The 5-minute Presentation
+==========================
+
+Wondering what in the world Boom is?  Read on...
+
+Your World
+----------
+
+You're a programmer, in the large sense. You have to write programs, but
+also write documentation, make packages, send them to your users, keep
+track of versions, update web sites, track change requests, and so on.
+If you're working in a team, you probably use a source control system
+like CVS, and you work on different systems. Maybe you're writing
+software for several platforms - for Windows, for Linux, and other Unix
+boxes.
+
+Your Nightmare
+--------------
+
+Most projects start as one-man jobs, and in many cases there's always
+just one person who really knows what's going on. But this is a real
+problem when it comes to delivering the software to your customers.
+People make mistakes, and complex manual processes understood only by a
+few people are trouble-prone. Building software - turning it from source
+code into executable packages that you can actually ship - is complex
+and not portable. Under Windows you have MS Visual C/C++ (MSVC) or other
+Win32 compilers, each with their own notion of "project" and "makefile".
+Under Unix you have Make and makefiles, which are almost-but-not-quite
+standard. Under Linux you have GNU autoconf and a whole set of
+dependencies on versions, libraries, headers, and so on.
+
+It is bad enough having a long and complex build process, without having
+to port this to many platforms. And yet, this is what you most likely
+do today. "make config; make all install clean" may work on your Linux
+box, but what about that Win32 box sitting across the hall?
+
+The nightmare is having numerous projects, each reinventing and
+repackaging the same specialized knowledge once again: this is how I
+build on Windows, this is how I build on Linux, this is how I build on
+SunOS, etc.
+
+Imagine an Ideal World
+----------------------
+
+In an ideal world, all operating systems look the same. Bland,
+compatible, standardized. You make a simple description of your project,
+say "here are my files, this is what I need to do to build them", and
+magic happens. After all, how many ways are there really to compile a C
+program? C is, after all, C. In an ideal world, you'd be able to say:
+"these are my C programs - compile them. Here is a main program - link
+it. Here are some header files - stick them in a public place for other
+people to use. Here is some HTML documentation - throw that onto our
+internal web server."
+
+In an ideal world, you don't have to be a Linux expert to write a
+program that will compile and run on Linux. If there is a need for
+specialized knowledge (and there always is), it is packaged so that it
+can be shared by all projects.
+
+The Solution
+------------
+
+This is Boom. Bland, compatible, standardized. Write your programs, wrap
+them in a simple "project description", and watch as Boom turns this
+into code that does the building for you, on every box you have. Boom
+can handle any programming language, any build process, no matter how
+subtle, and any operating system. It is open-ended and extensible.
+
+Who are iMatix?
+---------------
+
+We started iMatix Corporation as a vehicle for doing what we like most,
+namely writing good software for nice people in a working environment
+that is exactly the one we'd create if we started our own company. Since
+we're small (around 10-15 people at most times), we have to be inventive
+and disciplined. We were one of the first groups to put our best
+technology out as free software, starting with Libero in 1992, long
+before Eric S. Raymond invented the term "Open Source".
+
+We develop technologies - mainly for software engineering and Internet
+communications - and we implement these as libraries and applications
+and tools, and then we use those in projects that we do for paying
+customers. Our communications products - the Xitami and Xitami/Pro web
+servers, the STEP secure middleware engine - are all based on Base.
+
+iMatix Corporation, though quite small, has a number of separate
+business lines mainly aimed at large businesses. You can find some
+information on these on our web site (imatix.com) at any time. All of
+these business lines are based around our ability to build reliable
+high-volume data processing systems. It's the brutal side of IT, where
+lost data means lost money.
+
+The Boom Questions
+==================
+
+Rather than wait for you to ask these questions, and then provide the
+answers in a FAQ, we'll just use the Aristotlean veal method.  Open
+your mind, and stuff it in!
+
+What Can Boom Do?
+-----------------
+
+Boom takes a project description (a PDL file) and turns this into
+scripts that builds various things from the project sources. However,
+this is actually implemented not by Boom itself, but by the default
+workflows and classes that come with Boom. You can easily create your
+own classes and workflows, or extend the ones provided. But overall,
+Boom speaks a language related to source projects, files, compiling and
+linking, and so on.
+
+Why is Boom Different From Make?
+--------------------------------
+
+A makefile is a flat specification of the relationships between the
+files in a project, and the commands needed to turn file type A into
+file type B. The only abstraction is being able to say "this file is of
+type A", and this abstraction works by file extension.
+
+Makefiles have three unfortunate properties. First, every relationship
+must be explicitly specified. So, if ten programs each depend on twenty
+include files, these have to be specified clearly, ten times. This
+raises the first problem with makefiles - they are costly to maintain.
+If you have ever had to understand someone else's makefile you will see
+why this is a joy to be savoured just once.
+
+Secondly, makefiles are not portable. Yes, there exist tools like GNU
+autoconf which will produce native makefiles for various targets. The
+correct use of autoconf is a science in itself, and while it would be a
+good solution for the kind of projects we do, it remains limited to the
+scope of makefiles, which is too limited for our needs. In other words,
+using autoconf to build makefiles solves part of the problem for us but
+in a way that does not really take us where we want to go.
+
+Thirdly, makefiles depend on file extensions. There is no way to tell a
+makefile "this file is a HTML file, but one that has to be handled in
+such and such a way" except to explicitly add the necessary code on a
+file per file basis.
+
+So, makefiles are complex, non-portable, and beastly to understand and
+maintain. The standard iMatix answer to this kind of code is, as our
+adherents will have learned by now, to generate it. Boom is therefore a
+tool that lets us generate makefiles, amongst other things.  Code
+generation is a wonderful thing, requiring just one mental step, namely
+that of abstraction.  This is hard work for people used to thinking in
+long sequences of flat commands, which is what makefiles look like.  But
+abstraction is the best technique we have for mastering the main problem
+we face in our work, namely complexity. (The alternative is the
+combination of excellent memory and unlimited patience.)
+
+The key to abstraction is to split the world into two kinds of people,
+those who split the world into two kinds of people, and those who do
+not. (I'm only half joking). The first group are few, and have to
+understand the internals of whatever we're abstracting. The second group
+are many, and (if things are well done) do not even notice that any
+abstraction is going on. When you watch a movie, you forget that it is
+built out of scenes, actors, voice-overs and sound effects, lighting,
+etc. All you see is the story. Similarly, when you use Boom, you should
+forget that it is built out of classes, workflows, scripts, and so on.
+All you should see is the end-result, namely the simpler abstraction.
+
+So, decide whether you are the audience or the film director. If you're
+the audience, you can skip through to the section "Using Boom", and
+ignore the boring technical detail that follows now.
+
+Why do you call Boom "Object Oriented"?
+---------------------------------------
+
+There are two very good reasons for this. The first is to make fun of
+anyone who takes definitions such as "object orientation" too seriously,
+and the second is because it's a good description anyhow. Boom does not
+let you create objects with methods, but then it's not a programming
+language*. What it does is let you define classes of objects, and attach
+build instructions to each class. Classes can be based on other classes,
+something called "inheritence", and classes can package small but vital
+bits of information such as "please treat all objects of this class as
+source code that the user needs in order to build the project", or
+"please etc. as HTML documentation files that should be placed somewhere
+where the user can access them".
+
+The term "Object orientation" is a good one for such an approach. The
+alternatives, such as "Class orientation", sound too much like Marxism.
+
+(*Actually, this is a lie, but let's just say that "Boom as a language"
+is not what most people see.  Boom defines two languages - PDL and PWL -
+which are aimed at end-users and hackers respectively, and depends
+heavily on another language - GSL - which is for hackers only.  All the
+object orientation in Boom happens at the PDL level, and this is so
+unlike a language that my lie is not really a lie after all.)
+
+What Should I Know Before Starting?
+-----------------------------------
+
+Boom is is a heavy user of XML, but before you panic, understand that at
+iMatix we have a slightly different vision of XML from most of the
+world. For us, XML is a simplifying technology, not an excuse for
+writing thousand page stylesheet syntax references. If you have never
+touched XML, just relax and follow the examples. If you're a hard XML
+user, a bit of relaxation will do you good as well. This is a stylesheet
+free zone.
+
+Secondly, the reaction of many people when using Boom for the first time
+is bewilderment. Possibly because it seems such a "complex" way of doing
+such "simple" stuff, in a world in which the words "simple" and
+"complex" get charmingly inventive new meanings almost but not totally
+opposed to the traditional ones. Boom works by hiding things, and you
+have to have some confidence in the engineering processes involved.
+Luckily you can always look under the hood. But, and I stress this,
+because some people seem to insist on doing things the hard way, do NOT
+look under the hood while driving the car. It is not wise.
+
+Lastly, Boom is for programmers, and that means you. I'm not going to be
+enormously gentle in this document - you are supposed to know your
+business and be able to learn new concepts rapidly. Blame me if things
+do not work, but do not complain if I tell you to read the source code.
+It is there, catalogued, perfectly written, legible, and clear, and born
+for only a single purpose: to be read and understood by humans (the fact
+that it also _does_ something is almost incidental). Learn a new language
+before breakfast. It's good for the brain.
+
+What is a "Class", Then?
+------------------------
+
+In Boom World, projects consist of files, and a class is an abstraction
+of a file. You can actually write a project description without using
+any classes, but this rapidly gets very boring and since we tend to use
+the same classes over and over, Boom comes with a set of pre-defined
+classes that you can use (or redefine, or not use: as you like). These
+sit in "classes.pdl", a file that you should at some point open and read
+through. Classes are just part of the project definition, so use the
+same PDL syntax, which we will come to later.
+
+Look at classes.pdl, and you'll see stuff like this:
+
+    <class name = "private resource">
+    Any text resource used to build the project.
+        <distrib as = "source"  />
+    </class>
+
+This defines a class "private resource" that we will use in many places.
+Anything based on this class will be included in a source distribution,
+which is the meaning of: '<distrib as = "source" />'.  Look a little
+further down classes.pdl and you will see this:
+
+    <class name = "sub program" inherit = "private resource" >
+    ANSI C sub program, compiled and replaced into library
+        <build>
+            <compile as = "c"/>
+            <replace/>
+        </build>
+        <derive class = "private object" />
+    </class>
+
+In which we define a new class, based on "private resource". The "sub
+program" class tell Boom that we will compile the source program, place
+it in our project library, and expect one derived file, namely a
+compiled object file with class "private object". The "private object"
+class looks like this:
+
+    <class name = "private object" generated = "1" filetype = "object" >
+    Compiled program object file.
+    </class>
+
+Which tells Boom: the file has the default extension ".obj" under
+Windows and ".o" on Unix (in fact, this information is not hard-coded in
+Boom, it's in the workflow libraries, which we'll get to later). This
+class also tells Boom: delete the object file when you're cleaning up.
+Nice to know. Let's look some more classes:
+
+    <class name = "dialog" inherit = "private resource" >
+    Libero dialog file.  The schema must be specified in the dialog file.
+        <generate>
+            <execute command = "lr" />
+        </generate>
+    </class>
+    <class name = "c dialog" inherit = "dialog" >
+        <derive extension = ".i"   class = "generated" />
+        <derive extension = ".d"   class = "generated" />
+    </class>
+    <class name = "generated" generated = "1">
+    Any other generated file that is not installed.
+        <distrib as = "source" />
+    </class>
+
+Which defines two classes, "dialog" and "c dialog". A dialog file is a
+finite-state description of the type we make using Libero. The first
+class tells Boom that when it wants to perform a "generate" action on
+the dialog, it has to run the command "lr", which is the Libero command.
+The second class is inherited from the "dialog" class (so inherits the
+execute command) but it also tells Boom that there are two derivations
+(for the generated code we know that Libero will produce for C dialogs).
+
+We can now put this all together with a super-duper class that is
+deceptively simple:
+
+    <class name = "c/libero" inherit = "sub program" >
+        <derive extension = ".l"   class = "c dialog" />
+    </class>
+
+And now in our project, we just specify the highly abstract concept of
+a "c/libero" file that encapsulates not just the C source, but also the
+Libero dialog, generated code, and so on:
+
+    <file name = "lreval.c" class = "c/libero">Logic evaluator functions</file>
+
+Which tells Boom a whole lot:
+
+1. We have a source file lreval.c.
+2. There is a related dialog file, lreval.l.
+3. To process this dialog file, run "lr lreval".
+4. This generates two files, lreval.d and lreval.i.
+5. When building the project, compile lreval.c.
+6. This generates an object file, lreval.
+7. This has to go into the project library.
+8. When building a source package, include lreval.c, lreval.l, lreval.d, and
+   lreval.i.
+9. When cleaning up, delete lreval.d, lreval.i, and the lreval object file.
+
+Which you could express directly in PDL, without using classes, as:
+
+    <file name = "lreval.c" >
+        <distrib as = "source"  />
+        <build>
+            <compile as = "c"/>
+            <replace />
+        </build>
+    </file>
+    <file name = "lreval.l" >
+        <distrib as = "source"  />
+        <generate>
+            <execute command = "lr" />
+        </generate>
+    </file>
+    <file name = "lreval.i" generated = "1" >
+        <distrib as = "source"  />
+    </file>
+    <file name = "lreval.d" generated = "1" >
+        <distrib as = "source"  />
+    </file>
+    <file name = "lreval" generated = "1" filetype = "object" />
+
+Which is 10-20 times more work.  There are of course many other ways to
+express the above twenty lines more compactly, but the most efficient
+is to be able to say exactly what you, as a programmer, know, which is
+that "lreval" is a C program with a Libero dialog.  Maybe Boom should
+be called "automagic".
+
+Now you start to see the power of Boom. Express yourself in the most
+succinct manner possible. If you need more abstraction than Boom already
+provides in classes.pdl (and this is likely, since we've only written
+classes for the kinds of work we do in Base and Xitami), you can
+just add your own classes to your project definition, create your own
+class files, and so on.
+
+How About Workflows?
+--------------------
+
+A workflow is a Libero-esque state machine that describes how Boom
+should handle a particular build command. The workflow is the glue that
+ties classes to GSL code which does the hard work of producing build
+scripts, makefiles, and so on. Workflows have the extension .pwl which
+means "Project Workflow Language". Workflows are not part of the project
+definition, and PWL is a language all of its own, which we'll get to
+later.
+
+Let's look at chunk out of the standard.pwl file:
+
+    <state name = "repository" inherit = "default">
+      <event name = "build">
+        <action name = "check project files exist" />
+        <action name = "produce generated files"   />
+        <action name = "check source files exist"  />
+        <action name = "build binary files"        />
+      </event>
+    </state>
+
+What this says is: the project can be in several states, one of which
+is "repository". The person who wrote the workflow had something in mind
+here, and it was not medical. "repository" means that the project has been
+checked out of a SCS repository (CVS or Subversion) rather than delivered 
+via a ZIP or TGZ file.  Why the difference?  Possibly because the
+repository contains different files than
+a source package.  We do not generally put generated code into CVS but
+we do like to provide that as part of a source package.  So building
+a project from CVS is not the same thing as building it from a source
+package.  It is this kind of subtle but vital distinction that Boom
+workflows describe.  And we use a formal method called a "finite state
+machine" (FSM) to make this description.  FSMs are old and wise.
+
+Now we come to the nice part about Libero, namely total and utter
+confusion about words. "Action" and "event" are like interbred cousins,
+you can't always tell the difference, and when you finally can, you're
+not sure it is a good thing. You do something, this is an action, but
+not for the workflow. The workflow sees things happening outside as
+"events". Then it goes and turns an event into "actions". Confused?
+Let's try again. You give the "build" command. This gets passed to the
+workflow by some magic, and the workflow says "ah, I have an event
+called "build", which matches the definitions I have here. Bingo!". Then
+the workflow says "OK, so I'm in the "repository" state, what do I have to
+do to handle this "build" event that I got?" And it finds four actions,
+nicely listed in order, so it goes and does these one by one.
+
+The workflow is simply a framework that says: "these are the states we
+agree on", "these are the events allowed in each state", and "these are
+the actions that I, the workflow, will perform, given a valid event in a
+valid state".
+
+In gross terms, states are the starting points where a project can find
+itself. A project is always in a well-defined state. Again, what these
+are depends on the person writing the workflow. I can tell you the
+states that we decided were useful when we wrote Boom, but that only
+tells you about the way we at iMatix see the world.
+
+Events are one of two things.  Either they are build commands entered
+by the Boom user (see "Time to Panic", later on).  Or, they are events
+produced by actions.  Yes, this is where most people's brains do a small
+flip that feels like a grapefruit turning itself inside out.  Let's look
+at the very beginning of the "standard.pwl" workflow.  This is how the
+workflow "decides" what state the project is in:
+
+    <state name = "initial">
+      <event name = "ok" internal = "1" nextstate = "initial check" >
+        <action name = "check operating context" />
+      </event>
+    </state>
+    <state name = "initial check">
+      <event name = "repository" internal = "1" nextstate = "repository"  />
+      <event name = "source" internal = "1" nextstate = "source"  />
+    </state>
+
+Let's work through this very slowly. The workflow starts in the first
+state, which is called "initial" in this workflow. The name is
+arbitrary. Starting in the first state is also just a convention. We
+could also start in the last state.  Doing stupid things is just
+generally a waste of time.  The first state gets an event, "ok", handed
+to it from somewhere.  The "somewhere" is actually the workflow engine,
+a chunk of code that I describe in the section "Hacking Boom".  The "ok"
+event tells the workflow it can start.  It does an action, "check
+operating context", and moves to a new state, "initial check".  The action
+does something like this, under Windows:
+
+    set event=source
+    if exist CVS\\nul set event=repository
+
+And under Unix:
+
+    event=source
+    [ -d CVS ] && event=repository
+
+We'll get to the "where" and the "how" a little later. You will see that
+the action code sets a variable called "event". This event comes back to
+the somewhat surprised workflow, which figured that its work was done
+and it could go back to that rather good book it was reading. The
+workflow takes the event, which is either "repository" or "source", and
+switches once more to a new state, this time either "repository" or
+"source". The fact that the event names and the state names match is
+totally incidental - it makes life easier for us, reading the workflow,
+but the states could as well be called "State Is Raw Fish" and "State Is
+Cooked Haddock".
+
+Finally, we come to the first chunk of code we showed.  Assuming that the
+Boom user had used the "build" command, the workflow would now do:
+
+        <action name = "check project files exist" />
+        <action name = "produce generated files"   />
+        <action name = "check source files exist"  />
+        <action name = "build binary files"        />
+
+which is just a very careful and deliberate way of saying "make all".
+
+What Do I Need To Use Boom?
+---------------------------
+
+Boom is part of Base, and to use it you have to install at least
+part of Base. Strictly speaking, Boom is a project in the Base
+product. Base consists of a number of projects: Boom, SFL, SMT,
+Gaggle, Libero, GSL, and so on. My advice is to just install Base
+in full. After all, you don't really want to live without something with
+a name like "Gaggle", do you? Unpack Base, follow the install
+instructions (basically "boomake install" if you got a binary package,
+and "boomake build install" if you got a source package).
+
+Next thing you need is Perl. Boom uses Perl to do various things which
+are (for now) out of the reach of the feeble capabilities of GSL. We
+will eventually remove this, not because we don't like Perl (we do) but
+because it adds an unnecessary step to installation on toy systems like
+Windows where Perl is not part of the world. How do they survive, we ask
+ourselves. Never mind.
+
+What are "Products" and "Projects"?
+-----------------------------------
+
+Boom defines "products" and "projects" as a way of trying to turn the
+total and utter chaos we usually see in software development into
+something that at least pretends to be organized.  We start with the
+concept of a "product" as being something large enough to justify an
+independent existence.  Products are the stand-alone deliverables that
+our software development process produces.  We deliver products to our
+customers and users.  A product is something we sell, internally or
+externally.  A typical product would be something like the iMatix
+Xitami web server.
+
+A product is usually too large to digest in a single workspace. By this
+I mean that any product worth producing invariably consists of not just
+one, but several semi-independent projects. Perhaps there are small
+tools that the product needs, or additional components, or other
+internal divisions. These divisions usually follow the structure of the
+product team. As the old saying goes: "When a team of N people build a
+compiler, they will usually make a compiler with N-1 passes. Someone has
+to do the project management."  So, we invent the concept of "project"
+to break a large product into more manageable pieces.  A project is
+something we work on, with a specific construction and deliverables.
+
+There are advantages to breaking work into pieces of the right size,
+where "right" has a meaning at many levels. A source file should fit
+into your active memory. A project should fit into your team size. A
+product should fit into your commercial structure. And so on.  If you
+push the limits in one way or another, you risk creating inefficient
+structures.  Imagine that you create a product from every single
+program.  You would be unable to sell these products in any kind of
+coherent fashion.  Or, that you create just one product, containing
+every single program you make.  Again, it would be unsellable, but
+worse, it would be untestable and unmaintainable.  The "right" size
+is very important.
+
+In our experience, and for the type of work we do, a breakdown into
+products and projects, where our entire product range has perhaps ten
+items in it, and each product breaks down into perhaps five to ten
+projects, and each project consists of perhaps twenty to a hundred
+principle source components, is "right".  Each Boom user will have
+a different scale of operation, but the breakdown into the two levels
+I've described is a useful place to start.
+
+In our experience, commercial developers tend to have a very few
+very important products, while free developers tend to make many small
+products.  Boom happily supports both extremes, but my advice about
+choosing the right scale for your work remains.  You cannot make every
+soldier in an army into a general.
+
+In Boom, several overlapping products can co-exist in the same space.
+This is useful because it is the way real life works. Boom lets you say:
+"this product consists of these and these projects", and repeat yourself
+as often as you like. Base is actually several products in the same
+space that we call "Base" for convenience. There is the basic
+source product - this is what we release to the great unwashed public.
+Then there is a binary version of this, which we may or may not release
+if we feel happy with it. Finally there is a source version that
+includes encryption (SSL) support, Base/Pro. I can quite easily
+define new products by picking and choosing projects. For example, I
+could define a "Base/Lite" product that consisted of just Boom,
+Libero, and GSL.  This would be compact, but without Gaggle, frankly,
+who would want it?
+
+Boom uses different workflows to package projects and products. Thus,
+the process of building a project is different from the process of
+building a product. As with most of Boom, this is all plastic and you
+may find it useful to play with and change it.
+
+Having said all this, you can work without products, entirely at the
+project level.  This is often a good place to start.  When you are a
+beginner.  Careful with that mouse pointer.
+
+How Can I Extend Boom?
+----------------------
+
+Jump ahead to "Hacking Boom". Before thinking about this, though, be
+sure you actually understand what you are doing. By that I mean: use
+Boom in several projects, and get some familiarity with the wonderful
+world of GSL. You will need it.
+
+Why All The XML?
+----------------
+
+Boom is one of the many tools we make and use. If it looks strange, this
+is because it is. We have an unusually aggressive vision of software
+development. Where most people try to master complexity through sheer
+willpower, we try to do this through sheer laziness. We are so lazy that
+we will work for days and weeks to remove complexity from the landscape.
+This is very hard to do: most activity just moves complexity from A to
+B. The most typical way of eliminating complexity is to hide it, by
+making neat packages. We do this, of course. But making neat packages
+just creates a new mental task - namely package management. We also take
+a different road, one that is strange to many people, and not at all
+obvious unless you have been there before.
+
+I'll call this "hyper-abstraction". What we do is to look at a class of
+common problems, and try to define a simplified abstract model that lets
+us implement solutions to those problems. Let me give an example. Let's
+say we're building houses. We decide that a house will have many things
+called "windows", and we will build these to a standard model consisting
+of a "frame", several pieces of "glass", and "hinges".
+
+Simply defining this standard abstract model of a window allows us to
+make the window elsewhere and bring it, already assembled, to the
+building site. Clearly this window model has some constraints and may
+hinder the traditional carpenter who is used to assembling a window
+on-site from wood and glass. But it allows higher quality and lower
+costs. Software is a lot like houses, except that the job of defining
+standard pieces and models never stops, because there are just too many
+"traditional carpenters" who enjoy chopping code and fitting it into
+whatever space there is, disregarding cost and quality and planning.
+
+Now, the idea of making standard models is not new. This is what object
+orientation is all about. Object orientation (and its offspring: Java
+beans, PHP extensions, Perl packages, and Windows components) creates
+new models and glues them into a programming language framework. We wrap
+up some behavior and intelligence, call it an "object" and give it to
+the application programmer. I call this the "wrap-and-go" approach to
+abstraction. Wrap-and-go depends intimately on a programming language.
+Can you imagine an "object" without a programming language? No, me
+neither.
+
+Yet this is a frankly introspective approach. Programming languages are
+just tools, not worlds, and while wrap-and-go is extremely powerful, it
+does not free the programmer from doing a nose-dive into an ultimately
+limited worldview. It makes it worse. All the Java beans in the world
+won't help you when you have to start again in C#.
+
+Thus we get generation after generation of programmer learning to use
+incredibly complex sets of components, but throwing away everything they
+know - and everything they write - every 3-5 years just as surely as
+when programmers were tied to a particular hardware instruction set. The
+science of software appears to have made enormous strides but in fact is
+has just moved the complexity from A to B. Yes, we are more productive
+today, but all this means is that we abandon more lines of code than
+ever before.
+
+Hyper-abstraction tries something different (whether it works or not
+remains to be seen). We look at the history of software development and
+we notice that languages have progressively gotten "fatter". From
+assembler to C, we get perhaps 10 times fatter. From C to Perl or Python
+or Java, we get perhaps 10 times fatter again.
+
+This is a good thing in the same way as "fat Internet connections" are
+good. One line of a fat language can do the same as thousands of lines
+of a thin language. Imagine a program as spaghetti, but hard, dry,
+straight, and spread-out across a table. Look at the fine lines of code,
+each doing one small thing. You can cover any surface, however detailed,
+but the effort of placing each strand of spaghetti is extraordinary. Now
+take really fat tubes of canellonni. This is a fat language. You can
+cover the same area much faster, although you may lose some fine detail.
+
+Wrap-and-go lets you add a lot of useful fat to the language. But in the
+same way as using macros in assembler, or subroutines in C, wrap-and-go
+keeps you tied to the language, and tied to the way the language sees
+the world, and this prevents any radical step in making the next
+increase in fatness.
+
+The first rule of hyper-abstraction is that the programming language is
+almost completely unimportant. It is a "target" in the same way as my
+notebook's CPU is a target. Yes, of course I care that my CPU works, and
+works rapidly, but I do not care about the details.  Not knowing the
+details is essential, actually.  Computers do _not_ tell you what they
+are doing.
+
+The second rule of hyper-abstraction is that we look at the way we work
+and think, and define models that structure that. Having been freed from
+the limitations of specific programming languages lets us define much
+more useful and natural models.  It's like saying: "We don't _care_ what
+kind of wood and what kind of glass go into the furkin windows, so long
+as we agree that what we call "window" consists of a frame, two panes of
+glass for insulation, and hinges so that it can open. The kind of wood
+is an implementation detail."
+
+The last rule of hyper-abstraction is that it requires magic, which is
+the technical term for "sufficiently advanced technology" as defined by
+Clarke.  This is where iMatix goes into territory that few others
+understand or even dare to investigate.  Our technology is, luckily,
+sufficiently advanced.  It is called "code generation", and the
+wizard's staff is a language called GSL that lets you write magic
+incantations.  Do not look at GSL as a programming language.  It is a
+language for doing magic that turns fat models into thin ones, much
+like a super diet pill.
+
+The recipe for using GSL is actually quite simple. First, identify your
+problem. In the case of Boom, for instance, the problem is taking a
+bunch of programs and assorted villains and turning them into a
+"product" that can be sold in exchange for money or kudos. But we could
+as well be talking about the problem of turning a car design into
+physical components, or the problem of turning window specifications
+into a paper order form. Our real worlds are made out of models, and
+software just takes this process several stages further.
+
+Secondly, define a "perfect model" to solve your problem. This is,
+admittedly, difficult. If you are trying to define the perfect window
+model, you have to know a lot about how windows are actually made. The
+model has to be simple, yet general. We make models by defining a set of
+concepts that seem to fit our world. If we do this well, the fit is
+obvious and no-one says "well done!" If we do this badly, we get the
+video player syndrome: an impossibly complex way of doing something that
+we all know is incredibly simple. Complexity is easy. It takes
+absolutely no creativity to make a complex model, just stamina and a
+good memory. It is finding the simplicity that is the hard work.
+
+It's like this document. I'm writing it using a model called "gurudoc",
+which is so simple and yet can be turned into such refined documents
+that it earns the label "magic". Gurudoc took quite a long time to
+refine, even though it looks trivial. It would have been much easier to
+use something like XHTML or TeX or one of the dozens of other document
+standards out there. But they are all _too_ _complex_.
+
+We often use XML to describe the "perfect model". XML is really good for
+this - it's a language with almost unlimited scope for fatness, for
+describing arbitrary concepts with elegance and clarity.  Or, in the
+wrong hands, for creating a tsunami of complexity that can overwhelm
+even the most determined person.
+
+Lastly, we use GSL to make magic that turns instances of the model into
+live code which can do the actual work. GSL just happens to live almost
+entirely in an XML-based world. Don't let that fool you into thinking
+it's like a weak scripting language with some XML capability. GSL was
+invented specifically as a hyper-abstraction tool, a language for
+writing code generators, the most powerful kind of tool in a
+programmer's toolkit.
+
+Imagine your model.  Implement it as an ultrafat XML language.  Turn it
+into living code with GSL.
+
+So, Boom is basically a set of XML-based models and GSL scripts.  It's
+a good way to build any toolkit.
+
+Using Boom
+**********
+
+This section is for you if you're thinking about using Boom in a
+project. I describe everything you need to know about using Boom in
+"normal" circumstances, which means building and packaging basic types
+of project.
+
+The Boom Lexicon
+================
+
+It's always a good idea to define the words we use.  Make sure you're
+sitting comfortably, and we'll pass through the main terms that Boom
+uses so that your brain doesn't get too surprised when we throw stuff
+like "Reverse Induction Warpflow" at it.  Just kidding!  Everyone
+knows it's "Reverse Induction Workflow".  I was just seeing if you
+were still awake.
+
+Project:
+    One project is defined by a PDL file, usually called "project.pdl".
+    A PDL lists a set of "files" that comprise the project, along with
+    other steps needed to "build" the project "deliverables".  A
+    project has a name, and an identity within a "product".  Projects
+    can depend on other projects within the same product, but they
+    cannot depend on other specific projects within other products.
+    Boom assumes that projects are placed in subdirectories beneath
+    the product directory.  In effect, the project directory _is_ the
+    name of the project.
+
+PDL:
+    The Project Definition Language, the main Boom language that you
+    will need to learn.  PDL is an XML language, and not complex.  Boom
+    comes with a tool (mkpdl) that generates PDL project definitions
+    for you if you find it too difficult to copy and paste from an
+    existing project.
+
+Project Definition:
+    See PDL.  One project can have multiple project definitions, but
+    this is both confusing and needless (in the cases we've seen so far).
+    Make a single "project.pdl" file, and don't surprise people.
+
+File:
+    Normally, a file is a metaphorical document that we can edit, save,
+    copy, print, etc.  In Boom, a file can actually consist of a group
+    of such documents that are related in a predictable way.  This is
+    just a way of collapsing a long and verbose project definition into
+    something approaching the ideal of "aw, heck, you know what I mean!"
+    Boom tries to use language the same way we do, namely with lots of
+    hidden assumptions and meanings.
+
+Deliverable:
+    A project delivers stuff.  We categories this into five specific
+    types of deliverable: executable commands, which are scripts and
+    executable images produced by the compile and link process;
+    libraries of compiled source programs; compiler header files that
+    allow other programs to use delivered libraries; runtime resources
+    that make the project usable by other projects; and finally,
+    documentation that tries to explain all this to the user.  Under
+    Unix, these five groups of deliverable go into directories called
+    something like bin, lib, include, bin, and doc, respectively.
+    Under Windows, we just pretend that we're on a real operating
+    system, and use the same directory names as for Unix.  If you
+    pretend really, really, really hard, sometimes it just happens!
+
+Dependencies:
+    When one project uses libraries, tools, or other resources from
+    another project, we call this a "dependency".  In a product,
+    project dependency must never be circular, or you will have a
+    hard time deciding which project to build first.  Project
+    dependencies must consist of what is technically called a
+    "directed graph", which is another way of saying "they must make
+    sense".  Similarly, products may depend on each other, but never
+    in circles.  If two products co-depend on each other, you have
+    a design problem and possibly a designer problem as well.
+
+Product:
+    A group of "projects" that can be delivered together.  It usually
+    makes no sense to deliver an individual project because it is not
+    complete enough.  Yes, I can deliver Boom, but not without GSL and
+    I can't deliver GSL without Libero, SFL, and SMT.  And so on.  The
+    easiest way to keep the user from going "package crazy" is to put
+    all the related projects into one basket, give it a funky name like
+    Base (sorry, that one's taken), and call it a "product".  This
+    is what we do.  Users still need to know the dependencies between
+    products, but that is usually quite simple.  Finally, a product
+    is something commercial: if you are well organized, you will have
+    people who are responsible for checking that whatever you deliver
+    to customers is solid, looks good, and works as advertised.  Having
+    a small, well-defined set of "products" makes this much easier.
+
+Workflow:
+    A Boom workflow is really the intelligence behind the Boom "build"
+    process.  Boom comes with a number of workflows.  Some of these let
+    you build specific kinds of projects.  There is also a workflow
+    aimed at building products, not projects.  But the real reason for
+    providing more than one workflow with Boom is to demonstrate the
+    real flexibility of this tool: you can make your own workflows and
+    thus define your own build process to suit your world and your
+    needs.  As a normal Boom user, you don't need to know how workflows
+    actually work: it is sufficient to know what ones are available and
+    how you should use them.
+
+Build:
+    This is the technical term for taking lots of source programs,
+    throwing them at the compiler, and then sending the five hundred
+    pages of warning and error messages back at the developer who quickly
+    says: "Oh, yes, _of course_!".  Repeat process until number of errors
+    drops to zero, and number of warnings is less than total number of
+    build cycles, at which point the project is ready for installation.
+    In Boom's world, building can also mean generating code, documentation,
+    and other files.  "Build" takes raw source code (e.g. from CVS) and
+    turns it into shiny software that starts at the touch of a button and
+    crashes at the click of a mouse.  So it has been, and so shall it ever
+    be.
+
+Builder:
+    A Boom "builder" is a script that builds a project.  Boom generates
+    builders called "boomake.bat" under Windows and "boomake" for real
+    operating systems (Linux and Unix).  The builder scripts, which are
+    fun, you should look at them sometime :(, consist of (a) a "workflow
+    engine", and (b) exploded commands to process all the project files.
+    If you have trouble building a project as expected (and yes, this
+    does happen very, very rarely), your best bet is often to hack the
+    builder.  Remember the part where I assume you are a "programmer"?
+
+Programmer:
+    A professional who is capable of opening a "source" file and making
+    some sense of what is inside it, regardless of the programming
+    language.  More specifically, in the context of Boom, both the
+    person using Boom, and the person who will take time to understand
+    _why_ the "project" is not building before emailing iMatix to complain.
+    Allow us to remind you of the very useful Windows Batch command
+    "echo", as in "echo on", and the parallel command in Unix ksh and
+    Bash: "set +x".  You're welcome.  Oh, if you just read the part about
+    temporary install trees, a "programmer" is also someone who is not
+    scared by the fact that several files with the same name but totally
+    different versions may be sitting scattered in different locations
+    around his computer, accessed via strange semi-documented environment
+    variables.  Let Chaos be Unleased!
+
+Class:
+    In Boom, a class is a kind of a template for a "file". The syntax for
+    defining a class is pretty much the same as for defining a file,
+    except that one is called "class" and the other is called (yes, you
+    guessed it), "Reverse Induction Workflow".  Classes can be based on
+    other classes, which is how we hide lots of vitally important but
+    incredibly tedious detail, until we get to Boom's Nirvana of perfect
+    laziness, in which you, the honoured "programmer", simply say "look,
+    this darn thing is an automatic bondoogle.  Do what you must," and
+    Boom, like the perfect butler, does it.
+
+Automatic Bondoogle:
+    In Boom's world, the automatic bondoogle is the class of file used
+    by programmers who have not understood the harmonious essence of
+    "reverse induction workflows" and thus the essential insights into
+    life.  That, or a piece of dried fruitcake.
+
+Raw Source Code:
+    This is the stuff that comes out of that horrendous mangler we call
+    "the software development process".  A pseudo-random collection of
+    dipthongs, asterisks, left square brackets, and the occasional
+    lurking tab trying to masquerad as white space, raw source code is
+    everything you ever wrote but were afraid to look at.  Not to be
+    confused with "generated source code" which is tidy, clean, readable,
+    fast, honest, and correct, and for these reasons is sincerely and
+    warmly despised by real programmers.
+
+Workflow Engine:
+    A horribly strange piece of code that brings a Boom workflow to life.
+    Imagine Dr Frankenstein's helper, Igor, and you start to see what
+    I'm talking about.  Give Igor green hair, three humps, and a Scottish
+    accent, and you get the full picture.  "Och aye, Mathter!"  Boom puts
+    a workflow engine into each "builder" that it generates, and this is
+    part of the reason why these scripts are a bit strange.  But I'm 100%
+    confident that you'll make it.  See "programmer".  If you would like
+    to build your own McIgors, take a look at the iMatix Libero tool and
+    imagine implementing Libero state machines in Unix shell and Win32
+    batch language.
+
+Derivation:
+    A project "file" can include derived files.  Thus, we can say that
+    a "C program" has a derived file that is an "Object file", being
+    the result of shoving the C program through the C compiler.  It is
+    a Very Good Thing to use derivations to hide boring but vital
+    details about building projects.  Yes, every C program has a matching
+    object file.  No, we do not want to hard-code this knowledge in Boom.
+    No, we do not want every single project to have to respecify this.
+    Yes, it is vitally important if we want to actually build and clean
+    our project neatly.  Classes and derivations make this possible.
+    Derived files always have the same name as the principle file, with
+    different extensions.
+
+Perl:
+    A programming language with attitude.  Possibly the most "in your
+    face, buster" language since Algol 68.  Perl is notable for being
+    more complex than PL/I but more useful than a glass in a brewery.
+    We use Perl to write the occasional tool where the effort of
+    re-learning the minimal Perl syntax we need to do the job is less
+    than the effort of writing the tool any other way.
+
+GSL:
+    A programming language with attitude.  Possibly the most "if you
+    have to ask, you don't want to know" language since APL.  GSL is
+    notable for being simpler than Awk but more difficult to use than
+    an umbrella in a telephone cabin.  We use GSL to make our lives
+    bearable.  See "Why All The XML?" earlier in this document.
+
+Package:
+    In Boom's world, a "package" is something you produce to give to your
+    users and clients.  We can make packages both from products and from
+    projects, but project packages should be seen as "for internal use
+    only".  There are two basic types of package: source and binary.  A
+    source package needs to be built (and then installed) before it can
+    do anything useful. A binary package can be installed.  Source
+    packages are portable, i.e. they contain everything needed to build
+    on all target systems.  Binary packages are extremely non-portable,
+    and are built on a specific system, for a specific system.  You can
+    define arbitrary "packager" extensions that build the packages you
+    want - Boom comes with default packagers for zip and tgz files.
+
+Packager:
+    A packager is an external command that does interesting and useful
+    things on the "temporary install tree".  Packagers are called by
+    the builder when it feels ready for it, which by default, is when
+    you use the "distrib" command at the product level.  Under Windows
+    the default packager is pkg_zip.bat.  Under Unix, it is pkg_tgz.
+    The packagers are the bits of code that create distributions.
+
+Temporary Install Tree:
+    When Boom builds a product (or more accurately, when the builder
+    that Boom generates for a specific product builds the projects
+    that comprise that product, and now you see why hiding tedious
+    detail is such an important part of expressing oneself without
+    becoming as boring as a bureaucrat on Thursday afternoon) it goes
+    through the motions of building and installing each project in
+    turn.  Boom faces a dilema.  If project B depends on project A,
+    then project A must be built _and_ installed before we can start on
+    B.  But installing a product is a serious step - it can (and thus
+    often does) make a royal mess of our working environment.  We cannot
+    simply go and install individual projects until we get the "install"
+    command at the product level.  Boom resolves this dilema by
+    installing into a temporary install tree, called "_install", and
+    not abreviated for obvious reasons, sitting under the product
+    directory.  The _install directory looks a lot like the final
+    installation tree, including little "bin" and "lib" and "include"
+    directories.  The temporary install tree usually keeps well out of
+    sight, but raises its ugly face (being a distant cousin of McIgor
+    the Hunchbacked Workflow Engine) when you try to build (and "try"
+    is too often the operative word) a project that depends on other
+    projects previously installed into the temporary install tree.
+    See "programmer".
+
+Distribution:
+    Something intended for the final user.  Boom knows about two kinds
+    of distribution: source and binary.  Source distributions are used
+    by developers who are prepared or who want to unpack and rebuild
+    the various projects.  Source distributions may also be necessary
+    as part of conforming to license agreements - for instance, if you
+    use the GPL licensed Base, you must provide your users with
+    source distributions of any derived products (which, incidentally,
+    must also be licensed under the GPL.)  Binary distributions are
+    meant for "real" end users, and normally contain only those files
+    needed to actually run the software application.  Distributions
+    are much the same as packages.
+
+Target:
+    A Boom "target" is an operating system (or the nominal equivalent
+    category of product produced by Microsoft) that Boom knows about.
+    Boom uses the concept of "target" to decide what code to generate
+    for a particular project and workflow combination.  You can, for
+    instance, say "this project is only for target X", or do what most
+    people do, which is allow Boom to generate for all the targets it
+    knows about.  You can also define your own targets if you need to
+    extend Boom in the direction of new platforms - see "Hacking Boom"
+    for the painful details.
+
+Boomake:
+    This is what the Boom builder is normally called.  Under Unix/Linux,
+    just "boomake".  Under Windows, "boomake.bat".  If there are still
+    other operating systems in use after 2003, we will name boomake
+    appropriately in each case.  The name "boomake" was chosen to be
+    close to "make" while still retaining the essence of "Boom".  We
+    are proud of the result.  Subtle, yet clear, n'est pas?
+
+Source:
+    A source file is anything written by hand.  Traditionally, "source"
+    is a programming concept, something you are supposed to be familiar
+    with if you're reading this.  In Boom's mind, "source" also includes
+    things like images.  A source package (which is the only place where
+    this term is used really precisely) contains everything needed to
+    build the final binary package, but is portable.  Source packages
+    include generated code (which are a funny kind of source, since they
+    are not made by hand at all).
+
+Binary:
+    A binary file is something that looks like computers sound in the
+    movies - Beep-sBBEsspa!!JSssjaa-A$<bleeP> - followed by your screen
+    going black.  In Boom's mind, binary files are things produced by
+    the process of compiling and linking, and include object files,
+    libraries, and executable images.  A binary package (again, the
+    only place this term has a strict meaning for Boom) includes all
+    the stuff a user needs to use the product, which normally excludes
+    source files (except those pesky images, which seem to cross all
+    boundaries, often including the bounds of common decency).  Binary
+    packages are not portable.
+
+Reverse Induction Workflow:
+    If you have to ask what this is, you really do not want to know.
+    See "automatic bondoogle".
+
+Basic Operations
+================
+
+The basic Boom cycle is this:
+
+1. Use Boom.
+2. ???
+3. Profit!
+
+And we can break down step 1 into more detail thus:
+
+1. Write programs.
+2. Make project description.
+3. Configure builders.
+4. Build project.
+5. Repeat until happy.
+
+Before You Start
+----------------
+
+You must have installed Base.  Check that this works by trying a
+command like "gsl" from the command line.  If you get a nice display like
+this:
+
+    GSLgen/3.1 Copyright (c) 1991-2009 iMatix Corporation
+    syntax: gslgen -<option> ... -<attr>[:<value>] ... <filename> ...
+        Options:
+            -q   quiet:    suppress routine messages
+            -p   parallel: process files in parallel
+            -s:n size:n    set script cache size - default is 1000000
+            -h   help:     show command-line summary
+            -v   version:  show full version information
+
+then Base is most likely well installed.  If you get this:
+
+    'gsl' is not recognized as an internal or external command,
+    operable program or batch file.
+
+then you should find help from a real programmer who can help you sort out
+your PATH definitions.
+
+A Trivial Example
+-----------------
+
+We'll start with one of the classic software applications. In many ways,
+The First Program, the Mother of All Programs, the Adam and Eve of
+source code. Yes, please give an enormous welcome to hello.c:
+
+    #include "sfl.h"
+    void main (void) {
+        puts ("Hello, World!");
+    }
+
+So small, and yet so eloquent. Check that you can compile and build by
+hand, using the "c" script that Base comes with:
+
+    c -l hello
+    hello
+
+You should get a warm happy feeling when you see this appearing on the
+screen:
+
+    Hello, World!
+
+I am now going to try to convince you that this one-line command ("c -l
+hello") is too much to remember, and that you really, really want to use
+Boom to package this project. First, let's make a project definition, a
+PDL file. A PDL file is XML, and I'll explain the syntax of the PDL
+language later. For now, just pretend you understand what I'm talking
+about. Here is the most simple PDL we can make that will do something
+useful:
+
+    <?xml version="1.0"?>
+    <pdl
+        name      = "Hello World"
+        acronym   = "hello"
+        version   = "1.0"
+        workflow  = "standard.pwl" >
+    <inherit filename = "classes.pdl" />
+    <file name = "testit.c" class = "main program" />
+    </pdl>
+
+We will now "configure" the project, which means telling Boom to make us
+the builders:
+
+    boom
+
+Which most people find they can remember without too much trouble. The
+command assumes that the project file is called "project.pdl", and if
+you decide to use another file, say "hello.pdl", you would have to type
+this:
+
+    gsl -ignorecase:0 -q -pdl:hello boom
+
+And I do not recommend you go down that road.  Keep things simple and you
+will enjoy life more.  Boom should report something like this:
+
+    gsl M: Processing project.pdl...
+    gsl M: Configuring Hello World: version=1.0 build=debug
+
+Now, if you look at the directory where you are working, you will find
+two new files: boomake and boomake.bat. These are the builders for Unix
+and for Windows, respectively. To build the project, do this now:
+
+    boomake build
+
+Which will report something like this:
+
+    Building application...
+    hello.c
+
+And then stop. Since we are doing almost exactly the same work as "c
+-l", it should not take any longer. Take another look at the directory
+and there should be a new file called "hello.exe" (Windows) or "hello"
+(Unix). You can run this and check that you get that same warm happy
+feeling of having done something really challenging but somehow
+incredibly useful. Go and get that coffee now, you've earned it.
+
+A More Complex Example
+----------------------
+
+Constructing The Project
+........................
+
+We're going to make a rather more complex application.  This is the
+"Hello World" program built for a paying customer.  We will now split
+the work into several pieces.  At the same time I will give you some
+valuable and hard-earned pieces of wisdom about becoming a commercial
+software "consultant", which is the technical term for someone who is
+at the same time too inexperienced and also too well paid to actually
+program, write documentation, or create intelligent designs.  We will
+assume in this case that you are - as we've already discussed - a real
+programmer, but willing to hide your CV and pretend ignorance in order
+to qualify for juicy consultancy jobs where the main criteria are (a)
+a golf handicap and (b) good hair and (c) a keen appreciation of the
+two main kinds of software project, being the "Golden Bowl" and the
+"Hot Potato".
+
+First lesson: convince your customer that without a new improved Hello
+World Application (HWA), life would not worth be living. You can do this
+by dropping hints about the amazing HWA that competitors across the
+street or down the hall are considering. Remark how old the current HWA
+is, and how little it has helped productivity. Note with sadness that if
+only there was someone, anyone, creative and smart enough to see the
+value of a new, improved HWA, that person would certainly soon be both
+promoted and applauded. When asked the possible budgetary impact of a
+new HWA, say that nothing easy is worth doing, but that it could almost
+certainly be done with a very modest team of three or four people.
+
+Let us look at the main HWA Launcher. It is still called "hello.c" but
+now looks like this:
+
+    #include "hello.h"
+    void main (void) {
+        launch_hello ();
+        launch_world ();
+    }
+
+We define our application prototypes in a header file, "hello.h":
+
+    #ifndef HELLO_HEADER
+    #define HELLO_HEADER
+    #include "sfl.h"
+    #define HELLO_TEXT "hello"
+    #define WORLD_TEXT "world"
+    int launch_hello (void);
+    int launch_world (void);
+    #endif
+
+Second lesson of consultancy: blank lines are for wusses and they make
+the source code easier to read, and thus easier to maintain, which is
+NOT A GOOD THING. Customers are supposed to pay for maintainance, not
+attempt something like that themselves.
+
+We now have two subroutines that do the actual work. Presumably this is
+because our project team consisted of four people: one for each
+subroutine, one for the main application Launcher and integration, and
+one for project management. Here is subhello.c:
+
+    #include "hello.h"
+    int launch_hello (void)
+    {
+        printf (HELLO_TEXT);
+        return (0);
+    }
+
+And subworld.c:
+
+    #include "hello.h"
+    int launch_world (void)
+    {
+        printf (WORLD_TEXT);
+        return (0);
+    }
+
+Now, a "normal" Boom project includes something called "readme.txt".
+This is just a polite file that explains something useful about the
+project which was perhaps ommitted from the main documentation due to
+lack of time.  Here is the readme.txt for our project:
+
+    The Hello World Application
+    License: this application is the property of Con-U Software Systems.
+    All rights reserved.
+    Usage: formally interdicted by acceptance of the shrink-wrap license
+    or absence thereof, the contravention of which shall be liable to a
+    fee of no less than half of left arm. All your base are belong to us.
+
+This new version of Hello World has many so advantages over the feeble
+version we saw before, including at least two bugs, that we will make a
+new project.pdl that adequately describes it:
+
+    <?xml version="1.0"?>
+    <pdl
+        name      = "Hello World"
+        acronym   = "hello"
+        version   = "2.0"
+        workflow  = "standard.pwl"
+        library   = "libhello" >
+    <include filename = "prelude.pdl" />
+    <file name = "hello.c"      class = "main program"  />
+    <file name = "subhello.c"   class = "sub program"   />
+    <file name = "subworld.c"   class = "sub program"   />
+    <!-- Deliverables -->
+    <file name = "hello"        class = "public command"/>
+    <file name = "hello.h"      class = "public header" />
+    <file name = "libhello"     class = "public library"/>
+    </pdl>
+
+Once again we can configure the project with a single command:
+
+    boom
+
+and build it with the slightly more complex but still memorable:
+
+    boomake build
+
+This does several things: it compiles the three C programs, sticks the
+two subroutines into a library, and links the main program. If you run
+the resulting main program you may spot the bug, which would be a good
+moment to apply Lesson Three of software consultancy, namely that any
+errors made by the project team are fixed at the customer's expense.
+Make sure that the original specifications go into extreme detail about
+such things as the font used for documentation, but say nothing at all
+about the actual HWA functionality.
+
+Installing Our Work
+...................
+
+The process of software development is not really complete until we've
+installed our pride and joy in a production environment and caused total
+havoc with our customer's accounting, payroll, and security systems.
+Lesson Four of consultancy is that the occasional demonstration of raw
+power is very important to establish a healthy client relationship
+based on awe (so that you will get more work) and fear (so they will
+pay the invoice on time and in full).
+
+Presumably if you have gotten this far and actually tried the examples
+(rather than just nodding your head as you slide into deep sleep), you
+will have installed Base somewhere. Under Windows, maybe c:\imatix.
+Under Unix, maybe /usr/local/imatix.  We are now going to install our HWA
+in the same place:
+
+    boomake install
+
+after which you should take a quick look at the bin, include, and lib
+directories in the install tree and check that the hello deliverables
+are nicely there.
+
+Cleaning Up
+...........
+
+Let's try a quick clean-up:
+
+    boomake clean
+
+Now look at the working directory.  You will see that all files produced
+during the build process have magically vanished.  Boom knows what files
+are "original" and which ones are not, and it deletes those generated or
+produced by the compile/link process.
+
+Distributing the Project
+........................
+
+After all that hard work, we want to be able to send a huge email
+attachment to our customer along with the invoice. The boomake builder
+knows enough about the project to be able to throw together a package
+of the source files you need to build your HWA/2.0 from another system.
+To make this package, try:
+
+    boomake distrib
+
+("distrib" is an abreviation for "distribute the sources so that we can
+go home after a long morning's work and consider how we will spend our
+hard earned money without suffering excessive tax penalties.") Under
+Windows, this will create a zip file. Under Unix, a compressed tar file.
+It's fun to look at what's in this package.  For instance, using the
+command:
+
+    unzip -l hello*.zip
+
+which shows us something like this, depending on whether and how we
+generate stuff like makefiles (shown here as msmake and makefile):
+
+    Archive:  hello_2_0_src.zip
+     Length    Date    Time    Name
+     ------    ----    ----    ----
+         89  01-15-03  17:18   hello.c
+         94  01-15-03  17:17   subhello.c
+         94  01-15-03  17:17   subworld.c
+        178  01-15-03  17:18   hello.h
+        577  01-15-03  17:48   project.pdl
+        332  01-15-03  17:17   readme.txt
+      18115  01-15-03  17:49   boomake
+      18432  01-15-03  17:49   boomake.bat
+       1255  01-15-03  17:49   makefile
+       1052  01-15-03  17:49   msmake
+     ------                    -------
+      40218                    10 files
+
+Quite impressive, even if I say so myself. Throw the package onto
+another system (call this the HWA Production Platform and you may even
+be able to tweak the hardware vendor for a margin), unzip it, and run
+boomake to the astonishment and delight of your customer. This
+definitely falls into the class of project called "Golden Bowl".
+Go get that Porsche now, you've earned it!
+
+Deconstructing The Project
+..........................
+
+You may have noticed that the Boom builder works somewhat like a normal
+make file, with "configure", "build", "install", and "clean" steps. This
+cannot be totally accidental - I guess whatever genius invented
+makefiles had already looked at Boom and decided that our model was good
+enough to copy. Or maybe it was the other way around. In any case, we've
+applied the principle of Least Surprise to try to make boomake work
+somewhat like make, even if it's actually a totally different kind of
+animal. Let's look at the project.pdl file again, piece by piece:
+
+    <?xml version="1.0"?>
+    <pdl
+        name      = "Hello World"
+        acronym   = "hello"
+        version   = "2.0"
+        workflow  = "standard.pwl"
+        library   = "libhello" >
+
+This defines the project. If you have sharp eyes and are still awake,
+you will notice a new attribute from the 1.0 version, namely "library".
+We must define this if we have subroutines to compile.  My suggestion
+is to always use a library called "libxxxx" where xxxx is the project
+acronym.  It makes life easier on system like Unix where standard
+libraries also start with "lib".
+
+Note that you do not specify an extension for the library.  Wherever
+you specify a library, object file, or executably program, extensions
+are not just unnecessary, they are bad, because they are not portable.
+Boom knows enough to stick a ".a", ".lib", ".exe" and so on after the
+filename when it's needed.
+
+After the project header, we do this:
+        
+    <include filename = "prelude.pdl" />
+
+Which includes something called "prelude.pdl".  If you look at this
+file (supplied with Boom and sitting in the Base bin directory),
+you will see that it in turn includes and inherits a number of files.
+Using prelude.pdl makes life easier, forces us to make projects a little
+more standard, and this is all good.
+
+Next we list the C programs we have in our project, using two classes.
+I'll get back to the different classes we can use later on:
+
+    <file name = "hello.c"      class = "main program"  />
+    <file name = "subhello.c"   class = "sub program"   />
+    <file name = "subworld.c"   class = "sub program"   />
+
+Finally, we list the so-called "deliverables".  It's polite to put these
+at the end of the project definition, but actually the order of files has
+no significance:
+    
+    <!-- Deliverables -->
+    <file name = "hello"        class = "public command"/>
+    <file name = "hello.h"      class = "public header" />
+    <file name = "libhello"     class = "public library"/>
+
+Again, it's the file class which tells Boom how to handle the file.
+We'll see this later.
+
+The mkpdl Tool
+--------------
+
+Boom comes with a small Perl tool, mkpdl, that creates a skeleton
+project file for a new project. To use mkpdl, just run the command:
+
+    mkpdl
+
+Which creates a "project.pdl" file for you. You will have to check and
+edit this file, since mkpdl makes some assumptions that are certainly
+not entirely correct.
+
+To get the best use out of mkpdl, clean-up your project directory
+first, removing all generated code, object files, libraries, and so
+on.  If you use a source control system such as CVS, you can usefully
+run mkpdl immediately after checking-out a project.
+
+If you already have a project.pdl file, mkpdl does nothing. To create a
+new file, you must manually delete or rename the existing one, and then
+run mkpdl.
+
+The project.pdl that mkpdl uses a small set of classes, and again the
+file classes are something you will want to check and probably edit.
+These are the classes it uses:
+
+Class:          Used for:
+sub_program:    ANSI C sources with no dialog or header.
+c/libero:       ANSI C sources with a matching dialog.
+library_module: ANSI C sources with a matching header file.
+dialog:         Libero dialog files (with the extension .l).
+private_resource: C header files.
+dos_wrapper:    Windows batch files (with the extension .bat).
+gsl_data:       Any XML files (with the extension .xml).
+command_script: Any files without extension.
+private_resource: Any other file that looks "useful".
+
+Here is an example of mkpdl's work, in this case for our glorious Hello
+World Application v2.0:
+
+    <?xml version="1.0"?>
+    <pdl
+        name      = "Kewl Project"
+        acronym   = "kewl"
+        version   = "1.0"
+        copyright = "Copyright (c) 1991-2009 iMatix Corporation"
+        workflow  = "standard.pwl"
+        library   = "libxxx" >
+
+    <include filename = "prelude.pdl" />
+    <file name = "hello.c"      class = "library module"  ></file>
+    <file name = "subhello.c"   class = "sub program"     ></file>
+    <file name = "subworld.c"   class = "sub program"     ></file>
+    <file name = "readme.txt"   class = "private resource"></file>
+    <!-- Deliverables -->
+    <file name = "libxxx"       class = "public library"  >Some runtime library</file>
+    <use>
+        <library name = "libsfl" />
+    </use>
+    </pdl>
+
+The IBASE Environment Variable
+------------------------------
+
+Boom relies on various environment variables, including PATH and
+PERLLIB, but most critically on an environment variable called "IBASE".
+If you do not know what I mean by "environment variable", please go and
+ask someone. IBASE tells Boom two things. First, where it must install
+its projects (and products) when doing a real, final install. Second,
+where it can find libraries and include files for building. If you find
+that projects do not build correctly, or seem to link with incorrect
+libraries, it is most likely because IBASE is set wrongly.
+
+If IBASE is not set, it will default to:
+
+    /usr/local/imatix
+
+under Unix, and:
+
+    c:\imatix
+
+under Windows.  If you look at the first few lines of boomake(.bat) you will
+see how IBASE is used:
+
+    _IBASE=$IBASE
+    test -z "$_IBASE" && _IBASE=/usr/local/imatix
+    INCDIR=$_IBASE/include
+    LIBDIR=$_IBASE/lib
+    PATH=.:$_IBASE/bin:$PATH
+    PERLLIB=.:$_IBASE/bin:$PERLLIB
+    export INCDIR LIBDIR PATH PERLLIB
+
+where INCDIR and LIBDIR are used for C compilation and linking.
+
+Installation Directories
+------------------------
+
+Boom enforces a specific installation model for your applications. This
+is derived from the standard Unix world view in which interesting things
+tend to go into specific directories. However, Boom does not let you
+install files into random directories, such as /etc or c:\winnt\system32
+, even if this is what you would like to do. There is something
+peculiarly unpolite and short-sighted about putting applications into
+"system" directories. Yes, it makes it "easy" to find important files,
+but it also creates scope for endless catastrophes. You can always do
+such brutal installations by adding intelligence (though in this case,
+I'd question the term) to the Boom builders.
+
+The model that Boom imposes follows these rules:
+
+1. All the files in an application are installed into a single tree,
+   which is under $IBASE (I'll stick to the Unix conventions here).
+2. This tree has four main branches, namely bin, include, lib, and doc.
+3. You can create your own branches as needed for finer control over
+   where files go.
+   
+On the bright side, Boom's authoritarianism means that it is easy to
+identify where applications have been put, and easy to uninstall them
+when they are no longer wanted.
+
+Boom knows about a number of specific "types" of file when it comes to
+installation. If you look at classes.pdl, and specifically at the
+<install as> tags scattered through that file, you will that the "as"
+attribute takes one of the following values:
+
+Value:      Meaning:
+include:    Include file, goes into $IBASE/include (public header).
+library:    Library of object programs, goes into $IBASE/lib (public library).
+command:    Executable command, goes into $IBASE/bin (public command).
+resource:   Resource used by executable command, goes into $IBASE/bin (public resource).
+script:     Executable script, goes into $IBASE/bin (public script).
+license:    License description, goes into $IBASE/bin (license).
+readme:     Readme file, goes into $IBASE/doc (readme).
+document:   Documentation file, goes into $IBASE/doc (documentation).
+
+The main class for each of these is shown in parenthesis. The way
+classes work mean that installation of files should work more or less
+automatically - that is, you do not need to specify <install as> tags
+unless you are defining new low-level classes.
+
+Boom Project Workflows
+----------------------
+
+Boom provides three workflows for projects. These all provide a similar
+configure, build, install, clean process, but the detail changes
+slightly depending on the work you want to do. If in doubt, use the
+standard workflow. The others exist only to create slightly smaller
+builder scripts but all projects will actually work with the standard
+workflow.
+
+The Standard Workflow
+.....................
+
+[See standard.txt]
+
+The Scripted Workflow
+.....................
+
+[See scripted.txt]
+
+The Simple Workflow
+...................
+
+[See simple.txt]
+
+Standard Boom Classes
+---------------------
+
+[See classes.txt]
+
+The PDL Language
+================
+
+[See pdl.txt]
+
+Advanced Project Definitions
+----------------------------
+
+Since you're probably getting bored with the mass of information in the
+preceding sections, we will take a look at some specific PDL aspects
+that will be useful as you explore Boom in more realistic and complex
+projects. I'll illustrate all of these points with examples taken from
+some real projects (mainly Xitami/3.0 and its wrinkled uncles 2.4 and
+2.5).
+
+Choosing a Project Install Location
+...................................
+
+    pdl.install = "xitami-24"
+
+This attribute lets you place the project in a directory of its own. You
+will need this if you install multiple versions of the same project on
+one system. Without this option, the project deliverables are thrown
+into the main $IBASE directory (remember that IBASE is the environment
+variable that Boom uses to decide where to install). When you set the
+pdl.install option, the name you specify is used to create a
+subdirectory beneath the $IBASE directory. So, for the above example,
+you would expect files to be installed in directories like this (for a
+default IBASE under Unix):
+
+    /usr/local/imatix/xitami-24/bin
+    /usr/local/imatix/xitami-24/include
+    /usr/local/imatix/xitami-24/lib
+    /usr/local/imatix/xitami-24/doc
+
+The pdl.install value may not be an absolute pathname: it must be
+a subdirectory name.  However, it may contain multiple levels, e.g.
+pdl.install = "xitami/version/2.4".
+
+Why is this option important?  Because applications can and do step
+on each other's toes.  If I want to install - say - xitami/2.5 on
+the same system, I can do this by specifying a different pdl.install
+for Xitami/2.5:
+
+    <pdl
+        install = "xitami-25"
+
+and be assured that the application will always behave during
+installation. This is reasonably foolproof, whereas asking the person
+doing the install to carefully set IBASE beforehand is just asking for
+trouble. "boomake install... oh shit!" is the Ohno second you want to
+avoid, by design rather than discipline.
+
+Choosing a Project Deployment Location
+......................................
+
+    <pdl
+        deploy = "app"
+
+This attribute overrides the class install "as" option and installs the
+project into the specified subdirectory, after using pdl.install, if
+that is set. So, if a project can specify both these options:
+
+    <pdl
+        install = "xitami-24"
+        deploy = "app"
+
+Which will put all the files (and subdirectories, following the project
+organisation) into:
+
+    /usr/local/imatix/xitami-24/app/...
+
+This is not just useful but essential when you make projects which
+create working environments that you want to install wholesale.  While
+many projects can be installed into bin/lib/include/doc, others do not
+work like this.
+
+If your application has a mix of the two kinds of deliverable - namely
+public libraries and header files on the one hand, and grouped working
+environments on the other, it is a good idea to break your application
+into projects along these lines.
+
+Include and Inherit
+...................
+
+PDL provides two mechanisms for constructing large PDLs out of smaller
+ones.  These are <include> and <inherit>.  You may be tempted to mix
+these up, but Boom will complain if you do.
+
+The <include> tag pulls in pieces of PDL which may be (a) illegal XML,
+in that they do not start with a single root item, and (b) any mix of
+the tags that can be included inside a <pdl>.  This is a valid included
+file:
+
+    <inherit filename = "classes.pdl"   />
+    <file name = "prelude.pdl"  class = "shared resource"  />
+    <file name = "license.gpl"  class = "shared resource"  />
+    <file name = "project.pdl"  class = "private resource" />
+    <file name = "readme.txt"   class = "readme"           />
+
+Which is actually the "prelude.pdl" file we use as basis for most
+projects.
+
+The <inherit> tag insists that the specified file is a valid PDL file,
+and it does not include the data wholesale.  Instead, it only includes
+classes, and only classes that are not already defined in the PDL.
+This is a valid inherited file:
+
+    <pdl name = "Personal PDL Classes">
+        <class name = "private resource">
+            <distrib as = "source"  />
+            <config>
+                <embed script = "trace.gsl" />
+            </config>
+        </class>
+    </pdl>
+
+Which might do interesting things if inherited before classes.pdl.  Or
+again, it might not.  The fact that we inherit classes also means that
+we can override them in interesting ways.
+
+Shared Project Resources
+........................
+
+It is quite typical to want to place the same files in many projects.
+For instance, we stick a standard license agreement into most projects.
+Simply copying this file into each project directory is stupid for
+several reasons. It makes the file hard to maintain, and it means that
+it is not obvious which is the "real" version.
+
+Boom's solution to this is "shared resources". A shared resource is a
+file that constitutes part of the project - and is thus included in
+every package and distribution - but which can be taken from somewhere
+other than the project directory. This "somewhere other" is the
+$IBASE/bin directory, which is where we put miscellaneous resources used
+by a project at runtime.
+
+Look at this line from prelude.pdl:
+
+    <file name = "prelude.pdl"  class = "shared resource"  />
+
+and now the class definition from classes.pdl:
+
+    <class name = "shared resource" inherit = "private resource" shared = "1" >
+    Shared resources are packaged directly from the binary directory if they are
+    not already present in the project directory.
+        <distrib as = "binary"   />
+        <install as = "resource" />
+    </class>
+
+Using shared resources as part of the project definition itself - as we
+do with prelude.pdl - is very sweet.  It lets us add or remove standard
+files from many projects with one simple maneouver.  Let's say I decide
+one day to place a standard HTML page (maybe "license.htm") into every
+project directory.  I create the file in some base project, the same one
+where I hold prelude.pdl, and add the line to prelude.pdl:
+
+    <file name = "license.htm"  class = "shared resource"  />
+
+After which I install that project, and then rebuild my product
+distributions. Like magic, this new file appears in every product.
+
+A final word about shared resources: if the shared resource exists as
+a file in the project directory, that copy overrides anything sitting
+in $IBASE/bin.
+
+Project Actions
+...............
+
+I've already described PDL as a programming language, and this aspect
+of a project definition is most evident when you look at the actions
+that can be attached to a project directory, file, or class.  In gross
+terms, you can ask Boom to do specific work during each of the five
+main stages:
+
+1. Project configuration, i.e. when Boom builds the boomake builder
+   scripts.  Use the <configure> action.
+2. Code generation, i.e. when the builder script generates
+   source code.  Use the <generate> action.
+3. Building, i.e. when the builder script compiles and links
+   the source code into libraries and executables.  Use the <build>
+   action.
+4. Installation, i.e. when the builder script installs the project
+   deliverables into the final or temporary install tree.  Use the
+   <install> action.
+5. Clean-up, i.e. when the builder script deletes files produced by
+   the <generate> and <build> actions.
+
+You can attach the same set of actions to classes, in which case they
+are applied to all files of that class.  Look at this example from
+classes.pdl:
+
+    <class name = "main program" inherit = "private resource" >
+        <build>
+            <compile as = "c" />
+            <link/>
+        </build>
+    </class>
+
+You can attach a set of actions to a single file, in which case the
+actions apply to that file only.  Look at this example from the Xitami
+core project (xicore):
+
+    <file name = "xiconfig.xml" class = "public resource" >
+        <generate>
+            <execute command = "gsl -q -build_header:1" />
+        </generate>
+    </file>
+
+You can attach a set of actions to a subdirectory.  Here is an invented
+example:
+
+    <directory name = "images">
+        <!-- Create thumbnail index of JPEG images -->        
+        <actions>
+          <generate>
+            <execute command = "jpgindex img.jpg index.jpg" />
+          </generate>
+          <clean>
+            <execute command = "del index.jpg" target = "win32" />
+            <execute command = "rm  index.jpg" target = "unix"  />
+          </clean>
+        </actions>
+    </directory>
+
+Finally, you can attach a set of actions to the main project directory,
+which means under the main <pdl> item.  Look at this example from the
+Base SMT project:
+
+    <actions when = "after" >
+      <generate>
+        <collect into = "smt2.h" class = "public header" >
+          <file name = "smthead.h"  />
+          <file name = "smtlib.h"   />
+          <file name = "smtdefn.h"  />
+          <file name = "smttime.h"  />
+          <file name = "smtserv.h"  />
+          <file name = "smtmsg.h"   />
+          <file name = "smtsslm.h"  />
+          <file name = "smtrdnsl.h" />
+          <file name = "smtxlog.h"  />
+        </collect>
+      </generate>
+    </actions>
+
+For project and subdirectory actions, the "when" attribute lets you specify
+whether the actions are done before (which is the default) or after all files
+have been processed.  In the above example, we use "when= "after"" because
+at least one of the files in the list is itself generated.  See "Creating
+Collections" below.
+
+Running External Commands
+.........................
+
+One of the simplest and most useful ways to extend the generated builder
+scripts is to run external commands at various moments. The <execute>
+tag works at various points: <generate>, <build>, <install>, and
+<clean>. You can tell Boom to run the same command on all platforms, or
+you can tell it "this is for a specific platform only".  The last thing
+you should know is that Boom always sticks the file name and extension
+(when you attached the action to a class or file) after the command.
+
+This is how we invoke specific code generators such as Libero and GSL:
+
+    <class name = "dialog" inherit = "private resource" >
+        <generate>
+            <execute command = "lr" />
+        </generate>
+    </class>
+    <class name = "gsl data" inherit = "private resource" >
+        <generate>
+            <execute command = "gsl -q" />
+        </generate>
+    </class>
+
+But you can also launch arbitrary external commands.  For instance, this
+is a sample of a PDL that launches a MS Visual C/C++ make file (itself
+made by hand and included in the project as a private resources):
+
+    <directory name = "win32">
+        <!-- Build Windows executables from hand-made MSVC project files -->
+        <actions>
+          <build>
+            <execute
+                command = "msdev xitami.dsw /make &quot;all - release&quot;"
+                target = "win32" />
+          </build>
+          <clean>
+            <execute
+                command = "msdev xitami.dsw /make &quot;all - release&quot; /clean"
+                target = "win32" />
+          </clean>
+        </actions>
+    </directory>
+
+Note that we have to use HTML encoding for quotes: "&quot;".  Putting an
+unescaped " inside an attribute value creates an invalid XML file, and Boom
+will complain about it.
+
+Creating Collections
+....................
+
+"Collections" are files built out of collections of other files. We've
+only found one case where collections are actually useful, but in that
+situation they are vital. This is creating header files for C libraries.
+There is an inherent conflict between the interests of the programmer
+and that of the eventual user, and collections allow us to resolve this
+conflict. The best model for the library programmer is to use a single
+header file for each library routine. Each .c library module has a
+matching .h header file, and we can happily use classes like this to
+manage the growing numbers of files this creates:
+
+    <class name = "library module" inherit = "sub program" >
+        <derive class = "private resource" extension = ".h" />
+    </class>
+
+Why is such an approach good? Because it makes maintenance easier in
+several ways. Each library module becomes fairly autonomous. We can add
+and remove modules from the library at will. Things have their name and
+place and order reigns. Note that C does not impose this kind of order,
+and many - frankly disorganized and chaotic - projects simply create
+random source files and random header files and then manage the bunch by
+depending on a good memory and hard work, something that no designer
+should ever depend on.  Depend on human error and laziness and you will
+build world-class designs.
+
+While the library developer creates dozens of modules and header files,
+like little matching Barbie outfits, this is the last thing we want to
+show or deliver to the library user. Rather, we want to say: here is the
+library, and here is a single header file that lets you use all the
+functions it contains.
+
+And this is the collection.  We use this in Base, in several cases
+where libraries are built from multiple components: SFL, SMT, and GSL.
+
+Collections are built during code generation, so the <collect> tag always
+comes inside a <generate> tag.  This can itself be placed either at the
+file level, in which case the collection name and class are inherited from
+the file:
+
+    <file name = "sfl.h" class = "public header">
+      <generate>
+        <collect>
+          <file name = "sflhead.h"  />
+          <file name = "prelude.h"  />
+          <file name = "sflbits.h"  />
+          ...
+        </collect>
+      </generate>
+    </file>
+
+Or at the main pdl level:
+
+    <actions>
+      <generate>
+        <collect into = "sfl.h" class = "public header" >
+          <file name = "sflhead.h"  />
+          <file name = "prelude.h"  />
+          <file name = "sflbits.h"  />
+          ...
+        </collect>
+      </generate>
+    </actions>
+
+Note that collections are _always_ marked as generated code, whatever
+the class you use, and are thus deleted during cleanup.  You do not need
+to specify this manually.  In the above case it might be clearer to use
+the class "generated header", but it will give exactly the same result.
+
+Creating Version Headers
+........................
+
+Version headers are generated source files that hold information like
+the project version number.  This is how we generate a version header
+in (for instance) SFL:
+
+    <file name = "version.h" class = "c version">Project version file</file>
+
+which uses the "c version" class from classes.pdl:
+
+    <class name = "c version" inherit = "private resource" >
+    Generated version header for C projects.
+        <configure>
+            <version as = "c"/>
+        </configure>
+    </class>
+
+The version file is generated when the project is configured, i.e. when
+you run Boom.  Although this file is generated, it is not created during
+the code generation phase, nor is it deleted during cleanup.
+
+This is what a generated version file (in this case for C programs) looks
+like:
+
+    /*==========================================================
+     *                                                          
+     *  version.h - version information for SFL                  
+     *                                                          
+     *  Should be the last file included in parent source program.
+     *  This file is generated by Boom at configuration time.   
+     *  Copyright (c) 1991-2009 iMatix Corporation
+     *==========================================================*/
+    #undef  VERSION         /*  Scrap any previous definitions  */
+    #undef  PRODUCT         
+    #undef  COPYRIGHT       
+    #undef  BUILDMODEL      
+    #define VERSION         "3.20"
+    #define PRODUCT         "SFL/3.20"
+    #define COPYRIGHT       "Copyright (c) 1991-2009 iMatix Corporation"
+    #define BUILDMODEL      "Debug release for internal use only"
+    /*  Embed the version information in the resulting binary   */
+    char *sfl_version_start = "VeRsIoNsTaRt:sfl";
+    char *sfl_version = VERSION;
+    char *sfl_product = PRODUCT;
+    char *sfl_copyright = COPYRIGHT;
+    char *sfl_buildmodel = BUILDMODEL;
+    char *sfl_version_end = "VeRsIoNeNd:sfl";
+
+And you can generate similar definitions for GSL and for Perl programs.
+Version headers serve a number of purposes:
+
+1. They allow you to include the project version number in the generated
+   code (in case of C programs).
+2. They clearly state the time and date that the project was configured.
+3. They allow the end user to distinguish between debug and release builds
+   (read more about this in "Advanced Techniques").
+
+To use a version header in a program you should provide some kind of
+command-line or help option that reports the version.  For example, this
+is how the GSL application reports the version:
+
+    if (... user ran gsl with -v or -version ...)
+      {
+        printf ("%s\n", PRODUCT);
+        printf ("%s\n", BUILDMODEL);
+        printf ("%s\n", COPYRIGHT);
+        exit (0);
+      }
+
+If you want to replace the built-in version code generation with your own
+GSL code - for instance, to generate version headers for other programming
+languages - you can use the <embed> tag, which I will explain in about the
+section "Advanced Techniques".
+
+Generating for Specific Targets
+...............................
+
+By default, a PDL generates builders for all the targets that Boom knows
+about.  How does Boom know about targets?  It is a little indirect: your
+PDL specifies a workflow, and the Boom workflows all start with a tag
+like this:
+
+    <include filename = "targets.pwl" />
+
+And targets.pwl looks something like this:
+
+    <target name    = "unix"
+            label   = "Unix"
+            script  = "pwl_unix.gsl"
+            output  = "boomake"
+            root    = "/usr/local/imatix"
+            pathsep = "/"
+            />
+    <target name    = "win32"
+            label   = "Windows NT/2000 console"
+            script  = "pwl_win32.gsl"
+            output  = "boomake.bat"
+            root    = "c:\imatix"
+            pathsep = "\"
+            />
+
+Boom tries to remain ignorant of many things: you will see that it is
+quite simple to change fundamental aspects of how Boom works by making
+your own workflows, something you can look forward to in "Hacking Boom".
+
+Back to targets.  Boom "knows" about the arbitrary list of targets
+defined in the workflow (either via targets.pwl or directly).  By
+default, your project builders are generated for all these targets.
+However, it's possible to tell Boom: "configure this project for
+this and that target only."  This is not hugely useful in a world
+where there are only two targets, but it starts to become vital
+when you make non-portable project definitions.
+
+Product Management
+==================
+
+Using Boom for individual projects is like learning to make soup. It's
+better than hot water, but nothing compared to a five-course dinner.
+Boom is happiest when working really hard, and nothing is harder than
+trying to turn pots of luke-warm soup into five-course dinners.
+
+Overview
+--------
+
+General Concepts
+................
+
+As I've explained already, Boom encourages you to organize your software
+developments into "projects" and thence into "products". You can
+actually work entirely at the level of projects, but this does get
+clumsy when you start to get too many projects. Ten is OK, but a hundred
+is too many. A product is a grouping of related projects that are
+significant enough to deliver as a package.
+
+Using Boom's concept of a product lets you structure your work in a way
+that suits your teams and internal architecture, rather than a way that
+suits your customer. For example, our Xitami product (which is what we
+deliver to the customer) is structured internally into projects like
+"xicore", the core web server engine; "xiadmin", the web-based
+administration screens; "xiopen", the open-source package we distribute
+freely; "xipro", the SSL package we charge money for, and so on. Each of
+these projects has its own directory, its own project.pdl, its own build
+process, and so on. But none are really visible to the end-user, only
+the developer. The customer sees the product or products which the
+projects create.
+
+Organization
+............
+
+The organization of work into products and projects must be done using
+disk directories.  One directory for the product, and one or more
+subdirectories for the projects.  Boom expects and demands this layout.
+You may not, for example, have the product or project directories in other
+locations.  (Unless you start doing non-portable stuff with symbolic links
+under Unix, which I would really not recommend.  Boom gives you enough
+flexibility with products to make this unnecessary.)
+
+If you have N projects in a product, you will have N+1 project.pdl files
+- the product itself also needs a project.pdl file. And yes, we could
+have called this "product.pdl", but just look at the product as a
+special kind of "parent project" and you'll be OK.
+
+Product PDL Definition
+----------------------
+
+The PDL syntax has several entities that are there specifically to help
+build products.  These are <distrib> and its children, which are not
+used in a "normal" project PDL:
+
+    <distrib name type>
+        <project directory [pdlfile]/>
+        <packager name [target]/>
+        <prune filename/>
+        <argument name value/>
+    </distrib>
+
+Each distrib entity must have a unique name. There are three kinds of
+product distribution:
+
+source:
+    A source distribtion.  This consists of the projects' raw source code
+    and generated source code.  Boom creates source distributions by
+    first producing any generated code, then building a compressed file
+    (zip or tgz depending on the system you're working on) from the
+    project source directories.  A source package unpacks into something
+    looking very close to the original product source tree.
+
+install:
+    A binary distribution.  This consists of a snapshot of the temporary
+    install tree, and then passing the resulting temporary install tree
+    to the product packager.  Currently the Boom packagers can create zip
+    and tgz files (but this is terrain waiting for fertile imaginations).
+
+boot:
+    The boot distribution, if any.  This consists of one or more binary
+    projects that must be installed as the first step of building a source
+    distribution.  This is used to package any resources that are needed
+    for the build process.  A boot distribution is handled by a "bootstrap
+    manager", explained below.
+
+A single group of projects can actually support any number of product
+distributions.  A product distribution is really a final product, and
+we will use the terms "product" and "product distribution" in much the
+same sense.  Look at the project.pdl file for Xitami/3.0 and you will
+see four separate products co-existing in the same space:
+
+    <?xml version="1.0"?>
+    <pdl
+        name      = "Xitami"
+        acronym   = "xitami"
+        version   = "3.0a1"
+        copyright = "Copyright (c) 1991-2009 iMatix Corporation"
+        workflow  = "product.pwl" >
+        <inherit filename = "classes.pdl" />
+        <distrib name = "Xitami/Open Source" type = "source" acronym = "xiopen" >
+            <project directory = "xicore"    />
+            <project directory = "studio"    />
+            <project directory = "xiadmin"   />
+            <project directory = "xiopen"    />
+        </distrib>
+        <distrib name = "Xitami/Open Install" type = "install" acronym = "xiopen" >
+            <project directory = "xiopen"    />
+            <prune filename = "lib"             />
+            <prune filename = "include"         />
+            <prune filename = "doc"             />
+            <prune filename = "bin/setvars.sh"  />
+            <prune filename = "bin/setvars.bat" />
+        </distrib>
+        <distrib name = "Xitami/Pro Source" type = "source" acronym = "xipro" >
+            <project directory = "xicore"    />
+            <project directory = "studio"    />
+            <project directory = "xiadmin"   />
+            <project directory = "xiopen"    />
+            <project directory = "xipro"     />
+        </distrib>
+        <distrib name = "Xitami/Pro Install" type = "install" acronym = "xipro" >
+            <project directory = "xiopen"    />
+            <project directory = "xipro"     />
+            <prune filename = "lib"             />
+            <prune filename = "include"         />
+            <prune filename = "doc"             />
+            <prune filename = "bin/setvars.sh"  />
+            <prune filename = "bin/setvars.bat" />
+        </distrib>
+    </pdl>
+
+The "prune" keyword tells Boom to drop parts of the temporary install
+tree before making the distribution package. Why would we do this? Take
+the example of the "Xitami/Open Install" distribution. This provides the
+web server plus basic configuration files. People downloading and
+installing this product most probably have little or no interest in
+getting the Xitami libraries and header files: they are creating web
+sites, not building custom web servers.  So, we trim the size of the
+distribution by deleting directories and files that we do not want to
+include.
+
+Each distribution rebuilds the temporary install tree from scratch by
+doing a "boomake -install ../_install install" command on those projects
+making up the distribution. So, the prune commands are safe. You are not
+deleting anything of importance.
+
+Finally, the <argument> tag is used to pass information to custom
+distribution packagers. The use of this tag is explained in the section
+"Hacking Boom".
+
+The Product Workflow
+--------------------
+
+[See product.txt]
+
+The Product Builder
+-------------------
+
+To configure a product, just type "boom" as usual:
+
+    boom
+
+If your product PDL is well made, you will see Boom walk through all the
+projects and generate a boomake builder for each one. It also generates
+one for the product, which works a little differently, though overall it
+achieves the same things.
+
+The product builder requires that every project be specified somewhere
+in a <distrib> entity. The projects are then built and installed in the
+order specified, so any dependencies must be resolved in the order of
+projects within each product, and between products. I.e., if you have
+two projects, A and B, and B depends on A, do not place B before A
+either in the same product or in another product.
+
+If you do not specify a packager, the default non-portable packager will
+be used. When building under Windows, you will get a zip file. When
+building under Unix, you'll get a tgz equivalent. It is easy to add
+packagers to Boom, and you're encouraged to ask questions like "how come
+you guys did not try making a packager for Debian/ RedHat/ Windows MSI/
+Commodore 64", and find answers like "duh, maybe I should try myself."
+
+It may help you to understand that this command done to a product:
+
+    boomake build
+
+Actually does this to each project in turn:
+
+    boomake -install ../_install build install
+
+and this command done to a product:
+
+    boomake install
+
+Actually translates this done on each project:
+
+    boomake install
+
+The _install directory holds the temporary install tree, complete with
+everything from executables, libraries, and include files, to readme
+files explaining that the -Pd option now creates a primary dump, while
+the -pD option prints the debug dump to stdout, and how this may still
+change in release 2.4.3.rc4. Sometimes you just wish you'd left that
+file alone.
+
+Bootstrapping a Product
+-----------------------
+
+Some products have a very hard time getting up in the morning.  By this
+I mean that it's one thing to build a product on your development PC,
+where everything has gotten organically installed just in the right
+place, and where it all seems to work just perfectly.  Somehow, the
+moment you give your new baby to someone else to build and try, the
+problems start rolling in.
+
+A common problem is that sometimes you need more than just source code:
+you may also need some specific pre-built bits and pieces that you
+already have on your development PC, but which are not in the source
+code package. A good example is Base itself: in order to build this
+from scratch, you need a working copy of Libero and GSL. This looks like
+a paradox but is actually straight-forward to resolve. There are two
+specific situations we have to understand. First, working from the raw
+source code, and second, working from a source distribution.
+
+Bootstrapping From Raw Sources
+..............................
+
+The raw sources are typically what we would get when we checkout a
+project from CVS. In well-run projects, generated source code does not
+go into CVS. So if we want to build a program which has some generated
+components, we need to have the code generator itself up and running.
+Which is problematic if the code generator is the tool we're building.
+Often, this kind of dependency can go around in little circles: in
+Base, Boom depends on GSL, GSL depends on GSL and on Libero; Libero
+depends on Libero.
+
+There are two possible solutions. The first is to damn the source
+control rules and put a minimum of generated code into the CVS anyhow.
+This is possible if we respect a few conditions:
+
+- do not put the date and time in generated source code.
+- document these exceptions very clearly.
+
+The problem with this approach is that it is fragile: people are not
+good at remembering why it was that this particular generated file
+should be in CVS while that one not. It is not a fail-safe approach.
+
+The second solution is to put some prebuilt code generators into a
+special project, and install this before trying to build the rest of the
+product. This approach also suffers from some issues. It means putting
+binaries into CVS, something that may also cause problems.  But at least
+it isolates the problem into a separate bootstrap project, which people
+are less likely to touch.
+
+In some cases, you may be able to put enough source code (generated and
+hand-written) into a bootstrap project to build it without storing
+binaries. But this is not realistic for complex cases. For instance to
+build GSL like this, we'd need to include Libero, SFL, SMT, and GSL with
+all generated code in the bootstrap project. This would be so unwieldy
+as to be unmanageable.
+
+Bootstrapping From A Source Distribution
+........................................
+
+A source distribution does not need bootstrapping: it contains all
+generated code by design, so we can build it simply by building each
+project in turn.
+
+The Standard Bootstrap Manager
+..............................
+
+A "bootstrap manager" is a script that decides how to bootstrap a
+product.  Boom provides a standard bootstrap manager (bootstrap.gsl)
+which you may include in your product PDL as follows:
+
+    <actions>
+      <configure>
+        <embed script = "bootstrap.gsl" />
+      </configure>
+    </actions>
+    <distrib name = "Bootstrap" type = "boot" >
+        <project directory = "bootstrap" />
+    </distrib>
+
+If, that is, you have decided that you need a bootstrap project in order
+to build your product. In this example, we put the bootstrap project in
+a directory with the name "bootstrap" - it helps to make things obvious.
+The bootstrap.gsl script - which you are welcome to look at - generates
+a shell script called "boot.sh" which bootstraps the product. The
+boot.sh (or boot.bat) script does this:
+
+- Prepares to build the projects
+- Installs the projects in the boot distribution into the temporary
+  install tree
+- Builds each non-boot project in turn, installing into the temporary
+  install tree
+
+Which means that if all works correctly, you can build a product, no
+matter how complex, using the single Unix command:
+
+    sh ./boot.sh
+
+Or, under Windows:
+
+    boot
+
+The standard bootstrap manager is general enough to many kinds of
+bootstrap model, so whether you bootstrap from binaries or generated
+source code is up to you. If you need to make custom bootstrap managers,
+see the section in "Advanced Techniques".
+
+One important note, however: you _must_ save the builder scripts
+(boomake and boomake.bat) for the bootstrap project in the source
+control system. The boot.sh/boot.bat script depends on this.
+
+You may also find that having Base installed (and especially Boom)
+is a necessary precondition to building projects from the raw source
+code.
+
+Advanced Techniques
+===================
+
+That you have gotten this far means that either you are cheating and
+skipping ahead to see if there are any more jokes, or you have
+tenaciously worked through everything up to here, have used Boom in a
+project or two, and now want to learn more about it. It's a tough call,
+but in my judgement, if you're interested in Boom at all, that means you
+have a serious lazy streak (which by the way, you should work on until
+you can call it a "refined talent"), and a truly lazy reader would
+simply be skimming. So, my bet is you're skimming. Well, skim on. We're
+about to get low-down and nasty.
+
+Build Models
+------------
+
+Build models kill two different birds with one stone.  The first of
+these is the need to provide a way to portably set options that affect
+how your program is compiled and linked.  The second allows you to
+define subsets of your program that are built only when a specific build
+model is turned on.
+
+You can choose the build models to be turned on by defining the
+BOOM_MODEL environment variable.  This variable is a list of model
+names, separated with commas.  Boom knows about the following models by
+default:
+
+    release -- Builds your program in release mode.
+    debug   -- Builds your program in debug mode.
+    st      -- Builds your program using a single-threaded runtime.
+    mt      -- Builds your program using a multi-threaded runtime.
+    cpp     -- Builds your C++ programs.
+    noopt   -- Explicitly disables optimization.
+    gprof   -- Builds your program with support for profiling using 
+               'gprof'.  (UNIX systems only)
+
+The difference between the release and debug models is mainly in the way
+C programs are compiled and linked. A program compiled and linked with
+debug options is larger and slower than a release version.  Mysterious
+bugs that could provide days of amusement tend to vanish in debug
+versions.  We like being amused, so the default setting is release mode.
+
+If debug and release was all there were to it, we would be happy campers.
+Unfortunately, some years after we wrote Boom we got asked about this
+newfangled threads thing.  It turned out that it had nothing to do with
+the quality of our tailor, but a lot to do with system calls, runtime
+libraries and other such boring stuff.  So that you wouldn't have to
+deal with all of that each time you wanted to build a program, we've
+hidden all the horrible details deep inside Boom for you.  If your
+program uses multiple threads, you will almost certainly want to build
+it with the mt model turned on.  Otherwise trust us and keep the default
+which is, unsurprisingly, st.
+
+Mixing programs built in debug mode with programs built in release mode,
+and single-threaded programs with multi-threaded programs is a bit like
+the age old question of whether having a beer after your wine is good,
+or whether they work better the other way round.  Sometimes it works,
+and sometimes it doesn't.  Most notably, under Windows you cannot mix
+debug/release and st/mt programs in the same executable.  This means
+that _everything_ you link together must be built the same way.
+
+The cpp model is an example of the second problem build models solve.
+Some time ago, we got asked about adding C++ support to one of our
+products.  One of our programmers promptly took the job and wrote a code
+generator to do all the work for him.  Unfortunately the lack of speed
+of modern C++ compilers was no concern for this programmer and the
+resulting product would take twice as long to build.  This upset all of
+our master programmers who wear white lab coats and long beards, work on
+PDP-11s and refuse to learn anything other than K&R C.  We needed a way
+to turn on the C++ parts of our program when we wanted them, and leave
+them off by default so that the master programmers would never notice
+anything had changed.
+
+What we did was add the ability to define a model for all <file>,
+<class>, <generate> and <derive> definitions.  You can use any name you
+like, and the result will be that the specified definitions are only
+processed if that model has been turned on.  The only exception to this
+rule is the 'distrib' action, which produces all generated code
+regardless of the model in effect.
+
+Configure and Make
+------------------
+
+Boom provides an approximation of the Unix configure/make process.
+When you run boom you will find you get a 'configure' script (and
+batch file), plus a set of makefiles.  To build, run 'configure'
+and then 'make' (or 'nmake' on Windows).  You can also run the
+configure command with '-h' for help.
+
+Using makefiles is fun because it saves on recompilation.  Note that
+not _all_ dependencies are detected, so you will find that it's a
+good idea to do a "full build" (I.E. 'boom build') from time to time.
+
+Also note that makefiles do not currently process any definitions that
+use the optional model attribute we descibed in the previous section.
+
+The Temporary Install Tree
+--------------------------
+
+Let's take a look under the hood and see how Boom handles the temporary
+install tree. Firstly, remember that this exists so that you can design
+projects that depend on one another, without having to install files
+into the real installation tree (under IBASE).  The temporary install
+tree (and I'm not going to TLA this) always sits in a directory under
+the product directory, called "_install".  To build a project and install
+it into the temporary install tree, you would do this:
+
+    boomake -install ../_install build install
+
+And this is what the product builder does when building and installing
+child projects (when you run "boomake build").  When you actually install
+the projects, and I mean _really_ install them, the product builder does
+this:
+
+    boomake install
+
+which zaps the deliverables into the IBASE install tree.  You can see
+how the boomake scripts handle these alternatives:
+
+    if [ "$1" = "-install" ]; then
+        _IBASE=$2
+        _LOCAL=1
+        PATH=$_IBASE/bin:$PATH
+        PERLLIB=$_IBASE/bin:$PERLLIB
+        INCDIR_ALT=$_IBASE/include
+        LIBDIR_ALT=$_IBASE/lib
+        export PATH PERLLIB INCDIR_ALT LIBDIR_ALT
+        shift;
+        shift;
+    fi
+
+Which does a number of things, not least setting-up the PATH so that we
+will search the _install/bin directory, and setting INCDIR_ALT and
+LIBDIR_ALT so that the C compilation and link processes will search
+these directories correctly.  It is somewhat delicate but works well.
+
+Boom and Source Control Systems
+-------------------------------
+
+Boom is designed to work happily with a source control system (SCS), but
+it will also work without one. (Although you, as a programmer, should be
+unhappy to work without one.) The current Boom code knows about CVS -
+the SCS we use at iMatix - but not in any fundamental way. It should be
+quite easy to adapt or extend Boom to handle another SCS. Let's have a
+look at the interactions between Boom and the SCS.
+
+Types of Project
+................
+
+Boom defines three types of project:
+
+- raw project files, checked out of the SCS.
+- source projects, ready to compile, including generated code if any.
+- binary projects, ready to run.
+
+In simple cases, the first two cases are equivalent.  If you don't use
+an SCS, Boom only considers the last two cases.
+
+So how do we tell whether we're in a "raw project" or a "source
+project"? When using CVS, we can tell by checking for a special
+subdirectory, "CVS", that is present in any projects checked-out from
+the SCS and absent if we got a source package.
+
+This first hook in Boom is a small piece of code in pwl_win32.gsl and
+pwl_unix.gsl that tests for the CVS directory.  We saw this code earlier
+in the discussion on workflows:
+
+    set event=source
+    if exist CVS\\nul set event=repository
+
+And under Unix:
+
+    event=source
+    [ -d CVS ] && event=repository
+
+If you need to adapt Boom for another SCS, this is the place to hack.
+
+Generated Code
+..............
+
+The second interaction between Boom and an SCS is more philosophical.
+This is the distinction between "generated source code" and hand-written
+code.  It is good practice to keep generated code out of the SCS, and
+Boom assumes that this is the way you work.  What this means is that
+any file produced by a generate action is automatically deleted by
+a clean action.
+
+You should not put version headers or other generated files into CVS
+with the exception of boomake for bootstrap projects.
+
+Defining Your Own Classes
+-------------------------
+
+Boom comes with a decent set of classes.  But you should treat these as
+a starting point, not a bible.  It is likely that you will want to define
+your own classes now and then.  It's easy.
+
+Remember that classes.pdl is just included in the prelude.pdl file. Like
+much of Boom, this is a soft-coded convention that you can play with.  I
+do not recommend that you change classes.pdl - that is asking for trouble
+the next time you re-install Boom.  But you don't need to.  Your projects
+_inherit_ their classes from classes.pdl.  If you define your own class
+with the same name as one of the predefined classes, your class wins.
+
+You can redefine any of the classes in classes.pdl, even base classes
+such as "private resource". Here is an example of a custom project
+class, taken from the GSL project:
+
+    <class name = "gxl extension" >
+        <derive extension = ".c"   class = "generated module" />
+        <generate>
+            <execute command = "gsl -q" />
+        </generate>
+    </class>
+
+Surprise - it looks just like the definitions in classes.pdl.
+
+Writing Boom Extensions
+-----------------------
+
+A "Boom Extension" (BEX) is a script written in GSL that does arbitrary
+and hopefully non-random things with the project data tree. Since GSL as
+a language can do pretty much whatever you want it to, there are few
+limits to what a BEX can do. But to be useful we have to focus, and a
+useful BEX usually focusses on improving or extending the build
+environment rather than - for example - sending one's colleagues emails
+telling them that a particular project has just been rebuilt and is now
+available for download from the company intranet server.
+
+The difference between writing a BEX and simply throwing the entire PDL
+at your own GSL script is that a BEX runs inside the framework created
+by Boom. If you choose to process PDLs outside Boom - and this can be
+very useful - then you must redo some of the work Boom does when it
+loads, denormalises, and checks the PDL and associated PWLs.
+
+To write a BEX you do need to understand what GSL does and how the
+project tree is constructed.
+
+Boom lets you specify a BEX in the <configure>, <generate>, and <build>
+steps. The effect of each of these is somewhat different. A BEX script,
+like any GSL script, has two ways to focus its attention. Either it can
+do work, meaning stuff like manipulating the PDL tree, sending funny
+emails, etc., or it can produce useful output, which is sent either to
+the console or the current output stream.  When your BEX does work,
+you will want to control the "when" quite carefully.  The <configure>
+actions are done by the main boom.gsl script (you can take a look) when
+loading the PDL and before generating any builders.  The <generate>
+actions are done during code generation, and any BEX that you invoke
+at this moment will by default send output to the builder scripts,
+and this output will be executed when the builder generates code.  The
+same happens for a BEX attached to <build> actions.  So, a BEX called
+at these two places must check the current target and generate code
+accordingly:
+
+    if target.name = "win32"
+        blah...
+    elsif target.name = "linux"
+        blah...
+    endif
+
+Here is an example of a class that invokes a BEX:
+
+    <class name = "somename">
+      <configure>
+        <embed script = "myscript.gsl" />
+      </configure>
+    </class>
+
+When a BEX is attached to a file or class, it is invoked for each file
+that uses it. We can also invoke the BEX at project level:
+
+    <pdl>
+    ...
+      <actions>
+        <configure>
+          <embed script = "myscript.gsl" />
+        </configure>
+      </actions>
+    </pdl>
+
+In which case the BEX is run exactly once. A project-level BEX must work
+through the PDL/PWL data structures to find and use the data it needs.
+Here is one example of a BEX that simply reports the list of project
+files with their classes (this is dump.gsl, included with Boom):
+
+    #   Dump files and classes to console, for debugging
+    save root as "dump.xml"
+    for root.pdl
+        for file
+            if generated
+                >$(file.name)   ($(file.class), generated)
+            else
+                >$(file.name)   ($(file.class))
+            endif
+        endfor
+    endfor
+
+Note the sneaky trick of dumping the entire XML tree to a file so that
+we can inspect it afterwards. This is a good way of seeing what XML data
+we have to play with. 
+
+Working with Project Subdirectories
+-----------------------------------
+
+Boom lets you work with directory structures within a project. You can
+construct an arbitrarily complex project, and define this within a
+single PDL, as long as you respect a few rules. The most critical of
+these is that you do not attempt to mix source code in different
+directories. For example, if you want to build an executable that has
+source routines in different directories, Boom will not be able to help
+you. See the next section on "Handling Object Libraries". You can work
+around this using external makefiles or build scripts.
+
+The <pdl> tag can include <directory> tags, and a directory can contain
+further directory items, as well as file and action items:
+
+    <directory
+        name = "..."
+      [ keep_paths = "0 | 1"  ("1") ]
+      [ class = "..." ]
+      [ library = "..." ]
+      [ target = "..." ]
+        >
+        <directory>
+        <file>
+        <actions>
+    </directory>
+
+The keep_paths option tells Boom whether you want to keep the directory
+structure as part of your deliverable project.  When you have multiple
+nested directories, this option works independently at each level.  If
+it is set off (keep_paths = "0"), then the directory files will be installed
+into the main project directory.
+
+The target option tells Boom to install this directory only on a
+specific target.  Very useful in a bootstrap project in combination with
+keep_paths = "0".
+
+Managing Object Libraries
+-------------------------
+
+Compiling and linking means creating object libraries along the way,
+except for trivial programs that are entirely self-contained. Boom will
+manage object libraries for you, so long as you tell it what libraries
+you intend to create, and what programs are not "main" programs. You can
+create multiple libraries in a project, although this is a Bad Idea
+since it makes things complex. One project should deliver a small and
+well-defined set of things, and if it's delivering an API, this means
+one library and one header file.
+
+When you compile C programs in subdirectories, they are placed into a
+library in that directory, and linked in that directory if needed. You
+cannot replace compiled object files into a library in the parent
+directory and you cannot mix libraries in different directories when you
+link main programs.
+
+Installing Files with Rename
+----------------------------
+
+The installation process lets you slyly rename files as they are
+installed. This is useful if you're installing files on a
+system-per-system basis, using the "target" attribute:
+
+    <install as [rename]>
+
+Copying Files within Projects
+-----------------------------
+
+You may sometimes need to copy files from one part of the project to another
+during the generate or build processes:
+
+    <generate> | <build>
+        <copy from [filename]/>
+    </generate> | </build>
+
+The filename should be a relative file, e.g. "../somefile". Don't use
+absolute file paths or your project will simply not build on other
+people's systems.  Copied files are always marked as "generated" and
+are always deleted when you do a "clean" action on a project.
+
+The c and c.bat Scripts
+-----------------------
+
+If you do not program in C, you can ignore this section. If you do write
+C programs, kindly pay attention. If you are asleep, then please listen
+carefully: tomorrow you will go to your bank and transfer all your
+assets to iMatix. You will remember nothing of this. You will wake up
+rested and refreshed and filled with a new understanding of the term
+"poor".
+
+Boom uses an abstract compilation layer. What this means is that to
+compile a C program on a particular platform, you have to remember a
+single command, which is "c".  This is as frustrating to expert hackers
+as it is a relief to the rest of us.  You simply do not want to have
+to remember commands like:
+
+    cl /nologo /c /W3 /D"WIN32" /I"C:\imatix\include"
+    /I"C:\Program Files\Microsoft Visual Studio\VC98\include" /Og
+
+no matter how much power this gives you.  And don't get me started on
+the joys of C compilation under Unix.  :)
+
+The "abstract compilation layer" that c (both in its incarnations as
+a Unix shell script and a Win32 batch script) provides the following
+basic operations:
+
+- compile a C program (aha!)
+- replace a C program into an object library, creating the library if
+  needed
+- link a C program into an executable, possibly compiling it first
+
+Which you will see, if you type "c" to get help, correspond to the
+following commands:
+
+    c someprog
+    c -r someprog
+    c -l someprog
+    
+c/c.bat use three environment variables to manage this process:
+
+ INCDIR:
+    This tells the C compiler where to look for user include files.
+    You do not need to point the compiler to its own include files,
+    most compilers are smart enough to do this themselves, and those
+    that are not get a helping hand from the c script.
+
+ LIBDIR:
+    Like INCDIR, this tells the C compiler where to look for user
+    library files.  And, same thing, you do not need to tell the C
+    compiler where its own libraries are - c/c.bat does this when
+    necessary.
+    
+ CCDEFINES:
+    Lets you pass arbitrary and possibly joyously destructive compile
+    and link options to the compiler.  Boom uses this for exactly one
+    thing: telling the compiler to include or exclude debug information.
+
+You can now make more sense of the start of your generated boomake
+scripts, which contain stuff like this:
+
+    _IBASE=$IBASE
+    test -z "$_IBASE" && _IBASE=/usr/local/imatix
+    INCDIR=$_IBASE/include
+    LIBDIR=$_IBASE/lib
+
+The c/c.bat scripts provide two options that let you work with a
+temporary install tree. These are the -li and -ll options. Buried deep
+inside the generated boomake scripts you will find code like this:
+
+    if [ "$1" = "-install" ]; then
+        INCDIR_ALT=$_IBASE/include
+        LIBDIR_ALT=$_IBASE/lib
+        export INCDIR_ALT LIBDIR_ALT
+        shift;
+        shift;
+    fi
+
+And then:
+
+    COPTS=-g
+    test ! -z "$INCDIR_ALT" && COPTS="$COPTS -li $INCDIR_ALT"
+    test ! -z "$LIBDIR_ALT" && COPTS="$COPTS -ll $LIBDIR_ALT"
+    c $COPTS someprogram...
+
+Which should be clear and obvious to you. See "Programmer" in the Boom
+Lexicon.
+
+Important Boom Files
+--------------------
+
+There is nothing like sitting down in a comfortable chair with some
+source code and a cup of hot cocoa.  The problem is that there is so
+much to chose from.  Where to start?  Well, allow me to play tourist
+guide and point out some nice files to open and look at:
+
+project.pdl:
+    This is the Boom project definition.  It's a good place to start.
+classes.pdl:
+    The famous default classes file.
+prelude.pdl:
+    An example of how you can simplify your project definitions by
+    making them standard.
+standard.wfl:
+    The standard workflow file.  Well, you *do* want to know what
+    happens when you type "boomake build", don't you?
+pwl_win32.gsl:
+    If standard.wfl and its buddies are the intelligencia, then
+    pwl_win32.gsl and pwl_unix.gsl are the exploited labour force.
+    Basically these two GSL scripts do all the hard work of generating
+    boomake files to suit your project.
+pwl_lib.gsl:
+    Common functions shared by the target scripts.  Some are obvious,
+    some are bizarre.  But it's good to know what's there.  These
+    functions are not documented elsewhere than in the source code.
+boom.gsl:
+    The main program, which brings it all together.  A good place to
+    start if you want to see what GSL looks like.
+pdl.xnf:
+    The PDL grammar, in XNF format.
+pwl.xnf:
+    The PWL grammar, in XNF format.
+xnf.xnf:
+    The XNF grammar, in XNF format. :-)
+targets.pwl:
+    The actual list of targets that your project can work on.
+
+Frequently Asked Questions
+==========================
+
+> 1. C sources are "sub program", "c/libero" or "library module"
+> depending on whether they use a dialog or have a header module.  What
+> if they do both?
+
+Look at examples in sfl (sflcvts).  There are various ways: either add the necessary stuff for that file, or if it happens a lot, define your own class.  It's trivial either way - the standard classes are just meant to give you a start.  If you want, we can also add more to the standard classes list.
+
+> 2. OK I think I'm coming to grips with the idea of classes. 
+> The output script seems to check for the existence of too many files,
+> ie even generated files.  This theory would explain its not building
+> SFL properly as well as some behaviour I observe with GSL.  Is that
+> possible?
+
+It is if the files are not defined as 'generated', or if they are marked as 'generated' but the code generation step is missing or commented out.
+
+Is Boom Limited to C Programs?
+------------------------------
+
+No, Boom just happens to have some understanding of what it takes to
+turn a C program into executable code.  But you can use Boom for
+programs written in any language, compiled or otherwise.  C just
+happens to be the language that iMatix uses for its tools, and also
+happens to be a very complex language to compile correctly on all
+platforms.  More modern compilers, such as Java, tend to be portable
+across platforms.  OK, that was heavy irony.
+
+How do I Add Support for Compiler XXX?
+--------------------------------------
+
+Under Windows (where this question gets asked most often), you will have
+to make changes to the c.bat file, which currently handles only MSVC.
+Under Unix, you will have to make changes to the c shell script, but
+note that this script already has support for zillions of Unix
+platforms. Check it first.
+
+How do I Add Support for Operating System XXX?
+----------------------------------------------
+
+See the section "Hacking Boom".
+
+Do I Have to do "Code Generation" to Use Boom?
+----------------------------------------------
+
+No, you do not need to "generate code" in order to use Boom. Boom just
+knows enough about what code generation means in order to integrate it
+into its workflows and builders. But frankly, if you're not doing any
+code generation in your work you should consider asking for your money
+back from the Code School you went to. Pieter's Rule is that 80% of all
+source code and 40% of documentation can be and therefore must be
+generated mechanically from original sources. This rule is derived from
+the Pyramid Principle which states that (a) making standard models is an
+essential part of mastering the problem of complexity, and (b) if you
+make standard models, then code generation lets you exploit these in
+order to produce variations on the models mechanically, because (c) any
+model that is based on the alternative - code packaging - is inherently
+tied to a specific programming language, and thus dead before it is even
+born. A decent code generator is the second most vital tool in software
+engineering, after a decent editor. Unfortunately, while there exist
+many hundreds of editors to chose from, the only decent code generator
+we have _ever_ seen is iMatix's own GSL. A menu with one choice is not
+very encouraging, but take my word for it: you simply cannot afford, as
+a professional programmer, to ignore the Pyramid Principle in your work.
+
+Why is Boom so Complex?
+-----------------------
+
+This is a tricky question to answer but the truth is probably halfway
+between "because we're too stupid to make it simpler" and "because it
+takes a lot of complexity to make things look simple".  And when you
+look at Boom at the level of project definitions, it is very simple
+indeed.  You do not need to know much more than the basic PDL syntax
+and the principle classes to use Boom.  The complexity is there when
+you open the hood and look at the engine.
+
+Hacking Boom
+************
+
+This section is for developers who are familiar with Boom and want to
+extend it with new workflows, new builders, and so on. Boom was made for
+walking, so to speak, and if you're thinking about hacking it, you'll
+find a rich set of tools waiting for you. You can hack Boom at several
+levels, somewhat like a bloodythirsty video game. No coincidence that
+the architects of the popular video game chose a name that resembled
+"Boom" closely. Or maybe it was the other way around. Anyhow, you may
+find that Boom resembles an explosive Russian doll: every layer you open
+up will take you into a deeper and more profound understanding of how to
+create total software chaos. I hope you are ready.
+
+The PWL Language
+================
+
+[See pwl.txt]
+
+Guerilla Warfare
+================
+
+In Seven Easy Steps
+-------------------
+
+Just in case you forgot, here is a summary of how Boom actually works.
+
+1. You define a project definition using PDL, which is an XML language.
+   Your PDL file can take data from other PDL files through the <include>
+   and <inherit> mechanisms.
+   
+2. Each project PDL refers to a single workflow file, which is a PWL file.
+   PWL is another XML language that also supports include and inherit. So,
+   the first thing Boom does is to load up your PDL, and its matching PWL,
+   do all the include and inherit stuff, and check that everything looks
+   legit.
+   
+3. Via the PWL, your project knows about one or more targets. Each
+   target tells Boom: "generate a builder with this name". So, Boom works
+   through each target, and produces a builder according to specifications.
+   What are these specifications? They are the PWL structure. Each builder
+   implements a workflow.  This magic happens in GSL scripts called
+   "pwl_xxx.gsl" which are specified by the target definitions.  Each
+   target has such a magic GSL script, which I call a "target script".
+   
+4. The target scripts generate two things: (a) a workflow engine, and (b)
+   a series of blocks of shell code that do each workflow action.  So, if
+   the workflow has an action called "Install Deliverables", the target
+   script has a matching function that produces the final shell script.
+   This is complex work and often means climbing through the PDL data
+   structures looking for the necessary information.
+   
+5. All this happens when you do "boom", which looks for a project file
+   called "project.pdl".  If all works, you get a number of builder
+   scripts called "boomake" or "boomake.bat" or whatever the target asked
+   for.  These builder scripts are tools aimed at the programmer and/or
+   person doing the installation.  So, if you distribute your project
+   you will also have to distribute the builder scripts.  Luckily Boom
+   does this for you.
+   
+6. Boom will turn your project into simple distributable packages that
+   contain either the source code (original project code plus all
+   generated code, including builder scripts), or the compiled and linked
+   binary programs (which are by definition not portable).
+   
+7. Boom lets you collect multiple projects into a "product", which
+   sits in a parent directory.  There is a product workflow, and the
+   target scripts for each target include actions that are used only
+   when building a product.  These actions look the same as the project
+   actions (build, install, clean,...) but work in bulk, on all projects
+   in the product.  This is much easier and safer than trying to build
+   individual projects.  When building products, Boom installs projects
+   into something called a "temporary install tree" so that projects can
+   refer to header files, commands, and libraries built by other projects
+   in the same product, but not yet installed.  The temporary install tree
+   also provides the set of files that are packaged into the binary
+   installable product intended for end-users, and this packaging is done
+   either by some standard packaging scripts, or by your own custom
+   packaging scripts.  Whew!
+   
+Getting Warmed Up
+-----------------
+
+Any good hacker needs to be familiar with his tools. In some games it
+may be fun to pick up the green oblong box just in case a water sprite
+asks for it, but since we're supposed to be serious here, I'll try to
+walk through the various levels at which we can hack Boom, and note the
+tools and skills you will need at each level.
+
+Extending the Boom classes:
+    You will have to understand how PDL classes work and how to define
+    them.  After that, you can specify new classes in your projects, or
+    in shared PDL files that (like classes.pdl) are inherited by more
+    than one project.  This topic has already been covered in the text
+    and we won't go into it again.
+
+Changing the Boom workflows:
+    You will have to understand the PWL language and the workflow model.
+    You can easily add new events (user actions) or change the flow of
+    control for events.  Don't change the standard workflows - make a
+    copy with a new name and edit that.  Look at "Extending Boom" for
+    more details.
+
+Changing the generated builders:
+    You may find errors in the generated builders (boomake).  You can
+    change the GSL scripts that generate these (pwl_xxxx.gsl).  If you
+    find real bugs, tell us so that we can fix the original code.  You
+    can also change the generated code for other reasons.  If you make
+    real changes, consider making a new target.  You will have to know
+    GSL and your target platform.  Look at "Extending Boom" for more
+    details.
+
+Defining new targets:
+    You can define new targets for the builder scripts, and these can be
+    based partly on existing targets (inheriting any code needed).  To
+    do this kind of thing you need to know the PWL language, and you
+    have to have understood how the existing target scripts (pwl_xxxx.gsl)
+    are put together, since defining a new target means writing a new
+    target script.  If you have to port Boom to a totally new platform
+    - say OpenVMS - than you will have to understand how the workflow
+    engine works so that you can rewrite that part of the target script
+    - see McIgor, later.  Look at "Extending Boom" for more details.
+
+Writing product packagers:
+    Product packages are shell scripts that mangle the temporary install
+    tree into something resembling an "installable package".  To do this
+    kind of work, you have to understand your installer, and know how to
+    drive it from a shell script.  Finally, you have to understand how
+    Boom creates a temporary install tree.  Boom allows you to refine the
+    product packaging process by passing arguments to the packager.
+    Look at "Extending Boom" for more details.
+
+Generating new and wonderful makefiles:
+    Makefiles are not easy to generate, and you will see that Boom goes
+    through contortions in order to generate the feeble ones it makes by
+    default.  A good makefile knows all the dependencies in a project,
+    and you can work out most of these mechanically by walking the PDL
+    tree and (if necessary) scanning the source code itself.  To do
+    this well you will have to know how makefiles work on your chosen
+    target platform, and you will have to be ready to write some solid
+    GSL code that does the hard work.  Look at "Extending Boom" for
+    more details.
+    
+Adding support for new languages:
+    By which we mean new compiled languages.  Boom has support for C
+    built in, but is extensible to other languages.  There are two ways
+    of doing this, really.  You can call external commands during the
+    build process.  Thus, you can define a class for (e.g.) Java code
+    that calls the Java compiler during the build process.  The easiest
+    way to do this is to use a BEX, so you should read-up on what BEXes
+    are and how they work.  The second way is to extend the existing
+    code generation scripts to "know" about your new language.  This
+    is a good approach if the compilation process is not portable, since
+    the code generation scripts are already organized on a per-target
+    basis.  To extend the code generation model to support new languages
+    you will have to change the PDL language, and this means knowing a
+    little about XNF.  Look at "Extending Boom" for more details.
+    
+Writing Boom Extensions (BEXes):
+    A Boom Extension is a nice way to add your own intelligence to the
+    code generation processes in Boom.  Since there are several places
+    that you can add BEXes, you should be familiar with the GSL code
+    in question.  You will also have to study the PDL data model a
+    little so that you know the context in which your BEX works.
+    This topic has already been covered in the section "Writing BEXes".
+
+Adding new concepts to PDL:
+    PDL represents a snapshot of one vision of a project model.  You can
+    extend and adapt this as you like.  For example: the existing PDL
+    definition knows about just one compiled programming language, C,
+    and you may want to add your own.  It is easy enough, but you have
+    to know how to play with XNF definitions, and you have to be familiar
+    with the PDL grammer in pdl.xnf, since you will be changing this.
+    Look at "Extending Boom" for more details.
+
+Adding new concepts to PWL:
+    PWL represents an abstracted workflow model.  You can extend this
+    model, if you ever reach its limits.  See above comments for hacking
+    PDL: you must know how to play with an XNF grammar.  You will also
+    need to understand how Boom workflows work - see McIgor, later on.
+    Look at "Extending Boom" for more details.
+
+Inventing your own XML languages:
+    Ah, now you're getting there.  Boom is just an example.  Feel free
+    to define any model you can imagine... make it solid using XNF, and
+    turn that into little tree-walking, code generating, singing and
+    dancing GSL scripts using the XNF tools.  Look at the "XNF User's
+    Guide" for more details.
+
+Extending the GSL language:
+    At some point you may reach the limits of what GSL can do itself.
+    Admittedly I'm scraping the bottom of the barrel here, but this is
+    what open source is all about.  Maybe you want to hook Boom into
+    your custom-built configuration management system, and you want to
+    do this with BEXes that update your CMS tables, which happen to be
+    sitting in an Oracle database.  No panic.  OK, panic.  But GSL is
+    easily extensible itself, using a model called "GXL", or GSL
+    Extension Language.  Take a look at the GSL project in Base
+    and you will see that many of the interesting functions, such as
+    string and math manipulation, are implemented as GXLs.  See the
+    GSL documentation for more details.
+
+Warstrapping
+------------
+
+Warstrapping is like bootstrapping but under fire. In other words, you
+need to get Boom up and running fast, and you don't want to or can't
+afford to install the full Base package. Or perhaps you're trying
+to build Base itself and you are in the interesting situation we
+call "deadlock".
+
+This is how to get Boom up and running with the bare minimum of
+red tape.
+
+1. You need a binary of GSL/3.x.  Put this on your path or stick it
+   into the Boom directory.
+2. Regenerate the Boom parsers: "gsl parsers".
+3. Rebuild the Boom project: "boom".
+4. Install Boom: "boomake install".
+5. Make sure your PATH includes the install binary directory.
+6. Set INCDIR and LIBDIR to the install include and lib directories.
+
+After which you should be able to use Boom just dandily.
+
+Docstrapping
+------------
+
+Docstrapping is like boot strapping but aimed at documentation. You need
+Boom's documentation at hand but you can't or won't go through the
+Gurudoc process that generates the HTML file you are looking at right
+now.
+
+The Boom documentation is available as a set of ordinary text files,
+meant to be readable without further mangling.  The most vital of these
+files is "boom.txt", which is this documentation in its original source
+format.
+
+Secondly, you can generate summaries of all the important Boom languages
+and structures.  You have to have Boom working (see above).  Then, do
+this:
+
+    gsl -autodoc:1 boom
+
+Which generates a number of text files you can look at, and use as quick
+references:
+
+classes.txt:
+    Summary of all default classes.
+pdl.txt:
+    Summary and detailed explanation of the PDL language.
+pwl.txt:
+    Summary and detailed explanation of the PWL language.
+xnf.txt:
+    Summary and detailed explanation of the XNF language, which I'll come
+    back to in a second.
+standard.txt:
+    How to use the standard workflow (and there are matching files for
+    the simple, scripted, and product workflows).
+
+McIgor The Hunchbacked Workflow Engine
+======================================
+
+The core of every generated builder is a workflow engine. Yes, it is
+possible to build a workflow engine not only in a Unix shell language,
+but also in the DOS batch file language that Windows still uses.  It's
+not pretty, but still it's worth understanding, since one day you may
+have to make your own target scripts.
+
+The workflow engine works like any finite state machine (FSM), which of
+course you learned all about in coding school along with n-trees and
+discrete networks.  I presume you're like most people who read this -
+either you never studied FSMs at all, or you were asleep during that
+part of the computer science course.  In which case, relax.  I'm going
+to give you a rapid introduction to the subject, and that should be
+enough to show you why and how we use FSMs in Boom.  If you already
+know all this, you can just skip this section entirely.
+
+Introduction to Finite State Machines
+-------------------------------------
+
+FSMs can model the behavior of a system, and any code that implements an
+FSM implements a software model of a system. This sounds simple but it
+is actually quite profound. It is rare to conceive of problems as
+"systems" that we can model, and the exceptions show this: neural
+networks, fractal systems, artificial lifeforms, etc. Wierd and
+wonderful things, but hardly the stuff of the common job of programming?
+Most programmers work by translating a mental model of a problem (and
+its solution) into code. A good programmer can do this accurately for
+large and complex models. But in most programming languages the distance
+between the mental model and its software implementation is very large.
+This is bad: even the best mind cannot focus on different scales at the
+same time.  An architect thinks in terms of spaces and separations, not
+bricks and mortar.
+
+We've already discussed the notion of "ultrafat" languages and using XML
+plus GSL code generation as a general approach to creating and using
+models. We can go one step further, and try to find models that are not
+only "ultrafat", but which are reusable in many domains and thus able to
+act as reusable abstract languages. FSMs fall into this rare and
+valuable category. Whether you are concerned with the behavior of a
+single TCP/IP packet as it traverses a network or the behavior of an
+online booking for a skiing holiday, an FSM lets you model the problem
+from beginning to end. What is more, you can adjust the level of detail
+to make a model that is just precise enough to capture the problem, no
+more and no less.
+
+So, what is the FSM model? Overall, it captures a process, a set of
+actions and consequences. An FSM is very much oriented towards the "how"
+rather than the "what", at the opposite end of the spectrum from models
+such as objects, which model data rather than process. An FSM process
+works as a set of "states", each with a clear name and meaning. We say
+"the object/process finds itself in one of these states", and the set of
+states is finite and closed, hence the name. In each state, we list the
+events that are possible. In general, an "event" is a trigger, a piece
+of information that says "this happened" or "we want to do this". Events
+are like the methods on an object, and we sometimes use the term
+"method". In any case, an event is abstract. The connection between the
+event and the work done is defined by the state machine. In one state,
+an event may do one thing. In another state, it may do another thing. We
+call these things "actions". In a simplistic FSM, one event provokes one
+action. In realistically complex FSMs, one event provokes a list of
+actions, executed in order. When all the actions have finished their work
+the FSM goes into a (possibly) new state.
+
+Writing a FSM is very different from writing code in a "normal" language
+in which we define logic as a series of steps (in a procedural language
+like C, Java, or Perl), as blocks of code that handle methods (in an
+object-oriented language), as an inverted pyramid of ever more powerful
+functions (in a language such as Lisp, Scheme, or Forth), or as a model
+whose's implementation depends entirely on an intelligent agent (in a
+modeling language such as XML-over-GSL).  A FSM program is defined as
+a set of states, each state listing a set of events, and each event
+listing a set of actions.  In a readable form it might look something
+like this:
+
+    Left-Expr-First:
+        (--) Normal                             -> Left-Expr-Next
+              + Save-Left-Expr-Position
+              + Concat-Token-To-Left-Expr
+              + Get-Next-Token
+        (--) String                             -> Left-String-Next
+              + Save-Left-Expr-Position
+              + Concat-Token-To-Left-Expr
+              + Get-Next-Token
+        (--) Relator                            ->
+              + Signal-Expr-Or-String-Expected
+              + Terminate-The-Program
+        (--) Finished                           ->
+              + Signal-Expr-Or-String-Expected
+              + Terminate-The-Program
+
+    Left-Expr-Next:
+        (--) Normal                             -> Left-Expr-Next
+              + Concat-Token-To-Left-Expr
+              + Get-Next-Token
+        (--) String                             ->
+              + Signal-Relator-Expected
+              + Terminate-The-Program
+        (--) Relator                            -> Right-Expr-First
+              + Get-Next-Token
+        (--) Finished                           ->
+              + Signal-Relator-Expected
+              + Terminate-The-Program
+
+Which comes from somewhere inside the guts of Libero.  Here we see two
+states, each with the same list of four events, but very different
+handling for each event.  Libero is, by the way, one of the first tools
+we wrote at iMatix, and one we still use when we have to write complex
+code in the form of FSMs.  Libero epitomises the principle of using
+abstract models that do not depend on irrelevant details such as the
+programming language: it will happily generate code in a multitude of
+languages ranging from assembler to Java.
+
+You can - and if you are keen to broaden your understanding of just how
+plastic software actually is - study Libero and consider how it could
+work on some of the problems you have solved in the last few weeks or
+months.
+
+It would have been possible to use Libero in Boom.  But GSL makes it
+rather easier: where it took several months to write Libero originally,
+we can implement similar state machines in XML in a few hours.  Here is
+the same fragment, expressed as XML:
+
+    <state name = "Left-Expr-First">
+        <event name = "Normal" next-state = "Left-Expr-Next">
+            <action name = "Save-Left-Expr-Position" />
+            <action name = "Concat-Token-To-Left-Expr" />
+            <action name = "Get-Next-Token" />
+        </event>
+        <event name = "String" next-state = "Left-String-Next">
+            <action name = "Save-Left-Expr-Position" />
+            <action name = "Concat-Token-To-Left-Expr" />
+            <action name = "Get-Next-Token" />
+        </event>
+        <event name = "Relator">
+            <action name = "Signal-Expr-Or-String-Expected" />
+            <action name = "Terminate-The-Program" />
+        </event>
+        <event name = "Finished">
+            <action name = "Signal-Expr-Or-String-Expected" />
+            <action name = "Terminate-The-Program" />
+        </event>
+    </state>
+
+    <state name = "Left-Expr-Next">
+        <event name = "Normal" next-state = "Left-Expr-Next">
+            <action name = "Concat-Token-To-Left-Expr" />
+            <action name = "Get-Next-Token" />
+        </event>
+        <event name = "String">
+            <action name = "Signal-Relator-Expected" />
+            <action name = "Terminate-The-Program" />
+        </event>
+        <event name = "Relator" next-state = "Right-Expr-First">
+            <action name = "Get-Next-Token" />
+        </event>
+        <event name = "Finished">
+            <action name = "Signal-Relator-Expected" />
+            <action name = "Terminate-The-Program" />
+        </event>
+    </state>
+
+And where the C code in Libero that turns a dialog description into
+usable code runs to about 10,000 lines, the GSL code that turns the
+above XML into an equivalent chunk of code can be as short as 100
+lines.  Working at about 100x the speed of C, producing equivalent
+results... it's interesting stuff.  But GSL is another story.
+
+The FSM as a Programming Tool
+-----------------------------
+
+The key to an FSM's value is that it splits complex problems into three
+distinct pieces:
+
+- First, there is the overall state machine description. Done well, we can
+  describe any problem, no matter how complex, in a few pages at most.
+  This fits very nicely into the mind of a moderately good programmer
+  especially since the description is itself split into states which are
+  independently digestable. For example, the FSM description of the Xitami
+  web server HTTP core is about 600 lines of code, covering 18 states.
+
+- Secondly, there is the "real work", the code that fulfills each
+  action. This is broken into largely independent blocks of code that
+  may share data but do not interact otherwise, except through the
+  machinations of the FSM. These blocks of code are - if the FSM is
+  designed correctly - small enough to understand and write well. Taking
+  the example of Xitami again, the core HTTP engine has about 90 actions,
+  giving a total of 3300 lines of code. An average of 40 lines per action
+  falls very smoothly into what I can understand on a cold foggy Monday
+  morning when I'm only half awake and the coffee machine is broken.
+
+- Thirdly, a layer of generated code brings these two levels together.
+  This generated code implements the FSM, the states and event
+  transitions, and calls the programmer actions as needed.
+
+When we use FSMs, we typically go through three design phases:
+
+1. Design solution to problem as FSM, and make it work with empty actions
+   that do nothing except allow the FSM to run through the motions.
+   This typically 5-10% of the time, say one or two days for a project
+   of a month.
+
+2. Gradually fill-in each of the actions, writing and testing them
+   one by one until the program does everything it has to.  This takes
+   80-90% of the work.
+
+3. Throw way the original FSM design, write a new one that puts the
+   actions together in the _right_ way, and make final adjustments to
+   the actions to suit.  This takes 5-10% of the work again.
+
+With Boom, this is exactly what happened. We made a first workflow, and
+implemented the workflow actions (in the target scripts). After a month
+or so of use, we redesigned the workflows from scratch - to look more
+like a standard "make" model - but had to make only small changes to the
+target scripts.
+
+Not all FSMs are used as the basis for code generation.  In fact, it is
+a rare approach, and Libero is one of the few tools that does this for
+general programming, as compared to niche tools that do this for
+compiler design or telecommunications.  But it is a really satisfying
+and effective way of slicing up large and difficult problems.  We get
+pieces that we can understand easily and implement better.  Not only
+that, but the approach lends itself naturally to both gradual
+development from prototype through to production version, and the "plan
+to throw one away, you will anyhow" approach to software construction.
+
+Let me relist the main attractions of using FSMs:
+
+- They let you work at an arbitrary level of abstraction, and are thus
+  applicable to an unlimited range of problems from the micro to the
+  macro.
+
+- They are free and independent of technical detail, so let you think
+  in ways that are not bound to programming languages and the way they
+  try to get you to think.
+
+- They are formal, and can therefore be turned into equivalent code,
+  which is what we are after.  However, unlike most other formal methods,
+  FSMs can remain understandable and simple if (and this is a big "if")
+  the designer uses the right level of abstraction.
+
+- They allow the automatic generation of a critical layer of code, and
+  this generated code does a much better job than any hand-written code
+  could.
+
+- They can be implemented on any platform, in any language.
+
+- They allow gradual implementation from prototype to production.
+
+- They let you make late but fundamental redesigns at a very low cost.
+
+- They work very well in the XML-plus-GSL way of looking at problems.
+
+Now the main difficulties with FSMs:
+
+- They are strange and somewhat outside the mainstream of software
+  culture, with the exception of some domains, namely telecommunications
+  and compiler construction.  This means you are unlikely to find people
+  with experience or understanding of FSMs if you choose to use them.
+
+- They ignore the language wars, and this means that anyone with
+  passionate views on programming languages will dislike FSMs (unless
+  they become FSM zealots, which is not a pretty sight either).
+
+- They work best when used well, and that demands a certain skill, 
+  experience, and culture.  This is hard or even impossible to pick
+  out of thin air: people need about 3-4 days to "get" the FSM model,
+  and a guiding hand during that time.
+
+- FSMs only work well when coupled with a code generator: trying to
+  make them by hand is enough to put you off programming forever.  But
+  code generation is a mysterious art for most programmers, and this
+  puts FSMs behind two layers of ignorance.
+
+- A bad FSM model is worse than none at all.
+
+To be 100% accurate, we have to split the concept of an "FSM" into two
+distinct things. First, there is the model, our diagram of states and
+events and actions. Second, there is the underlying code, written in
+whatever programming language our compiler or interpreter accepts. For
+most programmers unused to the capacity of code generation to create
+abstract models, and in most textbooks that discuss finite-state
+machines and other algorithmic models, the "FSM" is the second thing,
+and the first thing exists only as a paper diagram, documentation, or an
+idea. For us, the FSM is the model, and only the model. The code is the
+"engine" and it is as important but hidden as the engine in a car is to
+the average driver.
+
+Using FSMs for the Boom Problem
+-------------------------------
+
+OK, we've seen that FSMs are - if you believe me - a good way of
+describing certain types of problem and turning that description into
+code that does a hard job better than any programmer could do.
+
+The next step is a leap of faith: Boom's work - namely, turning projects
+from raw source code into distributable packages - is one of those
+problems that falls nicely under the hand of an FSM approach. This is
+the point where most people will say: "hey, makefiles do not use states.
+Why should Boom?" And it is a good question to ask.  The only reasonable
+answer is that the designers of make did not look at the problem in those
+terms.  However, I believe they were wrong, and I'll try to explain why.
+
+I'll give one illustration of how a project can and does exist in
+different states. Take the "clean" action. This deletes all files that
+we "do not need". But this is a fluid concept. "Do not need" has a
+different meaning for someone building from a downloaded source package,
+and for someone working from sources stored in a CVS. When I clean a
+project, do I remove generated code or not? If I'm a careful and tidy
+programmer, the answer is "yes, if I have the tools to rebuild the
+generated code, otherwise no".  If I don't care very much, I'll answer
+"nah, just leave my directory filled with clutter so that I don't know
+what is important and what is not."
+
+Does a "clean" action delete object files, libraries and executables?
+Presumably "yes", if you are a developer, but "no" if you downloaded the
+binary package. So, even a simple project with compiled code has at
+least two states, namely "source" and "binary", and a more realistic
+project will have a third, "raw source code without generated files".
+
+Having chopped our process into states, we now see that events do not
+make sense in all states.  Can we say "install" on a raw project?
+Can we say "create distribution" on a source project?  Can we say
+"build" on a binary distribution?  Right.  Depending on the context,
+our world looks somewhat different.
+
+It is possible to do this within a makefile, but only by ignoring
+the real distinction and making each action responsible for checking
+that it "makes sense".  Compare that to a FSM, in which the meaning
+of each action is clearly described within the context of the state:
+
+    <state name = "repository">
+      <event name = "build">
+        <action name = "check project files exist" />
+        <action name = "produce generated files"   />
+        <action name = "check source files exist"  />
+        <action name = "build binary files"        />
+      </event>
+    </state>
+    ...
+    <state name = "source">
+      <event name = "build">
+        <action name = "check source files exist"  />
+        <action name = "build binary files"        />
+      </event>
+    </state>
+
+Making the FSM Come to Life
+---------------------------
+
+Having decided on a FSM language - and in Boom's case this is PWL - we
+then have to turn that language into code.  It is fairly messy work but
+since we're doing the same kind of work as a compiler, having done the
+work one time, we can reapply it to any instance.
+
+And here we come to the real reason for using FSMs in Boom: it lets us
+turn any arbitrary project building workflow into code automatically. It
+would probably have been less work to hard-code our "standard" workflow
+as a MS-DOS batch file and Unix shell script. But not nearly as useful.
+
+Now we come to the guts of the problem: how to turn a FSM description
+into live code.  It is a problem with a standard answer.
+
+An FSM always has a cycle consisting of one or more "state transitions".
+This is the technical term for the change from one state to another,
+provoked (or driven) by an event, and leading to a series of internal
+actions.  The FSM that implements a Boom workflow goes through two sets
+of cycles.  Firstly, it processes each argument on the command line.
+Secondly, it does this with a full execution of the state machine for
+each argument, going from state to next state until there is nothing
+left to do.  These two cycles are linked together to give something
+like the following logic:
+
+    restart:
+        current event is "ok"
+        current state is first state in PWL
+        transition:
+            if current event is not defined
+                current event is next command-line argument
+            if current event is still not defined
+                current event is "empty"
+            check current event is valid in state
+            do actions for current state/event
+            current state is next state
+        loop while current state is defined
+    loop while there are command line arguments to process
+    
+It's a bit complex because there are three (or four) places that events
+can come from, the goal being to make it easy to write and understand
+PWL workflows, even if this makes the workflow engine more complex.
+
+- First, the state machine always starts with the first state and an
+  event called "ok". An event is always "consumed" during a state
+  transition, and we don't want to consume one of the command-line
+  arguments, so we invent an "ok" event, consume that to get the FSM
+  rolling, and then get on with the real work.
+
+- Secondly, we allow the actions to generate events (one event per list
+  of actions).  If we get an event like this, we consume it with a
+  state transition, do our actions, and repeat the process.
+  
+- Thirdly, we pick-up events from the command-line.  We only do this
+  when no event was produced by the actions.
+
+- Fourthly, we invent an event called "empty" if we really need one,
+  and there seems to be nothing available anywhere else. The workflow
+  has to provide some kind of handling for this special event (you can
+  see that the standard workflows respond by showing a page of help
+  text).
+
+It is not as simple as "run the entire state machine for each event",
+since we need to string these events together if we want sensible
+results. For example, the standard workflows kick-off with an "ok"
+event, then generate an internal event that determines the project
+status, then process one command-line argument, if any are present.
+
+At particular moments, the FSM will restart its state machine from zero,
+so to speak. This happens when a state/event transition does not specify
+a next state - this is equivalent to telling the workflow engine "stop
+the machine here!" And if you look at the two cycles that the
+pseudo-code goes through, you'll see this mechanism.
+
+Taking the Unix target script as an example, here is the (slightly
+stripped down) code, a mix of GSL and Unix shell that generates the core
+of the FSM engine:
+
+    >state=$(pwl-> state.name)
+    >event=ok
+    >while [ -n "$state" ]; do
+    >    case "$state" in
+    for pwl.state
+        >    $(name:c))
+        >        case "$event" in
+        >        "")
+        >            if [ "$1" ]; then
+        >                event=$1
+        >                shift
+        >            else
+        >                event=empty
+        >            fi
+        >            continue
+        >        ;;
+        for event
+            >        $(name:c))
+            >            event=
+            for action
+                >            a_$(name:c)
+            endfor
+            if defined (nextstate)
+                >            state=$(nextstate:c)
+                >            continue
+            else
+                #    Process multiple actions on command line
+                >            [ -n "$1" ] && continue 2
+                >            state=
+            endif
+            >        ;;
+        endfor
+        >        *)
+        >            echo "$event is not allowed here, state=$state"
+        >            exit 1
+        >        ;;
+        >        esac
+        >    ;;
+    endfor
+    >    esac
+    >done
+
+If you compare this with the actual code in pwl_unix.gsl you will see
+that I've edited out a few things: debugging, handling of inherited
+states, and exception handling. Debugging is simple: we echo the FSM's
+progress. Useful if you're writing the FSM engine and you want to test
+that it actually works.
+
+Inherited states are more fun. PWL lets you say - and this is useful -
+"oh, by the way, this state also does everything that state X can do",
+meaning it borrows any necessary event handling from state X. Take a
+look at standard.pwl and the "defaults" state.  There are two ways
+to implement inheritance in a FSM.  One is to copy the events during
+code generation, so that the generated code reflects the results of
+inheritance.  The second is to do the inheritance at run time, using
+the following logic: "if current event not present in current state,
+set current state to inherit state and try again".
+
+The second approach makes the code a little more compact, and since
+we're already generating quite hefty shell scripts, this is the approach
+we use in Boom.
+
+Last little refinement: exception handling. This sounds sophisticated,
+and perhaps it is, but it is very simple to implement in an FSM engine.
+Remember that a state/event transition provokes a series of "actions".
+These are chunks of shell script that do the meaty work inside the
+builder. These actions can detect errors, errors that are serious enough
+to demand a halt to the whole process. Exception handling means
+signalling such an error to the FSM engine, and stopping the workflow.
+We do this with a single shell variable, "exception", which you will see
+being cleared and tested at various points in the target scripts.
+
+How does the generated code do its "actions"?  In Unix shell, these
+are functions, and the target script builds them as follows:
+
+    for pwl.action by name
+        ># $(format_title (action.name, 77, "-"):)
+        >
+        >a_$(name:c)() {
+        >:
+        invoke_rule (name)
+        >}
+        >
+    endfor
+
+Which uses the "invoke_rule" function provided by pwl_lib.gsl.  What
+this does is to go and look for a GSL macro with the right name and
+the right prefix, possibly something like this:
+
+    .macro unix_check_operating_context ()
+        event=source
+        [ -d CVS ] && event=repository
+    .endmacro
+
+The invoke_rule function is sly - it will use the notion of inherited
+targets to say "well, if I can't find a rule for target X, perhaps there
+is one for target Y". This lets us do neat stuff like creating a new
+target - imagine "linux" - that is exactly the same as an existing one -
+imagine "unix" - except for a handful of functions. We define those in
+our linux target script and allow invoke_rule to automatically pick-up
+the others from the unix target script.
+
+Finally, the generated builder provides help for the poor befuddled
+user.  Help comes in the form of an explanation of the commands available
+to the user (in the current state).  Note that getting the help to appear
+at the "right" moment is part of the reason that the basic FSM logic is
+a little byzantine.  This code generates a help page per state:
+
+    for pwl.state
+        >actions_$(name:c)() {
+        >    echo "The actions you can use in this state are:"
+        for event where (internal?0) = 0
+            >echo "$(event.name):"
+            >$(format_block (event., '    echo "  ', '"', '.'):)
+        endfor
+        >    return
+        >}
+        >
+    endfor
+
+For Windows/DOS, we use blocks of code and goto statements instead of
+functions.  The result is much the same.  Now, let's try the debug
+option.  Take a generated builder, find the line "debug=" and change
+it to "debug=1".  Now run the builder with some commands.  Here is
+what we get when we debug the build and install commands for a
+project like GSL (I've edited the output from the compiler to show
+just the FSM steps):
+
+    $ boomake build install
+    State: initial
+    Event: ok
+    Action: check operating context
+    State: initial check
+    Event: repository
+    State: repository
+    Get event from user
+    State: repository
+    Event: build
+    Action: check project files exist
+    Action: produce generated files
+    Action: check source files exist
+    Action: build binary files
+    Building application...
+    State: initial
+    Event: ok
+    Action: check operating context
+    State: initial check
+    Event: repository
+    State: repository
+    Get event from user
+    State: repository
+    Event: install
+    Action: check binary files exist
+    Action: install deliverables
+    Installing GSLgen...
+    $ _
+
+Alternative FSM Engines
+-----------------------
+
+The current target scripts implement the workflow FSM as nested case
+statements.  This is a stupid but simple way to build an FSM engine.
+It is simple because it involves very little work, but it is stupid
+because it generates large amounts of code, and for large FSMs, this
+code becomes unmangeable.
+
+If you are interested in writing FSMs for other types of work, you
+should look at the table-driven model used by Libero.  The basic FSM
+logic is similar: take event and state, do actions, go to next state.
+But the information can be stored compactly as tables that are
+then navigated by more-or-less standard code.
+
+Hand-made FSMs - the kind we design here using modeling languages like
+PWL - are small by definition. Traditionally, FSMs are produced by code
+and can rapidly become very large. In compiler construction, state
+machines can be used for parsing, and can become huge. In such cases,
+simple tables are not good enough, and we have to compress the tables
+using a variety of approaches.
+
+A Boom workflow has perhaps five states and ten events. If you write
+FSMs with ten to twenty states and a similar number of events, you will
+want to look at using a table-driven approach. If you start using more
+than a hundred states and events, you will have to start thinking about
+compressing the tables.
+
+Extending Boom
+==============
+
+I've said, and shown, that Boom was designed to be changed, and that
+much of its apparent complexity is aimed exactly at making this process
+easier.  Rather than randomly going and changing the Boom source code,
+the idea is that you can follow clear recipes for making changes in
+particular directions.
+
+So, this section is broken into a series of recipes.  If you don't find
+the one you're looking for, ask us, and we'll explain and add it to the
+documentation.
+
+When you make changes, it is a good idea (as in "very good idea") to
+not change the existing source code unless you are actually fixing a
+bug.  Make a copy of the file you want to edit, and change the copy.
+There are only a few files that Boom knows about intrinsically, and
+these are the probably last ones you should be playing with.
+
+When you make changes, you can also send them to us. Note that we will
+only include these in the "master" version of Boom if you transfer the
+copyright to us.  You can do this with an email that says something
+like this:
+
+    "Please find attached my changes for such-and-such.  I hereby
+     declare that (a) this work is entirely my own creation, except
+     for those parts originally derived from the Boom source code,
+     and (b) I formally transfer my ownership of the attached work
+     to iMatix Corporation."
+
+This is not necessary for small patches or corrections. But it is
+necessary for anything significant. We will not distribute your work
+unless we can incorporate it under our dual-licensing model. This is not
+a bad deal - your changes will become part of the GPL source code and
+may one day be used by clients who help pay for more development in
+Boom. If you make serious contributions, don't hesitate to ask us for
+money - we are a business and happy to pay for _good_ code. Please do
+take the time to test your changes on all platforms as necessary.
+
+Changing the Boom Workflows
+---------------------------
+
+Rationale:
+    Changing the workflows is the simplest way to change the behavior
+    of the builder scripts.
+General principles:
+    Take an existing workflow file, make a copy with a different name.
+    Edit that file, make the changes you want.  Create a test project
+    and configure it to use that workflow.  Run the builder in debug
+    mode and check that it does what you want.
+Useful files:
+    standard.pwl, pwl_win32.gsl, pwl_unix.gsl, pwl_lib.gsl.
+Before you start:
+    Study the PWL language and existing workflows.
+Alternatives:
+    Adding intelligence to your projects and/or custom classes.
+For beginners:
+    Reorganize the workflows, add new events that reuse the existing
+    actions.  Your only change: the .pwl file.
+For hackers:
+    Add new actions and add new macros to pwl_win32.gsl and pwl_unix.gsl.
+    Extend the workflow with new concepts or improve the existing
+    concepts.  Your changes: the .pwl file, and the target scripts.
+For gurus:
+    Conceive of entirely new workflows that do things we never thought
+    of.  Write new target scripts that implement your workflows.
+For wizards:
+    Extend the PWL and PDL languages to support new concepts.  Start
+    using Boom not as a tool but as a language for developing your own
+    ideas about how to build projects, where "build" and "project" can
+    take any meaning you like.
+
+Changing the Generated Builders
+-------------------------------
+
+Rationale:
+    Fine-tuning the generated builders to fix problems, improve reliability,
+    or handle situations we never thought of.
+General principles:
+    Work backwards from the generated code to the target script (pwl_win32.gsl
+    and pwl_unix.gsl).  Edit the target scripts, reconfigure your project,
+    and test until you are satisfied.  Send us your patches.
+Useful files:
+    pwl_win32.gsl, pwl_unix.gsl.
+Before you start:
+    Be prepared to retest your changes with every project you can get your
+    hands on, and on both Windows and Unix.  If you never looked at GSL, this
+    would be a good time to start.
+Alternatives:
+    None - if you find errors in the generated builders that you need to
+    fix, this is the way to do it.
+For beginners:
+    Tell us the problem, provide us with an example PDL and we'll fix the
+    bug.
+For hackers:
+    Edit the target script, test your changes, and tell us about them.  We
+    will make the same changes in all target scripts and include them in the
+    next release of Boom.
+For gurus:
+    Fix and test on Windows and Unix.  Send us your changes.
+
+Defining New Targets
+--------------------
+
+Rationale:
+    Adding targets lets you cover new terrain easily.  A "target" can be an
+    operating system not covered by Boom, a variant on an already-supported
+    operating system, a particular development environment, or any other
+    platform that you use to "build" your projects.
+General principles:
+    Add the target to targets.pwl, create a new target script by copying one
+    of the existing ones (pwl_win32.gsl, pwl_unix.gsl), and make sure you use
+    the correct macro names.  Boom will generate code for that target along
+    with the existing ones. If you want to generate builders for a single
+    target only, specify this in your project definition.
+Useful files:
+    targets.pwl, bootstrap.gsl, pwl_lib.gsl.
+Before you start:
+    Make sure you understand how Boom generates a builder and how the workflow
+    engine works.  If you create a totally new target, you will have to make
+    an implementation of the workflow engine.  Read pwl_lib.gsl and try to
+    understand what functions it provides - your target script will be much
+    easier to write if you use the existing code in pwl_lib.gsl.
+Alternatives:
+    None.  Dig in.
+For beginners:
+    Create a target script that inherits most of its actions from one of the
+    existing ones.  Easy to do - look at pwl_msvc.gsl for an example.
+For hackers:
+    Take an existing target script and convert it to the platform of your
+    choice.  If you want (e.g.) to generate a builder for OpenVMS, take the
+    Unix target script and convert that to DCL (the OpenVMS command language).
+For gurus:
+    Make entirely new workflows and make new target scripts to match.
+    
+Writing Product Packagers
+-------------------------
+
+Rationale:
+    A product packager takes the temporary install tree and turns it into
+    something that can be distributed.  Boom comes with two simple packagers
+    and you may find it useful to write your own.
+General principles:
+    A packager is an external command, a batch file or a shell script.  To
+    tell Boom to use your packager, rather than the default ones, define
+    one or more "packager" items for your distribution.  You can run as
+    many packagers as you like.  The packager has to understand the basics
+    of the install tree, namely the meaning of the bin, lib, and include
+    directories.  You can also pass arguments to the packager.
+Useful files:
+    pkg_zip.bat, pkg_tgz as examples.
+Before you start:
+    You must have organized your work into projects under a product.  Look
+    at the Base project.pdl if you need an example.
+Alternatives:
+    You can write external scripts that do the packaging, and you can invoke
+    these in the project.pdl using something like this in your project or
+    product PDL file:
+
+    <actions when = "after">
+      <install>
+        <execute command = "mypackager options..." />
+      </install>
+    </actions>
+
+For beginners:
+    Try writing a general-purpose packager that will turn a temporary
+    install tree into a Windows installer, a Debian package, or whatever
+    else takes your fancy.
+For hackers:
+    Consider how to tell the packager to do useful things during
+    installation, such as creating initial configuration files, etc.
+For gurus:
+    Add information to classes to make your packager work correctly.
+For wizards:
+    Bypass the packager entirely by using a BEX to generate installer
+    scripts from the project/product trees.  Reduce the packager to
+    "create package from script and copy somewhere useful".
+
+Generating New and Wonderful Makefiles
+--------------------------------------
+
+Rationale:
+    For traditional developers, Boom is just a little too different from
+    makefiles to be obvious.  No problem - get Boom to build a makefile
+    that works with your favorite make tool.
+General principles:
+    Read makefile.gsl.
+Before you start:
+    Understand how makefiles work, and how to use them in the context of
+    Boom.  Little things like the temporary install tree are worth
+    understanding.  Note that dependencies are defined in the class
+    structure, with the exception of C source code.
+Alternatives:
+    Ignore make, and rebuild entire projects (slow) or individual files
+    by hand (errorprone).
+For beginners:
+    Stay away.  This is stuff that can hurt your brain.
+For hackers:
+    Disect the makefile generation code in makefile.gsl and improve it.
+    If you need to, use the current target name ("unix" or "win32") to
+    generate non-portable makefile code.
+For gurus:
+    Extend the makefile to handle installation into the temporary install
+    tree, and final installation into IBASE.  Extend the makefile to work
+    through all subdirectories of a multi-directory project.
+
+Adding Support for New Compilers
+--------------------------------
+
+Rationale:
+    Boom knows about C compilers.  It's not a lot of knowledge but it
+    does make life a little simpler for the developer.  If you find
+    yourself doing other compilations, you can extend Boom to do the
+    same kind of thing for your funky new language.
+General principles:
+    If your compiler is complex and/or non-portable, take pity on your
+    users and yourself and write shell scripts that do the hard work,
+    much as we have done for C.  Next, you can either compile by hand
+    in your projects or classes, or you can compile automatically by
+    making some changes to PDL and the target scripts.
+Useful files:
+    pdl.xnf, pwl_unix.gsl, pwl_win32.gsl.
+Before you start:
+    Look at the PDL grammar and XNF concepts.
+Alternatives:
+    Hard-code compilation instructions in your classes and/or project
+    definitions using the "execute" command.  Disadvantage of this:
+    you provide no information that can be used by - e.g. - makefiles.
+For beginners:
+    You can use the "execute" command to do the dirty work.  Define
+    new classes for your funky sources so that you can also tell Boom
+    stuff like "there is a dependent file, called xxx.o, which is
+    generated and which you can delete when we clean up".
+For hackers:
+    Go into pdl.xnf and change the "compile" definition to allow your
+    language.  You will see that the choices are currently restricted
+    to "c".  After you change the PDL grammar, do a "boom build" to
+    rebuild everything.  Or, "gsl parsers" if you are in a hurry.
+    Then, go into pwl_unix.gsl and pwl_win32.gsl and add support for
+    your funky language.  If you don't feel like editing these files,
+    you can write a BEX that produces the necessary shell script code,
+    and embed the BEX through your funky class.  Note that a BEX can
+    (and often must) key off the current target name to generate the
+    correct code.  (Hint: use the GSL "if" statement.)
+For gurus:
+    Since you're adding new languages, extend the generate_version()
+    function in pwl_lib.gsl to generate a version header for your
+    language.  You will also want to change the PDL grammar to allow
+    this - check out the definition of "version".
+For wizards:
+    Our notion of "compile" and "link" may be derived from a world
+    view that is heavily tainted by our use of C.  If you're using
+    more modern languages where such quaint concepts do not apply,
+    and instead you have phases like "glorp" and "glue", you may
+    feel the urge to make your own variant on PDL.
+    
+Adding New Concepts to PDL
+--------------------------
+
+Rationale:
+    PDL tries to be simultaneously general and precise.  This does
+    not always work, and you may find yourself asking "why does PDL
+    not let me define such-and-such a concept".  A good question,
+    and the answer is usually this: a design that does not work the
+    way you expect is a design that you should hack until it does.
+General principles:
+    Edit pdl.xnf and run "gsl parsers" to rebuild the PDL parsers.
+    Find the places in the target scripts which refer to the PDL
+    construct you're changing, and change those scripts.  Generate
+    with a test project and repeat until you have what you want.
+Useful files:
+    pdl.xnf, xnf.xnf, mod_pdl.gsl, pwl_win32.gsl, pwl_unix.gsl.
+Before you start:
+    Understand XNF and make sure you're happy with it before hacking
+    PDL.  Secondly, any change to PDL will have an impact on the
+    target scripts, and on the various other scripts that "know"
+    about the PDL data tree structure.  Adding stuff is easy.  But
+    changing fundamental parts of PDL will imply a lot of work.
+Alternatives:
+    None, I'm afraid.  You cannot be half a hacker.
+For beginners:
+    Extend existing PDL concepts, for instance to add support for new
+    compiled languages.
+For hackers:
+    Add concepts that take Boom in new and exciting directions.
+For gurus:
+    Undo the work done by the eager hackers, and show them how the
+    original PDL concept should have been used.
+For wizards:
+    Define your own grammars.  PDL is just one view.  You can create
+    a new project grammar, a target script, and a workflow in a few
+    days.  The hard work is sitting in reusable GSL libraries.
+
+Adding new Concepts to PWL
+--------------------------
+
+Rationale:
+    PWL is a modeling language for workflows.  As such, it does not
+    need to be very complex.  The most likely area you will want to
+    play with is the definition of targets.  You will see that Boom
+    lets you define a series of attributes per target.  This may not
+    be enough for you, especially if you use targets to do things
+    that we've not thought of.
+General principles:
+    Edit the PWL grammer: pwl.xnf, and rebuild the parsers using the
+    command "gsl parsers".  If you make big changes to PWL, you will
+    have to change mod_pwl.gsl and possible the target scripts and
+    pwl_lib.gsl as well.
+Useful files:
+    pwl.xnf, xnf.xnf, mod_pwl.gsl, boom.gsl.
+Before you start:
+    If you find yourself eager to change PWL's finite state machine
+    concepts, don't.  PWL is a small language because we've spent the
+    last 20 years using FSMs and discovering their essential simplicity.
+    Read the section on McIgor the Hunchbacked Workflow Engine.
+For beginners:
+    Nope.
+For hackers:
+    Make small and useful changes to the existing PWL structures,
+    especially the target entity.
+For gurus:
+    Consider using PWL in other types of work, following McIgor's
+    footsteps.
+For wizards:
+    Reinvent your own workflow language - it does not even have to be
+    based on an FSM model.  You can use any abstraction or modeling
+    approach you want.  Boom does not care - so long as you are ready
+    to write a target script that turns your workflow language into
+    working code.
+
+The XML Normal Form (XNF) Tool
+==============================
+
+- split XNF into own project
+- as example, make patch tool
+- patch, xnf, gurudoc in gaggle?
+
+Patch
+    - find pattern
+    - skip N lines
+    - insert block
+    - delete N lines
+    - delete until pattern
+    - global replace pattern with substitute
+    - assert pattern
+    - include contents of other file
+    - ...?
+    
+
+[See xnf.txt]
+
+XNF User's Guide
+----------------
+
+Principles
+..........
+
+XNF is a tool for describing XML grammars.  You can compare it to XSL
+(XML stylesheets) although there are differences.  Like XSL, you can
+use XNF for validating XML, but this is not the main reason for using
+it.  In Boom, and similar tools, we use XML as a language to model
+things that we want to turn into code.  This code generation approach
+is significantly more ambitious than the XML transformations that XSL
+provides.  XNF makes this possible with less pain than otherwise.
+
+In overall terms, XNF is a grammar that uses simple concepts taken from
+BNF, or Backaus Normal Form, a style of grammars used to specify
+languages informally, and formally in compiler construction tools.
+
+XNF lets you generate XML parsers and code generators written in GSL.
+While it's easy to do this for simple XML models, it becomes hard for
+complex models such as those used in PDL and PWL.  Simply writing GSL
+code to validate a PDL tree, for instance, would stretch the patience
+of most programmers.
+
+We split a normal GSL model-to-code process into three steps:
+
+1. Load the XML model, and do any necessary pre-processing using
+   hand-written GSL.  For example, resolving any <include> or <inherit>
+   items.
+   
+2. Pass the XML tree to a validating parser.  This parser has to work
+   through each item and attribute, checking that the XML model is
+   valid.  It can make adjustments to the tree, calculate data, set
+   default values, etc.
+   
+3. Pass the validated XML tree to a code generator.  This works through
+   the data using a tree-walking algorithm to generate code for each
+   item depending on the context.
+
+The first two steps are always needed.  The third step is optional and
+in Boom, for example, we do not use it.  There are certain types of
+problem where 
+
+
+Worked Example
+..............
+
+The Generated Parser
+....................

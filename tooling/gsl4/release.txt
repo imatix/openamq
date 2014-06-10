@@ -1,0 +1,158 @@
+4.0c19 - 2006/05/17
+
+ - Fixed bug in eval_name, affects name() function.
+
+4.0c18 - 2006/05/04
+
+ - Fixed type conversion in 4.0c17 to be portable
+ - Conversion will only be valid for double values in the
+   range (0 .. 2^32)
+
+4.0c17 - 2006/05/04
+
+ - Fixed type conversion in format_output
+
+4.0c16 - 2006/04/19
+
+ - Added string.locate_last (Tim)
+ - Fixed BASE2-191 (Pieter)
+   - Note fix requires base-1.2c14 or later
+
+4.0c15 - 2006/02/19
+
+ - Update packaging to include examples
+
+4.0c14 - 2005/12/13
+
+ - Fix for BASE-27 by Jonathan
+
+4.0c13 - 2005/11/09
+
+ - Fix CamelCase
+
+4.0c12 - 2005/11/02
+
+ - Added CamelCase pretty-print modifier (Martin Sustrik)
+
+4.0c11 - 2005/08/05
+
+- Fixed &=, |= bug
+
+4.0c10 - 2005/07/04
+
+ - Fixed bug with last release.
+
+4.0c9 - 2005/07/04
+
+ - Don't lose script name on partial deletion.
+
+4.0c8 - 2005/06/14
+
+ - Fixed some problems with the last release.
+
+4.0c7 - 2005/06/13
+
+ - Added 'left' pretty-print modifier.
+
+4.0c6 - 2005/06/13
+
+ - Set thread GSL control block correctly on child thread.
+
+4.0c5 - 2005/06/02
+
+ - Removed recursive use of sym_exec_all because it doesn't work under
+   Opteron/gcc.
+
+4.0c4 - 2005/05/25
+
+ - Added caching of RESULT_NODE objects to improve performance.
+
+4.0c3 - 2005/04/27
+
+1. Fixed elusive bug that resulted in duplicated lines in generated code.
+
+4.0c2 - 2005/04/17
+
+1. Fixed bug where pruned script was treated as full script,
+   symptom was second list header icl not being generated.
+
+4.0c1 - 2005/04/16
+
+1. Added deleted method to XML class.
+
+4.0c0 - 2005/04/09
+
+ - Fixed crash on certain data
+
+Release 4.0b11 - 2005/04/07
+
+1. Fixed bug in ggscrp causing dangling pointers.
+2. Fixed some compilation warnings under MSVC.
+3. Use gsl.exec in ggobjt.c - also gets rid of Unix line terminators
+   under Windows
+
+Release 4.0b10 - 2005/04/03
+
+1. Improved source file info on gsl.exec().
+
+Release 4.0b9 - 2005/03/25
+
+1. Fixed a bug that caused memory corruption.
+
+
+1. Fixed bug where functions registered in slave threads were lost to
+   the master thread.
+2. Clean up sort keys correctly.
+
+Release 4.0b7 - 2005/03/16
+
+1. Fixed another bug in the sorting function.
+
+Release 4.0b6 - 2005/03/10
+
+1. Fixed some memory leak and crashing bugs related to [gsl].exec and
+   [gsl].include.
+2. Fixed bug that made GSL crash when sorting a single item.
+
+Release 4.0b5 - 2004/12/17
+
+1. Fixed bugs causing memory leak on sort function.
+2. Made name () take a value not a scope - backwards compatible.
+
+Release 4.0b4 - 2004/11/16
+
+1. [gsl].exec_file replaced by [gsl].include (but no output capturing),
+   [gsl].exec_string replaced by [gsl].exec (with output capturing).
+2. More changes to help it compile on Alpha/C89
+
+Release 4.0b3 - 2004/11/15
+
+1. Made 64-bit compatible
+2. Different treatment of line terminators.  If a script ends with a template
+   line with no terminator, so does the output.
+
+Release 4.0b2 - 2004/11/14
+
+1. Added [gsl].exec_file, [gsl].exec_string and [gsl].evaluate functions.
+
+Release 4.0b1 - 2004/09/26
+
+1. string.trim skips CR, LF but not spaces at start of string
+2. gsl sometimes died with "Formatting error" outputting blank values - fixed
+
+Release 4.0a5 - 2004/09/25
+
+1. 'left' pretty-print modifier now called 'justify'
+2. Format modifier on substitute now operates on each line of a multi-line
+   string.
+
+Release 4.0a4 - 2004/09/23
+
+1. Safe equals comparison operator (?=) now returns TRUE and safe not equals 
+   (?<>) FALSE if both if both operands are undefined.
+2. Comparison operators no longer implicitly flatten structures.  (Not) equals
+   between pointers works as expected, other comparisons return undefined.
+
+Release 4.0a3 - 2004/09/22
+
+1. XML class now supports value items, name() is undefined.

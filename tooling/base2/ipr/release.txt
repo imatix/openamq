@@ -1,0 +1,112 @@
+PH: 2005/09/20
+
+  - ipr_dict: changed to hold fixable string value (not random data)
+  - ipr_dict: added template method for symbol replacement
+  
+PH: 2005/08/16
+
+  - ipr_regexp: fixed bugs in regexp code, wrote testcase tutorial.
+  
+PH: 2005/08/01
+
+  - ipr_bucket: increased maximum size to 1Mb
+  
+PH: 2005/07/27
+
+ - ipr_config: renamed _attr to _get, _locattr to _getp
+ - ipr_config: added _put and _putp methods
+ 
+PH: 2005/07/25
+
+ - made ipr_looseref_new public again (need to hold looseref refs)
+ 
+1.0a0 - 
+
+ - Merged threadsafe branch
+
+0.3c2 - 2005/06/02
+
+ - Bug fixes
+ - ipr_regexp interface changed, now uses precompiled regular 
+   expressions
+
+0.3c1 - 2005/05/02
+
+ - JS: Inheritence has been made more consistent.
+
+IPR
+
+2005/03/19
+ Pieter
+  - renamed ipr_classes.h to ipr.h
+  
+2005/02/18
+ Pieter
+  - removed nullify option from various classes
+
+2005/01/05
+ Pieter
+  - added ipr_db classes for BDB access
+  
+2004/12/29
+ Pieter
+  - removed vestiges of iCL shortstr_t and longstr_t definitions
+
+2004/12/25
+ Pieter
+  - removed iCL base layer into separate project
+
+2004/11/24
+ Pieter
+  - added ipr_longstr and ipr_shortstr classes
+  - renamed ipr_mem_cache to ipr_alloc_cache
+  - added ipr_alloc_plain class for non-cached objects
+  - various cleanups to classes to remove redundant inherits
+
+2004/11/11
+ Pieter
+  - added ipr_ref_count class to project
+  - added ipr_demo_ref_count class to project
+
+2004/10/21
+  - general rename/cleanup of classes... check project.pdl
+  - ipr_list_head container implemented
+  - ipr_cache: did not call object destructor on metacache destroy
+  - renamed ipr_cache to ipr_mem_cache
+  - renamed ipr_alloc to ipr_mem_heap
+  - demo classes:
+    - ipr_demo_cache
+    - ipr_demo_heap
+  - ipr_mem_cache and ipr_mem_heap play allocator roles
+  - ipr_list modified to use ipr_mem_cache allocator
+    - simplified: separate list header removed
+  - no more allocator bypasses needed
+  - linked-list functions now taken from single library
+
+2004/10/20
+  - ipr_cache / ipr_list use private alloc/free methods.
+  - ipr_cache / ipr_list generate unique names even for static functions -
+       needed for static inline declarations.
+
+2004/10/14
+  - Added relink_before method to ipr_list
+
+2003/10/14
+  - renamed 'this' to 'self' everywhere
+  - fixed deallocator bypass in ipr_cache
+
+2003/10/10
+  - ipr_cache allows null references in destroy and purge
+  - ipr_list allows null references in destroy
+  - new method destroy_p added to ipr_cache and ipr_list
+
+2004/10/09
+  - ipr_cache emptyzero option renamed to nullify
+  - ipr_demo3 shows how to do distinct inheritence
+  - cache container/article classes junked
+  - new cache and metacache classes added
+  - much simpler and easier to use...
+
+2004/10/08
+  - renamed cache container and article classes to _con and _art everywhere
+  - renamed cache demo to demo2_con and demo2_art

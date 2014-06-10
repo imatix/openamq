@@ -1,0 +1,91 @@
+.#
+.#   Copyright (c) 1996-2009 iMatix Corporation
+.#
+.#   This program is free software; you can redistribute it and/or modify
+.#   it under the terms of the GNU General Public License as published by
+.#   the Free Software Foundation; either version 2 of the License, or (at
+.#   your option) any later version.
+.# 
+.#   This program is distributed in the hope that it will be useful, but
+.#   WITHOUT ANY WARRANTY; without even the implied warranty of
+.#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.#   General Public License for more details.
+.# 
+.#   For information on alternative licensing for OEMs, please contact
+.#   iMatix Corporation.
+.#
+
+.macro generate_header_file
+.   output "$(fsm.name:c).h"
+/*---------------------------------------------------------------------------
+    $(fsm.name:c).h -
+
+.   if defined (copyright)
+    $(copyright:)
+.   endif
+    $(license:lower)_license ("")
+
+.   for doc
+.       output_doc (doc)
+
+.   endfor
+.
+    Generated from $(arg?filename) by $(script) using GSL/4.
+.   for todo
+    TODO: $(string.trim (.?''))
+        - $(owner)
+.   endfor
+
+    These header files use macros to implement a split inclusion in which all
+    safe definitions (those that do not depend on the presence of other
+    definitions) are done first, and all unsafe definitions are done in a
+    second pass through the same headers.
+
+    The first header file included from the main C program defines itself as
+    the "root" and thus controls the inclusion of the safe/unsafe pieces of
+    the other headers.
+ *---------------------------------------------------------------------------*/
+
+#if !defined (IMPORT_$(fsm.name:upper,c))
+
+#endif
+.   close
+.endmacro generate_header_file
+
+.macro generate_code_file
+.   output "$(fsm.name:c).c"
+/*---------------------------------------------------------------------------
+    $(fsm.name:c).c - $(fsm.name) component
+
+.   if defined (copyright)
+    $(copyright:)
+.   endif
+    $(license:lower)_license ("")
+
+.   for doc
+.       output_doc (doc)
+.   endfor
+
+    Generated from $(arg?filename) by $(script) using GSL/4.
+.   for todo
+    TODO: $(string.trim (.?''))
+        - $(owner)
+.   endfor
+ *---------------------------------------------------------------------------*/
+
+#include "icl.h"                        /*  iCL base classes                 */
+
+set first event, ok
+forever
+    switch on state
+        switch on event
+            do each action
+            quit if there's an exception
+
+.endmacro
+
+if !defined (switches.quiet)
+    echo "Generating $(fsm.name) component..."
+endif
+generate_header_file ()
+generate_code_file ()

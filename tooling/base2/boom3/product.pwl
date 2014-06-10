@@ -1,0 +1,162 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<pwl name = "product">
+Boom uses a single workflow for product management.  Building a product
+means building the individual projects, and the product workflow drives
+the individual project workflows.
+
+<include filename = "targets.pwl" />
+
+<state name = "initial">
+  <event name = "ok" internal = "1" nextstate = "initial check" >
+    <action name = "check operating context" />
+  </event>
+</state>
+
+<state name = "initial check">
+  <event name = "repository" internal = "1" nextstate = "repository"  />
+  <event name = "source"     internal = "1" nextstate = "source"  />
+  <event name = "stripped"   internal = "1" nextstate = "stripped"  />
+</state>
+
+<state name = "repository" inherit = "default" >
+  <event name = "build">
+  For each project in the product, regenerate code and build binary
+  files ready for installation.  The projects are built in their
+  individual directories and installed into the temporary install tree.
+    <action name = "build projects"     />
+  </event>
+  <event name = "compile">
+  For each project in the product, build binary files ready for installation,
+  but don't run the code generation phase .  The projects are built in their
+  individual directories and installed into the temporary install tree.
+    <action name = "compile projects"     />
+  </event>
+  <event name = "clean">
+  Deletes generated project files.  This action removes generated source
+  and binary files.
+    <action name = "clean projects" />
+  </event>
+  <event name = "regen">
+  For each project in the product, regenerate any source files that
+  are produced via GSL, Libero or another code generation tool.
+  Generates only those files that are required to build under 
+  the current model.
+    <action name = "regen projects"     />
+  </event>
+  <event name = "allgen">
+  For each project in the product, regenerate any source files that
+  are produced via GSL, Libero or another code generation tool.
+  Generates all files.
+    <action name = "allgen projects"     />
+  </event>
+  <event name = "distrib">
+  Build all projects and create full distribution packages.  If you do
+  not want to rebuild the projects, you can use the 'distsrc' and 'distbin'
+  actions as shortcuts.
+    <action name = "build projects"                 />
+    <action name = "build product source packages"  />
+    <action name = "build product install packages" />
+  </event>
+  <event name = "distsrc">
+  Build source distribution packages based on product version number.
+    <action name = "allgen projects"               />
+    <action name = "build product source packages" />
+  </event>
+  <event name = "distrev">
+  Build source distribution packages based on source control revision
+  number.
+    <action name = "allgen projects"               />
+    <action name = "use source control revision"   />
+    <action name = "build product source packages" />
+  </event>
+</state>
+
+<state name = "source" inherit = "default" >
+  <event name = "build">
+  For each project in the product, build binary files ready for 
+  installation.  The projects are built in their individual directories 
+  and installed into the temporary install tree.
+    <action name = "build projects"     />
+  </event>
+  <event name = "clean">
+  Deletes generated project files.  This action removes generated binary 
+  files.
+    <action name = "clean projects" />
+  </event>
+  <event name = "regen">
+  For each project in the product, regenerate any source files that
+  are produced via GSL, Libero or another code generation tool.
+  Generates only those files that are required to build under 
+  the current model.
+    <action name = "regen projects"     />
+  </event>
+  <event name = "allgen">
+  For each project in the product, regenerate any source files that
+  are produced via GSL, Libero or another code generation tool.
+  Generates all files.
+    <action name = "allgen projects"     />
+  </event>
+</state>
+
+<state name = "stripped" inherit = "default" >
+  <event name = "build">
+  For each project in the product, build binary files ready for 
+  installation.  The projects are built in their individual directories 
+  and installed into the temporary install tree.
+    <action name = "build projects"     />
+  </event>
+  <event name = "clean">
+  Deletes generated project files.  This action removes generated binary 
+  files.
+    <action name = "clean projects" />
+  </event>
+</state>
+
+<state name = "default" >
+  <event name = "install">
+  Install each project into its target directory.  The projects must
+  have been built (and installed into the temporary install tree, which
+  is what the build action does).
+    <action name = "install projects"   />
+  </event>
+  <event name = "distbin">
+  Build binary distribution packages.  The actual packages built depend on
+  the project packagers used, but typically you will get a ZIP or TGZ file
+  containing all the projects' deliverables.  Note that this action works
+  entirely from the temporary install tree, which the 'build' action makes.
+    <action name = "build product install packages" />
+  </event>
+  <event name = "test">
+  Runs each project's test process.
+    <action name = "test projects" />
+  </event>
+  <event name = "help">
+  Shows a list of the commands allowed on the project.
+    <action name = "report help information" />
+  </event>
+  <event name = "version">
+  Show product version.
+    <action name = "report project version"  />
+  </event>
+  <event name = "empty"  internal = "1" >
+    <action name = "report help information" />
+  </event>
+</state>
+</pwl>

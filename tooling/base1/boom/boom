@@ -1,0 +1,118 @@
+#!/bin/sh
+#
+#   boom - Boom shell script
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+if [ -z "$1" ]; then
+    echo "boom I: use -h or --help to see available options"
+    exit 1
+fi
+
+#   Process options, if any
+while true; do
+    if [ "`echo $1 | cut -c1`" = "-" ]; then
+        OPTION=$1
+
+        if [ "$OPTION" = "-h" -o "$OPTION" = "--help" ]; then
+            echo "'boom' prepares and executes the build process."
+            echo ""
+            echo "Usage: boom [OPTION]... [COMMAND]..."
+            echo ""
+            echo "Configuration:"
+            echo "  -h, --help              Display this help information"
+            echo "  -v, --verbose           Trace build commands"
+            echo "  -V, --version           Display version information"
+            echo ""
+            echo "Commands:"
+            echo "  configure               Configure project (generates boomake)"
+            echo "  version                 Show project version"
+            echo "  build                   Build project"
+            echo "  test                    Test project"
+            echo "  compile                 Build project w/o regenerating source"
+            echo "  install                 Install project"
+            echo "  clean                   Clean project"
+            echo "  distsrc                 Create project source package"
+            echo "  all                     clean, configure, build, test, install"
+            echo "  help                    Show list of allowed commands"
+            echo ""
+            exit
+
+        elif [ "$OPTION" = "-v" -o "$OPTION" = "--verbose" ]; then
+            BOOM_TRACE=1
+            export BOOM_TRACE
+            shift
+
+        elif [ "$OPTION" = "-V" -o "$OPTION" = "--version" ]; then
+            gsl3 -quiet -showver boom
+            exit
+
+        else 
+            echo "boom E: invalid option '$OPTION' - use --help to see available options"
+            exit 1
+        fi
+    else
+        break       #   No more switches to process
+    fi
+done
+
+#   Now process all commands
+DO_CONFIG=no
+DO_ALL=no
+
+if [ "$1" = "all" ]; then
+    [ ! -f stamp_source ] && DO_CONFIG=yes
+    [ -f boomake ] && ./boomake clean
+    DO_ALL=yes
+    shift
+fi
+if [ "$1" = "configure" ]; then
+    [ ! -f stamp_source ] && DO_CONFIG=yes
+    shift
+fi
+
+if [ "$DO_CONFIG" = "yes" ]; then
+    if type gsl3 >/dev/null 2>&1; then
+        : #   Success, nothing
+    else
+        echo "boom E: gsl3 was not found on PATH, please install it"
+        exit 1
+    fi
+    #   If we are using Subversion, pass the revision to boom
+    #
+    if [ -d .svn ]; then
+        SVN_REVISION=`svn info | awk '/^Revision:/ { print $2 }'`
+        gsl3 -quiet -svn_revision:$SVN_REVISION boom || exit 1
+    else
+        gsl3 -quiet boom || exit 1
+    fi
+    chmod +x boomake
+    [ -f Makefile.unix ] && cp Makefile.unix Makefile
+fi
+
+if [ "$DO_ALL" = "yes" ]; then
+    ./boomake build test install
+elif [ -n "$1" ]; then
+    if [ -f boomake ]; then
+        chmod +x boomake
+        ./boomake "$@"
+    else
+        echo "boom E: invalid option '$1' - use --help to see available options"
+        exit 1
+    fi
+fi
+

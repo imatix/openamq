@@ -1,0 +1,21 @@
+<?xml?>
+<pal script = "demo_pal_gen">
+    This script demonstrates how to send a single message to a queue and
+    then read it back off the queue.  Note that the script is quite
+    repetitive - single2.pal shows how to cure that.
+    <session>
+        <exchange_declare exchange = "myexchange" type = "fanout" />
+        <queue_declare queue = "myqueue" />
+        <queue_bind queue = "myqueue" exchange = "myexchange" />
+        <basic_content size = "64000" message_id = "id-0001" />
+        <basic_publish exchange = "myexchange" routing_key = "myqueue" />
+        <basic_get queue = "myqueue" />
+        <basic_arrived>
+            <echo>Message '$message_id' came back to us</echo>
+        </basic_arrived>
+        <empty>
+            <echo>Message did not come back, this is bad!</echo>
+        </empty>
+    </session>
+</pal>
+

@@ -1,0 +1,275 @@
+#!/usr/bin/perl
+#
+#   version - report or update project version
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+#
+#   syntax: version [new_version]
+#
+
+###############################################################################
+#
+#   Get current version from project definition
+#
+$old_version = "";
+$in_pdl  = 0;
+open PROJECT, "project.pdl" || die "Can't find project.pdl";
+while (<PROJECT>) {
+    if (/<pdl/) {
+        $in_pdl = 1;
+    }
+    elsif ($in_pdl && /version\s*=\s*"([^"]*)"/) {
+        $old_version = $1;
+    }
+    # No good way to find the end of the pdl attributes, without an XML parser 
+    if ($in_pdl && />/) {
+        last;
+    }
+}
+close PROJECT;
+
+if ($old_version =~ /^([0-9]+)\.([0-9]+)(([a-z])([0-9]*))?$/) {
+    $old_major   = $1;
+    $old_minor   = $2;
+    $old_release = $4;
+    $old_patch   = $5;
+    print "I: Old version is '$old_version'\n";
+}
+else {
+    print "E: Current version '$old_version' is not valid, please check\n";
+    exit;
+}
+
+###############################################################################
+#
+#   Ask user to choose upgrade type
+#
+$| = 1;                                 #  Set STDIN to auto-flush  
+print "Select type of upgrade:\n";
+$version = upgrade_major ();
+print " 1) first release of major upgrade: $version\n";
+$version = upgrade_minor ();
+print " 2) first release of minor upgrade: $version\n";
+$version = upgrade_release ();
+print " 3) more stable product release:    $version\n";
+$version = upgrade_patch ();
+print " 4) patch with minor fixes/changes: $version\n";
+print "\nPress 1-4 or Enter to quit >";
+$option = <STDIN>;
+chomp $option;
+if ($option eq "1") {
+    $new_version = upgrade_major ();
+    $new_comment = "Major new product version";
+}
+elsif ($option eq "2") {
+    $new_version = upgrade_minor ();
+    $new_comment = "Minor new product version";
+    print "++ $new_version ++\n";
+}
+elsif ($option eq "3") {
+    $new_version = upgrade_release ();
+    $new_comment = "More stable product release";
+}
+elsif ($option eq "4") {
+    $new_version = upgrade_patch ();
+    $new_comment = "Patch with minor fixes/changes";
+}
+else {
+    print "I: Not changing version - you can edit project.pdl by hand.\n";
+    exit;
+}
+
+print "\nI: Upgrading project to version $new_version...\n";
+patch_project_definition ($new_version, ".");
+opendir (DIR, ".");
+foreach (grep (!/^\.\.?$/, readdir (DIR))) {
+    patch_project_definition ($new_version, "$_") if -d $_;
+}
+closedir (DIR);
+patch_release_notes ($new_version);
+
+if (defined ($ENV {"EDITOR"})) {
+    system $ENV {"EDITOR"} . " release.txt";
+} else {
+    if (defined ($ENV {"windir"})) {
+        system "notepad release.txt";
+    }
+    else {
+        system "vi release.txt";
+    }
+}
+
+print "Do you want to commit SVN for $new_version (y/n)?";
+$option = <STDIN>;
+chomp $option;
+if ($option eq "y") {
+    print "\nI: Committing version $new_version...\n";
+    system "svn commit -m \"Release $new_version\"";
+    #  Tagging is disabled pending final SVN layout
+    #  &tag_svn ($new_version);
+}
+
+exit (0);
+
+
+###############################################################################
+#
+#   Version upgrade functions
+#
+sub upgrade_major {
+    return (($old_major + 1) . ".0a0");
+}
+sub upgrade_minor {
+    return ($old_major . "." . ($old_minor + 1) . "a0");
+}
+sub upgrade_release {
+    $release = $old_release;
+    return ($old_major . "." . $old_minor . ++$release . "0");
+}
+sub upgrade_patch {
+    return ($old_major . "." . $old_minor . $old_release . ($old_patch + 1));
+}
+
+
+###############################################################################
+#
+#   Patch project.pdl
+#
+sub patch_project_definition {
+    local ($version, $dir) = @_;
+    local $patched = 0;
+
+    if (open (PROJECT, "$dir/project.pdl")) {
+        $in_pdl = 0;
+        open UPDATED, ">_tmpfile" || die "can't write to directory";
+        while (<PROJECT>) {
+            if (/<pdl/) {
+                $in_pdl = 1;
+            }
+            elsif ($in_pdl && /(version\s*=\s*")([^"]*)(")/) {
+                if ($2 eq $old_version) {
+                    $_ = "$`$1$version$3$'";
+                    $patched = 1;
+                }
+            }
+            print UPDATED $_;
+        }
+        close PROJECT;
+        close UPDATED;
+        if ($patched) {
+            rename "_tmpfile", "$dir/project.pdl";
+            print "I: Patched project.pdl in $dir\n";
+        }
+        else {
+            unlink "_tmpfile";
+        }
+    }
+}
+
+
+###############################################################################
+#
+#   Patch release.txt
+#
+sub patch_release_notes {
+    ($sec, $min, $hour, $day, $month, $year) = localtime;
+    $date = sprintf ("%04d/%02d/%02d", $year + 1900, $month + 1, $day);
+
+    open  UPDATED, ">_tmpfile" || die "can't write to current directory";
+    print UPDATED "$new_version - $date\n\n";
+    print UPDATED " - $new_comment\n\n";
+
+    if (open (RELEASE, "release.txt")) {
+        while (<RELEASE>) {
+            print UPDATED $_;
+        }
+        close RELEASE;
+    }
+    rename "_tmpfile", "release.txt";
+    print "I: Patched release.txt -- please add release notes by hand\n";
+}
+
+###############################################################################
+#
+#   Determine path in SVN repository and create a tag
+#
+sub tag_svn {
+    my ($new_version,
+        $src_url, 
+        $dst_url,
+        $url_scheme,
+        $url_authority,
+        $url_path,
+        @src_path_components,
+        @dst_path_components,
+        $project_path,
+        $current_path,
+        $reponse);
+
+    $new_version = shift;
+    open SVN, "svn info .|";
+    while (<SVN>) {
+        if (/^URL:\s+(.+)$/) {
+            $src_url = $1;
+            chomp $src_url;
+            last;
+        }
+    }
+    close SVN;
+    if (!defined $src_url) {
+        print "E: Unable to determine repository URL, not tagging\n";
+        return;
+    }
+    if ($src_url =~ m!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(\#(.*))?!) {
+        $url_scheme    = $2;
+        $url_authority = $4;
+        $url_path      = $5;
+    } else {
+        print "E: Unable to parse repository URL, not tagging\n";
+        return;
+    }
+    @src_path_components = split (m!/!, $url_path);
+    if (!grep m/^trunk$/, @src_path_components) {
+        print "E: Cannot determine tag location from <$src_url>, not tagging\n";
+        return;
+    }
+    $project_path = pop @src_path_components;
+    unshift @dst_path_components, $project_path;
+    $project_path .= '-' . $new_version;
+    while (@src_path_components) {
+        $current_path = pop @src_path_components;
+        if ($current_path eq 'trunk') {
+            unshift @dst_path_components, $project_path;
+            unshift @dst_path_components, 'tags';
+        } else {
+            unshift @dst_path_components, $current_path;
+        }
+    }
+    $url_path = join ('/', @dst_path_components);
+    $dst_url = $url_scheme . '://' . $url_authority . $url_path;
+    print "I: OK to tag new version as <$dst_url> (y/n)?";
+    $response = <STDIN>;
+    chomp $response;
+    if ($response eq 'y') {
+        print "I: Tagging project as <$dst_url> ...\n";
+        system ("svn copy $src_url $dst_url");
+    } else {
+        print "I: Not tagging new version in SVN\n";
+    }
+}
+

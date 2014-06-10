@@ -1,0 +1,43 @@
+<?xml?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<pdl
+    name      = "OPF"
+    version   = "1.0"
+    workflow  = "standard.pwl"
+    copyright = "Copyright (c) 1996-2009 iMatix Corporation"
+    library   = "libopf"
+    >
+
+<include filename = "prelude.pdl" />
+<inherit filename = "../icl/icl_classes.pdl" />
+<inherit filename = "opf_classes.pdl" />
+<file name = "version.h" class = "c version">Project version file</file>
+
+<!-- OPF code generators -->
+<file name = "opf_gen.gsl"          class = "public resource"   >OPF generator</file>
+<file name = "opf_gen_class.gsl"    class = "public resource"   >OPF generator for classes</file>
+<file name = "opf_gen_docs.gsl"     class = "public resource"   >OPF generator for docs</file>
+<file name = "opf_classes.pdl"      class = "public resource"   >OPF Boom classes</file>
+
+<file name = "libopf"               class = "public library"    >OPF library</file>
+
+<!-- Example config file -->
+<file name = "example.opf"          class = "opf metadata"      >Example</file>
+
+</pdl>
+ 

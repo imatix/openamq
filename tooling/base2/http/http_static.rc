@@ -1,0 +1,5 @@
+#
+#   Resources built into the server
+#
+http_base.css
+http_base.cfg

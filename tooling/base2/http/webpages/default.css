@@ -1,0 +1,321 @@
+/* Standard iMatix microsite theme v2.1 PH, inherit from base */
+/* Basic elements */
+
+body {
+    background-color: #8a8a8a;
+    font-family: verdana,arial,helvetica,sans-serif;
+    font-size: 0.75em;
+    min-width: 60em;
+}
+
+input {
+    font-family: verdana,arial,helvetica,sans-serif;
+}
+
+textarea {
+    font-family: verdana,arial,helvetica,sans-serif;
+}
+
+/* Left and right shading */
+
+#container-wrap {
+    padding: 0 0 0 35px;
+    background-image:url(http://www.wikidot.com/common--theme/webbish/images/sideback2_l.png);
+    background-repeat: repeat-y;
+    background-position: top left;
+    background-color: white;
+}
+
+#container {
+    padding: 0 35px 0 0;
+    background-image:url(http://www.wikidot.com/common--theme/webbish/images/sideback2_r.png);
+    background-repeat: repeat-y;
+    background-position: top right;
+}
+
+/* Header area */
+
+/* custom: Logo height + 10 */
+#header {
+    height: 100px;
+    border-bottom: 10px solid #01415c;
+}
+
+#header h1 {
+    font-size: 220%;
+    padding: 0.5em 0 0 1em;
+    font-family: arial,helvetica,sans-serif;
+    font-weight: bold;
+}
+/* custom: Logo height and width */
+#header h1 a,#header h1 a:hover {
+    background-image: url(/local--files/start/logo.png);
+    height: 90px;
+    width: 212px;
+    position: absolute;
+    top: 5px;
+    left: 10px;
+}
+
+#header a {
+    color: #007a94;
+    text-decoration: none;
+}
+#header a.newpage{
+    color: #007a94;
+}
+#header a:hover {
+    color: #7f0000;
+    text-decoration: none;
+}
+
+/* custom: Logo width + 20 */
+#header h1 a span {
+    position: absolute;
+    top: 20px;
+    left: 0;
+    width: 600px;
+    padding: 0;
+    margin-left: 232px;
+}
+
+/* custom: Logo width + 30 */
+#header h2 {
+    font-size: 180%;
+    font-weight: bold;
+    padding: 0 0 0 3em;
+    font-family: arial,helvetica,sans-serif;
+    position: absolute;
+    top: 60px;
+    left: 0;
+    width: 600px;
+    padding: 0;
+    margin-left: 242px;
+}
+
+/* Top bar area */
+
+#top-bar {
+    position: absolute;
+    left: auto;
+    right: 10px;
+    top: 85px;
+    overflow: visible;
+    padding-left: 2em;
+    background-color:white;
+    z-index:26;
+    font-weight: bold;
+}
+#top-bar li {
+    margin: 0;
+}
+#top-bar ul li a {
+    border: none;
+    background-color:white;
+}
+#top-bar a {
+    color: #007a94;
+}
+#top-bar ul li a:hover {
+    color: #7f0000;
+    text-decoration: none;
+}
+
+/* Side bar area */
+
+#side-bar {
+    width: 14em;
+    padding: 0;
+    background-color: white;
+}
+
+#side-bar h1, #side-bar h2, #side-bar h3 {
+    text-align: left;
+    margin: 0.5em;
+    color: #01415c;
+    font-weight: bold;
+    font-family: verdana,arial,helvetica,sans-serif;
+}
+
+#side-bar a {
+    color: #007a94;
+    text-decoration: none;
+}
+#side-bar a.newpage{
+    color: #007a94;
+}
+#side-bar a:hover {
+    color: #7f0000;
+    text-decoration: none;
+    background-color: transparent;
+}
+#side-bar ul {
+    display: block;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+#side-bar ul li {
+    display:block;
+}
+#side-bar li a {
+    padding-top: 2px;
+    padding-bottom: 2px;
+    display: block;
+    padding-left: 1em;
+    border-bottom: 1px solid #D9DDCF;
+    text-decoration: none;
+    background-color: white;
+    color: #007a94;
+    font-weight: bold;
+}
+#side-bar li a:hover {
+    background-color: white;
+    color: #7f0000;
+    text-decoration: none;
+}
+#side-bar p  {
+    padding: 5px;
+    margin: 0px;
+    margin-bottom: 3px;
+    margin: 0px;
+}
+
+/* Main page title */
+#page-title {
+    font-family: verdana,arial,helvetica,sans-serif;
+    font-weight: normal;
+    color: #7f0000;
+    border-color: #01415c;
+}
+
+* html #main-content  {
+    height: 1%;
+}
+
+#main-content {
+    border-left: 1px solid #01415c;
+    margin-left: 15em;
+    margin-right: 1em;
+}
+#main-content h1 span {
+    font-family: arial,helvetica,sans-serif;
+    color: #01415c;
+    font-weight: bold;
+}
+#main-content h1 span a {
+    color: #007a94;
+    font-weight: bold;
+}
+#main-content h1 span a:hover {
+    color: #7f0000;
+    font-weight: bold;
+}
+#main-content h2 span {
+    padding: 0em 0em;
+    color: #01415c;
+    font-weight: bold;
+    font-family: arial,helvetica,sans-serif;
+}
+#main-content h2 span a {
+    color: #007a94;
+    font-weight: bold;
+}
+#main-content h2 span a:hover {
+    color: #7f0000;
+    font-weight: bold;
+}
+#main-content h3 span {
+    font-weight: bold;
+    margin-left: 0em;
+    color: #01415c;
+    font-weight: bold;
+    font-family: arial,helvetica,sans-serif;
+}
+#main-content h3 span a {
+    color: #007a94;
+    font-weight: bold;
+}
+#main-content h3 span a:hover {
+    color: #7f0000;
+    font-weight: bold;
+}
+#main-content blockquote {
+    margin-left: 1em;
+    margin-right: 1em;
+}
+#main-content a {
+    color: #007a94;
+    text-decoration: none;
+}
+#main-content a.newpage{
+    color: #007a94;
+}
+#main-content a:hover {
+    color: #7f0000;
+    text-decoration: none;
+    background-color: transparent;
+}
+
+#main-content p {
+    line-height: 1.4em;
+}
+
+#page-info {
+    color: white;
+    font-size: 70%;
+    text-align: right;
+}
+.page-options-bottom a, a.action-area-close {
+    color: #007a94;
+    background-color: white;
+    text-decoration: none;
+}
+.page-options-bottom a:hover, a.action-area-close:hover {
+    color: #7f0000;
+    background-color: white;
+}
+div.mailform-box table.form {
+    margin: 0 auto 0 0;
+}
+div.pages-tag-cloud-box {
+    margin: .5em
+}
+
+#footer {
+    background-color: #555;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    border-top: 2px solid #2A343D;
+    color: #E7E9DC;
+    text-align: left;
+}
+
+#footer a {
+    color: #EEE;
+}
+#footer a.newpage{
+    color: #EEE;
+}
+#footer a:hover {
+    color: #EEE;
+    text-decoration: none;
+}
+
+#license-area {
+    background-color: #EEE;
+    padding: 0.2em 1em;
+    margin: 0;
+}
+
+.page-options-bottom a, a.action-area-close {
+    color: #242;
+    background-color: #EEE; 
+    text-decoration: none;
+}
+.page-options-bottom a:hover, a.action-area-close:hover {
+    background-color: #DDD; 
+}
+.page-tags span {
+    font-size: 100%;
+}

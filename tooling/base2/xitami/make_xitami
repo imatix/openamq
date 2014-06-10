@@ -1,0 +1,433 @@
+#!/bin/bash
+#
+#   make_xitami - Xitami packager
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+#
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+#   make_xitami [-r revision] [-b branch] [-v version] [-m model] [-c] [-r] [-s] [-a] [-p] [-i where]
+#
+#       * revision = svn revision number, default = head
+#       * branch = "trunk" or "xxx" where branch name is "/branches/prod_xitami_xxx", e.g. "1.2d"
+#       * version = "x.yRn", default is same as current
+#       * model = "mtr", "mtd", "str", or "std", default is mtd
+#       * -c means checkout sources from SVN
+#       * -r means recover after a partial checkout
+#       * -s means just report status and exit
+#       * -a means automatically do svn commits
+#       * -p means update local project.pdl files
+#       * -i means install packages to svpublic.imatix.com directory
+#
+#   Working directories
+#    ~/build-$BRANCH-$REVISION-$MODEL       BUILD directory for this version
+#    ~/ibase-$BRANCH-$REVISION-$MODEL       IBASE for build from svn sources
+#    ~/ibase-$BRANCH-$REVISION-$MODEL-kit   IBASE for build from source kit
+#    ~/ibase-boot                           IBASE binary bootstrap packages
+#    $BUILD/base2/xitami-$VERSION           package root
+#
+#   Prerequisites
+#
+#   make_build.gsl must be installed into ibase-boot
+#
+#   Part 0
+#
+#   * If -s (status) option specified, reports status and then exits
+#
+#   Part 1: done always
+#
+#   * Prepare ibase-boot directory
+#       - if it does not exist, create from IBASE/bin after user confirms
+#   * Prepare the IBASE directory
+#       - empty it if -c (clean) option was specified
+#   * Prepare the BUILD directory
+#       - if clean option used, delete directory
+#   * Checks out products (foreign, base1, gsl4, base2, xitami) into BUILD
+#       - if clean not specified, leave old sources
+#   * Does boom on each product
+#       - does "boom all", no shortcuts when making a package
+#
+#   Part 2: done if a version is specified
+#
+#   * Builds source kit for each product
+#   * Generates a manifest.xml file in the xitami directory // should be pkgroot!
+#   * Updates project.pdl of http with version number
+#   * If -a (commit) specified, commits changes back to svn
+#   * Creates Xitami-$VERSION package root
+#   * Generates readme.txt, build.sh, build.bat in package root
+#   * Unpacks source kits into package root and creates final source kits
+#   * Unpacks source kit into new package root and runs build.sh
+#
+croak() {
+    if [ -n "$*" ]; then
+        echo "E: $* - stop" 1>&2
+    else
+        echo "E: stop" 1>&2
+    fi
+    exit 1
+}
+carp() {
+    echo "I: $*" 1>&2
+}
+trap 'croak "Interrupted"' INT
+trap 'croak "Terminated"' TERM
+trap 'croak "Quit"' QUIT
+
+#   Set global options for script
+SVN_ROOT=https://svn.imatix.com/imatix
+PRODUCTS="foreign base2"
+MANIFEST=manifest.xml
+RUNLOG=/tmp/make_xitami_$$.log
+
+#   Set defaults for processing options
+REVISION=head
+BRANCH=trunk
+VERSION=""
+MODEL=mtd
+CLEAN=0
+RECOVER=0
+STATUS=0
+COMMIT=0
+INSTALL=""
+
+#   Parse command line
+while [ ! -z "$1" ]; do
+    if [ "$1" = "-h" ]; then
+        carp 'make_xitami [-r revision] [-b branch] [-v version] [-m model] [-c] [-s] [-a] [-p] [-i where]'
+        carp '   revision = svn revision number, default = head'
+        carp '   branch = "trunk" or "xxx" where branch name is "/branches/prod_xitami_xxx", e.g. "1.2d"'
+        carp '   version = "x.yRn", default is same as current'
+        carp '   model = "mtr", "mtd", "str", or "std", default is mtd'
+        carp '   -c means do clean checkout and build'
+        carp '   -r means recover after a partial checkout'
+        carp '   -s means just report status and exit'
+        carp '   -a means automatically do svn commits'
+        carp '   -p means patch local project.pdl files'
+        carp '   -i means install packages to svpublic.imatix.com directory'
+        exit 1;
+    elif [ "$1" = "-c" ]; then
+        CLEAN=1                         #   Clean checkout and rebuild
+    elif [ "$1" = "-r" ]; then
+        RECOVER=1                       #   Recover failed checkout, rebuild
+    elif [ "$1" = "-s" ]; then
+        STATUS=1                        #   Report status and then exit
+    elif [ "$1" = "-a" ]; then
+        COMMIT=1                        #   Automatically do svn commits
+    elif [ "$1" = "-p" ]; then
+        UPDATE=1                        #   Update project files
+    elif [ "$1" = "-i" ]; then
+        shift
+        if [ ! -z "$1" ]; then
+            INSTALL=$1
+        else
+            croak "use '-i stable/unstable'"
+        fi
+    elif [ "$1" = "-r" ]; then
+        shift
+        if [ ! -z "$1" ]; then
+            REVISION=$1
+        else
+            croak "use '-r revision'"
+        fi
+    elif [ "$1" = "-b" ]; then
+        shift
+        if [ ! -z "$1" ]; then
+            BRANCH=$1
+        else
+            croak "use '-b branch'"
+        fi
+    elif [ "$1" = "-v" ]; then
+        shift
+        if [ ! -z "$1" ]; then
+            VERSION=$1
+        else
+            croak "use '-v version'"
+        fi
+    elif [ "$1" = "-m" ]; then
+        shift
+        if [ ! -z "$1" ]; then
+            MODEL=$1
+        else
+            croak "use '-m model'"
+        fi
+    else
+        croak "invalid option '$1' - use -h to see available options"
+    fi
+    shift
+done
+
+#   Set environment variables for work
+MYNAME=$BRANCH-$REVISION-$MODEL
+BUILD=~/build-$MYNAME
+IBASE=~/ibase-$MYNAME
+if [ $MODEL = "mtd" ]; then
+    BOOM_MODEL=debug,mt
+elif [ $MODEL = "mtr" ]; then
+    BOOM_MODEL=release,mt
+elif [ $MODEL = "std" ]; then
+    BOOM_MODEL=debug,st
+elif [ $MODEL = "str" ]; then
+    BOOM_MODEL=release,st
+else
+    croak "invalid model '$MODEL' - use mtd, mtr, std, or str"
+fi
+
+#   If -p specified, update local project.pdl files & exit
+if [ ! -z "$UPDATE" ]; then
+    if [ -z "$VERSION" ]; then
+        croak "Specify a version number: make_xitami -p -v X.xnx"
+    fi
+    PRODVER=`perl -n -e '/version .*= "(.*)"/ && print $1' project.pdl`
+    carp "in `pwd`: project.pdl patched to $PRODVER"
+    exit 0
+fi
+
+#   Report where we'll work & what we'll do
+if [ $CLEAN = 1 ]; then
+    carp "** doing full rebuild and installation from SVN"
+else
+    carp "** WARNING: doing quick & dirty rebuild"
+fi
+if [ "$VERSION" = "" ]; then
+    carp "** version empty - no source kits will be produced!"
+else
+    carp "** preparing source kits for Xitami-$VERSION"
+fi
+carp "IBASE directory: $IBASE"
+carp "build directory: $BUILD"
+carp "Boom model:      $BOOM_MODEL"
+carp "svn revision:    $REVISION"
+carp "svn path root:   $SVN_ROOT"
+
+if [ $STATUS = 1 ]; then
+    if [ -f ~/ibase-boot/gsl ]; then
+        carp "found: $HOME/ibase-boot contains bootstrap binaries"
+    else
+        carp "empty: $HOME/ibase-boot is empty"
+    fi
+    if [ -d $BUILD/base2/.svn ]; then
+        carp "found: $BUILD contains checked-out sources"
+    else
+        carp "empty: $BUILD is empty"
+    fi
+    if [ -f $BUILD/base2/xitami/xitami ]; then
+        carp "found: $BUILD contains built packages"
+    else
+        carp "empty: $BUILD not yet built"
+    fi
+    if [ -f $IBASE/lib/libhttp.a ]; then
+        carp "found: $IBASE contains installation"
+    else
+        carp "empty: $IBASE is empty"
+    fi
+    exit 0
+fi
+
+#   Check that ibase-boot exists
+if [ ! -d ~/ibase-boot ]; then
+    carp "no ~/ibase-boot directory exists"
+    if [ -d $IBASE/bin ]; then
+        echo -n "Enter 'y' to create ~/ibase-boot from $IBASE/bin: "
+        read answer
+        if [ "$answer" = "y" ]; then
+            carp "creating ibase-boot..."
+            mkdir ~/ibase-boot || croak
+            cd $IBASE/bin
+            #   Copy everything useful to the ibase-boot
+            cp lr* gsl* boom* pdl* pwl*  ~/ibase-boot || croak
+            cp *.gsl *.pdl *.pwl ~/ibase-boot || croak
+            cd $HOME
+        fi
+    fi
+    test -d ~/ibase-boot || croak
+fi
+
+#   Check required applications
+for PROGRAM in boom pax zip; do
+    if [ -z "`which $PROGRAM`" ]; then
+        croak "need $PROGRAM on path to run"
+    fi
+done
+
+carp "****  Starting  ****"
+#   Prepare ibase directory
+#    - if clean option used, then empty directory
+if [ -d $IBASE -a $CLEAN = 1 ]; then
+    carp "in $IBASE: deleting everything..."
+    rm -rf $IBASE || croak
+fi
+if [ ! -d $IBASE ]; then
+    mkdir $IBASE || croak
+    mkdir $IBASE/bin || croak
+    cp ~/ibase-boot/* $IBASE/bin || croak
+fi
+PATH=$IBASE/bin:/usr/local/bin:/usr/bin:/bin
+
+if [ ! -f $IBASE/bin/make_build.gsl ]; then
+    carp "make_build.gsl needs to be in $IBASE/bin"
+    carp "suggestion: copy into ~/ibase-boot and delete $IBASE"
+    croak
+fi
+
+#   Prepare build directory
+#   - if directory has been checked out then update
+#   - if directory does not exist then checkout
+#   - if clean option used, then delete and checkout
+
+if [ -d $BUILD ]; then
+    if [ $CLEAN = 1 ]; then
+        carp "in $BUILD: deleting everything..."
+        rm -rf $BUILD || croak
+        mkdir $BUILD || croak
+    fi
+else
+    mkdir $BUILD || croak
+fi
+cd $BUILD || croak
+
+#   Checkout all products into build directory, if needed
+if [ $CLEAN = 1 -o $RECOVER = 1 ]; then
+    for PRODUCT in $PRODUCTS; do
+        if [ "$BRANCH" = "trunk" ]; then
+            SVN_URI=$SVN_ROOT/$PRODUCT/trunk
+        else
+            SVN_URI=$SVN_ROOT/$PRODUCT/branches/prod_xitami_$BRANCH
+        fi
+        carp "in `pwd`: get '$SVN_URI' into $PRODUCT..."
+        svn checkout -r $REVISION $SVN_URI $PRODUCT || croak
+    done
+fi
+
+#   If version specified, update Xitami project.pdl files
+if [ ! -z "$VERSION" ]; then
+    cd $BUILD/base2/xitami || croak
+    PRODVER=`perl -n -e '/version .*= "([^"]+)"/ && print $1' project.pdl`
+    carp "in `pwd`: project.pdl patched to $PRODVER"
+fi
+
+#   Do full rebuild for each product
+for PRODUCT in $PRODUCTS; do
+    cd $BUILD/$PRODUCT || croak
+    carp "in `pwd`: boom all..."
+    boom all > $RUNLOG 2>&1
+    if [ $? -ne 0 ]; then
+        cat $RUNLOG
+        croak
+    fi
+done
+
+#   If version not specified, we're finished now
+if [ -z "$VERSION" ]; then
+    carp "****  Finished without making source kits ****"
+    exit
+fi
+
+#   Determine name-version for each product
+for PRODUCT in $PRODUCTS; do
+    cd $BUILD/$PRODUCT || croak
+    eval "export $PRODUCT\_version=`boom version`"
+    if [ -z "`eval echo \\$${PRODUCT}_version`" ]; then
+        croak "Unable to determine version of $PRODUCT"
+    fi
+done
+
+#   Create package manifest
+#   Get real revision number
+if [ "$REVISION" = "head" ]; then
+    REVISION=`svn info | egrep Revision | cut -f 2 -d" "`
+fi
+
+cd $BUILD/base2 || croak
+echo '<?xml version="1.0"?>'> $MANIFEST
+echo '<package name = "Xitami" release = "'$VERSION'">' >> $MANIFEST
+for PRODUCT in $PRODUCTS; do
+    if [ "$BRANCH" = "trunk" ]; then
+        SVN_URI=$SVN_ROOT/$PRODUCT/trunk
+    else
+        SVN_URI=$SVN_ROOT/$PRODUCT/branches/prod_xitami_$BRANCH
+    fi
+    PRODVER=`perl -n -e '/version .*= "(.*)"/ && print $1' $BUILD/$PRODUCT/project.pdl`
+    echo '  <product name = "'$PRODUCT'" url = "'$SVN_URI'" revision = "'$REVISION'" release = "'$PRODVER'" />'>> $MANIFEST
+done
+echo '</package>'>> $MANIFEST
+
+#   Commit new manifest and project.pdl files
+if [ $COMMIT = 1 ]; then
+    carp "in `pwd`: svn commit of $VERSION update"
+    svn commit -m "[make_xitami] Prepare to release version $VERSION" || croak
+else
+    carp "in `pwd`: svn stat (manual commit recommended):"
+    svn stat
+fi
+
+#   Build source kit, first using distsrc in each product
+for PRODUCT in $PRODUCTS; do
+    cd $BUILD/$PRODUCT || croak
+    rm -f *.tar.gz *.zip
+
+    carp "in `pwd`: boom distsrc..."
+    boom configure distsrc > $RUNLOG 2>&1
+    if [ $? -ne 0 ]; then
+        cat $RUNLOG
+        croak
+    fi
+done
+
+cd $BUILD
+carp "in `pwd`: building Xitami-$VERSION tar/zip kits..."
+rm -rf Xitami-$VERSION || croak
+mkdir  Xitami-$VERSION || croak
+cd     Xitami-$VERSION || croak
+
+#   Generate readme.txt and build.sh files for package
+mv $BUILD/base2/$MANIFEST .
+gsl -q -script:make_build $MANIFEST
+
+#   Unzip source kits to create Xitami package tree
+for PRODUCT in $PRODUCTS; do
+    PRODVER=`eval echo \\$${PRODUCT}_version`
+    tar -xzf $BUILD/$PRODUCT/$PRODVER-src.tar.gz || croak
+    mv $PRODVER $PRODUCT
+done
+
+cd $BUILD
+#   Pax does tar -czf but creates POSIX-compatible tar file
+pax -w Xitami-$VERSION | gzip -c > Xitami-${VERSION}.tar.gz || croak
+zip -lqrm Xitami-${VERSION}.zip Xitami-$VERSION || croak
+carp "in `pwd`: successfully built source kits:"
+ls -l Xitami-${VERSION}.tar.gz Xitami-${VERSION}.zip
+
+#   Unpack the Linux source kit and do a full build
+tar -xzf Xitami-${VERSION}.tar.gz
+cd Xitami-$VERSION
+rm -rf ~/ibase-$MYNAME-kit || croak
+IBASE=~/ibase-$MYNAME-kit
+PATH=$IBASE/bin:/usr/local/bin:/usr/bin:/bin
+carp "in `pwd`: testing build from source kit"
+sh build.sh > $RUNLOG 2>&1
+if [ $? -ne 0 ]; then
+    cat $RUNLOG
+    croak
+fi
+rm -rf ~/ibase-$MYNAME-kit || croak
+
+#   SSH session must be loaded
+if [ ! -z "$INSTALL" ]; then
+    cd $BUILD
+    scp Xitami-${VERSION}.tar.gz Xitami-${VERSION}.zip svpublic.imatix.com:/web/xiadmin/vhosts/download.imatix.com/xitami/$INSTALL/
+    echo "* **[http://download.imatix.com/xitami/$INSTALL/Xitami-${VERSION}.tar.gz Xitami-${VERSION}.tar.gz] for UNIX** - `date +%Y/%m/%d`"
+    echo "* **[http://download.imatix.com/xitami/$INSTALL/Xitami-${VERSION}.zip Xitami-${VERSION}.zip ] for Windows** - `date +%Y/%m/%d`"
+fi
+
+carp "****  Finished making & testing source kits ****"

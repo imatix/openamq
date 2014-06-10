@@ -1,0 +1,686 @@
+.#
+.#   Copyright (c) 1996-2009 iMatix Corporation
+.#
+.#   This program is free software; you can redistribute it and/or modify
+.#   it under the terms of the GNU General Public License as published by
+.#   the Free Software Foundation; either version 2 of the License, or (at
+.#   your option) any later version.
+.#
+.#   This program is distributed in the hope that it will be useful, but
+.#   WITHOUT ANY WARRANTY; without even the implied warranty of
+.#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.#   General Public License for more details.
+.#
+.#   For information on alternative licensing for OEMs, please contact
+.#   iMatix Corporation.
+.#
+.#  Generate method class for client/server side
+.
+.function output_action_data (buffer)
+    for local where defined (local.)
+        my.buffer = my.buffer + gsl.exec (string.trim (.), 1) + "\n"
+    endfor
+    return (my.buffer)
+.endfunction
+.
+.function output_action_code (buffer)
+    for header where defined (header.)
+        my.buffer = my.buffer + gsl.exec (string.trim (.), 1)
+    endfor
+    if defined (action.)
+        my.buffer = my.buffer + gsl.exec (string.trim (.), 1)
+    endif
+    for footer where defined (footer.)
+        my.buffer = my.buffer + gsl.exec (string.trim (.), 1)
+    endfor
+    return (my.buffer)
+.endfunction
+.
+.open_output ("$(basename)_method.icl")
+<?xml?>
+<!--
+    *** GENERATED FROM $(ARG?FILENAME) BY $(SCRIPT) USING GSL/4 ***
+
+.   if defined (copyright)
+        >#   $(copyright:)
+.   endif
+.   $(license:lower)_license ("")
+ -->
+<class
+    name      = "$(basename)_method"
+    comment   = "Protocol method for $(chassis) chassis"
+    version   = "1.0"
+    script    = "icl_gen"
+.   if defined (copyright)
+    copyright = "$(copyright)"
+.   endif
+    license   = "$(license)"
+    >
+<doc>
+This class holds a method.  All protocol methods are held in a single
+union that can be processed as a single entity.
+</doc>
+
+<inherit class = "icl_object">
+    <option name = "alloc"   value = "cache" />
+    <option name = "nullify" value = "0" />
+    <option name = "links"   value = "1" />
+</inherit>
+<inherit class = "icl_init" />
+
+<import class = "asl" />
+<import class = "asl_field" />
+<import class = "smt_log" />
+<import class = "$(protocol.name)_constants" />
+<import class = "$(basename)_agent" />
+.for class where count (field) by index
+<import class = "$(protocol.name)_content_$(name:c)"/>
+.endfor
+.if chassis = "server"
+<import class = "$(basename)_classes" />
+.endif
+.if defined (import_classes)
+<import class = "$(import_classes)" />
+.endif
+
+<context>
+    dbyte
+        class_id,                       //  ID of current class
+        method_id;                      //  ID of current method
+    void
+        *content;                       //  Content, if any
+    char
+        *name;                          //  Name, for tracing
+    Bool
+        sync;                           //  Method is synchronous?
+
+    //  Used internally by servers processing the content
+    qbyte
+        sequence;                       //  Method sequence counter
+
+    union {
+.for class by index
+.   for method
+        $(selfname)_t
+            $(class.name)_$(method.name:c);
+.   endfor
+.endfor
+    } payload;
+</context>
+
+<public name = "header">
+.for class by index
+#define $(BASENAME)_$(CLASS.NAME)           $(class.index)
+.  for method
+#define $(BASENAME)_$(CLASS.NAME)_$(METHOD.NAME:c)\
+                                            $(method.index)
+.  endfor
+
+.endfor
+.for class by index
+.  for method
+typedef struct _$(selfname)_t $(selfname)_t;
+.   endfor
+.endfor
+</public>
+
+<public>
+.for class by index
+.  for method
+//  $(string.trim(.)?:left,neat)
+
+struct _$(selfname)_t {
+.   for field where !field.global
+    $(ctype:)
+        $(name);                        //  $(string.trim(.)?:left)
+.   else
+    int
+        filler;                         //  No method-specific fields          
+.   endfor
+};
+
+.   endfor
+.endfor
+</public>
+
+<private>
+.for class by index
+.   for method
+.       for field
+.           for assert where check = "regexp"
+static ipr_regexp_t
+    *s_regexp_$(class.name:c)_$(field.name:c) = NULL;
+.           endfor
+.       endfor
+.   endfor
+.endfor
+</private>
+
+<method name = "new">
+    self->class_id  = 0;
+    self->method_id = 0;
+    self->name      = NULL;
+    self->sync      = FALSE;
+    self->content   = NULL;
+</method>
+
+<method name = "destroy">
+.for class by index
+.   start_class = 1
+.   if count (field)
+.       if start_class
+    if (self->class_id == $(BASENAME)_$(CLASS.NAME)) {
+.           start_class = 0
+.       endif
+        $(protocol.name)_content_$(class.name)_t
+            *content = ($(protocol.name)_content_$(class.name)_t *) self->content;
+        $(protocol.name)_content_$(class.name)_unlink (&content);
+.   endif
+.   for method where count (field, type = "longstr" | type = "table")
+.       if start_class
+    if (self->class_id == $(BASENAME)_$(CLASS.NAME)) {
+.           start_class = 0
+.       endif
+.       if !first()
+        else
+.       endif
+        if (self->method_id == $(BASENAME)_$(CLASS.NAME)_$(METHOD.NAME:c)) {
+.       for field where type = "longstr" | type = "table"
+            icl_longstr_destroy (&self->payload.$(class.name)_$(method.name:c).$(name));
+.       endfor
+        }
+.   endfor
+.   if !start_class
+    }
+    else
+.   endif
+.endfor
+    assert (!self->content);            //  Non-destroyed content = error
+</method>
+
+<method name = "initialise">
+.for class by index
+.   for method
+.       for field
+.           for assert where check = "regexp"
+    s_regexp_$(class.name:c)_$(field.name:c) = ipr_regexp_new ("$(value:)");
+.           endfor
+.       endfor
+.   endfor
+.endfor
+</method>
+
+<method name = "terminate">
+.for class by index
+.   for method
+.       for field
+.           for assert where check = "regexp"
+    ipr_regexp_destroy (&s_regexp_$(class.name:c)_$(field.name:c));
+.           endfor
+.       endfor
+.   endfor
+.endfor
+</method>
+
+.for class by index
+.   for method where count (chassis, name <> protocol.chassis)
+<method name = "new $(class.name) $(method.name)" return = "self">
+    <doc>
+    Creates a new $(basename)_method_t object as specified.
+    Returns a pointer to the new method object, or NULL if there was an
+    error allocating memory or parsing the arguments.
+    </doc>
+.       for field where !field.global
+    <argument name = "$(name)"       type = "$(cargt:)">$(string.trim(.)?:left)</argument>
+.       endfor
+    <declare name = "self" type = "$\(selftype) *">New method</declare>
+    <local>
+    $(selfname)_t
+        *method;
+    </local>
+    //
+    self   = self_new ();
+    method = &self->payload.$(class.name)_$(method.name:c);
+    self->class_id  = $(BASENAME)_$(CLASS.NAME);
+    self->method_id = $(BASENAME)_$(CLASS.NAME)_$(METHOD.NAME:c);
+    self->name      = "$(class.name).$(method.name:c)";
+
+    //  Copy supplied values to method object
+.       for field where (metat = "boolean" | metat = "integer") & !field.global
+.           if ctype = cargt
+    method->$(name)         = $(name);
+.           else
+    method->$(name)         = ($(ctype:)) $(name);
+.           endif
+.       endfor
+.       for field where metat = "string" & !field.global
+    icl_shortstr_cpy (method->$(name),       $(name));
+.       endfor
+.       for field where metat = "longstring" & !field.global
+    if ($(name))
+        method->$(name)     = icl_longstr_dup ($(name));
+    else
+        method->$(name)     = NULL;
+.       endfor
+</method>
+
+.   endfor
+.endfor
+.template 0
+function encode_bit_byte_if_any
+    if bit_count > 0
+        >                    PUT_OCTET (data_target, bit_string);
+        >                    bit_string = 0;
+        bit_count = 0
+    endif
+endfunction
+
+function method_size
+    my.size   = 0
+    bit_count = 0
+    string_fields = ""
+    for field
+        if type = "bit"
+            bit_count += 1
+            if bit_count = 8
+                bit_count = 0
+                my.size += 1
+            endif
+        else
+            if bit_count > 0
+                bit_count = 0
+                my.size += 1
+            endif
+            if field.metat = "integer"
+                my.size += field.width
+            elsif type = "shortstr"
+                my.size += 1         #   Length octet
+                string_fields  = string_fields + "
+                                + strlen (self->payload.$(class.name)_$(method.name:c).$(name))"
+            elsif type = "longstr" | type = "table"
+                my.size += 2         #   Length word
+                string_fields  = string_fields + "
+                                + (self->payload.$(class.name)_$(method.name:c).$(name)?
+                                   self->payload.$(class.name)_$(method.name:c).$(name)->cur_size: 0)"
+            endif
+        endif
+    endfor
+    if bit_count > 0
+        my.size += 1
+    endif
+    return ("$(my.size)$(string_fields) + 1")
+endfunction
+
+.endtemplate
+<method name = "encode" return = "bucket">
+    <doc>
+    Encodes a $(basename)_method_t object into a memory bucket.
+    Allocates a fresh bucket and returns this.  Returns NULL if there
+    was an error encoding the method object.  The supplied bucket ends
+    in a frame-end octet, for symmetry with the decode method.
+    </doc>
+    <argument name = "self" type = "$\(selftype) *">Method reference</argument>
+    <declare name = "bucket" type = "ipr_bucket_t *" default = "NULL">New bucket</declare>
+    <local>
+    byte
+        *data_target = NULL;
+    size_t
+        string_size = 0;
+    byte
+        bit_string = 0;
+    </local>
+    //
+    $\(selfname:upper)_ASSERT_SANE (self);
+    assert (self->class_id);
+    assert (self->method_id);
+
+    switch (self->class_id) {
+.for class by index
+        case $(BASENAME)_$(CLASS.NAME):
+            switch (self->method_id) {
+.   for method
+                case $(BASENAME)_$(CLASS.NAME)_$(METHOD.NAME:c):
+                    bucket = ipr_bucket_new ($(method_size ()));
+                    data_target = bucket->data;
+                    PUT_SHORT (data_target, self->class_id);
+                    PUT_SHORT (data_target, self->method_id);
+.       bit_count = 0                       #   Index into current bit array
+.       for field where !field.global
+.           fieldname = "self->payload.$(class.name)_$(method.name:c).$(name)"
+.           if type = "bit"
+                    bit_string |= ($(fieldname) & 1) &lt;&lt; $(bit_count);
+.               bit_count += 1
+.               if bit_count = 8
+.                   encode_bit_byte_if_any ()
+.               endif
+.           else
+.               encode_bit_byte_if_any ()
+.               if type = "char"
+                    PUT_CHAR  (data_target, $(fieldname));
+.               elsif type = "octet"
+                    PUT_OCTET (data_target, $(fieldname));
+.               elsif type = "short"
+                    PUT_SHORT (data_target, $(fieldname));
+.               elsif type = "long"
+                    PUT_LONG  (data_target, $(fieldname));
+.               elsif type = "longlong" | type = "timestamp"
+                    PUT_LLONG (data_target, $(fieldname));
+.               elsif type = "shortstr"
+                    PUT_SSTR  (data_target, $(fieldname));
+.               elsif type = "longstr"
+                    PUT_LSTR  (data_target, $(fieldname));
+.               elsif type = "table"
+                    PUT_TABLE (data_target, $(fieldname));
+.               endif
+.           endif
+.       endfor
+.       encode_bit_byte_if_any ()
+                    break;
+.   endfor
+            }
+            break;
+.endfor
+    }
+    bucket->cur_size = data_target - bucket->data;
+</method>
+
+<method name = "decode" return = "self">
+    <doc>
+    Decodes a $(basename)_method_t object from a memory bucket.
+    Allocates a new $\(selfname)_t structure and returns this. Returns
+    NULL if there was an error decoding the method object.
+    </doc>
+    <argument name = "bucket"   type = "ipr_bucket_t *">New bucket</argument>
+    <argument name = "strerror" type = "char *">Error text, if any</argument>
+    <declare name = "self" type = "$\(selftype) *">Method reference</declare>
+    <local>
+    byte
+        *data_source,                   //  Pointer into buffer data           
+        *data_limit;                    //  Limit of buffer data               
+    size_t
+        string_size;
+    byte
+        bit_string = 0;
+    </local>
+    //
+    //  Check that frame is correctly terminated before decoding it            
+    assert (bucket);
+    self = NULL;
+    data_source = bucket->data;
+    data_limit  = data_source + bucket->cur_size;
+
+    self = self_new ();
+    GET_SHORT (self->class_id,  data_source);
+    GET_SHORT (self->method_id, data_source);
+    switch (self->class_id) {
+.for class by index
+        case $(BASENAME)_$(CLASS.NAME):
+            switch (self->method_id) {
+.   for method
+                case $(BASENAME)_$(CLASS.NAME)_$(METHOD.NAME:c):
+                    self->name = "$(class.name).$(method.name:c)";
+                    self->sync = $(method.synchronous?? 'TRUE'? 'FALSE');
+.       bit_count = 0
+.       for field where !field.global
+.           fieldname = "self->payload.$(class.name)_$(method.name:c).$(name)"
+.           if type = "bit"
+.               if bit_count = 0
+                    GET_OCTET (bit_string, data_source);
+.               endif
+                    $(fieldname) = (bit_string >> $(bit_count)) & 1;
+.               bit_count += 1
+.               if bit_count = 8
+.                   bit_count = 0
+.               endif
+.           else
+.               bit_count = 0
+.               if type = "char"
+                    GET_CHAR  ($(fieldname), data_source);
+.               elsif type = "octet"
+                    GET_OCTET ($(fieldname), data_source);
+.               elsif type = "short"
+                    GET_SHORT ($(fieldname), data_source);
+.               elsif type = "long"
+                    GET_LONG  ($(fieldname), data_source);
+.               elsif type = "longlong" | type = "timestamp"
+                    GET_LLONG ($(fieldname), data_source);
+.               elsif type = "shortstr"
+                    GET_SSTR ($(fieldname), data_source);
+.               elsif type = "longstr" | type = "table"
+                    GET_LSTR ($(fieldname), data_source);
+.               endif
+.           endif
+.       endfor
+.       for field
+.           fieldname = "self->payload.$(class.name)_$(method.name:c).$(name)"
+.           for assert
+.#  Check notnull, length, regexp
+.               if check = "regexp"
+                    if (!ipr_regexp_match (s_regexp_$(class.name:c)_$(field.name:c), $(fieldname))) {
+                        strcpy (strerror, "$(class.name).$(method.name:c): $(name) field is invalid");
+                        goto exception;
+                    }
+.               elsif check = "length"
+                    if (strlen ($(fieldname)) > $(value)) {
+                        strcpy (strerror, "$(class.name).$(method.name:c): $(name) field exceeds >$(value) chars");
+                        goto exception;
+                    }
+.               elsif check = "notnull"
+.                   if metat = "integer"
+                    if ($(fieldname) == 0) {
+.                   elsif metat = "string"
+                    if (*$(fieldname) == 0) {
+.                   else
+                    if ($(fieldname) == NULL || $(fieldname)->cur_size == 0) {
+.                   endif
+                        strcpy (strerror, "$(class.name).$(method.name:c): $(name) field is empty");
+                        goto exception;
+                    }
+.               endif
+.           endfor
+.       endfor
+                    break;
+.   endfor
+            }
+            break;
+.endfor
+    }
+    goto finished;
+    underflow:
+        icl_shortstr_fmt (strerror, "malformed frame for '%s' method", self->name);
+    exception:
+        self_destroy (&self);
+        return (NULL);
+    finished:
+        //  Return via normal function exit
+</method>
+
+<method name = "dump" template = "function">
+    <doc>
+    Dumps contents of serialised method for tracing.
+    </doc>
+    <argument name = "log" type = "smt_log_t *">Log file, if any</argument>
+    <argument name = "prefix" type = "char *">Prefix for line</argument>
+    //
+    switch (self->class_id) {
+.for class by index
+        case $(BASENAME)_$(CLASS.NAME):
+            switch (self->method_id) {
+.   for method
+                case $(BASENAME)_$(CLASS.NAME)_$(METHOD.NAME:c):
+.       bit_count = 0
+.       format_string = ""
+.       for field where !field.global
+.           if type = "bit" | type = "octet" | type = "short"
+.               format_string += " $(name)=%d"
+.           elsif type = "char"
+.               format_string += " $(name)=%c"
+.           elsif type = "long"
+.               format_string += " $(name)=%u"
+.           elsif type = "longlong" | type = "timestamp"
+.               format_string += " $(name)=%lu"
+.           elsif type = "shortstr"
+.               format_string += " $(name)=\\\\\"%s\\\\\""
+.           elsif type = "longstr" | type = "table"
+.               format_string += " $(name)=%uB"
+.           endif
+.       endfor
+                    if (log) {
+                        smt_log_print (log, "%s$(class.name).$(method.name):"\\\\
+                            "$(format_string:)", prefix\
+.       for field where !field.global
+.           fieldname = "self->payload.$(class.name)_$(method.name:c).$(name)"
+,
+.           if type = "longstr" | type = "table"
+                            $(fieldname)?
+                                $(fieldname)->cur_size: 0\
+.           elsif type = "longlong" | type = "timestamp"
+                            (long) $(fieldname)\
+.           else
+                            $(fieldname)\
+.           endif
+.       endfor
+);
+                    }
+                    else {
+                        icl_console_print ("%s$(class.name).$(method.name):"\\\\
+                            "$(format_string:)", prefix\
+.       for field where !field.global
+.           fieldname = "self->payload.$(class.name)_$(method.name:c).$(name)"
+,
+.           if type = "longstr" | type = "table"
+                            $(fieldname)?
+                                $(fieldname)->cur_size: 0\
+.           elsif type = "longlong" | type = "timestamp"
+                            (long) $(fieldname)\
+.           else
+                            $(fieldname)\
+.           endif
+.       endfor
+);
+                    }
+                    break;
+.   endfor
+                default:
+                    if (log)
+                        smt_log_print (log, "E: illegal method (class=%d, method=%d)",
+                            self->class_id, self->method_id);
+                    else
+                        icl_console_print ("E: illegal method (class=%d, method=%d)",
+                            self->class_id, self->method_id);
+            }
+            break;
+.endfor
+        default:
+            if (log)
+                smt_log_print (log, "E: illegal class=%d", self->class_id);
+            else
+                icl_console_print ("E: illegal class=%d", self->class_id);
+    }
+</method>
+
+<method name = "execute" template = "function">
+    <doc>
+    Accepts a $(basename)_method_t object and executes the method.
+    Returns 0 if the method was executed successfully, non-zero if there
+    was an error - e.g. if the method is not allowed for this chassis.
+    </doc>
+    //
+.if chassis = "server"
+    <argument name = "connection" type = "$(basename)_connection_t *">
+    Current connection object, or null (if internal execution)
+    </argument>
+    <argument name = "channel" type = "$(basename)_channel_t *">
+    Current channel object, or null (if no channel opened)
+    </argument>
+.elsif chassis = "client"
+.   if defined (syncapi)
+    <argument name = "connection" type = "$(basename)_connection_t *">Current connection</argument>
+    <argument name = "session" type = "$(basename)_session_t *">Current session</argument>
+.   else
+    <argument name = "caller" type = "$(caller)_t *">Caller object</argument>
+    <argument name = "thread" type = "smt_thread_t *">Parent thread</argument>
+.   endif
+.endif
+.need_else = 0
+.for class by index
+.   for method where count (chassis, name = protocol.chassis)
+.       buffer = ""
+.       for class.action where name = method.name
+.           if defined (action.sameas)
+.               for protocol.class as fromclass where name = action.sameas
+.                   for action where name = method.name
+.                       buffer = output_action_data (buffer)
+.                   endfor
+.               endfor
+.           else
+.               buffer = output_action_data (buffer)
+.           endif
+.       endfor
+.       if chassis = "client" & defined (syncapi)
+.           target = (class.name = "connection")?? "connection"? "session"
+.           for field where !field.global
+.               if metat = "boolean" | metat = "integer"
+.                   buffer = buffer + "    $(target)->$(name) = method->$(name);\n"
+.               elsif metat = "string"
+.                   buffer = buffer + "    icl_shortstr_cpy ($(target)->$(name), method->$(name));\n"
+.               elsif metat = "longstring"
+.                   buffer = buffer + "    icl_longstr_destroy (&$(target)->$(name));\n"
+.                   buffer = buffer + "    $(target)->$(name) = icl_longstr_dup (method->$(name));\n"
+.               endif
+.           endfor
+.       endif
+.       for class.action where name = method.name
+.           if defined (action.sameas)
+.               for protocol.class as fromclass where name = action.sameas
+.                   for action where name = method.name
+.                       buffer = output_action_code (buffer)
+.                   endfor
+.               endfor
+.           else
+.               buffer = output_action_code (buffer)
+.           endif
+.       endfor
+.       if buffer <> ""
+.           #  Can't declare and initialize these at the same time,
+.           #  since they're not always used
+.           need_method = 0
+.           need_content = 0
+.           if need_else
+    else
+.           endif
+    if (self->class_id  == $(BASENAME)_$(CLASS.NAME)
+    &&  self->method_id == $(BASENAME)_$(CLASS.NAME)_$(METHOD.NAME:c)) {
+.           if count (class.action, name = method.name) \
+            | (chassis = "client" & defined (syncapi) \
+            & count (field, !field.global))
+.               need_method = 1
+        $(selfname)_t
+            *method;
+.           endif
+.           if method.content
+.               need_content = 1
+        $(protocol.name)_content_$(class.name)_t
+            *content;
+.           endif
+.           if need_method
+        method = &self->payload.$(class.name)_$(method.name:c);
+.           endif
+.           if need_content
+        content = ($(protocol.name)_content_$(class.name)_t *) self->content;
+.           endif
+.       #  Output code
+        {
+        $(buffer:)
+        }
+    }
+.           need_else = 1
+.       endif
+.   endfor
+.endfor
+</method>
+
+<method name = "selftest" />
+
+</class>
+.close

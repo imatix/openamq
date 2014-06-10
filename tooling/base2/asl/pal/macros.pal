@@ -1,0 +1,28 @@
+<?xml?>
+<pal script = "demo_pal_gen">
+    This script demonstrates how to define and use macros.
+    <macro name = "queue new">
+        <exchange_declare exchange = "stdqueue" type = "fanout" />
+        <queue_declare queue = "$queue-name" />
+        <queue_bind queue = "$queue-name" exchange = "stdqueue" />
+    </macro>
+    <macro name = "send message">
+        <basic_content size = "$size" message_id = "id-0001" />
+        <basic_publish exchange = "stdqueue" routing_key = "$queue-name" />
+    </macro>
+    <session>
+        <set name = "queue-name" value = "myqueue" />
+        <invoke macro = "queue new" />
+        <invoke macro = "send message">
+            <set name = "size" value = "64000" />
+        </invoke>
+        <basic_get queue = "myqueue" />
+        <basic_arrived>
+            <echo>Message '$message_id' came back to us</echo>
+        </basic_arrived>
+        <empty>
+            <echo>Message did not come back, this is bad!</echo>
+        </empty>
+    </session>
+</pal>
+

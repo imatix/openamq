@@ -1,0 +1,452 @@
+Portals
+
+++ Todo
+
+Destroying portals does not work properly.  When the caller does unbind, the portal is left with a dangling link.  The following code does work:
+
+[[code]]
+ipr_looseref_destroy (&store->client_looseref);
+xump_store_destroy (&store);
+[[/code]]
+
+But the unbind method does an unlink, not a destroy.
+
+++ Summary
+
+This whitepaper documents portals, which are bi-directional interfaces between a pair of objects.
+
+A portal is a bi-directional interface object that joins two objects called a "client" and a "server".  The portal takes care of the relationship between the two objects and provides virtualised methods in both directions so that the client can send requests and the server can send responses, in a fully asynchronous manner.
+
+Portals have these features:
+
+* Portals are used to create plug-in architectures where the set of server classes is not known in advance to the application.
+* A portal connects a client object to a single server object or class (in the case of class factories).
+* A portal can work with either sync or async classes for client and/or server.
+* A portal is always owned by a single client object but can be used by other client objects.
+* A portal can have properties, methods, and constructor arguments like a normal object.
+* A portal can import classes, which are then accessible to the client and server classes.
+* Portals manage N-to-N relationships between objects automatically.
+* Portals are efficient, adding only two C function calls to method invocations.
+* Portals can be 'class factories' that allow applications to virtualise the server objects together with portals to access them, for plugin architectures.
+
+++ Why Invent Portals?
+
+Most of the most complex issues we face in large applications are related to either connecting sets of objects in useful ways, especially with one or more levels of virtualisation, or in ensuring that the references between connected objects can be dropped in safe ways.  Both of these issues are the causes of pain:
+
+# We invent ad-hoc virtualisation layers, each adding to the complexity of the resulting code.
+# We invent ad-hoc shutdown frameworks, which need delicate hand-coding to avoid the two rocks of (a) accessing a destroyed object by mistake or (b) ommitting a destroy call, so objects 'leak'.
+
+Note that iCL has good mechanisms for detecting such issues but no tools to help us write the code more easily.
+
+Portals are thus a generic solution that solve the virtualisation and the reference-management issues in a high-level manner and cheaply in terms of performance.
+
+++ Implementation
+
+* Servers, clients, and portals are all implemented as iCL classes.
+* The client and server can either be synchronous iCL classes, or async classes built using iCL/SMT.  The sync/asynch architecture is part of the portal specification.
+* A portal implements a set of request methods (from the client to the server) and reponse methods (from the server back to the client).
+* Requests and responses are void functions if the recipient (server or client respectively) are async, otherwise they have an integer return value called 'rc'.
+* Each portal is specified as a class with meta-data that defines the request and response method formats.
+* The client and server each inherit glue for the portal, called the front end and back-end respectively.  A single client or server can use multiple portal classes and portal objects.
+* The client opens a new portal as follows: it asks the server to create a portal, and then it invokes the portal _bind() method to complete the handshake.
+* Client or server can send methods to the bound portal, which are received in method handlers at the receiving end.
+* Client or server can close the portal by invoking the portal _unbnd() method.
+* Portals are also automatically destroyed when their owning client is destroyed.
+
+++ Easy Steps for Using a Portal
+
+* Define your portal, as an iCL class. Use ipr_demo_portal.icl as a starting point, it looks like this:
+
+[[code]]
+<?xml?>
+<class
+    name    = "ipr_demo_portal"
+    comment = "This is a demo portal"
+    script  = "icl_gen"
+    >
+
+<inherit class = "ipr_portal">
+    <!-- Generate a sync-to-sync portal -->
+    <option name = "front_end" value = "sync" />
+    <option name = "back_end" value = "sync" />
+</inherit>
+
+<import class = "ipr_bucket" />
+
+<context>
+    icl_shortstr_t
+        name;
+</context>
+
+<method name = "new">
+    <argument name = "name" type = "char *" />
+    icl_shortstr_cpy (self->name, name);
+</method>
+
+<data>
+    <!-- Requests from client to server object -->
+    <request name = "hello" />
+    <request name = "print">
+        <field name = "string" type = "char *" />
+        <possess>
+        string = icl_mem_strdup (string);
+        </possess>
+        <release>
+        icl_mem_free (string);
+        </release>
+    </request>
+
+    <!-- Responses from server to client object -->
+    <response name = "print">
+        <field name = "string" type = "char *" />
+        <possess>
+        string = icl_mem_strdup (string);
+        </possess>
+        <release>
+        icl_mem_free (string);
+        </release>
+    </response>
+    <response name = "mogrify">
+        <field name = "string" type = "char *" />
+        <field name = "bucket" type = "ipr_bucket_t *" />
+        <field name = "option" type = "Bool" />
+        <possess>
+        string = icl_mem_strdup (string);
+        bucket = ipr_bucket_link (bucket);
+        </possess>
+        <release>
+        icl_mem_free (string);
+        ipr_bucket_unlink (&bucket);
+        </release>
+    </response>
+</data>
+</class>
+[[code]]
+
+* In your client and server classes, inherit from the front-end and back-end portal classes respectively: see ipr_demo_portal_client and ipr_demo_portal_server for examples.
+* In your client and server classes, define methods that correspond to the portal requests (in the server) and responses (in the client) and add your own code.
+* Use the portal as follows (replace 'ipr_demo_portal' with the name of your portal):
+
+[[code]]
+//  Create the client object
+client = ipr_demo_portal_client_new ();
+//  Ask server to create new portal instance
+portal = ipr_demo_portal_server__ipr_demo_portal_new (server);
+//  Open portal from client side
+ipr_demo_portal_client__ipr_demo_portal_bind (client, portal);
+//  Send portal requests
+ipr_demo_portal_request_print (portal, "test step 1");
+//  Drop reference to portal
+ipr_demo_portal_unlink (&portal);
+//  Destroy the client and portal
+ipr_demo_portal_client_destroy (&client);
+[[/code]]
+
+++ The Portal API
+
+Portal methods in the server class (where 'myportal' and 'myserver' are the full names of these classes):
+
+* portal = myserver_myportal_new (server, arguments) - creates a new portal and if the server argument is null, also creates an implicit server object. The arguments are passed to the portal constructor.
+* factory = myserver_myportal_factory (arguments) - creates a portal factory.  The arguments are passed to the portal constructor, since portal factories have the same properties as portals.
+
+Portal class methods:
+
+* portal = myportal_factory (factory, arguments) - asks the factory to create a new portal.
+
+Portal methods in the client class:
+
+* myclient_myportal_bind (client, portal) - binds portal to client so that it can be used.
+
+++ Explicit Server Construction
+
+The most obvious and pedantic way to construct a portal and a server is to:
+
+# Explicitly construct the server object
+# Construct a portal to talk to the server
+
+Here is an example of this 'explicit server construction' approach:
+
+[[code]]
+ipr_demo_portal_client_t
+    *client;
+ipr_demo_portal_server_t
+    *server;
+ipr_demo_portal_t
+    *portal;
+//
+//  Create the client and server
+client = ipr_demo_portal_client_new ();
+server = ipr_demo_portal_server_new ();
+//
+//  Create portal to server and bind to client
+portal = ipr_demo_portal_server__ipr_demo_portal_new (server, "data");
+ipr_demo_portal_client__ipr_demo_portal_bind (client, portal);
+//
+//  Use the portal, which causes methods to be sent to the server
+ipr_demo_portal_request_print (portal, "This is a string to print");
+//
+//  Drop reference to portal
+ipr_demo_portal_unlink (&portal);
+//
+//  Destroy client and server objects
+ipr_demo_portal_server_destroy (&server);
+ipr_demo_portal_client_destroy (&client);
+[[/code]]
+
+We can in fact destroy the portal, server, and client objects in any order, which is important in an asynchronous application where these destructions may happen in different places.
+
+++ Implicit Server Construction
+
+In most cases we don't need to access the server object directly, only via the portal.  In such cases we can simplify the above example using "implicit server construction".  This means we ask the portal to create a server object for us, rather than doing it ourselves.  We pass a NULL rather than a server object reference to the portal constructor.  This code shows implicit server construction:
+
+[[code]]
+ipr_demo_portal_client_t
+    *client;
+ipr_demo_portal_t
+    *portal;
+//
+//  Create the client
+client = ipr_demo_portal_client_new ();
+//
+//  Create portal and server and bind to client
+portal = ipr_demo_portal_server__ipr_demo_portal_new (NULL, "data");
+ipr_demo_portal_client__ipr_demo_portal_bind (client, portal);
+//
+//  Use the portal, which causes methods to be sent to the server
+ipr_demo_portal_request_print (portal, "This is a string to print");
+//
+//  Drop reference to portal
+ipr_demo_portal_unlink (&portal);
+//
+//  Destroy client object
+ipr_demo_portal_client_destroy (&client);
+[[/code]]
+
+++ Managing a single portal
+
+When we manage a single portal in a client, it's simplest to store the portal reference as a property of the client object.  Here is how we do that.  First we add a portal property to the client context (still using ipr_demo_portal as the example):
+
+[[code]]
+<context>
+    ipr_demo_portal_t
+        *portal;                        //  Client's portal
+</context>
+[[/code]]
+
+This is initialized to NULL in a new client.  Next, we open the portal in the client's constructor (and here we also use implicit server construction):
+
+[[code]]
+<method name = "new">
+    self->portal = ipr_demo_portal_server__ipr_demo_portal_new (NULL, "D");
+    assert (self->portal);
+    ipr_demo_portal_client__ipr_demo_portal_bind (self, self->portal);
+    ...
+</method>
+[[/code]]
+
+Finally, we drop our reference to the portal in the client's destructor.  Note that this does not actually destroy the portal, that happens automatically when the client is destroyed:
+
+[[code]]
+<method name = "destroy">
+    ipr_demo_portal_unlink (&self->portal);
+</method>
+[[/code]]
+
+++ Managing multiple portals
+
+When we manage multiple portals in a client, it's not practical to hold these as individual client properties.  The portal system automatically holds an ipr_looseref_list of portals per client, and we can use this as a way of looking up portals.  To do this we must use unique identifiers when we create portals.  Remember that portals can have arbitrary context and take arbitrary arguments at construction.
+
+For example, ipr_demo_portal has a "name" property.  Here is an example of creating several portals, and then using the client's portal list to find one of them, to send a method to:
+
+[[code]]
+ipr_demo_portal_client_t
+    *client;
+ipr_demo_portal_t
+    *portal;
+ipr_looseref_t
+    *looseref;                      //  Portal reference
+//
+//  Create the client
+client = ipr_demo_portal_client_new ();
+//
+//  Create several portals with implicit servers
+portal = ipr_demo_portal_server__ipr_demo_portal_new (NULL, "one");
+ipr_demo_portal_client__ipr_demo_portal_bind (client, portal);
+ipr_demo_portal_unlink (&portal);
+
+portal = ipr_demo_portal_server__ipr_demo_portal_new (NULL, "two");
+ipr_demo_portal_client__ipr_demo_portal_bind (client, portal);
+ipr_demo_portal_unlink (&portal);
+
+portal = ipr_demo_portal_server__ipr_demo_portal_new (NULL, "three");
+ipr_demo_portal_client__ipr_demo_portal_bind (client, portal);
+ipr_demo_portal_unlink (&portal);
+
+//  Now look for a specific portal and use it
+looseref = ipr_looseref_list_first (self->ipr_demo_portal_list);
+while (looseref) {
+    portal = (ipr_demo_portal_t *) (looseref->object);
+    if (streq (portal->name, "two")) {
+        ipr_demo_portal_request_print (portal, "This is a string to print");
+        break;                  //  Have a match
+    }
+    looseref = ipr_looseref_list_next (&looseref);
+}
+//  Destroy client object
+ipr_demo_portal_client_destroy (&client);
+[[/code]]
+
+The above technique is more useful when we manage different types of server objects as a set of portals, and gives us a nice virtualisation model.  In that case the application still needs to know the classes of server object being created, which is problematic when we want the application to be fully ignorant (at least, after initialisation) of the different server classes it might use.  We solve that using portal factories.
+
+++ Portal Factories
+
+Portal factories let us virtualise the construction of new portals and servers. This solves problems where we create servers from a range of classes, but we do not want to hard-code the possible classes into the application.
+
+Portal factories work with implicit server objects.  That is, a factory will create, on demand, a new portal and implicit server, and return the portal.
+
+The typical application scenario is that we create a set of factories at startup, where each factory abstracts portal+server construction for one class.  We then allow the application to lookup the factories through some index (a name, for example) and call the factory to create a new portal and implicit server.
+
+This removes all server class-specific code from the application after the point of creation of the factories.  We usually create the factories in some customisable layer which is then the only code that we must modify in order to add or remove portal server classes.
+
+Here is an example of using a factory:
+
+[[code]]
+ipr_demo_portal_t
+    *factory,
+    *portal;
+//
+//  Use a factory to create a new server portal
+client = ipr_demo_portal_client_new ();
+//  First, create a factory
+factory = ipr_demo_portal_server__ipr_demo_portal_factory ("type-name");
+ipr_demo_portal_client__ipr_demo_portal_bind (self, factory);
+//  Next, invoke the factory method to get a new server and portal
+portal = ipr_demo_portal_factory (factory, "item-name");
+ipr_demo_portal_client__ipr_demo_portal_bind (self, portal);
+//  Use the server portal
+ipr_demo_portal_request_print (portal, "this is a string");
+//  Drop references to portals
+ipr_demo_portal_unlink (&portal);
+ipr_demo_portal_unlink (&factory);
+//  Destroy front-end
+ipr_demo_portal_client_destroy (&client);
+[[/code]]
+
+Factory portals are held on a separate list, as shown by this code:
+
+[[code]]
+ipr_looseref_t
+    *looseref;                      //  Portal reference
+ipr_demo_portal_t
+    *factory,
+    *portal;
+
+looseref = ipr_looseref_list_first (self->ipr_demo_portal_factory_list);
+while (looseref) {
+    factory = (ipr_demo_portal_t *) (looseref->object);
+    if (streq (factory->name, "my-type")) {
+        portal = ipr_demo_portal_factory (factory, "item-name");
+        break;                  //  Have a match
+    }
+    looseref = ipr_looseref_list_next (&looseref);
+}
+[[/code]]
+
+++ Server Constructor
+
+The server constructor takes NO arguments.  If you want to provide initial values to a server, send it a portal method after you create it.  This limitation makes it possible to have portal factories.
+
+++ Tips
+
+* You can use many portals in a client or server, each portal defines a bidirectional set of request and response methods.
+* If you use the same method name in two portals, you cannot use those two portals at the same time.
+* To send a method back on the same portal, use the 'portal' variable which is instantiated in each request and response method handler.
+* The server or client object is always available in a request or response method handler using the 'self' variable.
+* If either the client or server is an async objects, you must define an option in the portal class accordingly:
+
+[[code]]
+<inherit class = "ipr_portal">
+    <option name = "front_end" value = "async" />
+    <option name = "back_end" value = "async" />
+</inherit>
+[[/code]]
+
+++ Method templates
+
+Some portals become repetitive, with large method definitions, especially if the back end is an asynchronous object which needs possess/release scaffolding (this is required when sending methods to asynch SMT objects).  The portal system lets you define templates that can cut down the work needed to write a portal.  Here is an example:
+
+[[code]]
+<request name = "http method" abstract = "1">
+    <field name = "caller" type = "smt_thread_t *" />
+    <field name = "request" type = "http_request_t *" />
+    <field name = "response" type = "http_response_t *" />
+    <possess>
+    smt_thread_link (caller);
+    http_request_link (request);
+    http_response_link (response);
+    </possess>
+    <release>
+    smt_thread_unlink (&caller);
+    http_request_unlink (&request);
+    http_response_unlink (&response);
+    </release>
+</request>
+<request name = "get"    template = "http method" />
+<request name = "head"   template = "http method" />
+<request name = "post"   template = "http method" />
+<request name = "put"    template = "http method" />
+<request name = "delete" template = "http method" />
+<request name = "move"   template = "http method" />
+<request name = "copy"   template = "http method" />
+[[/code]]
+
+In the template method, use 'abstract = "1"' to ensure no code is generated from the template method.  In those methods that need to be based on the template, specify the template name.  All contents of the template - fields, possess and release definitions, are copied to the request or response method, //after// any other entities that you may already have defined in the method.
+
+++ Method return codes
+
+Request and (less usefully) reponse methods return an integer value, where zero means "no errors" and non-zero means an error occurred.  The semantics of non-zero return codes are up to the application.  Note that both synchronous and asynchronous methods return a value.
+
+In a method, the return code is called 'rc'.
+
+Note that async methods consist of two parts:
+
+[[code]]
+//  this is the synchronous part
+rc = -1;                    //  Signal an error to the caller
+<action>
+//  this is the asynchronous part
+rc = -1;                    //  This won't compile, rc is not defined
+</action>
+[[/code]]
+
+Only the synchronous part can modify the return code.  It is valid to define a portal that has an asynchronous class as back-end, but works like a synchronous class, setting 'rc' to indicate success or failure immediately, rather than via a portal response.
+
+However, you must never access or modify the context of an async object in its synchronous methods; the context is not locked and synchronous method code runs in the thread of the caller, while async method code runs in its own thread.
+
+++ Reserved methods
+
+These names cannot be used for portal methods since they are already used by internal functionality:
+
+* init
+* term
+* initialise
+* terminate
+* new
+
+++ Files
+
+In base2/ipr:
+
+* ipr_portal.icl - portal base class.
+* ipr_portal.gsl - portal code generator main.
+* ipr_portal_sync.gsl - portal code generator for sync glue.
+* ipr_demo_portal.icl - demo portal.
+* ipr_demo_portal_client.icl - demo portal client.
+* ipr_demo_portal_server.icl - demo portal server.
+
+In base2/smt:
+
+* ipr_portal_async.gsl - portal code generator for async glue.
+* smt_demo_portal.icl - demo portal.
+* smt_demo_portal_client.icl - demo portal client.
+* smt_demo_portal_server.icl - demo portal server.

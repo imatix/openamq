@@ -1,0 +1,187 @@
+Using command-line options
+==========================
+
+You can set these options from the command-line; they affect only
+the specific instance of the running server:
+
+    --port 7654                    Server port for client connections
+    --monitor 1                    Monitor interval, seconds
+    --max_memory_mb value          Maximum allowed memory, MBytes
+    --record_stats 0               Record performance statistics
+    --packio 1                     Pack network data before writing
+    --heartbeat 2                  Heartbeat from client to server, seconds
+    --read_timeout 30              Timeout on network reads, seconds
+    --write_timeout 30             Timeout on network writes, seconds
+    --tcp_nodelay 1                TCP/IP NDELAY option
+    --tcp_rcvbuf value             TCP/IP receive buffer, in bytes
+    --tcp_sndbuf value             TCP/IP send buffer, in bytes
+    --frame_max 32768              Maximum size of AMQP content frames
+    --log_path logs                Active log file directory
+    --keep_logs 1                  Keep log files
+    --archive_path archive         Archive log file directory
+    --archive_cmd value            Archive command
+    --alert_log alert.log          Alert log file name
+    --daily_log daily.log          Daily log file name
+    --debug_log debug.log          Debug log file name
+    --trace 0                      Protocol trace level
+
+Creating a configuration file
+=============================
+
+You can also set the above options in an XML text file, to affect
+all future instances of the running server. To create a new XML
+configuration file, copy the following block to an editor session,
+and then:
+
+ 1. Delete all options you want to leave as default.
+ 2. Delete this comment and update your name and the date.
+ 3. Save file as new example.cfg or merge with existing copy.
+ 4. Restart the server.
+
+    <?xml version="1.0"?>
+    <!--
+        Revised: yyyy/mm/dd by yourname
+     -->
+    
+    <config>
+        <server
+            port = "7654"
+        />
+        <resources
+            monitor = "1"
+            max_memory_mb = "value"
+            record_stats = "0"
+        />
+        <tuning
+            packio = "1"
+            heartbeat = "2"
+            read_timeout = "30"
+            write_timeout = "30"
+            tcp_nodelay = "1"
+            tcp_rcvbuf = "value"
+            tcp_sndbuf = "value"
+            frame_max = "32768"
+        />
+        <logging
+            log_path = "logs"
+            keep_logs = "1"
+            archive_path = "archive"
+            archive_cmd = "value"
+            alert_log = "alert.log"
+            daily_log = "daily.log"
+            debug_log = "debug.log"
+            trace = "0"
+        />
+    </config>
+
+Setting server options
+===========================
+
+port = "7654":
+    Specifies the port on which the server should open its connections.
+    Default value is 7654.                                             
+
+Setting resources options
+===========================
+
+monitor = "1":
+    Specifies the interval in seconds at which the server will report its
+    message rates. If zero, no monitoring is shown. The recommended value
+    is 1, if monitoring is desired. Default value is 1.                  
+max_memory_mb = "value":
+    Specifies the maximum memory allowed for the server, in MB. When the 
+    server reaches this limit, it will attempt to free resources and     
+    refuse new connections until memory has been made available. If zero,
+    no limit is used. Default value is not defined.                      
+record_stats = "0":
+    Specifies whether or not the server records performance statistics in 
+    a format suitable for importing into a spreadsheet. If set, the server
+    creates a file called 'amq_server_stats_(portnumber).del' which       
+    contains performance statistics in a comma-delimited format. For this 
+    setting to take effect, the monitor option must also be set. Default  
+    value is 0. This option can be changed at runtime.                    
+
+Setting tuning options
+===========================
+
+packio = "1":
+    If set, data is packed into larger buffers before writing. This can   
+    improve performance significantly on some systems, especially Windows 
+    and Linux with 2.4 kernels. If you disable this setting, you should   
+    test the performance using a bulk message transfer test. Default value
+    is 1.                                                                 
+heartbeat = "2":
+    Defines the timeout for connection heartbeating. Default value is 2.
+read_timeout = "30":
+    Defines the timeout for network reads. If a peer does not respond     
+    within this time, it is considered dead. If you get unexpected timeout
+    errors in the logs, you may want to increase this value. Default value
+    is 30.                                                                
+write_timeout = "30":
+    Defines the timeout for network writes. If a peer does not accept data
+    within this time, it is considered dead. If you get unexpected timeout
+    errors in the logs, you may want to increase this value. Default value
+    is 30.                                                                
+tcp_nodelay = "1":
+    If this value is 1, socket data is written immediately, which is     
+    usually good for latency. If this value is 0, data is buffered until 
+    there is a full packet, which is usually good for throughput. Default
+    value is 1.                                                          
+tcp_rcvbuf = "value":
+    If this value is greater than zero, all client connections will use  
+    the specified value. Note: setting this value is delicate, do not use
+    this option unless you know what you are doing. Default value is not 
+    defined.                                                             
+tcp_sndbuf = "value":
+    If this value is greater than zero, all client connections will use  
+    the specified value. Note: setting this value is delicate, do not use
+    this option unless you know what you are doing. Default value is not 
+    defined.                                                             
+frame_max = "32768":
+    Defines the maximum frame size the server will accept. Larger frame
+    sizes are useful for applications that create very large message   
+    headers but will cause congestion on multi-channel connections.    
+    Default value is 32768. Minimum value is 2048. Maximum value is    
+    4194304.                                                           
+
+Setting logging options
+===========================
+
+log_path = "logs":
+    Specifies the directory path into which active log files are placed.
+    Default value is logs.                                              
+keep_logs = "1":
+    Specifies whether or not the server should keep logs. If zero, the 
+    server will not keep logs. If 1, it will keep an alert log, a daily
+    log, and a debug log as specified. Default value is 1.             
+archive_path = "archive":
+    Specifies the directory path into which archived log files are placed.
+    This can be the same as the active path; archived log files are       
+    renamed to avoid conflict with active log files. Default value is     
+    archive.                                                              
+archive_cmd = "value":
+    If specified, this command is run on all archived log files. You can 
+    use this option to compress archived log files, or clean up old and  
+    unwanted files. When the command is run, the name of the archived log
+    file is provided as an argument to it. Default value is not defined. 
+alert_log = "alert.log":
+    The name of the alert log file, which records all alerts issued by the
+    server. Note that the server port number is always added to the name  
+    of the log file. Default value is alert.log.                          
+daily_log = "daily.log":
+    The name of the daily log file, which records all normal activity as
+    well as errors. Note that the server port number is always added to 
+    the name of the log file. Default value is daily.log.               
+debug_log = "debug.log":
+    The name of the debug log file, which records all normal activity,   
+    errors, and debug trace information. Note that the server port number
+    is always added to the name of the log file. Default value is        
+    debug.log.                                                           
+trace = "0":
+    Specifies the protocol debug level, which can be 0 (no tracing), 1    
+    (show information and protocol methods), 2 (show protocol animation), 
+    3 (show wire-level data). You should not use any tracing on production
+    servers except in low-volume scenarios. Default value is 0. This      
+    option can be changed at runtime.                                     
+
+

@@ -1,0 +1,248 @@
+#
+#   wikidot.gsl - Template GDL module for Wikidot output
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+##########################   GENERATE_GDL_BEFORE   ##########################
+
+function generate_gdl_before
+    body = "$(title:)\n\n"
+    g_header_level = 0
+    g_have_summary = 0
+endfunction
+
+
+##########################   GENERATE_GDL_AFTER   ###########################
+
+function generate_gdl_after
+    body += "====\n"
+    body += "$(author:)\n"
+    output base + ".wik"
+    >$(body:)
+    close
+endfunction
+
+
+########################   GENERATE_HEADER_BEFORE   #########################
+
+function generate_header_before
+    g_header_level += 1
+    if defined (.)
+        header_name = string.trim (.)
+        if g_have_summary
+            body += string.substr ("+++++",,,g_header_level) + "+ $(header_name:)\n\n"
+        endif
+    endif
+endfunction
+
+
+#########################   GENERATE_HEADER_AFTER   #########################
+
+function generate_header_after
+    g_header_level -= 1
+    if g_have_summary = 0
+        #   First header acts page title
+        body += "====\n\n"
+        body += "+ $(header_name:)\n\n"
+        g_have_summary = 1
+    endif
+endfunction
+
+
+#######################   GENERATE_PARAGRAPH_BEFORE   #######################
+
+function generate_paragraph_before
+    body += "$(string.justify (.,0,""))\n\n"
+endfunction
+
+
+#######################   GENERATE_PARAGRAPH_AFTER   ########################
+
+function generate_paragraph_after
+endfunction
+
+
+####################   FUNCTION GENERATE_QUOTE_BEFORE   #####################
+
+function generate_quote_before
+    body += "[[quote]]\n$(.)\n"
+endfunction
+
+
+#####################   FUNCTION GENERATE_QUOTE_AFTER   #####################
+
+function generate_quote_after
+    body += "[[/quote]]\n"
+endfunction
+
+
+########################   GENERATE_EXAMPLE_BEFORE   ########################
+
+function generate_example_before
+    body += "[[code]]\n"
+endfunction
+
+
+########################   GENERATE_EXAMPLE_AFTER   #########################
+
+function generate_example_after
+    body += "[[/code]]\n\n"
+endfunction
+
+
+#########################   GENERATE_LINE_BEFORE   ##########################
+
+function generate_line_before
+    body += "$(.?'')\n"
+endfunction
+
+
+#########################   GENERATE_RULER_BEFORE   #########################
+
+function generate_ruler_before
+    body += "----\n"
+endfunction
+
+
+#########################   GENERATE_ITEM_BEFORE   ##########################
+
+function generate_item_before
+    body += "$(bullet) $(.)\n"
+endfunction
+
+
+########################   GENERATE_ITEMIZE_BEFORE   ########################
+
+function generate_itemize_before
+    bullet = "*"
+endfunction
+
+
+#######################   GENERATE_ENUMERATE_BEFORE   #######################
+
+function generate_enumerate_before
+    bullet = "#"
+endfunction
+
+
+#######################   GENERATE_ENUMERATE_AFTER   ########################
+
+function generate_enumerate_after
+    body += "\n"
+endfunction
+
+
+########################   GENERATE_ITEMIZE_AFTER   #########################
+
+function generate_itemize_after
+    body += "\n"
+endfunction
+
+
+######################   GENERATE_DEFINITION_BEFORE   #######################
+
+function generate_definition_before
+endfunction
+
+
+#######################   GENERATE_DEFINITION_AFTER   #######################
+
+function generate_definition_after
+    body += "\n"
+endfunction
+
+
+#######################   GENERATE_DEF_TERM_BEFORE   ########################
+
+function generate_def_term_before
+    body += ": **$(.)** : "
+endfunction
+
+
+#######################   GENERATE_DEF_VALUE_BEFORE   #######################
+
+function generate_def_value_before
+    body += "$(string.justify (.,0,""))\n"
+endfunction
+
+
+#########################   GENERATE_TABLE_BEFORE   #########################
+
+function generate_table_before
+    body += "[[=]]\n"
+    first_row = 1
+endfunction
+
+
+#########################   GENERATE_TABLE_AFTER   ##########################
+
+function generate_table_after
+    body += "[[/=]]\n"
+endfunction
+
+
+#######################   GENERATE_TABLE_ROW_BEFORE   #######################
+
+function generate_table_row_before
+endfunction
+
+
+#######################   GENERATE_TABLE_ROW_AFTER   ########################
+
+function generate_table_row_after
+    body += " ||\n"
+    first_row = 0
+endfunction
+
+######################   GENERATE_TABLE_DATA_BEFORE   #######################
+
+function generate_table_data_before
+    if first_row
+        body += "||~ $(.)"
+    else
+        body += "|| $(.)"
+    endif
+endfunction
+
+
+#########################   GENERATE_IMAGE_BEFORE   #########################
+
+function generate_image_before
+    body += "[[image $(filename)"
+    if defined (height)
+        body += " height=\"$(height)\""
+    endif
+    if defined (width)
+        body += " width=\"$(width)\""
+    endif
+    body += "]]\n"
+endfunction
+
+
+########################   GENERATE_FIGURE_BEFORE   #########################
+
+function generate_figure_before
+    body += "[[image $(filename)"
+    if defined (height)
+        body += " height=\"$(height)\""
+    endif
+    if defined (width)
+        body += " width=\"$(width)\""
+    endif
+    body += "]]\n"
+endfunction
+

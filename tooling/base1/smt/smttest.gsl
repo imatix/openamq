@@ -1,0 +1,598 @@
+.----------------------------------------------------------------------------!
+.-                                                                           !
+.-  smttest.gsl - SMT agent testing platform                                 !
+.-                                                                           !
+.-  Copyright (c) 1991-2009 iMatix Corporation                               !
+.-                                                                           !
+.-  ------------------ GPL Licensed Source Code ------------------           !
+.-  iMatix makes this software available under the GNU General               !
+.-  Public License (GPL) license for open source projects.  For              !
+.-  details of the GPL license please see www.gnu.org or read the            !
+.-  file license.gpl provided in this package.                               !
+.-                                                                           !
+.-  This program is free software; you can redistribute it and/or            !
+.-  modify it under the terms of the GNU General Public License as           !
+.-  published by the Free Software Foundation; either version 2 of           !
+.-  the License, or (at your option) any later version.                      !
+.-                                                                           !
+.-  This program is distributed in the hope that it will be useful,          !
+.-  but WITHOUT ANY WARRANTY; without even the implied warranty of           !
+.-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            !
+.-  GNU General Public License for more details.                             !
+.-                                                                           !
+.-  You should have received a copy of the GNU General Public                !
+.-  License along with this program in the file 'license.gpl'; if            !
+.-  not, write to the Free Software Foundation, Inc., 59 Temple              !
+.-  Place - Suite 330, Boston, MA 02111-1307, USA.                           !
+.-                                                                           !
+.-  You can also license this software under iMatix's General Terms          !
+.-  of Business (GTB) for commercial projects.  If you have not              !
+.-  explicitly licensed this software under the iMatix GTB you may           !
+.-  only use it under the terms of the GNU General Public License.           !
+.-                                                                           !
+.-  For more information, send an email to info@imatix.com.                  !
+.-  --------------------------------------------------------------           !
+.----------------------------------------------------------------------------!
+.-
+.- Preliminaries --------------------------------------------------------------
+.-
+.template 0
+xml to root from tester.message_file    # Load the message description file
+for root.application                    # Open top-level item from it
+    for tester.testagent
+
+        body_dump = 0
+
+        # Copy methods inside messages as children of the agent
+        method_count = 0
+        for application.service where name = testagent.service
+            for message
+                for method
+                    method.message = message.name
+                    copy method to service
+                endfor
+                if ! body_dump
+                    for field where type = "body" | type = "hbody"
+                        body_dump = 1
+                        last
+                    endfor
+                endif
+                message.service = service.name
+                copy message to application
+            endfor
+            for method
+                method_count += 1
+                method.service = service.name
+                copy method to application
+            endfor
+        endfor
+    endfor
+
+.-
+.- Create the program ---------------------------------------------------------
+.-
+.output "$(tester.name).c"
+.template
+/*---------------------------------------------------------------------------
+ *  Name:       $(tester.name).c
+ *  Title:      SMT testing agent
+ *  Package:    Libero SMT 2.x
+ *
+ *  Generated:  $(date) $(time) by $(me) from $(filename)
+ *-------------------------------------------------------------------------- */
+
+#include "sfl.h"                        /*  SFL library header file          */
+#include "smtlib.h"                     /*  SMT kernel functions             */
+#include "$(application.module:c).h"    /*  $(application.title?:)           */
+
+
+/*- Definitions -------------------------------------------------------------*/
+
+#define METHOD_COUNT $(method_count)
+
+.for tester.testagent
+    $(testagent->definition?)
+.endfor
+
+
+typedef void (DISPLAY_FN) (EVENT *event);
+typedef void (PROCESS_FN) (byte **data, size_t *size);
+
+
+/*- Function prototypes -----------------------------------------------------*/
+
+
+static int smttest (void);
+HOOK dummy_hook;
+static void display_event (EVENT *event);
+static int  intelligent_pattern_match (char *prompt, char *match_item []);
+
+.for application.message
+static DISPLAY_FN display_$(message.service:c)_$(message.name:c);
+.endfor
+
+.if body_dump
+static void body_dump                   (qbyte size, byte *data);
+
+.endif
+.for application.message
+static PROCESS_FN process_$(message.service:c)_$(message.name:c);
+.endfor
+
+
+/*- Global variables used in this source file only --------------------------*/
+
+FILE
+    *infile;
+
+static char
+   *method_name [] = {
+.for application.method by "$(method.service) $(method.name)"
+        "$(method.SERVICE) $(method.NAME)",
+.endfor
+        "" };
+
+static DISPLAY_FN
+    *display_fn [] = {
+.for application.method by "$(method.service:c) $(method.name:c)"
+        display_$(method.service:c)_$(method.message:c)\
+.    if index () < total ()
+,
+.    endif
+.endfor
+        };
+
+static PROCESS_FN
+    *process_fn [] = {
+.for application.method by "$(method.service) $(method.name)"
+        process_$(method.service:c)_$(method.message:c)\
+.    if index () < total ()
+,
+.    endif
+.endfor
+        };
+
+static char
+   **method_id [] = {
+.for application.method by "$(method.service) $(method.name)"
+        & $(method.SERVICE:c)_$(method.NAME:c)\
+.    if index () < total ()
+,
+.    endif
+.endfor
+        };
+
+/*****************************   MAIN PROGRAM   ******************************/
+
+int
+main (int _argc, char *_argv [])
+{
+    int
+        rc = 0,
+        argn;
+
+    if (_argc > 1)
+        for (argn = 1; argn < _argc && rc == 0; argn++)
+          {
+            infile = file_open (_argv [argn], 'r');
+            if (infile)
+                rc = smttest ();
+            else
+              {
+                rc = errno;
+                printf ("Error on file %s: %s\\n",
+                        _argv [argn], strerror (errno));
+              }
+          }
+    else
+      {
+        infile = stdin;
+        rc = smttest ();
+      }
+
+    return rc;
+}
+
+
+static int
+smttest (void)
+{
+.for tester.dummyagent
+    AGENT
+        *$(dummyagent.name:c)_agent;
+    THREAD
+        *$(dummyagent.name:c)_thread;
+.endfor
+    THREAD
+        *agent_thread;
+    EVENT
+        *event;
+    Bool
+        cont;
+    byte
+        *event_body;
+    size_t
+        event_size;
+    int
+        method_num;
+
+
+    smt_init ();                        /*  Initialise SMT kernel            */
+.for tester.dummyagent
+    $(name:c)_agent  = agent_declare ("$(name:)");
+    $(name:c)_agent-> initialise = dummy_hook;   /*  This is a fudge  */
+    $(name:c)_thread = thread_create ("$(name:)", "$(threadname:)");
+
+.endfor
+.for tester.testagent
+    $(testagent->init?)
+.endfor
+
+.- This fudge detaches the dummy thread from its queue's list of threads in
+.- order to avoid having the SMT kernel try to activate the thread.
+.for tester.dummyagent
+    list_unlink ($(name:c)_thread-> queue-> threads. next);
+.endfor
+
+    FOREVER
+      {
+        cont = TRUE;
+        while (cont)
+          {
+            while (
+.for tester.dummyagent
+.    if index () > 1
+               &&\
+.    endif
+                   ($(name:c)_thread-> queue-> cur_events == 0)
+.endfor
+               &&   cont)
+                cont = smt_exec_step ();
+
+.for tester.dummyagent
+            while ($(name:c)_thread-> queue-> cur_events)
+              {
+                event = event_accept ($(name:c)_thread-> queue, NULL);
+                printf ("Agent $(name) received event: %s\\n", event-> name);
+                display_event (event);
+                event_destroy (event);
+              }
+.endfor
+          }
+
+        agent_thread = thread_lookup ("$(tester-> testagent. name:)", "");
+        if (! agent_thread)
+            break;
+
+.if count (tester.dummyagent) > 1
+.    abort "NOT IMPLEMENTED"
+.endif
+        method_num =  intelligent_pattern_match ("Event: ", method_name);
+        if (method_num > -1)
+          {
+            printf ("%s:\\n", method_name [method_num]);
+            (process_fn) [method_num] (&event_body, &event_size);
+            event_send (& agent_thread-> queue-> qid,
+                        & $(tester-> dummyagent.name:c)_thread-> queue-> qid,
+                        *method_id [method_num],
+                        event_body, event_size,
+                        NULL, NULL, NULL, 0);
+            mem_free (event_body);
+          }
+        else
+        if (method_num == -2)
+            smt_shutdown ();
+      }
+
+.for tester.testagent
+    $(testagent->term?)
+.endfor
+
+.for tester.dummyagent
+    thread_destroy ($(name:c)_thread, TRUE);
+.endfor
+    agent_destroy (NULL);
+
+.for tester.testagent where defined (testagent.term)
+    $(term) ();
+.endfor
+    smt_term ();                        /*  Shut-down SMT kernel             */
+    mem_assert ();
+    return 0;
+}
+
+
+void dummy_hook (THREAD *thread)
+{
+}
+
+
+static void
+display_event (EVENT *event)
+{
+    int
+        method_num;
+
+    for (method_num = 0; method_num < METHOD_COUNT; method_num++)
+        if (streq (event-> name, method_name [method_num]))
+          {
+            (display_fn [method_num]) (event);
+            break;
+          }
+}
+
+
+static int
+intelligent_pattern_match (char *prompt, char *match_item [])
+{
+    static char
+        buffer     [LINE_MAX + 1],
+        input_line [LINE_MAX + 1];
+    char
+        *token;
+    int
+        bufidx,
+        buflen,
+        first_match,
+        last_match,
+        match_cnt,
+        prev_match_cnt;
+    LIST
+        stack = { &stack, &stack };
+
+    match_cnt = -1;
+    input_line [0] = '\\0';
+    bufidx = 0;
+    buflen = 0;
+    FOREVER
+      {
+        prev_match_cnt = match_cnt;
+        last_match = -1;
+        for (first_match = 0; match_item [first_match][0]; first_match++)
+            if (lexncmp (input_line,
+                         match_item [first_match], 
+                         strlen (input_line)) == 0)
+              {
+                match_cnt = strlen (match_item [first_match]);
+                for (last_match = first_match + 1;
+                     match_item [last_match][0];
+                     last_match++)
+                    if (lexncmp (input_line,
+                                 match_item [last_match],
+                                 strlen (input_line)) == 0)
+                        for (match_cnt = strlen (input_line);
+                             match_item [first_match][match_cnt]
+                          == match_item [ last_match][match_cnt]
+                          && match_item [first_match][match_cnt];
+                             match_cnt++);
+                    else
+                        break;
+
+                last_match--;
+                     break;
+              }
+
+        if (last_match != -1)
+            strncpy (input_line, match_item [first_match], match_cnt);
+
+        input_line [match_cnt] = '\\0';
+
+        if (match_cnt > prev_match_cnt)
+            list_push (& stack, prev_match_cnt);
+ 
+        if (bufidx == buflen)
+          {
+            if (feof (infile))
+                strcpy (buffer, "\\\\\\\\");
+            else
+              {
+                do
+                  {
+                    printf ("%s%s", prompt, input_line);
+                    file_read (infile, buffer);
+                    if (infile != stdin)
+                        printf ("%s\\n", buffer);
+                  } while (buffer [0] == '#');
+              }
+            buflen = strlen (buffer);
+            bufidx = 0;
+          }
+
+        while (bufidx < buflen && buffer [bufidx] == 0)
+            bufidx++;
+        token = buffer + bufidx;
+        while (bufidx < buflen && buffer [bufidx] != ' ')
+            bufidx++;
+        buffer [bufidx] = 0;
+
+        if streq (token, "\\\\")
+          {
+            list_pop (& stack, match_cnt);
+            if (list_empty (& stack))
+                return -1;
+            else
+              {
+                input_line [match_cnt] = '\\0';
+                continue;
+              }
+          }
+        else
+        if streq (token, "\\\\\\\\")
+          {
+            list_destroy (& stack);
+            return -2;
+          }
+        else
+        if (first_match == last_match)
+            break;
+
+        strncpy (input_line + match_cnt, token, LINE_MAX + 1 - match_cnt);
+        input_line [LINE_MAX] = '\\0';
+      }
+    
+    list_destroy (& stack);
+    return first_match;
+}
+
+
+.for application.message
+static void
+display_$(message.service:c)_$(message.name:c) (EVENT *event)
+{
+    struct_$(message.service:c)_$(message.name:c)
+          *message;
+
+    get_$(message.service:c)_$(message.name:c)\
+                                        (event-> body, & message);
+
+.    for message.field
+    printf ("    $(field.name)        :\
+.        if field.type = "char"
+%c\\n", message-> $(field.name:c));
+.        elsif field.type = "byte"
+%u\\n", message-> $(field.name:c));
+.        elsif field.type = "word"
+%u\\n", message-> $(field.name:c));
+.        elsif field.type = "dbyte"
+%u\\n", message-> $(field.name:c));
+.        elsif field.type = "qbyte"
+%lu\\n", message-> $(field.name:c));
+.        elsif field.type = "long"
+%li\\n", message-> $(field.name:c));
+.        elsif field.type = "string"
+%s\\n", message-> $(field.name:c));
+.        elsif field.type = "bool"
+%s\\n", message-> $(field.name:c) ? "TRUE" : "FALSE");
+.        elsif field.type = "size"
+.            body_size = field.name
+%u\\n", message-> $(field.name:c));
+.        elsif field.type = "body"
+\\n");
+body_dump (message-> $(body_size:c), message-> $(field.name:c));
+.        elsif field.type = "hsize"
+.            body_size = field.name
+%lu\\n", message-> $(field.name:c));
+.        elsif field.type = "hbody"
+\\n");
+body_dump (message-> $(body_size:c), message-> $(field.name:c));
+.        endif
+.    endfor
+
+    free_$(message.service:c)_$(message.name:c)\
+                                        (& message);
+}
+
+
+.endfor
+.-
+.if body_dump
+static void
+body_dump (qbyte size, byte *data)
+{
+    static char
+        line [81];
+    int
+        offset,
+        i;
+
+    offset = 0;
+    while (offset < size)
+      {
+        sprintf (line, "%06u: ", offset);
+        for (i = 0; i < 16; i++)
+            if (offset + i < size)
+                strcat (line, strprintf ("%02X ", data [offset + i]));
+            else
+                strcat (line, "   ");
+
+        strcat (line, "| ");
+
+        for (i = 0; i < 16; i++)
+            if (offset + i < size && isprint (data [offset + i]))
+                strcat (line, strprintf ("%c", data [offset + i]));
+            else
+                strcat (line, " ");
+
+        printf ("%s\\n", line);
+        
+        offset += 16;
+      }
+}
+
+
+.endif
+.for application.message
+static void
+process_$(message.service:c)_$(message.name:c) (byte **data, size_t *size)
+{
+    char
+        buffer [LINE_MAX + 1];
+    struct_$(message.service:c)_$(message.name:c)
+        *message;
+
+    message = mem_alloc (sizeof (*message));
+
+.    for message.field
+    printf ("    $(type)  $(name)            :");
+    file_read (infile, buffer);
+    if (infile != stdin)
+        printf ("%s\\n", buffer);
+
+.        if field.type = "char"
+    sscanf (buffer, "%c", & message-> $(field.name:c));
+.        elsif field.type = "byte"
+    sscanf (buffer, "%u", & message-> $(field.name:c));
+.        elsif field.type = "word"
+    sscanf (buffer, "%hu", & message-> $(field.name:c));
+.        elsif field.type = "dbyte"
+    sscanf (buffer, "%hu", & message-> $(field.name:c));
+.        elsif field.type = "qbyte"
+    sscanf (buffer, "%lu", & message-> $(field.name:c));
+.        elsif field.type = "long"
+    sscanf (buffer, "%li", & message-> $(field.name:c));
+.        elsif field.type = "string"
+    message-> $(field.name:c) = mem_strdup (buffer);
+.        elsif field.type = "bool"
+    sscanf (buffer, "%hu", & message-> $(field.name:c));
+.        elsif field.type = "size"
+.            body_size = field.name
+    sscanf (buffer, "%hu", & message-> $(field.name:c));
+.        elsif field.type = "body"
+    if (message-> $(body_size:c) > 0)
+      {
+        message-> $(field.name:c) = mem_alloc (message-> $(body_size:c));
+        strncpy (message-> $(field.name:c), buffer, message-> $(body_size:c));
+      }
+    else
+        message-> $(field.name:c) = 0;
+.        elsif field.type = "hsize"
+.            body_size = field.name
+    sscanf (buffer, "%lu", & message-> $(field.name:c));
+.        elsif field.type = "hbody"
+    if (message-> $(body_size:c) > 0)
+      {
+        message-> $(field.name:c) = mem_alloc (message-> $(body_size:c));
+        strncpy (message-> $(field.name:c), buffer, message-> $(body_size:c));
+      }
+    else
+        message-> $(field.name:c) = 0;
+.        endif
+.    endfor
+
+    *size = put_$(message.service:c)_$(message.name:c) (
+                  data,
+.    for message.field
+                  message-> $(field.name:c)\
+.        if index () < total ()
+,
+.        endif
+.    endfor
+);
+    free_$(message.service:c)_$(message.name:c) (& message);
+}
+
+
+.endfor
+.endtemplate
+endfor
+endtemplate

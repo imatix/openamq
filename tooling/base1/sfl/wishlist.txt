@@ -1,0 +1,5 @@
+Wishlist
+
+
+change references to sflnode to sfllist in all files
+remove sflnode from project

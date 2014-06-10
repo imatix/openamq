@@ -1,0 +1,357 @@
+#
+#   html_frame.gsl - Template GDL module
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+include "html_library.gsl"
+
+#####################   FUNCTION GENERATE_GDL_BEFORE   ######################
+
+function generate_gdl_before
+    imageheader = "bopenk.jpg"
+
+    g_header_level = 0
+    g_header_count = 0
+    g_doc_count    = 1
+    g_doc_index    = 0
+    g_figure_count = 0
+
+    toc  = ""
+    body = ""
+endfunction
+
+
+#########################   FUNCTION GENERATE_TOC   #########################
+
+function generate_toc
+    header_level = 1
+    header_count = 0
+    doc_count = 1
+
+    toc = "<ul>\n"
+    for gdl.header
+        header_count += 1
+        toc += "<li>\n"
+        toc += "<a class=\"toc_main\" href=\"$(base)_$(doc_count).html#TOC$(header_count)\">$(fmt())</a>"
+        toc += "</li>\n"
+        generate_toc_entry ()
+        doc_count += 1
+    endfor header
+    toc += "</ul>\n"
+endfunction
+
+
+######################   FUNCTION GENERATE_TOC_ENTRY   ######################
+
+function generate_toc_entry
+    header_level += 1
+
+    toc += "<ul>\n"
+    for header
+        if defined (.)
+            header_count += 1
+            if header_level <= page
+                toc += "<li>\n"
+                toc += "<a class=\"toc\" href=\"$(base)_$(doc_count).html#TOC$(header_count)\">$(fmt())</a>"
+                toc += "</li>\n"
+            endif
+        endif
+        generate_toc_entry ()
+    endfor
+    toc += "</ul>\n"
+    header_level -= 1
+endfunction
+
+
+######################   FUNCTION GENERATE_GDL_AFTER   ######################
+
+function generate_gdl_after
+    generate_toc ()
+
+    output "$(base).html"
+    template 1
+.   include "tpl_frame.htm"
+.   endtemplate
+    close
+
+    output "$(base)_top.html"
+    template 1
+.   include "tpl_frame_top.htm"
+.   endtemplate
+    close
+
+    output "$(base)_toc.html"
+    template 1
+.   include "tpl_frame_toc.htm"
+.   endtemplate
+    close
+
+    output "$(base)_bot.html"
+    template 1
+.   include "tpl_frame_bot.htm"
+.   endtemplate
+    close
+endfunction
+
+
+####################   FUNCTION GENERATE_HEADER_BEFORE   ####################
+
+function generate_header_before
+    g_header_level += 1
+    g_header_count += 1
+
+    if defined (.)
+        body += "<h$(g_header_level)>"
+        if g_header_level <= page
+            body += "<a name=\"TOC$(g_header_count)\">$(fmt())</a>"
+        else
+            body += "$(fmt())"
+        endif
+
+        body += "</h$(g_header_level)>\n"
+    endif
+endfunction
+
+
+####################   FUNCTION GENERATE_HEADER_AFTER   #####################
+
+function generate_header_after
+    if defined (.) & g_header_level = 1
+        output "$(base)_$(g_doc_count).html"
+
+        template 1
+.       include "tpl_frame_body.htm"
+.       endtemplate
+        close
+
+        #   reset body
+        body = ""
+
+        g_doc_count += 1
+        g_doc_index += 1
+    endif
+
+    g_header_level -= 1
+endfunction
+
+
+##################   FUNCTION GENERATE_PARAGRAPH_BEFORE   ###################
+
+function generate_paragraph_before
+    body += "<p>$(fmt())</p>\n"
+endfunction
+
+
+###################   FUNCTION GENERATE_PARAGRAPH_AFTER   ###################
+
+function generate_paragraph_after
+endfunction
+
+
+####################   FUNCTION GENERATE_QUOTE_BEFORE   #####################
+
+function generate_quote_before
+    body += "<blockquote>$(fmt())</blockquote>\n"
+endfunction
+
+
+#####################   FUNCTION GENERATE_QUOTE_AFTER   #####################
+
+function generate_quote_after
+endfunction
+
+
+###################   FUNCTION GENERATE_EXAMPLE_BEFORE   ####################
+
+function generate_example_before
+    body += "<pre>\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_EXAMPLE_AFTER   ####################
+
+function generate_example_after
+    body += "</pre>\n"
+endfunction
+
+
+#####################   FUNCTION GENERATE_LINE_BEFORE   #####################
+
+function generate_line_before
+    body += "$(.?)\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_RULER_BEFORE   #####################
+
+function generate_ruler_before
+    body += "<hr>\n"
+endfunction
+
+
+#####################   FUNCTION GENERATE_ITEM_BEFORE   #####################
+
+function generate_item_before
+    body += "<li><p>$(fmt())</li>\n"
+endfunction
+
+
+###################   FUNCTION GENERATE_ITEMIZE_BEFORE   ####################
+
+function generate_itemize_before
+    body += "<ul>\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_ENUMERATE_BEFORE   ###################
+
+function generate_enumerate_before
+    body += "<ol>\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_ITEMIZE_AFTER   ####################
+
+function generate_itemize_after
+    body += "</ul>\n"
+endfunction
+
+
+###################   FUNCTION GENERATE_ENUMERATE_AFTER   ###################
+
+function generate_enumerate_after
+    body += "</ol>\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_DEFINITION_BEFORE   ##################
+
+function generate_definition_before
+    body += "<dl>\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_DEFINITION_AFTER   ###################
+
+function generate_definition_after
+    body += "</dl>\n"
+endfunction
+
+
+###################   FUNCTION GENERATE_DEF_TERM_BEFORE   ###################
+
+function generate_def_term_before
+    body += "<dt><b>$(.?)</b></dt>\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_DEF_VALUE_BEFORE   ###################
+
+function generate_def_value_before
+    body += "<dd>$(fmt())</dd>\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_TABLE_BEFORE   #####################
+
+function generate_table_before
+    body += "<p>"
+    body += "<center>"
+    body += "<table border=\"1\" width=\"90%\">"
+    first_row = 1
+endfunction
+
+
+#####################   FUNCTION GENERATE_TABLE_AFTER   #####################
+
+function generate_table_after
+    body += "</table>"
+    body += "</center>"
+    body += "</p>"
+endfunction
+
+
+##################   FUNCTION GENERATE_TABLE_ROW_BEFORE   ###################
+
+function generate_table_row_before
+    body += "<tr>\n"
+endfunction
+
+
+###################   FUNCTION GENERATE_TABLE_ROW_AFTER   ###################
+
+function generate_table_row_after
+    body += "</tr>\n"
+    first_row = 0
+endfunction
+
+
+##################   FUNCTION GENERATE_TABLE_DATA_BEFORE   ##################
+
+function generate_table_data_before
+    if first_row
+        body += "<th>$(string.replace(., '&lt;BR&gt;|<BR>')?'&nbsp;')</th>\n"
+    else
+        body += "<td>$(string.replace(., '&lt;BR&gt;|<BR>')?'&nbsp;')</td>\n"
+    endif
+endfunction
+
+
+####################   FUNCTION GENERATE_IMAGE_BEFORE   #####################
+
+function generate_image_before
+    body += "<img src=\"$(filename:)\""
+    if defined (height)
+        body += " height=\"$(height)\""
+    endif
+    if defined (width)
+        body += " width=\"$(width)\""
+    endif
+    body += " />\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_FIGURE_BEFORE   ####################
+
+function generate_figure_before
+    g_figure_count += 1
+
+    body += "<center>\n"
+    body += "<table border=\"1\">\n"
+    body += "<tr>"
+    body += "<td align=\"center\">\n"
+    body += "<b>"
+    body += "<i>"
+    body += "Figure $(g_figure_count) $(caption?:)"
+    body += "</i>"
+    body += "</b>"
+    body += "<br>\n"
+    body += "</td>\n"
+    body += "</tr>\n"
+    body += "</table>\n"
+    body += "</center>\n"
+
+    body += "<img src=\"$(filename:)\""
+    if defined (height)
+        body += " height=\"$(height)\""
+    endif
+    if defined (width)
+        body += " width=\"$(width)\""
+    endif
+    body += "/>\n"
+endfunction
+

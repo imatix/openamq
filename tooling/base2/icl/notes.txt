@@ -1,0 +1,80 @@
+Comments
+    - icl.gsl is not a good name, this is mainly stdc code
+        -> move those functions back into icl_stdc
+        -> or another suitable file...
+
+Migrating SFL to iCL/iPR
+
+Functions from SFL that we still need to port.
+
+    sflcons
+    started by JS in icl_console.icl
+
+    Should work with "console" object that holds:
+        - current output file
+        - function to redirect console output to
+        - console formatting mode
+
+    console = icl_console_new ()
+    icl_console_mode    (console, mode)
+    icl_console_capture (console, filename)
+    icl_console_direct  (console, handler)
+    icl_console_enable  (console)
+    icl_console_disable (console)
+
+    sflfile                         ipr_file
+        file_where
+        file_open
+        file_close
+        file_read
+        file_write
+        file_copy
+        file_rename
+        file_delete
+        file_exists                 DONE in ipr_file, PH 2005/07/03
+        file_stable
+        file_has_changed            "file_changed"
+        file_is_readable
+        file_is_executable          DONE in ipr_file, PH 2005/07/03
+        file_is_writable
+        file_is_program
+        file_is_directory           DONE in ipr_file, PH 2005/07/03
+        file_is_legal
+        file_exec_name
+        get_file_size               "file_size"
+        get_file_time               "file_time"
+        file_slurp
+
+    sflproc                         ipr_process
+        process_create
+        process_create_full
+        process_status
+        process_kill
+        process_server              DONE in ipr_process, PH 2005/07/03
+
+    sflstr                          icl_shortstr
+        strlwc
+        strupc
+        strprefixed
+        strdefix
+        strconvch
+        lexcmp
+
+    sfltok                          ipr_token
+        tok_split
+        tok_free
+
+    sflfind
+        All functions
+
+    sfldir
+        -> load directory & sort into list
+        -> using APR directory functions
+        resolve_path
+        locate_path
+        clean_path
+        make_dir                    DONE in ipr_dir.icl, PH 2005/07/03
+        remove_dir                  DONE in ipr_dir.icl, PH 2005/07/03
+
+    sfluid
+        All functions               DONE as ipr_uid.icl, PH 2005/07/03

@@ -1,0 +1,291 @@
+#
+#   srcdoc.fmt - Srcdoc output formats
+#                               
+#   Copyright (c) 1991-2009 iMatix Corporation
+#
+#   Defines various formats used by srcdoc to generate the HTML files.
+#   These formats are supplied in a separate file, rather than inside
+#   srcdoc for the evident reason that you might want to tweak them.
+#   I guess srcdoc just needs to be able to access this file at runtime.
+#
+#   ------------------ GPL Licensed Source Code ------------------
+#   iMatix makes this software available under the GNU General
+#   Public License (GPL) license for open source projects.  For
+#   details of the GPL license please see www.gnu.org or read the
+#   file license.gpl provided in this package.
+#   
+#   This program is free software; you can redistribute it and/or
+#   modify it under the terms of the GNU General Public License as
+#   published by the Free Software Foundation; either version 2 of
+#   the License, or (at your option) any later version.
+#   
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#   
+#   You should have received a copy of the GNU General Public
+#   License along with this program in the file 'license.gpl'; if
+#   not, write to the Free Software Foundation, Inc., 59 Temple
+#   Place - Suite 330, Boston, MA 02111-1307, USA.
+#   
+#   You can also license this software under iMatix's General Terms
+#   of Business (GTB) for commercial projects.  If you have not
+#   explicitly licensed this software under the iMatix GTB you may
+#   only use it under the terms of the GNU General Public License.
+#   
+#   For more information, send an email to info@imatix.com.
+#   --------------------------------------------------------------
+
+#   Output when we have parsed the prolog of a header file.  Each
+#   header file is described in a separate HTML document, whose
+#   title is taken from the prolog.
+
+format PROLOG_OPEN =
+.page @*
+      $prolog {"Title"}
+<H2>$(TITLE)</H2>
+<P>Filename: @*
+             $prolog {"Name"}
+<BR>Package: @*
+             $prolog {"Package"}
+.
+
+#  Output if the prolog Written: clause is filled-in.
+
+format WRITTEN =
+<BR>Written: ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+             $_
+~~ ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   $_
+.
+
+#  Output if the prolog Revised: clause is filled-in.
+
+format REVISED =
+<BR>Revised: ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+             $_
+~~ ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   $_
+.
+
+#  Output if the prolog Copyright: clause is filled-in.
+
+format COPYRIGHT =
+<BR>Copyright: ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+               $_
+~~ ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   $_
+.
+
+#  Output if the prolog Version: clause is filled-in.
+
+format VERSION =
+<BR>Version: ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+            $_
+~~ ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   $_
+.
+
+#  Output if the prolog Authors: clause is filled-in.
+
+format AUTHORS =
+<BR>Authors: ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+             $_
+~~ ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   $_
+.
+
+#  Output to close-off the overview.
+
+format PROLOG_CLOSE =
+.
+
+#  Output after the overview, if the prolog Synopsis: clause is
+#  filled-in.
+
+format SYNOPSIS =
+.ignore header
+<H3>Synopsis</H3>
+<P>^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   $_
+~~ ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   $_
+.
+
+#  Output after the synopsis, if the prolog defines a Notes: clause
+
+format NOTES =
+.ignore header
+<H3>Notes</H3>
+<PRE>
+@*
+$_
+</PRE>
+.
+
+#  Output when a prolog block is defined with only a Synopsis:
+#  clause (in order to break the header file into sections).
+
+format SECTION =
+.ignore header
+@*
+"<H3>".$prolog {"Title"}."</H3>"
+<P>^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   $_
+~~ ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   $_
+.
+
+#  Output when starting the first source file
+
+format START_CODE =
+.
+
+#  Output to start a list of function prototypes.
+
+format FCT_LIST_OPEN =
+<H4>List of Functions</H4>
+<UL>
+.
+
+#  Output to start a list of function prototypes.
+
+format FCT_LIST_ENTRY =
+@*
+"<LI>$type \$(*$name)<BR>"
+   ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   $args
+~~ ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   $args
+</LI>
+.
+
+#  Output to start a list of function prototypes.
+
+format FCT_LIST_CLOSE =
+</UL>
+.
+
+#  Output to start a list of symbol definitions.
+
+format DEF_LIST_OPEN =
+<H4>List of Symbol Definitions</H4>
+@*
+"<P>$curfile defines these symbols, possibly conditionally:"
+<TABLE BORDER NOWRAP>
+<TR><TH ALIGN="LEFT">Symbol:  </TH>
+    <TH ALIGN="LEFT">Defined as:</TH>
+.
+
+#  Output for each symbol defined in the header file.
+
+format DEF_LIST_ENTRY =
+@*
+"<TR><TD ALIGN=\"LEFT\"><TT><B>$name</B>  </TT>"
+@*
+"<TD ALIGN=\"LEFT\">$_"
+.
+
+#  Output to end the list of symbol definitions.
+
+format DEF_LIST_CLOSE =
+</TABLE>
+.
+
+#  Output to start a list of type definitions.
+
+format TYPE_LIST_OPEN =
+<H4>List of Type Definitions</H4>
+<TABLE BORDER NOWRAP>
+<TR><TH ALIGN="LEFT">Type name:  </TH>
+    <TH ALIGN="LEFT">Defined as:</TH>
+.
+
+#  Output for each type defined in the header file.
+
+format TYPE_LIST_ENTRY =
+@*
+"<TR><TD ALIGN=\"LEFT\"><TT><B>$name</B>  </TT>"
+@*
+"<TD ALIGN=\"LEFT\">$_"
+.
+
+#  Output to end the list of type definitions.
+
+format TYPE_LIST_CLOSE =
+</TABLE>
+.
+
+#  Output whenever we find a function header in a source
+#  file.
+
+format FCT_HEADER =
+.page @*
+      $_
+.build anchor @*
+              $_
+<H3><TT>$(TITLE)</TT></H3>
+<PRE>
+@include @*
+"#"      "\"$header\""
+@*
+$proto
+</PRE>
+.
+
+#  Output if the function header defines a Synopsis: clause.
+
+format FCT_SYNOPSIS =
+<H4>Synopsis</H4>
+<P>^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   $_
+~~ ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   $_
+.
+
+#  Output if the function header defines an Examples: clause.
+
+format FCT_EXAMPLES =
+<H4>Examples</H4>
+<PRE>
+@*
+$_
+</PRE>
+.
+
+#  Output if the function header defines a Notes: clause.
+
+format FCT_NOTES =
+<H4>Notes</H4>
+<PRE>
+@*
+$_
+</PRE>
+.
+
+#  Output when we have collected the function source code.
+
+format FCT_BODY =
+@*
+"<H4>Source Code - ($curfile)</H4>"
+<PRE>
+@*
+$body
+</PRE>
+.
+
+#  Format strings to create an embedded 2-column table in the text
+
+$table_head = "<TABLE BORDER NOWRAP>";
+$table_row  = "<TR><TD ALIGN=\"LEFT\"><B>%s</B>  ";
+$table_row .= "<TD ALIGN=\"LEFT\">%s";
+$table_foot = "</TABLE>";
+
+#  Format strings to create a bulleted list
+
+$list_head = "<UL>";
+$list_row  = "<LI>%s";
+$list_foot = "</UL>";
+
+1;                                      #   Return a True value

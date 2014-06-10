@@ -1,0 +1,93 @@
+#   Tests GSL/DB interface to Berkeley DB
+
+global.ignorecase = 0
+echo "Testing GSL object " + db.version ("obj")
+echo "Database version:"   + db.version ("db")
+
+#   We test each of the database types supported by Berkeley DB
+#   These use different locking and transaction modes, so it's
+#   worth trying each one.
+xml to root << '
+    <test database = "testds"   type = "ds"   />
+    <test database = "testcds"  type = "cds"  />
+    <test database = "testtds"  type = "tds"  />
+    <test database = "testhads" type = "hads" />
+'
+for test
+    echo "Testing $(type) in $(database)..."
+    dir.delete (database)
+    db.create_database (database, type, 0)
+
+    db.connect (database)
+    db.set ("debug", 1)
+
+    echo "Creating tables"
+    db.create_table ("customer", 1)
+    db.create_index ("customer", "journal", "c:1-3")
+    db.create_index ("customer", "postcode", "f,:5")
+    db.create_table ("contract")
+    db.create_table ("account")
+
+    echo "Inserting records"
+    rc = db.insert ("customer",, "F01,Tom's Hardware,Main Avenue,Montreal,1080")
+    rc = db.insert ("customer",, "F01,Once More With Feeling,Downtown street 31,Harvard,2031")
+    rc = db.insert ("customer",, "F02,Those Old Time Blues,Washington Square,Los Angelese,9002")
+    rc = db.insert ("customer",, "F01,Mother Earth,Business Avenue,New York,1020")
+    rc = db.insert ("customer",, "F03,Englishe Bookshoppe,Tough Times Square,Bristol,33YMQ")
+    rc = db.insert ("customer",, "F02,Janet's Pet Store,Dog Boulevard,London,YWM21P")
+    echo "Last rc = $(rc)"
+    db.flush ("customer")
+
+    db.stats ("customer")
+    for stats
+        echo "Records=$(rows) pagesize=$(pagesize) used=$(usedpages) free=$(freepages) depth=$(depth)"
+    endfor
+
+    db.update ("customer", 4, "F01,Father Earth,Business Avenue,New York,1020")
+    echo "Reading random record by primary key"
+    have_data = db.fetch ("customer",,"eq", 4)
+    if have_data
+        echo "Key: $(-> record.key), data: $(-> record.data)"
+    else
+        echo "Data not found"
+    endif
+
+    echo "Reading records by primary key"
+    have_data = db.fetch ("customer")
+    records   = 0
+    while have_data
+        records += 1
+        echo "Key: $(-> record.key), data: $(-> record.data)"
+        have_data = db.fetch ("customer",,"next")
+    endwhile
+    echo " -- $(records) records read"
+
+    echo "Reading records for journal F01"
+    have_data = db.fetch ("customer", "journal", "ge", "F01")
+    records   = 0
+    while have_data & ->record.index = "F01"
+        records += 1
+        have_data = db.fetch ("customer", "journal", "next")
+    endwhile
+    echo " -- $(records) records read"
+
+    echo "Deleting records for journal F02"
+    have_data = db.fetch ("customer", "journal", "eq", "F02")
+    records   = 0
+    while have_data & ->record.index = "F02"
+        records += 1
+        db.delete ("customer")
+        have_data = db.fetch ("customer", "journal", "next")
+    endwhile
+    echo " -- $(records) records deleted"
+
+    echo "Rows in table:" + db.stats ("customer")
+    
+    db.disconnect ()
+    db.connect (database)
+    echo "Dropping contract table"
+    db.drop_table ("contract")
+endfor
+
+echo "Finished all tests"
+

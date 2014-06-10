@@ -1,0 +1,218 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<xnf name = "gdl">
+
+<entity name = "gdl" tag = "gdl" >
+    GDL is the Guru Documentation Language.
+    <attr name = "name" required = "1" >
+        Name of the file without attribut.
+    </attr>
+    <allow entity = "header" />
+    <rule name = "code" when = "before">
+        generate_gdl_before ()
+    </rule>
+    <rule name = "code" when = "after">
+        generate_gdl_after ()
+    </rule>
+</entity>
+
+<entity name = "header" tag = "header" >
+    This element permits to specify a title of a section.
+    <allow entity = "header"     />
+    <allow entity = "paragraph"  />
+    <allow entity = "quote"      />
+    <allow entity = "example"    />
+    <allow entity = "ruler"      />
+    <allow entity = "figure"     />
+    <allow entity = "image"      />
+    <allow entity = "itemize"    />
+    <allow entity = "enumerate"  />
+    <allow entity = "definition" />
+    <allow entity = "table"      />
+    <rule name = "code" when = "before">
+        generate_header_before ()
+    </rule>
+    <rule name = "code" when = "after">
+        generate_header_after ()
+    </rule>
+</entity>
+
+<entity name = "paragraph" tag = "paragraph" >
+    This element permits to delimit a block of text.
+    <allow entity = "anchor" />
+    <allow entity = "image"  />
+    <allow entity = "figure" />
+    <rule name = "code" when = "before">
+        generate_paragraph_before ()
+    </rule>
+    <rule name = "code" when = "after">
+        generate_paragraph_after ()
+    </rule>
+</entity>
+
+<entity name = "quote" tag = "quote" >
+    This element presents a block of quoted text.
+    <rule name = "code" when = "before">
+        generate_quote_before ()
+    </rule>
+    <rule name = "code" when = "after">
+        generate_quote_after ()
+    </rule>
+</entity>
+
+<entity name = "example" tag = "example" >
+    This element presents blocks of text in fixed-width font,
+    and so is suitable for text that has been formatted on screen.
+    <allow entity = "anchor" />
+    <allow entity = "example_line" />
+    <rule name = "code" when = "before">
+        generate_example_before ()
+    </rule>
+    <rule name = "code" when = "after">
+        generate_example_after ()
+    </rule>
+</entity>
+
+<entity name = "example_line" tag = "line" >
+    This element is presents lines of text in fixed-width font.
+    <rule name = "code">
+        generate_line_before ()
+    </rule>
+</entity>
+
+<entity name = "ruler" tag = "ruler" >
+    This element is an horizontal rule between sections of text.
+    <rule name = "code">
+        generate_ruler_before ()
+    </rule>
+</entity>
+
+<entity name = "itemize" tag = "itemize" >
+    This element permits to display unordered lists.
+    <allow entity = "item" />
+    <rule name = "code" when = "before" >
+        generate_itemize_before ()
+    </rule>
+    <rule name = "code" when = "after" >
+        generate_itemize_after ()
+    </rule>
+</entity>
+
+<entity name = "enumerate" tag = "enumerate" >
+    This element permits to display ordered lists.
+    <allow entity = "item" />
+    <rule name = "code" when = "before" >
+        generate_enumerate_before ()
+    </rule>
+    <rule name = "code" when = "after" >
+        generate_enumerate_after ()
+    </rule>
+</entity>
+
+<entity name = "item" tag = "item" >
+    This element specify a element of a list.
+    <rule name = "code">
+        generate_item_before ()
+    </rule>
+</entity>
+
+<entity name = "definition" tag = "definition" >
+    This element permits to display a list of terms and corresponding
+    definitions. Definition lists are typically formatted with the term flush-left
+    and the definition, formatted paragraph style, indented after the term.
+    <allow entity = "def_term"  />
+    <allow entity = "def_value" />
+    <rule name = "code" when = "before" >
+        generate_definition_before ()
+    </rule>
+    <rule name = "code" when = "after" >
+        generate_definition_after ()
+    </rule>
+</entity>
+
+<entity name = "def_term" tag = "def_term" >
+    This element permits to specify the term to define.
+    <rule name = "code">
+        generate_def_term_before ()
+    </rule>
+</entity>
+
+<entity name = "def_value" tag = "def_value" >
+    This element permits to specify the definition of the term.
+    <allow entity = "anchor" />
+    <rule name = "code">
+        generate_def_value_before ()
+    </rule>
+</entity>
+
+<entity name = "anchor" tag = "anchor" >
+    <attr name = "name" required = "1" />
+    <rule name = "code">
+        generate_anchor_before ()
+    </rule>
+</entity>
+
+<entity name = "image" tag = "image" >
+    <attr name = "filename" required = "1" />
+    <attr name = "width" />
+    <attr name = "height" />
+    <rule name = "code">
+        generate_image_before ()
+    </rule>
+</entity>
+
+<entity name = "figure" tag = "figure" >
+    <attr name = "filename" required = "1" />
+    <attr name = "width" />
+    <attr name = "height" />
+    <attr name = "caption" />
+    <rule name = "code">
+        generate_figure_before ()
+    </rule>
+</entity>
+
+<entity name = "table" tag = "table" >
+    <allow entity = "table_row" />
+    <rule name = "code" when = "before" >
+        generate_table_before ()
+    </rule>
+    <rule name = "code" when = "after" >
+        generate_table_after ()
+    </rule>
+</entity>
+
+<entity name = "table_row" tag = "table_row" >
+    Table row element.
+    <allow entity = "table_data"   />
+    <rule name = "code" when = "before" >
+        generate_table_row_before ()
+    </rule>
+    <rule name = "code" when = "after" >
+        generate_table_row_after ()
+    </rule>
+</entity>
+
+<entity name = "table_data" tag = "table_data" >
+    Table data cell element.
+    <rule name = "code">
+        generate_table_data_before ()
+    </rule>
+</entity>
+
+</xnf>

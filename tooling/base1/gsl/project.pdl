@@ -1,0 +1,130 @@
+<?xml?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<pdl
+    name      = "GSL"
+    acronym   = "gsl"
+    version   = "3.1c2"
+    copyright = "Copyright (c) 1991-2009 iMatix Corporation"
+    workflow  = "standard.pwl"
+    library   = "libgsl3">
+
+<include filename = "prelude.pdl" />
+<file name = "version.h"    class = "c version"       >Project version file</file>
+
+<file name = "gsl3.c"       class = "main program"    >Main program source</file>
+<file name = "gsldb.c"      class = "main program"    >GSL debugger</file>
+
+<file name = "ggcode.xml"   class = "core agent"      >Code generator functions</file>
+<file name = "ggpars.xml"   class = "core agent"      >Script parser functions</file>
+<file name = "ggscrp.xml"   class = "core agent"      >Script execution functions</file>
+
+<file name = "gghead.h"     class = "private resource">Header for generated gsl.h</file>
+<file name = "ggpriv.h"     class = "private resource">Project header file</file>
+<file name = "ggfunc.inc"   class = "private resource">Built-in GSL functions</file>
+<file name = "ggobjt.c"     class = "library module"  >Object functions</file>
+<file name = "ggcomm.c"     class = "library module"  >Common functions</file>
+
+<file name = "ggconv.gxl"   class = "gxl extension"   >Conversion object functions</file>
+<file name = "ggenvt.gxl"   class = "gxl extension"   >Environment object functions</file>
+<file name = "ggthrd.c"     class = "library module"  >Thread object functions</file>
+<file name = "ggmath.gxl"   class = "gxl extension"   >Math object functions</file>
+<file name = "ggmail.c"     class = "dialog module"   >Mail object functions</file>
+<file name = "ggsock.c"     class = "dialog module"   >Socket object functions</file>
+<file name = "ggfile.gxl"   class = "gxl extension"   >File object functions</file>
+<file name = "ggstrn.gxl"   class = "gxl extension"   >String object functions</file>
+<file name = "ggzip.gxl"    class = "gxl extension"   >Zip object functions</file>
+<file name = "ggdate.gxl"   class = "gxl extension"   >Date object functions</file>
+<file name = "ggtime.gxl"   class = "gxl extension"   >Time object functions</file>
+<file name = "ggdir.gxl"    class = "gxl extension"   >Directory object functions</file>
+<file name = "ggpcre.gxl"   class = "gxl extension"   >Regular expression functions</file>
+<file name = "ggcons.gxl"   class = "gxl extension"   >Console i/o functions</file>
+<file name = "ggproc.gxl"   class = "gxl extension"   >Process functions</file>
+<!-- Disabled - PH 2004/10/07
+<file name = "ggsql.gxl"    class = "gxl extension"   >MySQL functions</file>
+-->
+
+<file name = "ggobjt.gsl"   class = "public script"   >Object module generator</file>
+<file name = "ggmacro.gsl"  class = "private resource">GSL macro examples</file>
+<file name = "ggreport.gsl" class = "private resource">GSL reporting examples</file>
+<file name = "console.gsl"  class = "private resource">GSL console example</file>
+
+<!-- Deliverables -->
+<file name = "gsl3"         class = "public command"  >GSL command</file>
+<file name = "libgsl3"      class = "public library"  >GSL library</file>
+
+<!-- Documentation -->
+<file name = "gsldoc.txt"   class = "documentation"   >GSL documentation, incomplete</file>
+
+<!-- GSL project classes
+     core agent     - SMT agent, with message interface file
+     gxl extension  - generated GSL extension package
+  -->
+  
+<class name = "core agent" inherit = "gsl3 data" >
+    <derive extension = ".l"   class = "c dialog"         />
+    <derive extension = ".c"   class = "library module"   />
+    <derive extension = "m.c"  class = "generated module" />
+</class>
+
+<!-- This fails if no gsl executable is available, in which case you have to
+     build from a Base source package. -->
+<class name = "gxl extension" >
+    <derive extension = ".c"   class = "generated module" />
+    <generate>
+        <execute command = "gsl3 -q" />
+    </generate>
+</class>
+
+<!-- gsl3.h is the single header file used by GSL applications -->
+<actions when = "after">
+  <generate>
+    <collect into = "gsl3.h" class = "public header" >
+      <file name = "gghead.h"  />
+      <file name = "ggpars.h"  />
+      <file name = "ggparsm.h" />
+      <file name = "ggscrp.h"  />
+      <file name = "ggscrpm.h" />
+      <file name = "ggcomm.h"  />
+      <file name = "ggcode.h"  />
+      <file name = "ggcodem.h" />
+      <file name = "ggobjt.h"  />
+      <file name = "ggthrd.h"  />
+      <file name = "ggenvt.h"  />
+      <file name = "ggfile.h"  />
+      <file name = "ggconv.h"  />
+      <file name = "ggmath.h"  />
+      <file name = "ggmail.h"  />
+      <file name = "ggsock.h"  />
+      <file name = "ggstrn.h"  />
+      <file name = "ggthrd.h"  />
+      <file name = "ggzip.h"   />
+      <file name = "ggdate.h"  />
+      <file name = "ggtime.h"  />
+      <file name = "ggdir.h"   />
+    </collect>
+  </generate>
+</actions>
+
+<use>
+    <library name = "libsfl" />
+    <library name = "libsmt" />
+    <library name = "libzip" />
+</use>
+
+</pdl>

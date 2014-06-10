@@ -1,0 +1,241 @@
+#
+#   txt_simple.gsl - Template GDL module
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+#####################   FUNCTION GENERATE_GDL_BEFORE   ######################
+
+function generate_gdl_before 
+    g_header_level = 0
+    
+    body = ""
+endfunction
+
+
+######################   FUNCTION GENERATE_GDL_AFTER   ######################
+
+function generate_gdl_after
+    output base + ".log"
+    >$(body:)
+    close
+endfunction
+
+
+####################   FUNCTION GENERATE_HEADER_BEFORE   ####################
+
+function generate_header_before
+    g_header_level += 1
+
+    if defined (.)
+        if string.length (.) > 0
+            body += .
+            if    g_header_level = 1
+                body += "*" * string.length (.)
+            elsif g_header_level = 2
+                body += "=" * string.length (.)
+            elsif g_header_level = 3
+                body += "-" * string.length (.)
+            elsif g_header_level = 4
+                body += "." * string.length (.)
+            endif
+            body += "\n\n"
+        endif
+    endif
+endfunction
+
+
+####################   FUNCTION GENERATE_HEADER_AFTER   #####################
+
+function generate_header_after
+    g_header_level -= 1
+endfunction
+
+
+##################   FUNCTION GENERATE_PARAGRAPH_BEFORE   ###################
+
+function generate_paragraph_before
+    body += string.replace (., "&lt;|<,&gt;|>") + "\n\n"
+endfunction
+
+
+###################   FUNCTION GENERATE_PARAGRAPH_AFTER   ###################
+
+function generate_paragraph_after
+endfunction
+
+
+####################   FUNCTION GENERATE_QUOTE_BEFORE   #####################
+
+function generate_quote_before
+    body += string.replace (., "&lt;|<,&gt;|>") + "\n\n"
+endfunction
+
+
+#####################   FUNCTION GENERATE_QUOTE_AFTER   #####################
+
+function generate_quote_after
+endfunction
+
+
+###################   FUNCTION GENERATE_EXAMPLE_BEFORE   ####################
+
+function generate_example_before
+endfunction
+
+
+####################   FUNCTION GENERATE_EXAMPLE_AFTER   ####################
+
+function generate_example_after
+    body += "\n"
+endfunction
+
+
+#####################   FUNCTION GENERATE_LINE_BEFORE   #####################
+
+function generate_line_before
+    body += "    " + string.replace ("$(.?)", "&lt;|<,&gt;|>") + "\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_RULER_BEFORE   #####################
+
+function generate_ruler_before
+    body += "____\n"
+endfunction
+
+
+#####################   FUNCTION GENERATE_ITEM_BEFORE   #####################
+
+function generate_item_before
+    if name (-1) ?= "enumerate"
+        list_nbr += 1
+        body += list_nbr + ". "
+    else
+        body += "- "
+    endif
+    body += string.replace (., "&lt;|<,&gt;|>") + "\n"
+endfunction
+
+
+###################   FUNCTION GENERATE_ITEMIZE_BEFORE   ####################
+
+function generate_itemize_before
+    list_nbr = 0
+endfunction
+
+
+##################   FUNCTION GENERATE_ENUMERATE_BEFORE   ###################
+
+function generate_itemize_after
+    body += "\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_ITEMIZE_AFTER   ####################
+
+function generate_enumerate_before
+    list_nbr = 0
+endfunction
+
+
+###################   FUNCTION GENERATE_ENUMERATE_AFTER   ###################
+
+function generate_enumerate_after
+    body += "\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_DEFINITION_BEFORE   ##################
+
+function generate_definition_before
+endfunction
+
+
+##################   FUNCTION GENERATE_DEFINITION_AFTER   ###################
+
+function generate_definition_after
+endfunction
+
+
+###################   FUNCTION GENERATE_DEF_TERM_BEFORE   ###################
+
+function generate_def_term_before
+    body += string.replace ("$(.?)", "&lt;|<,&gt;|>") + ":\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_DEF_VALUE_BEFORE   ###################
+
+function generate_def_value_before
+    body += "  " + string.replace (., "&lt;|<,&gt;|>") + "\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_TABLE_BEFORE   #####################
+
+function generate_table_before
+endfunction
+
+
+#####################   FUNCTION GENERATE_TABLE_AFTER   #####################
+
+function generate_table_after
+    body += "\n\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_TABLE_ROW_BEFORE   ###################
+
+function generate_table_row_before
+    table_row = ""
+endfunction
+
+
+###################   FUNCTION GENERATE_TABLE_ROW_AFTER   ###################
+
+function generate_table_row_after
+    body += table_row + "\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_TABLE_DATA_BEFORE   ##################
+
+function generate_table_data_before
+    table_row += "$(.?):"
+endfunction
+
+
+####################   FUNCTION GENERATE_IMAGE_BEFORE   #####################
+
+function generate_image_before
+    body += "[\"$(filename:)\"$(caption?)]\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_FIGURE_BEFORE   ####################
+
+function generate_figure_before
+    body += "[Figure \"$(filename:)\"$(caption?)]\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_ANCHOR_BEFORE   ####################
+
+function generate_anchor_before
+    body += "<$(name:)$(":"+.?)>\n"
+endfunction
+

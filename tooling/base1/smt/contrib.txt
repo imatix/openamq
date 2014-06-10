@@ -1,0 +1,45 @@
+Notes for contributors
+
+These are the standards and conventions we use for our source code.
+
+General:
+
+    - CRLF format if possible, but Unix LF format is okay
+    - no tabs
+    - keep lines to 80 or fewer columns
+
+Comments:
+
+    - Respect the standard file headers
+    - Update 'Revised:' date when you make a change
+    - Add your email address if you're the author
+    - ANSI C... so no C++ style comments
+    - Blank line before a comment
+    - Two spaces after the opening '*'
+    - Indent comments to match the code, end */ in column 78
+    - Comments on same line start in column 41
+    - Use this format for multiline comments:
+        /*  This is a multiline
+         *  comment
+         */
+
+Indentation and whitespace:
+
+    - 4-space indentation, not using tabs
+    - if (condition)
+          single-statement;
+
+    - if (condition)
+        {
+          statement1;
+          statement2;
+        }
+    - blank line before large if statement
+    - no blank line after closing {
+    - a space before (, after ): eg.
+      function (argument, argument, argument);
+    - pointer-> somefield
+    - structure.somefield
+
+Dialogued programs (using Libero):
+    - let Libero generate module stubs

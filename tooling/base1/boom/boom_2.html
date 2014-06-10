@@ -1,0 +1,2199 @@
+<html>
+<head>
+<title>body</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="gdstyle.css" type="text/css">
+</head>
+<body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0">
+<table width="100%" height="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr valign="top">
+    <td width="5" bgcolor="#DDDDDDD">&nbsp;</td>
+    <td>
+      <a name="TOC22"><h1>Using Boom</h1></a>
+      <p>This section is for you if you're thinking about using Boom in a project. I describe everything you need to know about using Boom in "normal" circumstances, which means building and packaging basic types of project. </p>
+<h2><a name="TOC23">The Boom Lexicon</a></h2>
+<p>It's always a good idea to define the words we use.  Make sure you're sitting comfortably, and we'll pass through the main terms that Boom uses so that your brain doesn't get too surprised when we throw stuff like "Reverse Induction Warpflow" at it.  Just kidding!  Everyone knows it's "Reverse Induction Workflow".  I was just seeing if you were still awake. </p>
+<dl>
+<dt><b>Project</b></dt>
+<dd>One project is defined by a PDL file, usually called "project.pdl". A PDL lists a set of "files" that comprise the project, along with other steps needed to "build" the project "deliverables".  A project has a name, and an identity within a "product".  Projects can depend on other projects within the same product, but they cannot depend on other specific projects within other products. Boom assumes that projects are placed in subdirectories beneath the product directory.  In effect, the project directory _is_ the name of the project. </dd>
+<dt><b>PDL</b></dt>
+<dd>The Project Definition Language, the main Boom language that you will need to learn.  PDL is an XML language, and not complex.  Boom comes with a tool (mkpdl) that generates PDL project definitions for you if you find it too difficult to copy and paste from an existing project. </dd>
+<dt><b>Project Definition</b></dt>
+<dd>See PDL.  One project can have multiple project definitions, but this is both confusing and needless (in the cases we've seen so far). Make a single "project.pdl" file, and don't surprise people. </dd>
+<dt><b>File</b></dt>
+<dd>Normally, a file is a metaphorical document that we can edit, save, copy, print, etc.  In Boom, a file can actually consist of a group of such documents that are related in a predictable way.  This is just a way of collapsing a long and verbose project definition into something approaching the ideal of "aw, heck, you know what I mean!" Boom tries to use language the same way we do, namely with lots of hidden assumptions and meanings. </dd>
+<dt><b>Deliverable</b></dt>
+<dd>A project delivers stuff.  We categories this into five specific types of deliverable: executable commands, which are scripts and executable images produced by the compile and link process; libraries of compiled source programs; compiler header files that allow other programs to use delivered libraries; runtime resources that make the project usable by other projects; and finally, documentation that tries to explain all this to the user.  Under Unix, these five groups of deliverable go into directories called something like bin, lib, include, bin, and doc, respectively. Under Windows, we just pretend that we're on a real operating system, and use the same directory names as for Unix.  If you pretend really, really, really hard, sometimes it just happens! </dd>
+<dt><b>Dependencies</b></dt>
+<dd>When one project uses libraries, tools, or other resources from another project, we call this a "dependency".  In a product, project dependency must never be circular, or you will have a hard time deciding which project to build first.  Project dependencies must consist of what is technically called a "directed graph", which is another way of saying "they must make sense".  Similarly, products may depend on each other, but never in circles.  If two products co-depend on each other, you have a design problem and possibly a designer problem as well. </dd>
+<dt><b>Product</b></dt>
+<dd>A group of "projects" that can be delivered together.  It usually makes no sense to deliver an individual project because it is not complete enough.  Yes, I can deliver Boom, but not without GSL and I can't deliver GSL without Libero, SFL, and SMT.  And so on.  The easiest way to keep the user from going "package crazy" is to put all the related projects into one basket, give it a funky name like Base (sorry, that one's taken), and call it a "product".  This is what we do.  Users still need to know the dependencies between products, but that is usually quite simple.  Finally, a product is something commercial: if you are well organized, you will have people who are responsible for checking that whatever you deliver to customers is solid, looks good, and works as advertised.  Having a small, well-defined set of "products" makes this much easier. </dd>
+<dt><b>Workflow</b></dt>
+<dd>A Boom workflow is really the intelligence behind the Boom "build" process.  Boom comes with a number of workflows.  Some of these let you build specific kinds of projects.  There is also a workflow aimed at building products, not projects.  But the real reason for providing more than one workflow with Boom is to demonstrate the real flexibility of this tool: you can make your own workflows and thus define your own build process to suit your world and your needs.  As a normal Boom user, you don't need to know how workflows actually work: it is sufficient to know what ones are available and how you should use them. </dd>
+<dt><b>Build</b></dt>
+<dd>This is the technical term for taking lots of source programs, throwing them at the compiler, and then sending the five hundred pages of warning and error messages back at the developer who quickly says: "Oh, yes, _of course_!".  Repeat process until number of errors drops to zero, and number of warnings is less than total number of build cycles, at which point the project is ready for installation. In Boom's world, building can also mean generating code, documentation, and other files.  "Build" takes raw source code (e.g. from CVS) and turns it into shiny software that starts at the touch of a button and crashes at the click of a mouse.  So it has been, and so shall it ever be. </dd>
+<dt><b>Builder</b></dt>
+<dd>A Boom "builder" is a script that builds a project.  Boom generates builders called "boomake.bat" under Windows and "boomake" for real operating systems (Linux and Unix).  The builder scripts, which are fun, you should look at them sometime :(, consist of (a) a "workflow engine", and (b) exploded commands to process all the project files. If you have trouble building a project as expected (and yes, this does happen very, very rarely), your best bet is often to hack the builder.  Remember the part where I assume you are a "programmer"? </dd>
+<dt><b>Programmer</b></dt>
+<dd>A professional who is capable of opening a "source" file and making some sense of what is inside it, regardless of the programming language.  More specifically, in the context of Boom, both the person using Boom, and the person who will take time to understand _why_ the "project" is not building before emailing iMatix to complain. Allow us to remind you of the very useful Windows Batch command "echo", as in "echo on", and the parallel command in Unix ksh and Bash: "set +x".  You're welcome.  Oh, if you just read the part about temporary install trees, a "programmer" is also someone who is not scared by the fact that several files with the same name but totally different versions may be sitting scattered in different locations around his computer, accessed via strange semi-documented environment variables.  Let Chaos be Unleased! </dd>
+<dt><b>Class</b></dt>
+<dd>In Boom, a class is a kind of a template for a "file". The syntax for defining a class is pretty much the same as for defining a file, except that one is called "class" and the other is called (yes, you guessed it), "Reverse Induction Workflow".  Classes can be based on other classes, which is how we hide lots of vitally important but incredibly tedious detail, until we get to Boom's Nirvana of perfect laziness, in which you, the honoured "programmer", simply say "look, this darn thing is an automatic bondoogle.  Do what you must," and Boom, like the perfect butler, does it. </dd>
+<dt><b>Automatic Bondoogle</b></dt>
+<dd>In Boom's world, the automatic bondoogle is the class of file used by programmers who have not understood the harmonious essence of "reverse induction workflows" and thus the essential insights into life.  That, or a piece of dried fruitcake. </dd>
+<dt><b>Raw Source Code</b></dt>
+<dd>This is the stuff that comes out of that horrendous mangler we call "the software development process".  A pseudo-random collection of dipthongs, asterisks, left square brackets, and the occasional lurking tab trying to masquerad as white space, raw source code is everything you ever wrote but were afraid to look at.  Not to be confused with "generated source code" which is tidy, clean, readable, fast, honest, and correct, and for these reasons is sincerely and warmly despised by real programmers. </dd>
+<dt><b>Workflow Engine</b></dt>
+<dd>A horribly strange piece of code that brings a Boom workflow to life. Imagine Dr Frankenstein's helper, Igor, and you start to see what I'm talking about.  Give Igor green hair, three humps, and a Scottish accent, and you get the full picture.  "Och aye, Mathter!"  Boom puts a workflow engine into each "builder" that it generates, and this is part of the reason why these scripts are a bit strange.  But I'm 100% confident that you'll make it.  See "programmer".  If you would like to build your own McIgors, take a look at the iMatix Libero tool and imagine implementing Libero state machines in Unix shell and Win32 batch language. </dd>
+<dt><b>Derivation</b></dt>
+<dd>A project "file" can include derived files.  Thus, we can say that a "C program" has a derived file that is an "Object file", being the result of shoving the C program through the C compiler.  It is a Very Good Thing to use derivations to hide boring but vital details about building projects.  Yes, every C program has a matching object file.  No, we do not want to hard-code this knowledge in Boom. No, we do not want every single project to have to respecify this. Yes, it is vitally important if we want to actually build and clean our project neatly.  Classes and derivations make this possible. Derived files always have the same name as the principle file, with different extensions. </dd>
+<dt><b>Perl</b></dt>
+<dd>A programming language with attitude.  Possibly the most "in your face, buster" language since Algol 68.  Perl is notable for being more complex than PL/I but more useful than a glass in a brewery. We use Perl to write the occasional tool where the effort of re-learning the minimal Perl syntax we need to do the job is less than the effort of writing the tool any other way. </dd>
+<dt><b>GSL</b></dt>
+<dd>A programming language with attitude.  Possibly the most "if you have to ask, you don't want to know" language since APL.  GSL is notable for being simpler than Awk but more difficult to use than an umbrella in a telephone cabin.  We use GSL to make our lives bearable.  See "Why All The XML?" earlier in this document. </dd>
+<dt><b>Package</b></dt>
+<dd>In Boom's world, a "package" is something you produce to give to your users and clients.  We can make packages both from products and from projects, but project packages should be seen as "for internal use only".  There are two basic types of package: source and binary.  A source package needs to be built (and then installed) before it can do anything useful. A binary package can be installed.  Source packages are portable, i.e. they contain everything needed to build on all target systems.  Binary packages are extremely non-portable, and are built on a specific system, for a specific system.  You can define arbitrary "packager" extensions that build the packages you want - Boom comes with default packagers for zip and tgz files. </dd>
+<dt><b>Packager</b></dt>
+<dd>A packager is an external command that does interesting and useful things on the "temporary install tree".  Packagers are called by the builder when it feels ready for it, which by default, is when you use the "distrib" command at the product level.  Under Windows the default packager is pkg_zip.bat.  Under Unix, it is pkg_tgz. The packagers are the bits of code that create distributions. </dd>
+<dt><b>Temporary Install Tree</b></dt>
+<dd>When Boom builds a product (or more accurately, when the builder that Boom generates for a specific product builds the projects that comprise that product, and now you see why hiding tedious detail is such an important part of expressing oneself without becoming as boring as a bureaucrat on Thursday afternoon) it goes through the motions of building and installing each project in turn.  Boom faces a dilema.  If project B depends on project A, then project A must be built _and_ installed before we can start on B.  But installing a product is a serious step - it can (and thus often does) make a royal mess of our working environment.  We cannot simply go and install individual projects until we get the "install" command at the product level.  Boom resolves this dilema by installing into a temporary install tree, called "_install", and not abreviated for obvious reasons, sitting under the product directory.  The _install directory looks a lot like the final installation tree, including little "bin" and "lib" and "include" directories.  The temporary install tree usually keeps well out of sight, but raises its ugly face (being a distant cousin of McIgor the Hunchbacked Workflow Engine) when you try to build (and "try" is too often the operative word) a project that depends on other projects previously installed into the temporary install tree. See "programmer". </dd>
+<dt><b>Distribution</b></dt>
+<dd>Something intended for the final user.  Boom knows about two kinds of distribution: source and binary.  Source distributions are used by developers who are prepared or who want to unpack and rebuild the various projects.  Source distributions may also be necessary as part of conforming to license agreements - for instance, if you use the GPL licensed Base, you must provide your users with source distributions of any derived products (which, incidentally, must also be licensed under the GPL.)  Binary distributions are meant for "real" end users, and normally contain only those files needed to actually run the software application.  Distributions are much the same as packages. </dd>
+<dt><b>Target</b></dt>
+<dd>A Boom "target" is an operating system (or the nominal equivalent category of product produced by Microsoft) that Boom knows about. Boom uses the concept of "target" to decide what code to generate for a particular project and workflow combination.  You can, for instance, say "this project is only for target X", or do what most people do, which is allow Boom to generate for all the targets it knows about.  You can also define your own targets if you need to extend Boom in the direction of new platforms - see "Hacking Boom" for the painful details. </dd>
+<dt><b>Boomake</b></dt>
+<dd>This is what the Boom builder is normally called.  Under Unix/Linux, just "boomake".  Under Windows, "boomake.bat".  If there are still other operating systems in use after 2003, we will name boomake appropriately in each case.  The name "boomake" was chosen to be close to "make" while still retaining the essence of "Boom".  We are proud of the result.  Subtle, yet clear, n'est pas? </dd>
+<dt><b>Source</b></dt>
+<dd>A source file is anything written by hand.  Traditionally, "source" is a programming concept, something you are supposed to be familiar with if you're reading this.  In Boom's mind, "source" also includes things like images.  A source package (which is the only place where this term is used really precisely) contains everything needed to build the final binary package, but is portable.  Source packages include generated code (which are a funny kind of source, since they are not made by hand at all). </dd>
+<dt><b>Binary</b></dt>
+<dd>A binary file is something that looks like computers sound in the movies - Beep-sBBEsspa!!JSssjaa-A$&lt;bleeP&gt; - followed by your screen going black.  In Boom's mind, binary files are things produced by the process of compiling and linking, and include object files, libraries, and executable images.  A binary package (again, the only place this term has a strict meaning for Boom) includes all the stuff a user needs to use the product, which normally excludes source files (except those pesky images, which seem to cross all boundaries, often including the bounds of common decency).  Binary packages are not portable. </dd>
+<dt><b>Reverse Induction Workflow</b></dt>
+<dd>If you have to ask what this is, you really do not want to know. See "automatic bondoogle". </dd>
+</dl>
+<h2><a name="TOC24">Basic Operations</a></h2>
+<p>The basic Boom cycle is this: </p>
+<ol>
+<li><p>Use Boom.</li>
+<li><p>???</li>
+<li><p>Profit!</li>
+</ol>
+<p>And we can break down step 1 into more detail thus: </p>
+<ol>
+<li><p>Write programs.</li>
+<li><p>Make project description.</li>
+<li><p>Configure builders.</li>
+<li><p>Build project.</li>
+<li><p>Repeat until happy.</li>
+</ol>
+<h3><a name="TOC25">Before You Start</a></h3>
+<p>You must have installed Base.  Check that this works by trying a command like "gsl" from the command line.  If you get a nice display like this: </p>
+<pre>
+GSLgen/3.1 Copyright (c) 1991-2009 iMatix Corporation
+syntax: gslgen -&lt;option&gt; ... -&lt;attr&gt;[:&lt;value&gt;] ... &lt;filename&gt; ...
+    Options:
+        -q   quiet:    suppress routine messages
+        -p   parallel: process files in parallel
+        -s:n size:n    set script cache size - default is 1000000
+        -h   help:     show command-line summary
+        -v   version:  show full version information
+</pre>
+<p>then Base is most likely well installed.  If you get this: </p>
+<pre>
+'gsl' is not recognized as an internal or external command,
+operable program or batch file.
+</pre>
+<p>then you should find help from a real programmer who can help you sort out your PATH definitions. </p>
+<h3><a name="TOC26">A Trivial Example</a></h3>
+<p>We'll start with one of the classic software applications. In many ways, The First Program, the Mother of All Programs, the Adam and Eve of source code. Yes, please give an enormous welcome to hello.c: </p>
+<pre>
+#include "sfl.h"
+void main (void) {
+    puts ("Hello, World!");
+}
+</pre>
+<p>So small, and yet so eloquent. Check that you can compile and build by hand, using the "c" script that Base comes with: </p>
+<pre>
+c -l hello
+hello
+</pre>
+<p>You should get a warm happy feeling when you see this appearing on the screen: </p>
+<pre>
+Hello, World!
+</pre>
+<p>I am now going to try to convince you that this one-line command ("c -l hello") is too much to remember, and that you really, really want to use Boom to package this project. First, let's make a project definition, a PDL file. A PDL file is XML, and I'll explain the syntax of the PDL language later. For now, just pretend you understand what I'm talking about. Here is the most simple PDL we can make that will do something useful: </p>
+<pre>
+&lt;?xml version="1.0"?&gt;
+&lt;pdl
+    name      = "Hello World"
+    acronym   = "hello"
+    version   = "1.0"
+    workflow  = "standard.pwl" &gt;
+&lt;inherit filename = "classes.pdl" /&gt;
+&lt;file name = "testit.c" class = "main program" /&gt;
+&lt;/pdl&gt;
+</pre>
+<p>We will now "configure" the project, which means telling Boom to make us the builders: </p>
+<pre>
+boom
+</pre>
+<p>Which most people find they can remember without too much trouble. The command assumes that the project file is called "project.pdl", and if you decide to use another file, say "hello.pdl", you would have to type this: </p>
+<pre>
+gsl -ignorecase:0 -q -pdl:hello boom
+</pre>
+<p>And I do not recommend you go down that road.  Keep things simple and you will enjoy life more.  Boom should report something like this: </p>
+<pre>
+gsl M: Processing project.pdl...
+gsl M: Configuring Hello World: version=1.0 build=debug
+</pre>
+<p>Now, if you look at the directory where you are working, you will find two new files: boomake and boomake.bat. These are the builders for Unix and for Windows, respectively. To build the project, do this now: </p>
+<pre>
+boomake build
+</pre>
+<p>Which will report something like this: </p>
+<pre>
+Building application...
+hello.c
+</pre>
+<p>And then stop. Since we are doing almost exactly the same work as "c -l", it should not take any longer. Take another look at the directory and there should be a new file called "hello.exe" (Windows) or "hello" (Unix). You can run this and check that you get that same warm happy feeling of having done something really challenging but somehow incredibly useful. Go and get that coffee now, you've earned it. </p>
+<h3><a name="TOC27">A More Complex Example</a></h3>
+<h4><a name="TOC28">Constructing The Project</a></h4>
+<p>We're going to make a rather more complex application.  This is the "Hello World" program built for a paying customer.  We will now split the work into several pieces.  At the same time I will give you some valuable and hard-earned pieces of wisdom about becoming a commercial software "consultant", which is the technical term for someone who is at the same time too inexperienced and also too well paid to actually program, write documentation, or create intelligent designs.  We will assume in this case that you are - as we've already discussed - a real programmer, but willing to hide your CV and pretend ignorance in order to qualify for juicy consultancy jobs where the main criteria are (a) a golf handicap and (b) good hair and (c) a keen appreciation of the two main kinds of software project, being the "Golden Bowl" and the "Hot Potato". </p>
+<p>First lesson: convince your customer that without a new improved Hello World Application (HWA), life would not worth be living. You can do this by dropping hints about the amazing HWA that competitors across the street or down the hall are considering. Remark how old the current HWA is, and how little it has helped productivity. Note with sadness that if only there was someone, anyone, creative and smart enough to see the value of a new, improved HWA, that person would certainly soon be both promoted and applauded. When asked the possible budgetary impact of a new HWA, say that nothing easy is worth doing, but that it could almost certainly be done with a very modest team of three or four people. </p>
+<p>Let us look at the main HWA Launcher. It is still called "hello.c" but now looks like this: </p>
+<pre>
+#include "hello.h"
+void main (void) {
+    launch_hello ();
+    launch_world ();
+}
+</pre>
+<p>We define our application prototypes in a header file, "hello.h": </p>
+<pre>
+#ifndef HELLO_HEADER
+#define HELLO_HEADER
+#include "sfl.h"
+#define HELLO_TEXT "hello"
+#define WORLD_TEXT "world"
+int launch_hello (void);
+int launch_world (void);
+#endif
+</pre>
+<p>Second lesson of consultancy: blank lines are for wusses and they make the source code easier to read, and thus easier to maintain, which is NOT A GOOD THING. Customers are supposed to pay for maintainance, not attempt something like that themselves. </p>
+<p>We now have two subroutines that do the actual work. Presumably this is because our project team consisted of four people: one for each subroutine, one for the main application Launcher and integration, and one for project management. Here is subhello.c: </p>
+<pre>
+#include "hello.h"
+int launch_hello (void)
+{
+    printf (HELLO_TEXT);
+    return (0);
+}
+</pre>
+<p>And subworld.c: </p>
+<pre>
+#include "hello.h"
+int launch_world (void)
+{
+    printf (WORLD_TEXT);
+    return (0);
+}
+</pre>
+<p>Now, a "normal" Boom project includes something called "readme.txt". This is just a polite file that explains something useful about the project which was perhaps ommitted from the main documentation due to lack of time.  Here is the readme.txt for our project: </p>
+<pre>
+The Hello World Application
+License: this application is the property of Con-U Software Systems.
+All rights reserved.
+Usage: formally interdicted by acceptance of the shrink-wrap license
+or absence thereof, the contravention of which shall be liable to a
+fee of no less than half of left arm. All your base are belong to us.
+</pre>
+<p>This new version of Hello World has many so advantages over the feeble version we saw before, including at least two bugs, that we will make a new project.pdl that adequately describes it: </p>
+<pre>
+&lt;?xml version="1.0"?&gt;
+&lt;pdl
+    name      = "Hello World"
+    acronym   = "hello"
+    version   = "2.0"
+    workflow  = "standard.pwl"
+    library   = "libhello" &gt;
+&lt;include filename = "prelude.pdl" /&gt;
+&lt;file name = "hello.c"      class = "main program"  /&gt;
+&lt;file name = "subhello.c"   class = "sub program"   /&gt;
+&lt;file name = "subworld.c"   class = "sub program"   /&gt;
+&lt;!-- Deliverables --&gt;
+&lt;file name = "hello"        class = "public command"/&gt;
+&lt;file name = "hello.h"      class = "public header" /&gt;
+&lt;file name = "libhello"     class = "public library"/&gt;
+&lt;/pdl&gt;
+</pre>
+<p>Once again we can configure the project with a single command: </p>
+<pre>
+boom
+</pre>
+<p>and build it with the slightly more complex but still memorable: </p>
+<pre>
+boomake build
+</pre>
+<p>This does several things: it compiles the three C programs, sticks the two subroutines into a library, and links the main program. If you run the resulting main program you may spot the bug, which would be a good moment to apply Lesson Three of software consultancy, namely that any errors made by the project team are fixed at the customer's expense. Make sure that the original specifications go into extreme detail about such things as the font used for documentation, but say nothing at all about the actual HWA functionality. </p>
+<h4><a name="TOC29">Installing Our Work</a></h4>
+<p>The process of software development is not really complete until we've installed our pride and joy in a production environment and caused total havoc with our customer's accounting, payroll, and security systems. Lesson Four of consultancy is that the occasional demonstration of raw power is very important to establish a healthy client relationship based on awe (so that you will get more work) and fear (so they will pay the invoice on time and in full). </p>
+<p>Presumably if you have gotten this far and actually tried the examples (rather than just nodding your head as you slide into deep sleep), you will have installed Base somewhere. Under Windows, maybe c:\imatix. Under Unix, maybe /usr/local/imatix.  We are now going to install our HWA in the same place: </p>
+<pre>
+boomake install
+</pre>
+<p>after which you should take a quick look at the bin, include, and lib directories in the install tree and check that the hello deliverables are nicely there. </p>
+<h4><a name="TOC30">Cleaning Up</a></h4>
+<p>Let's try a quick clean-up: </p>
+<pre>
+boomake clean
+</pre>
+<p>Now look at the working directory.  You will see that all files produced during the build process have magically vanished.  Boom knows what files are "original" and which ones are not, and it deletes those generated or produced by the compile/link process. </p>
+<h4><a name="TOC31">Distributing the Project</a></h4>
+<p>After all that hard work, we want to be able to send a huge email attachment to our customer along with the invoice. The boomake builder knows enough about the project to be able to throw together a package of the source files you need to build your HWA/2.0 from another system. To make this package, try: </p>
+<pre>
+boomake distrib
+</pre>
+<p>("distrib" is an abreviation for "distribute the sources so that we can go home after a long morning's work and consider how we will spend our hard earned money without suffering excessive tax penalties.") Under Windows, this will create a zip file. Under Unix, a compressed tar file. It's fun to look at what's in this package.  For instance, using the command: </p>
+<pre>
+unzip -l hello*.zip
+</pre>
+<p>which shows us something like this, depending on whether and how we generate stuff like makefiles (shown here as msmake and makefile): </p>
+<pre>
+Archive:  hello_2_0_src.zip
+ Length    Date    Time    Name
+ ------    ----    ----    ----
+     89  01-15-03  17:18   hello.c
+     94  01-15-03  17:17   subhello.c
+     94  01-15-03  17:17   subworld.c
+    178  01-15-03  17:18   hello.h
+    577  01-15-03  17:48   project.pdl
+    332  01-15-03  17:17   readme.txt
+  18115  01-15-03  17:49   boomake
+  18432  01-15-03  17:49   boomake.bat
+   1255  01-15-03  17:49   makefile
+   1052  01-15-03  17:49   msmake
+ ------                    -------
+  40218                    10 files
+</pre>
+<p>Quite impressive, even if I say so myself. Throw the package onto another system (call this the HWA Production Platform and you may even be able to tweak the hardware vendor for a margin), unzip it, and run boomake to the astonishment and delight of your customer. This definitely falls into the class of project called "Golden Bowl". Go get that Porsche now, you've earned it! </p>
+<h4><a name="TOC32">Deconstructing The Project</a></h4>
+<p>You may have noticed that the Boom builder works somewhat like a normal make file, with "configure", "build", "install", and "clean" steps. This cannot be totally accidental - I guess whatever genius invented makefiles had already looked at Boom and decided that our model was good enough to copy. Or maybe it was the other way around. In any case, we've applied the principle of Least Surprise to try to make boomake work somewhat like make, even if it's actually a totally different kind of animal. Let's look at the project.pdl file again, piece by piece: </p>
+<pre>
+&lt;?xml version="1.0"?&gt;
+&lt;pdl
+    name      = "Hello World"
+    acronym   = "hello"
+    version   = "2.0"
+    workflow  = "standard.pwl"
+    library   = "libhello" &gt;
+</pre>
+<p>This defines the project. If you have sharp eyes and are still awake, you will notice a new attribute from the 1.0 version, namely "library". We must define this if we have subroutines to compile.  My suggestion is to always use a library called "libxxxx" where xxxx is the project acronym.  It makes life easier on system like Unix where standard libraries also start with "lib". </p>
+<p>Note that you do not specify an extension for the library.  Wherever you specify a library, object file, or executably program, extensions are not just unnecessary, they are bad, because they are not portable. Boom knows enough to stick a ".a", ".lib", ".exe" and so on after the filename when it's needed. </p>
+<p>After the project header, we do this: </p>
+<pre>
+&lt;include filename = "prelude.pdl" /&gt;
+</pre>
+<p>Which includes something called "prelude.pdl".  If you look at this file (supplied with Boom and sitting in the Base bin directory), you will see that it in turn includes and inherits a number of files. Using prelude.pdl makes life easier, forces us to make projects a little more standard, and this is all good. </p>
+<p>Next we list the C programs we have in our project, using two classes. I'll get back to the different classes we can use later on: </p>
+<pre>
+&lt;file name = "hello.c"      class = "main program"  /&gt;
+&lt;file name = "subhello.c"   class = "sub program"   /&gt;
+&lt;file name = "subworld.c"   class = "sub program"   /&gt;
+</pre>
+<p>Finally, we list the so-called "deliverables".  It's polite to put these at the end of the project definition, but actually the order of files has no significance: </p>
+<pre>
+
+&lt;!-- Deliverables --&gt;
+&lt;file name = "hello"        class = "public command"/&gt;
+&lt;file name = "hello.h"      class = "public header" /&gt;
+&lt;file name = "libhello"     class = "public library"/&gt;
+</pre>
+<p>Again, it's the file class which tells Boom how to handle the file. We'll see this later. </p>
+<h3><a name="TOC33">The mkpdl Tool</a></h3>
+<p>Boom comes with a small Perl tool, mkpdl, that creates a skeleton project file for a new project. To use mkpdl, just run the command: </p>
+<pre>
+mkpdl
+</pre>
+<p>Which creates a "project.pdl" file for you. You will have to check and edit this file, since mkpdl makes some assumptions that are certainly not entirely correct. </p>
+<p>To get the best use out of mkpdl, clean-up your project directory first, removing all generated code, object files, libraries, and so on.  If you use a source control system such as CVS, you can usefully run mkpdl immediately after checking-out a project. </p>
+<p>If you already have a project.pdl file, mkpdl does nothing. To create a new file, you must manually delete or rename the existing one, and then run mkpdl. </p>
+<p>The project.pdl that mkpdl uses a small set of classes, and again the file classes are something you will want to check and probably edit. These are the classes it uses: </p>
+<p><center><table border="1" width="90%"><tr>
+<th>Class</th>
+<th>         Used for</th>
+</tr>
+<tr>
+<td>sub program</td>
+<td>   ANSI C sources with no dialog or header.</td>
+</tr>
+<tr>
+<td>c/libero</td>
+<td>      ANSI C sources with a matching dialog.</td>
+</tr>
+<tr>
+<td>library module</td>
+<td>ANSI C sources with a matching header file.</td>
+</tr>
+<tr>
+<td>dialog</td>
+<td>        Libero dialog files (with the extension .l).</td>
+</tr>
+<tr>
+<td>private resource</td>
+<td>C header files.</td>
+</tr>
+<tr>
+<td>dos wrapper</td>
+<td>   Windows batch files (with the extension .bat).</td>
+</tr>
+<tr>
+<td>gsl data</td>
+<td>      Any XML files (with the extension .xml).</td>
+</tr>
+<tr>
+<td>command script</td>
+<td>Any files without extension.</td>
+</tr>
+<tr>
+<td>private resource</td>
+<td>Any other file that looks "useful".</td>
+</tr>
+</table></center></p><p>Here is an example of mkpdl's work, in this case for our glorious Hello World Application v2.0: </p>
+<pre>
+&lt;?xml version="1.0"?&gt;
+&lt;pdl
+    name      = "Kewl Project"
+    acronym   = "kewl"
+    version   = "1.0"
+    copyright = "Copyright (c) 1991-2009 iMatix Corporation"
+    workflow  = "standard.pwl"
+    library   = "libxxx" &gt;
+&lt;include filename = "prelude.pdl" /&gt;
+&lt;file name = "hello.c"      class = "library module"  &gt;&lt;/file&gt;
+&lt;file name = "subhello.c"   class = "sub program"     &gt;&lt;/file&gt;
+&lt;file name = "subworld.c"   class = "sub program"     &gt;&lt;/file&gt;
+&lt;file name = "readme.txt"   class = "private resource"&gt;&lt;/file&gt;
+&lt;!-- Deliverables --&gt;
+&lt;file name = "libxxx"       class = "public library"  &gt;Some runtime library&lt;/file&gt;
+&lt;use&gt;
+    &lt;library name = "libsfl" /&gt;
+&lt;/use&gt;
+&lt;/pdl&gt;
+</pre>
+<h3><a name="TOC34">The IBASE Environment Variable</a></h3>
+<p>Boom relies on various environment variables, including PATH and PERLLIB, but most critically on an environment variable called "IBASE". If you do not know what I mean by "environment variable", please go and ask someone. IBASE tells Boom two things. First, where it must install its projects (and products) when doing a real, final install. Second, where it can find libraries and include files for building. If you find that projects do not build correctly, or seem to link with incorrect libraries, it is most likely because IBASE is set wrongly. </p>
+<p>If IBASE is not set, it will default to: </p>
+<pre>
+/usr/local/imatix
+</pre>
+<p>under Unix, and: </p>
+<pre>
+c:\imatix
+</pre>
+<p>under Windows.  If you look at the first few lines of boomake(.bat) you will see how IBASE is used: </p>
+<pre>
+_IBASE=$IBASE
+test -z "$_IBASE" &amp;&amp; _IBASE=/usr/local/imatix
+INCDIR=$_IBASE/include
+LIBDIR=$_IBASE/lib
+PATH=.:$_IBASE/bin:$PATH
+PERLLIB=.:$_IBASE/bin:$PERLLIB
+export INCDIR LIBDIR PATH PERLLIB
+</pre>
+<p>where INCDIR and LIBDIR are used for C compilation and linking. </p>
+<h3><a name="TOC35">Installation Directories</a></h3>
+<p>Boom enforces a specific installation model for your applications. This is derived from the standard Unix world view in which interesting things tend to go into specific directories. However, Boom does not let you install files into random directories, such as /etc or c:\winnt\system32 , even if this is what you would like to do. There is something peculiarly unpolite and short-sighted about putting applications into "system" directories. Yes, it makes it "easy" to find important files, but it also creates scope for endless catastrophes. You can always do such brutal installations by adding intelligence (though in this case, I'd question the term) to the Boom builders. </p>
+<p>The model that Boom imposes follows these rules: </p>
+<ol>
+<li><p>All the files in an application are installed into a single tree, which is under $IBASE (I'll stick to the Unix conventions here).</li>
+<li><p>This tree has four main branches, namely bin, include, lib, and doc.</li>
+<li><p>You can create your own branches as needed for finer control over where files go.</li>
+</ol>
+<p>On the bright side, Boom's authoritarianism means that it is easy to identify where applications have been put, and easy to uninstall them when they are no longer wanted. </p>
+<p>Boom knows about a number of specific "types" of file when it comes to installation. If you look at classes.pdl, and specifically at the &lt;install as&gt; tags scattered through that file, you will that the "as" attribute takes one of the following values: </p>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>     Meaning</th>
+</tr>
+<tr>
+<td>include</td>
+<td>   Include file, goes into $IBASE/include (public header).</td>
+</tr>
+<tr>
+<td>library</td>
+<td>   Library of object programs, goes into $IBASE/lib (public library).</td>
+</tr>
+<tr>
+<td>command</td>
+<td>   Executable command, goes into $IBASE/bin (public command).</td>
+</tr>
+<tr>
+<td>resource</td>
+<td>  Resource used by executable command, goes into $IBASE/bin (public resource).</td>
+</tr>
+<tr>
+<td>script</td>
+<td>    Executable script, goes into $IBASE/bin (public script).</td>
+</tr>
+<tr>
+<td>license</td>
+<td>   License description, goes into $IBASE/bin (license).</td>
+</tr>
+<tr>
+<td>readme</td>
+<td>    Readme file, goes into $IBASE/doc (readme).</td>
+</tr>
+<tr>
+<td>document</td>
+<td>  Documentation file, goes into $IBASE/doc (documentation).</td>
+</tr>
+</table></center></p><p>The main class for each of these is shown in parenthesis. The way classes work mean that installation of files should work more or less automatically - that is, you do not need to specify &lt;install as&gt; tags unless you are defining new low-level classes. </p>
+<h3><a name="TOC36">Boom Project Workflows</a></h3>
+<p>Boom provides three workflows for projects. These all provide a similar configure, build, install, clean process, but the detail changes slightly depending on the work you want to do. If in doubt, use the standard workflow. The others exist only to create slightly smaller builder scripts but all projects will actually work with the standard workflow. </p>
+<h4><a name="TOC37">The Standard Workflow</a></h4>
+<p>This is the standard Boom workflow for projects containing generated code, and compiled into binary executables or libraries. This workflow generates a builder that accepts these commands: </p>
+<dl>
+<dt><b>build</b></dt>
+<dd>From the raw project sources, produces all generated files, and compiles all source files. From the packaged sources, compiles all source files without any code generation. </dd>
+<dt><b>compile</b></dt>
+<dd>From the raw project sources, compiles all source files without any code generation. </dd>
+<dt><b>clean</b></dt>
+<dd>When working with the raw project sources, removes all generated source and binary files from the project directory. When working with the packaged sources, removes all generated source files from the project directory. </dd>
+<dt><b>regen</b></dt>
+<dd>Produces all generated files. </dd>
+<dt><b>install</b></dt>
+<dd>Installs deliverables into the final or temporary install tree. This action is only valid after a successful build. </dd>
+<dt><b>distrib</b></dt>
+<dd>Creates a source distribution for the project. Note that binary distributions can only be created at the product level. </dd>
+<dt><b>distsrc</b></dt>
+<dd>Equivalent to distrib, provided for compatibility. </dd>
+<dt><b>distrev</b></dt>
+<dd>Creates a source distribution for the project. Builds distribution packages based on source control version number. Note that binary distributions can only be created at the product level. </dd>
+<dt><b>test</b></dt>
+<dd>Runs regression tests for the project. </dd>
+<dt><b>help</b></dt>
+<dd>Shows a list of the commands allowed on the project. </dd>
+<dt><b>version</b></dt>
+<dd>Show project version. </dd>
+</dl>
+<h4><a name="TOC38">The Scripted Workflow</a></h4>
+<p>This is the Boom workflow for script projects containing generated code, but creating no linked executables or libraries. This workflow generates a builder that accepts these commands: </p>
+<dl>
+<dt><b>build</b></dt>
+<dd>From the raw project sources, produces all generated files. When working with the packaged sources, does nothing. </dd>
+<dt><b>compile</b></dt>
+<dd>Has no effect, provided for consistency with other workflows. </dd>
+<dt><b>clean</b></dt>
+<dd>Removes all generated source files from the project directory. Has no effect, provided for consistency with other workflows. </dd>
+<dt><b>regen</b></dt>
+<dd>Produces all generated files. </dd>
+<dt><b>install</b></dt>
+<dd>Installs deliverables into the final or temporary install tree. </dd>
+<dt><b>distrib</b></dt>
+<dd>Creates a source distribution for the project. </dd>
+<dt><b>distsrc</b></dt>
+<dd>Equivalent to distrib, provided for compatibility. </dd>
+<dt><b>distrev</b></dt>
+<dd>Creates a source distribution for the project. Builds distribution packages based on source control version number. Note that binary distributions can only be created at the product level. </dd>
+<dt><b>test</b></dt>
+<dd>Runs regression tests for the project. </dd>
+<dt><b>help</b></dt>
+<dd>Shows a list of the commands allowed on the project. </dd>
+<dt><b>version</b></dt>
+<dd>Show project version. </dd>
+</dl>
+<h4><a name="TOC39">The Simple Workflow</a></h4>
+<p>This is the Boom workflow for projects with no code generation and no compile/link phase; in other words, the deliverables are fully hand-made. This workflow generates a builder that accepts these commands: </p>
+<dl>
+<dt><b>build</b></dt>
+<dd>Has no effect, provided for consistency with other workflows. </dd>
+<dt><b>regen</b></dt>
+<dd>Has no effect, provided for consistency with other workflows. </dd>
+<dt><b>clean</b></dt>
+<dd>Has no effect, provided for consistency with other workflows. </dd>
+<dt><b>install</b></dt>
+<dd>Installs deliverables into the final or temporary install tree. </dd>
+<dt><b>distrib</b></dt>
+<dd>Creates a source distribution for the project. </dd>
+<dt><b>distsrc</b></dt>
+<dd>Equivalent to distrib, provided for compatibility. </dd>
+<dt><b>test</b></dt>
+<dd>Runs regression tests for the project. </dd>
+<dt><b>help</b></dt>
+<dd>Shows a list of the commands allowed on the project. </dd>
+<dt><b>version</b></dt>
+<dd>Show project version. </dd>
+</dl>
+<h3><a name="TOC40">Standard Boom Classes</a></h3>
+<p>These are all the classes defined in classes.pdl: </p>
+<dl>
+<dt><b>private resource</b></dt>
+<dd> Any text resource used to build the project.  This is a base class used for most other classes. Distribute as source. </dd>
+<dt><b>public resource</b></dt>
+<dd> Any text resource that will be installed with the application. Distribute as binary. Distribute as source. Install as resource. </dd>
+<dt><b>generated resource</b></dt>
+<dd> Generated public resource. Distribute as source. Distribute as binary. Generated. Install as resource. </dd>
+<dt><b>public script</b></dt>
+<dd> Script in GSL or another language that will be installed with the application. Distribute as binary. Distribute as source. Install as script. </dd>
+<dt><b>generated script</b></dt>
+<dd> Generated public script. Distribute as source. Distribute as binary. Generated. Install as script. </dd>
+<dt><b>command script</b></dt>
+<dd> Script in Perl or another language that will be installed with the application and will be marked 'executable' on systems that support the #! convention. Distribute as binary. Distribute as source. Install as command. </dd>
+<dt><b>private binary</b></dt>
+<dd> Any binary resource used to build the project. Distribute as source. </dd>
+<dt><b>public binary</b></dt>
+<dd> Binary resource that is installed with the application. Distribute as binary. Distribute as source. Install as resource. </dd>
+<dt><b>main program</b></dt>
+<dd> ANSI C main program, compiled and linked from command line Distribute as source. Compile via 'c' command. Link as main program. Includes 'private object' as a derived class. Includes 'private command' as a derived class. </dd>
+<dt><b>c++ main program</b></dt>
+<dd> ANSI C++ main program, compiled and linked from command line Distribute as source. Compile via 'c' command. Link as main program. Includes 'private object' as a derived class. Includes 'private command' as a derived class. </dd>
+<dt><b>generated main</b></dt>
+<dd> Generated main program. Distribute as source. Compile via 'c' command. Link as main program. Generated. Includes 'private object' as a derived class. Includes 'private command' as a derived class. </dd>
+<dt><b>c++ generated main</b></dt>
+<dd> Generated C++ main program. Distribute as source. Compile via 'c' command. Link as main program. Generated. Includes 'private object' as a derived class. Includes 'private command' as a derived class. </dd>
+<dt><b>sub program</b></dt>
+<dd> ANSI C sub program, compiled and replaced into library Distribute as source. Compile via 'c' command. Replace into library. Includes 'private object' as a derived class. </dd>
+<dt><b>c++ sub program</b></dt>
+<dd> ANSI C++ sub program, compiled and replaced into library Distribute as source. Compile via 'c' command. Replace into library. Includes 'private object' as a derived class. </dd>
+<dt><b>generated program</b></dt>
+<dd> ANSI C sub program, compiled and replaced into library, generated during packaging. Distribute as source. Compile via 'c' command. Replace into library. Generated. Includes 'private object' as a derived class. </dd>
+<dt><b>c++ generated program</b></dt>
+<dd> ANSI C++ sub program, compiled and replaced into library, generated during packaging. Distribute as source. Compile via 'c' command. Replace into library. Generated. Includes 'private object' as a derived class. </dd>
+<dt><b>library module</b></dt>
+<dd> ANSI C sub program, compiled and replaced into library, with header file. Distribute as source. Compile via 'c' command. Replace into library. Includes 'private resource' as a derived class. Includes 'private object' as a derived class. </dd>
+<dt><b>dialog module</b></dt>
+<dd> Library program based on a Libero dialog. Distribute as source. Compile via 'c' command. Replace into library. Includes 'c dialog' as a derived class. Includes 'private resource' as a derived class. Includes 'private object' as a derived class. </dd>
+<dt><b>test program</b></dt>
+<dd> ANSI C test program Distribute as source. Compile via 'c' command. Link as main program. Includes 'private object' as a derived class. Includes 'private command' as a derived class. </dd>
+<dt><b>c++ test program</b></dt>
+<dd> ANSI C++ test program Distribute as source. Compile via 'c' command. Link as main program. Includes 'private object' as a derived class. Includes 'private command' as a derived class. </dd>
+<dt><b>generated test</b></dt>
+<dd> ANSI C test program, generated Distribute as source. Compile via 'c' command. Link as main program. Generated. Includes 'private object' as a derived class. Includes 'private command' as a derived class. </dd>
+<dt><b>generated module</b></dt>
+<dd> ANSI C sub program, compiled and replaced into library, generated during packaging, with derived header file. Distribute as source. Compile via 'c' command. Replace into library. Generated. Includes 'generated header' as a derived class. Includes 'private object' as a derived class. </dd>
+<dt><b>c++ generated module</b></dt>
+<dd> ANSI C++ sub program, compiled and replaced into library, generated during packaging, with derived header file. Distribute as source. Compile via 'c' command. Replace into library. Generated. Includes 'generated header' as a derived class. Includes 'private object' as a derived class. </dd>
+<dt><b>public header</b></dt>
+<dd> Public header file, used for compilation and installed with application. Distribute as binary. Distribute as source. Install as include. </dd>
+<dt><b>generated header</b></dt>
+<dd> Generated header file, used for compilation and installed with application. Distribute as source. Distribute as binary. Generated. Install as include. </dd>
+<dt><b>dialog</b></dt>
+<dd> Libero dialog file.  The schema must be specified in the dialog file. Distribute as source. Run "lr -quiet" to generate. </dd>
+<dt><b>c dialog</b></dt>
+<dd> Libero dialog made for a C program. Distribute as source. Run "lr -quiet" to generate. Includes 'generated' as a derived class. Includes 'generated' as a derived class. </dd>
+<dt><b>perl dialog</b></dt>
+<dd> Libero dialog made for a Perl program. Distribute as source. Run "lr -quiet" to generate. Includes 'generated resource' as a derived class. </dd>
+<dt><b>c/libero</b></dt>
+<dd> C program that includes a Libero dialog and all associated files. Distribute as source. Compile via 'c' command. Replace into library. Includes 'c dialog' as a derived class. Includes 'private object' as a derived class. </dd>
+<dt><b>c/libero main</b></dt>
+<dd> C program that includes a Libero dialog and all associated files. Distribute as source. Compile via 'c' command. Link as main program. Includes 'c dialog' as a derived class. Includes 'private object' as a derived class. Includes 'private command' as a derived class. </dd>
+<dt><b>perl/libero</b></dt>
+<dd> Perl script that includes a Libero dialog and all associated files. Distribute as binary. Distribute as source. Install as command. Includes 'perl dialog' as a derived class. Includes 'dos wrapper' as a derived class. </dd>
+<dt><b>dos wrapper</b></dt>
+<dd> Windows command batch file. Distribute as binary. Distribute as source. Install as script. </dd>
+<dt><b>gsl data</b></dt>
+<dd> GSL XML data file, used to generate code.  The associated script must be specified in the XML file. Distribute as source. Run "gsl -q -quiet:1" to generate. </dd>
+<dt><b>gsl public data</b></dt>
+<dd> GSL XML data file, used to generate code.  The associated script must be specified in the XML file.  Installed as a public resource. Distribute as binary. Distribute as source. Run "gsl -q -quiet:1" to generate. Install as resource. </dd>
+<dt><b>gsl3 data</b></dt>
+<dd> GSL XML data file, used to generate code.  The associated script must be specified in the XML file. Distribute as source. Run "gsl3 -q" to generate. </dd>
+<dt><b>fat test</b></dt>
+<dd> GSL XML file that generates a main test program. Distribute as source. Run "gsl -q -quiet:1" to generate. Includes 'generated test' as a derived class. </dd>
+<dt><b>fat module</b></dt>
+<dd> GSL XML data file that generates an eponymous library module and header. Distribute as source. Run "gsl -q -quiet:1" to generate. Includes 'generated module' as a derived class. Includes 'generated' as a derived class. </dd>
+<dt><b>fat main</b></dt>
+<dd> GSL XML data file that generates a main program (and a header). Distribute as source. Run "gsl -q -quiet:1" to generate. Includes 'generated main' as a derived class. Includes 'generated' as a derived class. </dd>
+<dt><b>readme</b></dt>
+<dd> Project readme file, may be shown during installation. Distribute as binary. Distribute as source. Install as readme. </dd>
+<dt><b>license</b></dt>
+<dd> Project license file, may be shown during installation. Distribute as binary. Distribute as source. Install as license. </dd>
+<dt><b>shared resource</b></dt>
+<dd> Shared resources are packaged directly from the binary directory if they are not already present in the project directory. Distribute as binary. Distribute as source. Install as resource. </dd>
+<dt><b>htmlpp document</b></dt>
+<dd> Htmlpp source document. Distribute as source. Run "htmlpp -quiet" to generate. </dd>
+<dt><b>generated</b></dt>
+<dd> Any other generated file that is distributed as source but not installed. Distribute as source. Generated. </dd>
+<dt><b>temporary</b></dt>
+<dd> Any other generated file that is not distributed at all. Generated. </dd>
+<dt><b>documentation</b></dt>
+<dd> Hand-written project documentation in any text form. Distribute as binary. Distribute as source. Install as document. </dd>
+<dt><b>htmlpp output</b></dt>
+<dd> Htmlpp generated file. Distribute as source. Distribute as binary. Generated. Install as document. </dd>
+<dt><b>gurudoc text</b></dt>
+<dd> Gurudoc input file, will be converted into default web output. Distribute as binary. Distribute as source. Run "gurudoc" to generate. Install as document. Includes 'temporary' as a derived class. Includes 'gurudoc output' as a derived class. </dd>
+<dt><b>gurudoc output</b></dt>
+<dd> Gurudoc generated file. Distribute as source. Distribute as binary. Generated. Install as document. </dd>
+<dt><b>web resource</b></dt>
+<dd> Image file required for HTML documentation. Distribute as source. Distribute as binary. Install as document. </dd>
+<dt><b>bootstrap image</b></dt>
+<dd> Executable file used to bootstrap a project: this will be included in any source distribution, and must be specified in the project with a native extension (.exe for Windows). Distribute as source. Distribute as binary. Install as command. </dd>
+<dt><b>bootstrap library</b></dt>
+<dd> Library file used to bootstrap a project: this will be included in any source distribution and must be specified in the project with a native extension (.lib for Windows or .a for Unix). Distribute as source. Distribute as binary. Install as library. </dd>
+<dt><b>private object</b></dt>
+<dd> Compiled program object file. Generated. </dd>
+<dt><b>public object</b></dt>
+<dd> Compiled program object file installed with the application. Distribute as binary. Generated. Install as command. </dd>
+<dt><b>private command</b></dt>
+<dd> Executable program for test purposes. Generated. </dd>
+<dt><b>public command</b></dt>
+<dd> Executable program, installed with the application. Distribute as binary. Generated. Install as command. </dd>
+<dt><b>private library</b></dt>
+<dd> Object library used for build process only. Generated. </dd>
+<dt><b>public library</b></dt>
+<dd> Object library, installed with the application. Distribute as binary. Generated. Install as library. </dd>
+<dt><b>shared library</b></dt>
+<dd> Non-portable shared link library, installed with the application. Distribute as binary. Generated. Install as library. </dd>
+<dt><b>c version</b></dt>
+<dd> Generated version header for C projects. Distribute as source. </dd>
+<dt><b>gsl version</b></dt>
+<dd> Generated version header for GSL projects. Distribute as binary. Distribute as source. Install as script. </dd>
+<dt><b>perl version</b></dt>
+<dd> Generated version header for Perl projects. Distribute as binary. Distribute as source. Install as script. </dd>
+</dl>
+<h2><a name="TOC41">The PDL Language</a></h2>
+<p>PDL is the Boom Project Definition Language, used to describe a Boom project or product. For most purposes, you should define a single PDL file per directory and this file should be called "project.pdl". To compile a PDL file, simply run the "boom" command. </p>
+<h3><a name="TOC42">Summary of Language</a></h3>
+<p>This summary shows the hierarchy of elements you can use, with the required and optional attributes for each element.  The XML entity and attribute names are case-sensitive and we use only lower-case names. </p>
+<pre>
+&lt;pdl name version [install] [deploy] [acronym] [copyright] [workflow] [library]&gt;
+   &lt;include filename [required]/&gt;
+   &lt;inherit filename/&gt;
+   &lt;file name [class] [shared] [generated] [filetype] [library] [target]&gt;
+      &lt;configure&gt;
+         &lt;execute [command] [target]/&gt;
+      &lt;/configure&gt;
+      &lt;generate&gt;
+         &lt;execute .../&gt;
+         &lt;collect [into] [class]&gt;
+            &lt;file name/&gt;
+         &lt;/collect&gt;
+         &lt;copy from [filename]/&gt;
+      &lt;/generate&gt;
+      &lt;build&gt;
+         &lt;execute .../&gt;
+         &lt;compile [as]/&gt;
+         &lt;replace [as]/&gt;
+         &lt;link [as]/&gt;
+         &lt;copy .../&gt;
+      &lt;/build&gt;
+      &lt;test&gt;
+         &lt;execute .../&gt;
+         &lt;run/&gt;
+      &lt;/test&gt;
+      &lt;distrib as [format]/&gt;
+      &lt;install as [rename]&gt;
+         &lt;execute .../&gt;
+      &lt;/install&gt;
+      &lt;clean&gt;
+         &lt;execute .../&gt;
+      &lt;/clean&gt;
+      &lt;degen&gt;
+         &lt;execute .../&gt;
+      &lt;/degen&gt;
+      &lt;derive class [extension] [filename]/&gt;
+   &lt;/file&gt;
+   &lt;class name [generated] [shared] [filetype] [inherit] [target]&gt;
+      &lt;configure .../&gt;
+      &lt;generate .../&gt;
+      &lt;build .../&gt;
+      &lt;test .../&gt;
+      &lt;distrib .../&gt;
+      &lt;install .../&gt;
+      &lt;clean .../&gt;
+      &lt;degen .../&gt;
+      &lt;derive .../&gt;
+   &lt;/class&gt;
+   &lt;target name/&gt;
+   &lt;actions [when]&gt;
+      &lt;configure .../&gt;
+      &lt;generate .../&gt;
+      &lt;build .../&gt;
+      &lt;install&gt;
+         &lt;execute .../&gt;
+      &lt;/install&gt;
+      &lt;distsrc&gt;
+         &lt;execute .../&gt;
+      &lt;/distsrc&gt;
+      &lt;clean .../&gt;
+      &lt;degen .../&gt;
+   &lt;/actions&gt;
+   &lt;directory name [keep_paths] [class] [library] [target]&gt;
+      &lt;directory name [keep_paths] [class] [library] [target]&gt;
+      &lt;/directory&gt;
+      &lt;file .../&gt;
+      &lt;actions .../&gt;
+   &lt;use&gt;
+      &lt;library name/&gt;
+   &lt;/use&gt;
+   &lt;set name value [target]/&gt;
+   &lt;distrib name type&gt;
+      &lt;project directory [pdlfile]/&gt;
+      &lt;packager name [target]/&gt;
+      &lt;prune filename/&gt;
+      &lt;argument name value/&gt;
+   &lt;/distrib&gt;
+&lt;/pdl&gt;
+</pre>
+<h3><a name="TOC43">Detailed Specifications</a></h3>
+<p>All child entities are optional and can occur zero or more times without any specific limits unless otherwise specified.  The same tag may occur at different levels with different meanings, and in such cases will be detailed more than once here. </p>
+<h4><a name="TOC44">The 'pdl' Item</a></h4>
+<p>A project description has exactly one pdl item. It defines the files that make up a project, and the production process for each class of file. Note that you make PDL descriptions for projects and also for products consisting of multiple projects - the PDL grammer supports both projects and products. </p>
+<pre>
+&lt;pdl
+    name = "..."
+    version = "..."
+  [ install = "..." ]
+  [ deploy = "..." ]
+  [ acronym = "..." ]
+  [ copyright = "..."  ("Copyright (c) The Author") ]
+  [ workflow = "..."  ("standard.pwl") ]
+  [ library = "..."  ("liblocal") ]
+    &gt;
+    &lt;include&gt;
+    &lt;inherit&gt;
+    &lt;file&gt;
+    &lt;class&gt;
+    &lt;target&gt;
+    &lt;actions&gt;
+    &lt;directory&gt;
+    &lt;use&gt;
+    &lt;set&gt;
+    &lt;distrib&gt;
+&lt;/pdl&gt;
+</pre>
+<p>The pdl item can have these attributes: </p>
+<dl>
+<dt><b>name</b></dt>
+<dd>Specifies the full name of the project. The name attribute is required. </dd>
+<dt><b>acronym</b></dt>
+<dd>Specifies a short acronym for the project. This text is used when building scripts and packages. It should be globally unique. Defaults to project name. The acronym attribute is optional. </dd>
+<dt><b>install</b></dt>
+<dd>This provides the name of the directory tree into which the project will be installed. This is always prefixed by a root directory defined by the IBASE environment variable, or a default provided by Boom. You should only define the install property when you need to keep the project separate from others installed into the IBASE. The install attribute is optional. Its default value is "". </dd>
+<dt><b>deploy</b></dt>
+<dd>By default, project files are installed into separate directories (bin, lib, include, doc) under the installation root. If you specify a deploy directory, the project files are installed into that directory, which itself is placed under the installation root. Define this for projects where you want to deliver a single set of files, e.g. to provide a runtime environment. The deploy attribute is optional. Its default value is "". </dd>
+<dt><b>version</b></dt>
+<dd>Specifies the version of the project. This text can take any format but we recommend this standard format: '2.4b1' which is major version 2, minor version 4, release b, update 1. The version string is used when building packages. The version attribute is required. </dd>
+<dt><b>copyright</b></dt>
+<dd>This specifies the copyright string for the project. This string may be stamped into the project sources during packaging. The copyright attribute is optional. Its default value is "Copyright (c) The Author". </dd>
+<dt><b>workflow</b></dt>
+<dd>This specifies the workflow (PWL) that governs the project build process. The process is defined as a PWL file. The normal workflow is 'standard'. The workflow attribute is optional. Its default value is "standard.pwl". </dd>
+<dt><b>library</b></dt>
+<dd>Defines the default project library for compiled programs. Can be overridden at the directory level. The library attribute is optional. Its default value is "liblocal". </dd>
+</dl>
+<h4><a name="TOC45">The 'include' Item</a></h4>
+<p>The 'include' element permits textual-inclusion from another file. The specified file (in XML format) is loaded and inserted into the XML tree in place of the 'include' element. The specified file may contain a "forest" of XML trees, such that there is more than one top level element in the XML file. All of the XML trees in the specified file will be loaded and placed into the current XML tree in place of the 'include' element. The 'include' element makes it possible to split the PDL definitions across multiple text files for easier editing, and also to allow reuse of common definitions. However because a straight textual-inclusion is performed, care must be taken to ensure that the result of the inclusion will still give a valid PDL file; if more selective inclusion is required the 'inherit' element may be more appropriate to inherit classes from another file. </p>
+<pre>
+&lt;include
+    filename = "..."
+  [ required = "0 | 1"  ("1") ]
+    /&gt;
+</pre>
+<p>The include item can have these attributes: </p>
+<dl>
+<dt><b>filename</b></dt>
+<dd>The name of the XML-format file to be included in place of the 'include' element. The filename attribute is required. </dd>
+<dt><b>required</b></dt>
+<dd>If set to zero, the include file is ignored if it is missing. The required attribute is optional. Its default value is "1". It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>0</td>
+<td>File is not required</td>
+</tr>
+<tr>
+<td>1</td>
+<td>File is required</td>
+</tr>
+</table></center></p><h4><a name="TOC46">The 'inherit' Item</a></h4>
+<p>The 'inherit' element permits reference to a base set of classes which should be used if the classes are not already defined in the PDL file. The specified file (in PDL format, as a single XML tree with a 'PDL' element at the top level) is processed looking for classes which are in the specfified file but not already in PDL being processed. When a new class is found, it is copied from the specified PDL into the tree of PDL file being processed. classes that already exist in the PDL file being processed are skipped. The 'inherit' element is used for building on common PDL definitions. Unlike the 'include' element only 'class' elements will be copied from the specified file, and the specified file must be a full PDL file. </p>
+<pre>
+&lt;inherit
+    filename = "..."
+    /&gt;
+</pre>
+<p>The inherit item has this single attribute: </p>
+<dl>
+<dt><b>filename</b></dt>
+<dd>The name of the PDL-format file to read additional classes from. The filename attribute is required. </dd>
+</dl>
+<h4><a name="TOC47">The 'file' Item</a></h4>
+<p>Defines a file in the project. If the file specifies one or more target children, the file will only be installed on those targets. </p>
+<pre>
+&lt;file
+    name = "..."
+  [ class = "..." ]
+  [ shared = "..." ]
+  [ generated = "..." ]
+  [ filetype = "command | object | library" ]
+  [ library = "..." ]
+  [ target = "..." ]
+    &gt;
+    &lt;configure&gt;
+    &lt;generate&gt;
+    &lt;build&gt;
+    &lt;test&gt;
+    &lt;distrib&gt;
+    &lt;install&gt;
+    &lt;clean&gt;
+    &lt;degen&gt;
+    &lt;derive&gt;
+&lt;/file&gt;
+</pre>
+<p>The file item can have these attributes: </p>
+<dl>
+<dt><b>name</b></dt>
+<dd>File names are case-sensitive, and should always be in lower case and not contain spaces for portability. The name attribute is required. </dd>
+<dt><b>class</b></dt>
+<dd>The file class defines how the file is handled. It can be inherited from the parent directory if the file is defined inside a directory. The class attribute is optional. </dd>
+<dt><b>shared</b></dt>
+<dd>Specifies that the file is shared among projects or products. If the file does not exist locally, Boom will look for it in the directory where binary files would normally be installed (and where the file will have been installed from a previous project installation). The shared attribute is optional. </dd>
+<dt><b>generated</b></dt>
+<dd>Specifies that the file is generated and can be deleted during a cleanup step. The generated attribute is optional. </dd>
+<dt><b>filetype</b></dt>
+<dd>Specifies that the file has a non-portable extension. This is inherited from the class if necessary. The filetype attribute is optional. It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>command</td>
+<td>Executable binary command</td>
+</tr>
+<tr>
+<td>object</td>
+<td>Compiled program object file</td>
+</tr>
+<tr>
+<td>library</td>
+<td>Compiled object library file</td>
+</tr>
+</table></center></p><dl>
+<dt><b>library</b></dt>
+<dd>If specified, defines the library for compiled programs. If not specified, compiled programs are inserted into the directory library or the project library. The library attribute is optional. </dd>
+<dt><b>target</b></dt>
+<dd>If specified, the file is processed on this target only. The target attribute is optional. </dd>
+</dl>
+<h4><a name="TOC48">The 'configure' Item</a></h4>
+<p>Specifies the steps that are required to configure the project before it can be used in a source package. </p>
+<pre>
+&lt;configure&gt;
+    &lt;execute&gt;
+&lt;/configure&gt;
+</pre>
+<h4><a name="TOC49">The 'execute' Item</a></h4>
+<p>Execute an operating system command. You can specify a command or place the operating system commands in the body of the item. The command, if specified, takes the name of the file being processed. If you specify an item body, the symbol $\(filename) is replaced with the name of the file. </p>
+<pre>
+&lt;execute
+  [ command = "..." ]
+  [ target = "..." ]
+    /&gt;
+</pre>
+<p>The execute item can have these attributes: </p>
+<dl>
+<dt><b>command</b></dt>
+<dd>This is the name of the command to execute. The command attribute is optional. </dd>
+<dt><b>target</b></dt>
+<dd>If the target is specified, this command is only included in the output code for the target. This lets you include non-portable commands in the generated script for any of the processing phases. The target attribute is optional. </dd>
+</dl>
+<h4><a name="TOC50">The 'generate' Item</a></h4>
+<p>Specifies the steps that are required to produce generated code from the file. </p>
+<pre>
+&lt;generate&gt;
+    &lt;execute&gt;
+    &lt;collect&gt;
+    &lt;copy&gt;
+&lt;/generate&gt;
+</pre>
+<h4><a name="TOC51">The 'collect' Item</a></h4>
+<p>Collects a set of files of into a single output file. The files are concatenated in the order that they are defined in the collect file list. </p>
+<pre>
+&lt;collect
+  [ into = "..." ]
+  [ class = "..." ]
+    &gt;
+    &lt;file&gt;
+&lt;/collect&gt;
+</pre>
+<p>The collect item can have these attributes: </p>
+<dl>
+<dt><b>into</b></dt>
+<dd>Output file created. The into attribute is optional. </dd>
+<dt><b>class</b></dt>
+<dd>Class for generated file. The class attribute is optional. </dd>
+</dl>
+<h4><a name="TOC52">The 'file' Item</a></h4>
+<p>Specifies each file to be collected. </p>
+<pre>
+&lt;file
+    name = "..."
+    /&gt;
+</pre>
+<p>The collect file item has this single attribute: </p>
+<dl>
+<dt><b>name</b></dt>
+<dd>Name of the file to collect. The collected files must all be in the same directory, no path expansion is provided on these filenames. The name attribute is required. </dd>
+</dl>
+<h4><a name="TOC53">The 'copy' Item</a></h4>
+<p>Copy the file from another directory in the project. Copied files are always marked as 'generated' and will be deleted in any cleanup phase. Copying happens before any other action in the processing block. </p>
+<pre>
+&lt;copy
+    from = "..."
+  [ filename = "..." ]
+    /&gt;
+</pre>
+<p>The copy item can have these attributes: </p>
+<dl>
+<dt><b>from</b></dt>
+<dd>Directory containing the original file, must be a path relative from the project root directory. The from attribute is required. </dd>
+<dt><b>filename</b></dt>
+<dd>Name of file to copy. This attribute is required if the copy statement is used in a project or directory-level action. The filename attribute is optional. </dd>
+</dl>
+<h4><a name="TOC54">The 'build' Item</a></h4>
+<p>Specifies the steps that are required to build the file into a (usually) binary result. </p>
+<pre>
+&lt;build&gt;
+    &lt;execute&gt;
+    &lt;compile&gt;
+    &lt;replace&gt;
+    &lt;link&gt;
+    &lt;copy&gt;
+&lt;/build&gt;
+</pre>
+<h4><a name="TOC55">The 'compile' Item</a></h4>
+<p>Compiles a source file into an object. By default, assumes that the source is of an ANSI C program, but you can specify other types using the 'as' attribute. </p>
+<pre>
+&lt;compile
+  [ as = "c | c++"  ("c") ]
+    /&gt;
+</pre>
+<p>The compile item has this single attribute: </p>
+<dl>
+<dt><b>as</b></dt>
+<dd>Type of source code. The 'as' value must correspond to a type understood by the platform-specific packaging scripts you are using. The as attribute is optional. Its default value is "c". It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>c</td>
+<td>ANSI C programs</td>
+</tr>
+<tr>
+<td>c++</td>
+<td>ANSI C++ programs</td>
+</tr>
+</table></center></p><h4><a name="TOC56">The 'replace' Item</a></h4>
+<p>Inserts a compiled object file into a library. The library step may only be done after a compilation. The name of the library must be specified at the file, class, or project level. </p>
+<pre>
+&lt;replace
+  [ as = "c | c++"  ("c") ]
+    /&gt;
+</pre>
+<p>The replace item has this single attribute: </p>
+<dl>
+<dt><b>as</b></dt>
+<dd>Type of object file. The 'as' value must correspond to a type understood by the platform-specific packaging scripts you are using. The as attribute is optional. Its default value is "c". It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>c</td>
+<td>ANSI C object file</td>
+</tr>
+<tr>
+<td>c++</td>
+<td>ANSI C++ object file</td>
+</tr>
+</table></center></p><h4><a name="TOC57">The 'link' Item</a></h4>
+<p>Link the program into an executable, using any libraries present in the current working directory. </p>
+<pre>
+&lt;link
+  [ as = "c | c++"  ("c") ]
+    /&gt;
+</pre>
+<p>The link item has this single attribute: </p>
+<dl>
+<dt><b>as</b></dt>
+<dd>Type of program. The 'as' value must correspond to a type understood by the platform-specific packaging scripts you are using. The as attribute is optional. Its default value is "c". It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>c</td>
+<td>ANSI C program</td>
+</tr>
+<tr>
+<td>c++</td>
+<td>ANSI C++ program</td>
+</tr>
+</table></center></p><h4><a name="TOC58">The 'test' Item</a></h4>
+<p>Specifies the steps that are required to test the project before it can be installed. </p>
+<pre>
+&lt;test&gt;
+    &lt;execute&gt;
+    &lt;run&gt;
+&lt;/test&gt;
+</pre>
+<h4><a name="TOC59">The 'run' Item</a></h4>
+<p>Run the file as a program. </p>
+<pre>
+&lt;run&gt;
+</pre>
+<h4><a name="TOC60">The 'distrib' Item</a></h4>
+<p>Specifies how to distribute a specific file, or class of files. </p>
+<pre>
+&lt;distrib
+    as = "source | binary"
+  [ format = "raw" ]
+    /&gt;
+</pre>
+<p>The distrib file item can have these attributes: </p>
+<dl>
+<dt><b>as</b></dt>
+<dd>The distrib as option tells the builder how to package this file. The as attribute is required. It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>source</td>
+<td>Include in source distributions</td>
+</tr>
+<tr>
+<td>binary</td>
+<td>Include in binary distributions</td>
+</tr>
+</table></center></p><dl>
+<dt><b>format</b></dt>
+<dd>If specified, provides additional information to the packaging script on how to process the file. The format attribute is optional. It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>raw</td>
+<td>Non-text file</td>
+</tr>
+</table></center></p><h4><a name="TOC61">The 'install' Item</a></h4>
+<p>Specifies how to install a specific file, or class of files. </p>
+<pre>
+&lt;install
+    as = "include | library | command | resource | script | license | readme | document"
+  [ rename = "..." ]
+    &gt;
+    &lt;execute&gt;
+&lt;/install&gt;
+</pre>
+<p>The install file item can have these attributes: </p>
+<dl>
+<dt><b>as</b></dt>
+<dd>The install type tells the builder how to install this file. The as attribute is required. It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>include</td>
+<td>Include file</td>
+</tr>
+<tr>
+<td>library</td>
+<td>Library of object programs</td>
+</tr>
+<tr>
+<td>command</td>
+<td>Executable command</td>
+</tr>
+<tr>
+<td>resource</td>
+<td>Resource used by executable command</td>
+</tr>
+<tr>
+<td>script</td>
+<td>Executable script</td>
+</tr>
+<tr>
+<td>license</td>
+<td>License packaged with executable commands</td>
+</tr>
+<tr>
+<td>readme</td>
+<td>Readme file placed with documentation</td>
+</tr>
+<tr>
+<td>document</td>
+<td>Documentation file</td>
+</tr>
+</table></center></p><dl>
+<dt><b>rename</b></dt>
+<dd>If specified, file is installed with this name instead of the name used in the project. The rename attribute is optional. </dd>
+</dl>
+<h4><a name="TOC62">The 'clean' Item</a></h4>
+<p>Specifies the steps that are required to remove temporary files created during building (i.e. compilation and linking). To remove generated files use the 'degen' action. </p>
+<pre>
+&lt;clean&gt;
+    &lt;execute&gt;
+&lt;/clean&gt;
+</pre>
+<h4><a name="TOC63">The 'degen' Item</a></h4>
+<p>Specifies the steps that are required to remove temporary files created during code generation (the regen step). </p>
+<pre>
+&lt;degen&gt;
+    &lt;execute&gt;
+&lt;/degen&gt;
+</pre>
+<h4><a name="TOC64">The 'derive' Item</a></h4>
+<p>Specify a derived file. The file is derived by adding the extension to the basename of all files in the class. A class can have multiple derived files. Class derived files can be explicitly defined in the project with a different class than the one specified here, in which case the derivation does not apply, and the manually-specified file takes precedence. </p>
+<pre>
+&lt;derive
+    class = "..."
+  [ extension = "..." ]
+  [ filename = "..." ]
+    /&gt;
+</pre>
+<p>The derive item can have these attributes: </p>
+<dl>
+<dt><b>filename</b></dt>
+<dd>If specified, gives the full filename for the derived file. If not specified, the derived filename is constructed from the basename of the parent file plus the derived extension. The filename attribute is optional. </dd>
+<dt><b>extension</b></dt>
+<dd>The extension to add to the file basename. The extension attribute is optional. Its default value is "". </dd>
+<dt><b>class</b></dt>
+<dd>The class for the derived file. Derived files can be based on classes that themselves derive files, ad nauseam. The class attribute is required. </dd>
+</dl>
+<h4><a name="TOC65">The 'class' Item</a></h4>
+<p>Defines a file class. The file class defines the processing applied to all files of that class and contains arbitrary steps of work that are copied to all files in the class (without inheritance). </p>
+<pre>
+&lt;class
+    name = "..."
+  [ generated = "..."  ("0") ]
+  [ shared = "..."  ("0") ]
+  [ filetype = " | command | object | library" ]
+  [ inherit = "..." ]
+  [ target = "..." ]
+    &gt;
+    &lt;configure&gt;
+    &lt;generate&gt;
+    &lt;build&gt;
+    &lt;test&gt;
+    &lt;distrib&gt;
+    &lt;install&gt;
+    &lt;clean&gt;
+    &lt;degen&gt;
+    &lt;derive&gt;
+&lt;/class&gt;
+</pre>
+<p>The class item can have these attributes: </p>
+<dl>
+<dt><b>name</b></dt>
+<dd>Specifies the name of the class, which must be unique in the PDL. The name attribute is required. </dd>
+<dt><b>generated</b></dt>
+<dd>Specifies that the files in the class are generated and can be deleted during a cleanup step. This can be overridden by the generated attribute at the file level. The generated attribute is optional. Its default value is "0". </dd>
+<dt><b>shared</b></dt>
+<dd>Specifies that the file is shared among projects or products. If the file does not exist locally, Boom will look for it in the binary directory. The shared attribute is optional. Its default value is "0". </dd>
+<dt><b>filetype</b></dt>
+<dd>Specifies that the file has a non-portable extension. This can be overridden by the filetype attribute at the file level. The filetype attribute is optional. Its default value is "". It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>&nbsp;</td>
+<td>Not specified</td>
+</tr>
+<tr>
+<td>command</td>
+<td>Executable binary command</td>
+</tr>
+<tr>
+<td>object</td>
+<td>Compiled program object file</td>
+</tr>
+<tr>
+<td>library</td>
+<td>Compiled object library file</td>
+</tr>
+</table></center></p><dl>
+<dt><b>inherit</b></dt>
+<dd>If specified, the class takes all attributes and children from the inherit class, unless already specified. The inherit attribute is optional. </dd>
+<dt><b>target</b></dt>
+<dd>If specified, all files in the class are processed on this target only. The target attribute is optional. </dd>
+</dl>
+<h4><a name="TOC66">The 'target' Item</a></h4>
+<p>If one or more targets are defined, this defines the subset of targets for which we want to generate code. The full set of targets comes from the project workflow definition (PWL file). </p>
+<pre>
+&lt;target
+    name = "..."
+    /&gt;
+</pre>
+<p>The target item has this single attribute: </p>
+<dl>
+<dt><b>name</b></dt>
+<dd>The abbreviated name of the platform. The name attribute is required. </dd>
+</dl>
+<h4><a name="TOC67">The 'actions' Item</a></h4>
+<p>Specifies processing actions to take place at particular points in the generated script. </p>
+<pre>
+&lt;actions
+  [ when = "before | after"  ("before") ]
+    &gt;
+    &lt;configure&gt;
+    &lt;generate&gt;
+    &lt;build&gt;
+    &lt;install&gt;
+    &lt;distsrc&gt;
+    &lt;clean&gt;
+    &lt;degen&gt;
+&lt;/actions&gt;
+</pre>
+<p>The actions item has this single attribute: </p>
+<dl>
+<dt><b>when</b></dt>
+<dd>The 'when' attribute can be 'before', in which case the actions are included before the files are processed, or 'after', in which case they are included afterwards. The when attribute is optional. Its default value is "before". It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>before</td>
+<td>Generate actions before files</td>
+</tr>
+<tr>
+<td>after</td>
+<td>Generate actions after files</td>
+</tr>
+</table></center></p><h4><a name="TOC68">The 'install' Item</a></h4>
+<pre>
+&lt;install&gt;
+    &lt;execute&gt;
+&lt;/install&gt;
+</pre>
+<h4><a name="TOC69">The 'distsrc' Item</a></h4>
+<p>Specifies processing actions to take place before building a source distribution package. Can be used to include non-boom trees in the source package. </p>
+<pre>
+&lt;distsrc&gt;
+    &lt;execute&gt;
+&lt;/distsrc&gt;
+</pre>
+<h4><a name="TOC70">The 'directory' Item</a></h4>
+<p>Defines sub-directory within project. Boom allows an unlimited depth of nesting within the project. The directory structure defined is copied as-is to the project packages. The directory can contain files and define actions that are executed in that directory during the packaging process. </p>
+<pre>
+&lt;directory
+    name = "..."
+  [ keep_paths = "0 | 1"  ("1") ]
+  [ class = "..." ]
+  [ library = "..." ]
+  [ target = "..." ]
+    &gt;
+    &lt;directory&gt;
+    &lt;file&gt;
+    &lt;actions&gt;
+&lt;/directory&gt;
+</pre>
+<p>The directory item can have these attributes: </p>
+<dl>
+<dt><b>name</b></dt>
+<dd>The name of the directory. The name attribute is required. </dd>
+<dt><b>keep_paths</b></dt>
+<dd>If 0, the file is installed in the main directory corresponding to its 'as' attribute. If 1, the file is installed in a subdirectory following the original project directory structure. The keep_paths attribute is optional. Its default value is "1". It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>0</td>
+<td>Paths are dropped</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Paths are maintained</td>
+</tr>
+</table></center></p><dl>
+<dt><b>class</b></dt>
+<dd>If specified, this provides a default class for all files in the directory and child directories. The class attribute is optional. </dd>
+<dt><b>library</b></dt>
+<dd>If specified, defines the default library for compiled programs. The library attribute is optional. </dd>
+<dt><b>target</b></dt>
+<dd>If specified, all files in the directory are processed on this target only. The target attribute is optional. </dd>
+</dl>
+<h4><a name="TOC71">The 'use' Item</a></h4>
+<p>Defines a project dependency. The code generation scripts can interpret dependencies as they need to. Currently we allow the definition of external libraries. </p>
+<pre>
+&lt;use&gt;
+    &lt;library&gt;
+&lt;/use&gt;
+</pre>
+<h4><a name="TOC72">The 'library' Item</a></h4>
+<p>Defines an external library on which the project depends. </p>
+<pre>
+&lt;library
+    name = "..."
+    /&gt;
+</pre>
+<p>The library item has this single attribute: </p>
+<dl>
+<dt><b>name</b></dt>
+<dd>The name of the library. The name attribute is required. </dd>
+</dl>
+<h4><a name="TOC73">The 'set' Item</a></h4>
+<p>Define an environment variable required for building the project. The variable is set before any action. </p>
+<pre>
+&lt;set
+    name = "..."
+    value = "..."
+  [ target = "..." ]
+    /&gt;
+</pre>
+<p>The set item can have these attributes: </p>
+<dl>
+<dt><b>name</b></dt>
+<dd>The name of the environment variable, which is case-significant. The name attribute is required. </dd>
+<dt><b>value</b></dt>
+<dd>The value of the environment variable. The value attribute is required. </dd>
+<dt><b>target</b></dt>
+<dd>The target that this setting applies to, if it does not apply to all targets. The target attribute is optional. </dd>
+</dl>
+<h4><a name="TOC74">The 'distrib' Item</a></h4>
+<p>Used for product distribution: a product is defined in terms of one or more distributions, each based on a set of projects. </p>
+<pre>
+&lt;distrib
+    name = "..."
+    type = "boot | source | install"
+    &gt;
+    &lt;project&gt;
+    &lt;packager&gt;
+    &lt;prune&gt;
+    &lt;argument&gt;
+&lt;/distrib&gt;
+</pre>
+<p>The distrib item can have these attributes: </p>
+<dl>
+<dt><b>name</b></dt>
+<dd>Specifies the full name of the distribution. The name attribute is required. </dd>
+<dt><b>type</b></dt>
+<dd>Source packages are based on the source files contained in each project, while install packages are based on the install tree produced by installing the specified projects. Bootstrap packages are used when preparing the development environment from a CVS checkout of the project. The type attribute is required. It can take one of the following values: </dd>
+</dl>
+<p><center><table border="1" width="90%"><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td>boot</td>
+<td>Defines a bootstrap package</td>
+</tr>
+<tr>
+<td>source</td>
+<td>Defines a source package</td>
+</tr>
+<tr>
+<td>install</td>
+<td>Defines an install package</td>
+</tr>
+</table></center></p><h4><a name="TOC75">The 'project' Item</a></h4>
+<p>Defines a project used to create a product distribution. The projects used in a product should be specified in the correct order required to build from source. </p>
+<pre>
+&lt;project
+    directory = "..."
+  [ pdlfile = "..."  ("project") ]
+    /&gt;
+</pre>
+<p>The project item can have these attributes: </p>
+<dl>
+<dt><b>directory</b></dt>
+<dd>The location of the project, a subdirectory of the main product directory. The directory attribute is required. </dd>
+<dt><b>pdlfile</b></dt>
+<dd>Specifies the name of the project definition file (PDL). The pdlfile attribute is optional. Its default value is "project". </dd>
+</dl>
+<h4><a name="TOC76">The 'packager' Item</a></h4>
+<p>Specifies one or more packager scripts to be run for the distribution. The packager scripts may be target-specific. </p>
+<pre>
+&lt;packager
+    name = "..."
+  [ target = "..." ]
+    /&gt;
+</pre>
+<p>The packager item can have these attributes: </p>
+<dl>
+<dt><b>name</b></dt>
+<dd>Specifies the name of the packaging script, which must be an external command that is present on the path when the product is packaged. The name attribute is required. </dd>
+<dt><b>target</b></dt>
+<dd>If specified, the packager is invoked only on the specified target. The target attribute is optional. </dd>
+</dl>
+<h4><a name="TOC77">The 'prune' Item</a></h4>
+<p>In a distribution, specifies files or directories to remove from the install tree before calling the packaging script(s). </p>
+<pre>
+&lt;prune
+    filename = "..."
+    /&gt;
+</pre>
+<p>The prune item has this single attribute: </p>
+<dl>
+<dt><b>filename</b></dt>
+<dd>Specifies the name of a file or directory, relative to the install root. The filename attribute is required. </dd>
+</dl>
+<h4><a name="TOC78">The 'argument' Item</a></h4>
+<p>Specifies an argument that will be passed to the packaging script(s). The arguments are placed into an XML file that may be parsed and used by the packaging script. </p>
+<pre>
+&lt;argument
+    name = "..."
+    value = "..."
+    /&gt;
+</pre>
+<p>The argument item can have these attributes: </p>
+<dl>
+<dt><b>name</b></dt>
+<dd>The name of the argument. The name attribute is required. </dd>
+<dt><b>value</b></dt>
+<dd>The argument's value. The value attribute is required. </dd>
+</dl>
+<h3><a name="TOC79">Advanced Project Definitions</a></h3>
+<p>Since you're probably getting bored with the mass of information in the preceding sections, we will take a look at some specific PDL aspects that will be useful as you explore Boom in more realistic and complex projects. I'll illustrate all of these points with examples taken from some real projects (mainly Xitami/3.0 and its wrinkled uncles 2.4 and 2.5). </p>
+<h4><a name="TOC80">Choosing a Project Install Location</a></h4>
+<pre>
+pdl.install = "xitami-24"
+</pre>
+<p>This attribute lets you place the project in a directory of its own. You will need this if you install multiple versions of the same project on one system. Without this option, the project deliverables are thrown into the main $IBASE directory (remember that IBASE is the environment variable that Boom uses to decide where to install). When you set the pdl.install option, the name you specify is used to create a subdirectory beneath the $IBASE directory. So, for the above example, you would expect files to be installed in directories like this (for a default IBASE under Unix): </p>
+<pre>
+/usr/local/imatix/xitami-24/bin
+/usr/local/imatix/xitami-24/include
+/usr/local/imatix/xitami-24/lib
+/usr/local/imatix/xitami-24/doc
+</pre>
+<p>The pdl.install value may not be an absolute pathname: it must be a subdirectory name.  However, it may contain multiple levels, e.g. pdl.install = "xitami/version/2.4". </p>
+<p>Why is this option important?  Because applications can and do step on each other's toes.  If I want to install - say - xitami/2.5 on the same system, I can do this by specifying a different pdl.install for Xitami/2.5: </p>
+<pre>
+&lt;pdl
+    install = "xitami-25"
+</pre>
+<p>and be assured that the application will always behave during installation. This is reasonably foolproof, whereas asking the person doing the install to carefully set IBASE beforehand is just asking for trouble. "boomake install... oh shit!" is the Ohno second you want to avoid, by design rather than discipline. </p>
+<h4><a name="TOC81">Choosing a Project Deployment Location</a></h4>
+<pre>
+&lt;pdl
+    deploy = "app"
+</pre>
+<p>This attribute overrides the class install "as" option and installs the project into the specified subdirectory, after using pdl.install, if that is set. So, if a project can specify both these options: </p>
+<pre>
+&lt;pdl
+    install = "xitami-24"
+    deploy = "app"
+</pre>
+<p>Which will put all the files (and subdirectories, following the project organisation) into: </p>
+<pre>
+/usr/local/imatix/xitami-24/app/...
+</pre>
+<p>This is not just useful but essential when you make projects which create working environments that you want to install wholesale.  While many projects can be installed into bin/lib/include/doc, others do not work like this. </p>
+<p>If your application has a mix of the two kinds of deliverable - namely public libraries and header files on the one hand, and grouped working environments on the other, it is a good idea to break your application into projects along these lines. </p>
+<h4><a name="TOC82">Include and Inherit</a></h4>
+<p>PDL provides two mechanisms for constructing large PDLs out of smaller ones.  These are &lt;include&gt; and &lt;inherit&gt;.  You may be tempted to mix these up, but Boom will complain if you do. </p>
+<p>The &lt;include&gt; tag pulls in pieces of PDL which may be (a) illegal XML, in that they do not start with a single root item, and (b) any mix of the tags that can be included inside a &lt;pdl&gt;.  This is a valid included file: </p>
+<pre>
+&lt;inherit filename = "classes.pdl"   /&gt;
+&lt;file name = "prelude.pdl"  class = "shared resource"  /&gt;
+&lt;file name = "license.gpl"  class = "shared resource"  /&gt;
+&lt;file name = "project.pdl"  class = "private resource" /&gt;
+&lt;file name = "readme.txt"   class = "readme"           /&gt;
+</pre>
+<p>Which is actually the "prelude.pdl" file we use as basis for most projects. </p>
+<p>The &lt;inherit&gt; tag insists that the specified file is a valid PDL file, and it does not include the data wholesale.  Instead, it only includes classes, and only classes that are not already defined in the PDL. This is a valid inherited file: </p>
+<pre>
+&lt;pdl name = "Personal PDL Classes"&gt;
+    &lt;class name = "private resource"&gt;
+        &lt;distrib as = "source"  /&gt;
+        &lt;config&gt;
+            &lt;embed script = "trace.gsl" /&gt;
+        &lt;/config&gt;
+    &lt;/class&gt;
+&lt;/pdl&gt;
+</pre>
+<p>Which might do interesting things if inherited before classes.pdl.  Or again, it might not.  The fact that we inherit classes also means that we can override them in interesting ways. </p>
+<h4><a name="TOC83">Shared Project Resources</a></h4>
+<p>It is quite typical to want to place the same files in many projects. For instance, we stick a standard license agreement into most projects. Simply copying this file into each project directory is stupid for several reasons. It makes the file hard to maintain, and it means that it is not obvious which is the "real" version. </p>
+<p>Boom's solution to this is "shared resources". A shared resource is a file that constitutes part of the project - and is thus included in every package and distribution - but which can be taken from somewhere other than the project directory. This "somewhere other" is the $IBASE/bin directory, which is where we put miscellaneous resources used by a project at runtime. </p>
+<p>Look at this line from prelude.pdl: </p>
+<pre>
+&lt;file name = "prelude.pdl"  class = "shared resource"  /&gt;
+</pre>
+<p>and now the class definition from classes.pdl: </p>
+<pre>
+&lt;class name = "shared resource" inherit = "private resource" shared = "1" &gt;
+Shared resources are packaged directly from the binary directory if they are
+not already present in the project directory.
+    &lt;distrib as = "binary"   /&gt;
+    &lt;install as = "resource" /&gt;
+&lt;/class&gt;
+</pre>
+<p>Using shared resources as part of the project definition itself - as we do with prelude.pdl - is very sweet.  It lets us add or remove standard files from many projects with one simple maneouver.  Let's say I decide one day to place a standard HTML page (maybe "license.htm") into every project directory.  I create the file in some base project, the same one where I hold prelude.pdl, and add the line to prelude.pdl: </p>
+<pre>
+&lt;file name = "license.htm"  class = "shared resource"  /&gt;
+</pre>
+<p>After which I install that project, and then rebuild my product distributions. Like magic, this new file appears in every product. </p>
+<p>A final word about shared resources: if the shared resource exists as a file in the project directory, that copy overrides anything sitting in $IBASE/bin. </p>
+<h4><a name="TOC84">Project Actions</a></h4>
+<p>I've already described PDL as a programming language, and this aspect of a project definition is most evident when you look at the actions that can be attached to a project directory, file, or class.  In gross terms, you can ask Boom to do specific work during each of the five main stages: </p>
+<ol>
+<li><p>Project configuration, i.e. when Boom builds the boomake builder scripts.  Use the &lt;configure&gt; action.</li>
+<li><p>Code generation, i.e. when the builder script generates source code.  Use the &lt;generate&gt; action.</li>
+<li><p>Building, i.e. when the builder script compiles and links the source code into libraries and executables.  Use the &lt;build&gt; action.</li>
+<li><p>Installation, i.e. when the builder script installs the project deliverables into the final or temporary install tree.  Use the &lt;install&gt; action.</li>
+<li><p>Clean-up, i.e. when the builder script deletes files produced by the &lt;generate&gt; and &lt;build&gt; actions.</li>
+</ol>
+<p>You can attach the same set of actions to classes, in which case they are applied to all files of that class.  Look at this example from classes.pdl: </p>
+<pre>
+&lt;class name = "main program" inherit = "private resource" &gt;
+    &lt;build&gt;
+        &lt;compile as = "c" /&gt;
+        &lt;link/&gt;
+    &lt;/build&gt;
+&lt;/class&gt;
+</pre>
+<p>You can attach a set of actions to a single file, in which case the actions apply to that file only.  Look at this example from the Xitami core project (xicore): </p>
+<pre>
+&lt;file name = "xiconfig.xml" class = "public resource" &gt;
+    &lt;generate&gt;
+        &lt;execute command = "gsl -q -build_header:1" /&gt;
+    &lt;/generate&gt;
+&lt;/file&gt;
+</pre>
+<p>You can attach a set of actions to a subdirectory.  Here is an invented example: </p>
+<pre>
+&lt;directory name = "images"&gt;
+    &lt;!-- Create thumbnail index of JPEG images --&gt;
+    &lt;actions&gt;
+      &lt;generate&gt;
+        &lt;execute command = "jpgindex img.jpg index.jpg" /&gt;
+      &lt;/generate&gt;
+      &lt;clean&gt;
+        &lt;execute command = "del index.jpg" target = "win32" /&gt;
+        &lt;execute command = "rm  index.jpg" target = "unix"  /&gt;
+      &lt;/clean&gt;
+    &lt;/actions&gt;
+&lt;/directory&gt;
+</pre>
+<p>Finally, you can attach a set of actions to the main project directory, which means under the main &lt;pdl&gt; item.  Look at this example from the Base SMT project: </p>
+<pre>
+&lt;actions when = "after" &gt;
+  &lt;generate&gt;
+    &lt;collect into = "smt2.h" class = "public header" &gt;
+      &lt;file name = "smthead.h"  /&gt;
+      &lt;file name = "smtlib.h"   /&gt;
+      &lt;file name = "smtdefn.h"  /&gt;
+      &lt;file name = "smttime.h"  /&gt;
+      &lt;file name = "smtserv.h"  /&gt;
+      &lt;file name = "smtmsg.h"   /&gt;
+      &lt;file name = "smtsslm.h"  /&gt;
+      &lt;file name = "smtrdnsl.h" /&gt;
+      &lt;file name = "smtxlog.h"  /&gt;
+    &lt;/collect&gt;
+  &lt;/generate&gt;
+&lt;/actions&gt;
+</pre>
+<p>For project and subdirectory actions, the "when" attribute lets you specify whether the actions are done before (which is the default) or after all files have been processed.  In the above example, we use "when= "after"" because at least one of the files in the list is itself generated.  See "Creating Collections" below. </p>
+<h4><a name="TOC85">Running External Commands</a></h4>
+<p>One of the simplest and most useful ways to extend the generated builder scripts is to run external commands at various moments. The &lt;execute&gt; tag works at various points: &lt;generate&gt;, &lt;build&gt;, &lt;install&gt;, and &lt;clean&gt;. You can tell Boom to run the same command on all platforms, or you can tell it "this is for a specific platform only".  The last thing you should know is that Boom always sticks the file name and extension (when you attached the action to a class or file) after the command. </p>
+<p>This is how we invoke specific code generators such as Libero and GSL: </p>
+<pre>
+&lt;class name = "dialog" inherit = "private resource" &gt;
+    &lt;generate&gt;
+        &lt;execute command = "lr" /&gt;
+    &lt;/generate&gt;
+&lt;/class&gt;
+&lt;class name = "gsl data" inherit = "private resource" &gt;
+    &lt;generate&gt;
+        &lt;execute command = "gsl -q" /&gt;
+    &lt;/generate&gt;
+&lt;/class&gt;
+</pre>
+<p>But you can also launch arbitrary external commands.  For instance, this is a sample of a PDL that launches a MS Visual C/C++ make file (itself made by hand and included in the project as a private resources): </p>
+<pre>
+&lt;directory name = "win32"&gt;
+    &lt;!-- Build Windows executables from hand-made MSVC project files --&gt;
+    &lt;actions&gt;
+      &lt;build&gt;
+        &lt;execute
+            command = "msdev xitami.dsw /make &amp;quot;all - release&amp;quot;"
+            target = "win32" /&gt;
+      &lt;/build&gt;
+      &lt;clean&gt;
+        &lt;execute
+            command = "msdev xitami.dsw /make &amp;quot;all - release&amp;quot; /clean"
+            target = "win32" /&gt;
+      &lt;/clean&gt;
+    &lt;/actions&gt;
+&lt;/directory&gt;
+</pre>
+<p>Note that we have to use HTML encoding for quotes: "&amp;quot;".  Putting an unescaped " inside an attribute value creates an invalid XML file, and Boom will complain about it. </p>
+<h4><a name="TOC86">Creating Collections</a></h4>
+<p>"Collections" are files built out of collections of other files. We've only found one case where collections are actually useful, but in that situation they are vital. This is creating header files for C libraries. There is an inherent conflict between the interests of the programmer and that of the eventual user, and collections allow us to resolve this conflict. The best model for the library programmer is to use a single header file for each library routine. Each .c library module has a matching .h header file, and we can happily use classes like this to manage the growing numbers of files this creates: </p>
+<pre>
+&lt;class name = "library module" inherit = "sub program" &gt;
+    &lt;derive class = "private resource" extension = ".h" /&gt;
+&lt;/class&gt;
+</pre>
+<p>Why is such an approach good? Because it makes maintenance easier in several ways. Each library module becomes fairly autonomous. We can add and remove modules from the library at will. Things have their name and place and order reigns. Note that C does not impose this kind of order, and many - frankly disorganized and chaotic - projects simply create random source files and random header files and then manage the bunch by depending on a good memory and hard work, something that no designer should ever depend on.  Depend on human error and laziness and you will build world-class designs. </p>
+<p>While the library developer creates dozens of modules and header files, like little matching Barbie outfits, this is the last thing we want to show or deliver to the library user. Rather, we want to say: here is the library, and here is a single header file that lets you use all the functions it contains. </p>
+<p>And this is the collection.  We use this in Base, in several cases where libraries are built from multiple components: SFL, SMT, and GSL. </p>
+<p>Collections are built during code generation, so the &lt;collect&gt; tag always comes inside a &lt;generate&gt; tag.  This can itself be placed either at the file level, in which case the collection name and class are inherited from the file: </p>
+<pre>
+&lt;file name = "sfl.h" class = "public header"&gt;
+  &lt;generate&gt;
+    &lt;collect&gt;
+      &lt;file name = "sflhead.h"  /&gt;
+      &lt;file name = "prelude.h"  /&gt;
+      &lt;file name = "sflbits.h"  /&gt;
+      ...
+    &lt;/collect&gt;
+  &lt;/generate&gt;
+&lt;/file&gt;
+</pre>
+<p>Or at the main pdl level: </p>
+<pre>
+&lt;actions&gt;
+  &lt;generate&gt;
+    &lt;collect into = "sfl.h" class = "public header" &gt;
+      &lt;file name = "sflhead.h"  /&gt;
+      &lt;file name = "prelude.h"  /&gt;
+      &lt;file name = "sflbits.h"  /&gt;
+      ...
+    &lt;/collect&gt;
+  &lt;/generate&gt;
+&lt;/actions&gt;
+</pre>
+<p>Note that collections are _always_ marked as generated code, whatever the class you use, and are thus deleted during cleanup.  You do not need to specify this manually.  In the above case it might be clearer to use the class "generated header", but it will give exactly the same result. </p>
+<h4><a name="TOC87">Creating Version Headers</a></h4>
+<p>Version headers are generated source files that hold information like the project version number.  This is how we generate a version header in (for instance) SFL: </p>
+<pre>
+&lt;file name = "version.h" class = "c version"&gt;Project version file&lt;/file&gt;
+</pre>
+<p>which uses the "c version" class from classes.pdl: </p>
+<pre>
+&lt;class name = "c version" inherit = "private resource" &gt;
+Generated version header for C projects.
+    &lt;configure&gt;
+        &lt;version as = "c"/&gt;
+    &lt;/configure&gt;
+&lt;/class&gt;
+</pre>
+<p>The version file is generated when the project is configured, i.e. when you run Boom.  Although this file is generated, it is not created during the code generation phase, nor is it deleted during cleanup. </p>
+<p>This is what a generated version file (in this case for C programs) looks like: </p>
+<pre>
+/*==========================================================
+ *
+ *  version.h - version information for SFL
+ *
+ *  Should be the last file included in parent source program.
+ *  This file is generated by Boom at configuration time.
+ *  Copyright (c) 1991-2009 iMatix Corporation
+ *==========================================================*/
+#undef  VERSION         /*  Scrap any previous definitions  */
+#undef  PRODUCT
+#undef  COPYRIGHT
+#undef  BUILDMODEL
+#define VERSION         "3.20"
+#define PRODUCT         "SFL/3.20"
+#define COPYRIGHT       "Copyright (c) 1991-2009 iMatix Corporation"
+#define BUILDMODEL      "Debug release for internal use only"
+/*  Embed the version information in the resulting binary   */
+char *sfl_version_start = "VeRsIoNsTaRt:sfl";
+char *sfl_version = VERSION;
+char *sfl_product = PRODUCT;
+char *sfl_copyright = COPYRIGHT;
+char *sfl_buildmodel = BUILDMODEL;
+char *sfl_version_end = "VeRsIoNeNd:sfl";
+</pre>
+<p>And you can generate similar definitions for GSL and for Perl programs. Version headers serve a number of purposes: </p>
+<ol>
+<li><p>They allow you to include the project version number in the generated code (in case of C programs).</li>
+<li><p>They clearly state the time and date that the project was configured.</li>
+<li><p>They allow the end user to distinguish between debug and release builds (read more about this in "Advanced Techniques").</li>
+</ol>
+<p>To use a version header in a program you should provide some kind of command-line or help option that reports the version.  For example, this is how the GSL application reports the version: </p>
+<pre>
+if (... user ran gsl with -v or -version ...)
+  {
+    printf ("%s\n", PRODUCT);
+    printf ("%s\n", BUILDMODEL);
+    printf ("%s\n", COPYRIGHT);
+    exit (0);
+  }
+</pre>
+<p>If you want to replace the built-in version code generation with your own GSL code - for instance, to generate version headers for other programming languages - you can use the &lt;embed&gt; tag, which I will explain in about the section "Advanced Techniques". </p>
+<h4><a name="TOC88">Generating for Specific Targets</a></h4>
+<p>By default, a PDL generates builders for all the targets that Boom knows about.  How does Boom know about targets?  It is a little indirect: your PDL specifies a workflow, and the Boom workflows all start with a tag like this: </p>
+<pre>
+&lt;include filename = "targets.pwl" /&gt;
+</pre>
+<p>And targets.pwl looks something like this: </p>
+<pre>
+&lt;target name    = "unix"
+        label   = "Unix"
+        script  = "pwl_unix.gsl"
+        output  = "boomake"
+        root    = "/usr/local/imatix"
+        pathsep = "/"
+        /&gt;
+&lt;target name    = "win32"
+        label   = "Windows NT/2000 console"
+        script  = "pwl_win32.gsl"
+        output  = "boomake.bat"
+        root    = "c:\imatix"
+        pathsep = "\"
+        /&gt;
+</pre>
+<p>Boom tries to remain ignorant of many things: you will see that it is quite simple to change fundamental aspects of how Boom works by making your own workflows, something you can look forward to in "Hacking Boom". </p>
+<p>Back to targets.  Boom "knows" about the arbitrary list of targets defined in the workflow (either via targets.pwl or directly).  By default, your project builders are generated for all these targets. However, it's possible to tell Boom: "configure this project for this and that target only."  This is not hugely useful in a world where there are only two targets, but it starts to become vital when you make non-portable project definitions. </p>
+<h2><a name="TOC89">Product Management</a></h2>
+<p>Using Boom for individual projects is like learning to make soup. It's better than hot water, but nothing compared to a five-course dinner. Boom is happiest when working really hard, and nothing is harder than trying to turn pots of luke-warm soup into five-course dinners. </p>
+<h3><a name="TOC90">Overview</a></h3>
+<h4><a name="TOC91">General Concepts</a></h4>
+<p>As I've explained already, Boom encourages you to organize your software developments into "projects" and thence into "products". You can actually work entirely at the level of projects, but this does get clumsy when you start to get too many projects. Ten is OK, but a hundred is too many. A product is a grouping of related projects that are significant enough to deliver as a package. </p>
+<p>Using Boom's concept of a product lets you structure your work in a way that suits your teams and internal architecture, rather than a way that suits your customer. For example, our Xitami product (which is what we deliver to the customer) is structured internally into projects like "xicore", the core web server engine; "xiadmin", the web-based administration screens; "xiopen", the open-source package we distribute freely; "xipro", the SSL package we charge money for, and so on. Each of these projects has its own directory, its own project.pdl, its own build process, and so on. But none are really visible to the end-user, only the developer. The customer sees the product or products which the projects create. </p>
+<h4><a name="TOC92">Organization</a></h4>
+<p>The organization of work into products and projects must be done using disk directories.  One directory for the product, and one or more subdirectories for the projects.  Boom expects and demands this layout. You may not, for example, have the product or project directories in other locations.  (Unless you start doing non-portable stuff with symbolic links under Unix, which I would really not recommend.  Boom gives you enough flexibility with products to make this unnecessary.) </p>
+<p>If you have N projects in a product, you will have N+1 project.pdl files </p>
+<ul>
+<li><p>the product itself also needs a project.pdl file. And yes, we could</li>
+</ul>
+<h3><a name="TOC93">Product PDL Definition</a></h3>
+<p>The PDL syntax has several entities that are there specifically to help build products.  These are &lt;distrib&gt; and its children, which are not used in a "normal" project PDL: </p>
+<pre>
+&lt;distrib name type&gt;
+    &lt;project directory [pdlfile]/&gt;
+    &lt;packager name [target]/&gt;
+    &lt;prune filename/&gt;
+    &lt;argument name value/&gt;
+&lt;/distrib&gt;
+</pre>
+<p>Each distrib entity must have a unique name. There are three kinds of product distribution: </p>
+<dl>
+<dt><b>source</b></dt>
+<dd>A source distribtion.  This consists of the projects' raw source code and generated source code.  Boom creates source distributions by first producing any generated code, then building a compressed file (zip or tgz depending on the system you're working on) from the project source directories.  A source package unpacks into something looking very close to the original product source tree. </dd>
+<dt><b>install</b></dt>
+<dd>A binary distribution.  This consists of a snapshot of the temporary install tree, and then passing the resulting temporary install tree to the product packager.  Currently the Boom packagers can create zip and tgz files (but this is terrain waiting for fertile imaginations). </dd>
+<dt><b>boot</b></dt>
+<dd>The boot distribution, if any.  This consists of one or more binary projects that must be installed as the first step of building a source distribution.  This is used to package any resources that are needed for the build process.  A boot distribution is handled by a "bootstrap manager", explained below. </dd>
+</dl>
+<p>A single group of projects can actually support any number of product distributions.  A product distribution is really a final product, and we will use the terms "product" and "product distribution" in much the same sense.  Look at the project.pdl file for Xitami/3.0 and you will see four separate products co-existing in the same space: </p>
+<pre>
+&lt;?xml version="1.0"?&gt;
+&lt;pdl
+    name      = "Xitami"
+    acronym   = "xitami"
+    version   = "3.0a1"
+    copyright = "Copyright (c) 1991-2009 iMatix Corporation"
+    workflow  = "product.pwl" &gt;
+    &lt;inherit filename = "classes.pdl" /&gt;
+    &lt;distrib name = "Xitami/Open Source" type = "source" acronym = "xiopen" &gt;
+        &lt;project directory = "xicore"    /&gt;
+        &lt;project directory = "studio"    /&gt;
+        &lt;project directory = "xiadmin"   /&gt;
+        &lt;project directory = "xiopen"    /&gt;
+    &lt;/distrib&gt;
+    &lt;distrib name = "Xitami/Open Install" type = "install" acronym = "xiopen" &gt;
+        &lt;project directory = "xiopen"    /&gt;
+        &lt;prune filename = "lib"             /&gt;
+        &lt;prune filename = "include"         /&gt;
+        &lt;prune filename = "doc"             /&gt;
+        &lt;prune filename = "bin/setvars.sh"  /&gt;
+        &lt;prune filename = "bin/setvars.bat" /&gt;
+    &lt;/distrib&gt;
+    &lt;distrib name = "Xitami/Pro Source" type = "source" acronym = "xipro" &gt;
+        &lt;project directory = "xicore"    /&gt;
+        &lt;project directory = "studio"    /&gt;
+        &lt;project directory = "xiadmin"   /&gt;
+        &lt;project directory = "xiopen"    /&gt;
+        &lt;project directory = "xipro"     /&gt;
+    &lt;/distrib&gt;
+    &lt;distrib name = "Xitami/Pro Install" type = "install" acronym = "xipro" &gt;
+        &lt;project directory = "xiopen"    /&gt;
+        &lt;project directory = "xipro"     /&gt;
+        &lt;prune filename = "lib"             /&gt;
+        &lt;prune filename = "include"         /&gt;
+        &lt;prune filename = "doc"             /&gt;
+        &lt;prune filename = "bin/setvars.sh"  /&gt;
+        &lt;prune filename = "bin/setvars.bat" /&gt;
+    &lt;/distrib&gt;
+&lt;/pdl&gt;
+</pre>
+<p>The "prune" keyword tells Boom to drop parts of the temporary install tree before making the distribution package. Why would we do this? Take the example of the "Xitami/Open Install" distribution. This provides the web server plus basic configuration files. People downloading and installing this product most probably have little or no interest in getting the Xitami libraries and header files: they are creating web sites, not building custom web servers.  So, we trim the size of the distribution by deleting directories and files that we do not want to include. </p>
+<p>Each distribution rebuilds the temporary install tree from scratch by doing a "boomake -install ../_install install" command on those projects making up the distribution. So, the prune commands are safe. You are not deleting anything of importance. </p>
+<p>Finally, the &lt;argument&gt; tag is used to pass information to custom distribution packagers. The use of this tag is explained in the section "Hacking Boom". </p>
+<h3><a name="TOC94">The Product Workflow</a></h3>
+<p>Boom uses a single workflow for product management.  Building a product means building the individual projects, and the product workflow drives the individual project workflows. This workflow generates a builder that accepts these commands: </p>
+<dl>
+<dt><b>build</b></dt>
+<dd>For each project in the product, regenerate code and build binary files ready for installation. The projects are built in their individual directories and installed into the temporary install tree. </dd>
+<dt><b>compile</b></dt>
+<dd>For each project in the product, build binary files ready for installation, but don't run the code generation phase . The projects are built in their individual directories and installed into the temporary install tree. </dd>
+<dt><b>regen</b></dt>
+<dd>For each project in the product, regenerate any source files that are produced via GSL, Libero or another code generation tool. </dd>
+<dt><b>install</b></dt>
+<dd>Install each project into its target directory. The projects must have been built (and installed into the temporary install tree, which is what the build action does). </dd>
+<dt><b>distrib</b></dt>
+<dd>Build all projects and create full distribution packages. If you do not want to rebuild the projects, you can use the 'distsrc' and 'distbin' actions as shortcuts. </dd>
+<dt><b>distsrc</b></dt>
+<dd>Build source distribution packages based on product version number. </dd>
+<dt><b>distrev</b></dt>
+<dd>Build source distribution packages based on source control revision number. </dd>
+<dt><b>distbin</b></dt>
+<dd>Build binary distribution packages. The actual packages built depend on the project packagers used, but typically you will get a ZIP or TGZ file containing all the projects' deliverables. Note that this action works entirely from the temporary install tree, which the 'build' action makes. </dd>
+<dt><b>clean</b></dt>
+<dd>Deletes generated project files. This action removes generated source and binary files. </dd>
+<dt><b>test</b></dt>
+<dd>Runs each project's test process. </dd>
+<dt><b>help</b></dt>
+<dd>Shows a list of the commands allowed on the project. </dd>
+<dt><b>version</b></dt>
+<dd>Show product version. </dd>
+</dl>
+<h3><a name="TOC95">The Product Builder</a></h3>
+<p>To configure a product, just type "boom" as usual: </p>
+<pre>
+boom
+</pre>
+<p>If your product PDL is well made, you will see Boom walk through all the projects and generate a boomake builder for each one. It also generates one for the product, which works a little differently, though overall it achieves the same things. </p>
+<p>The product builder requires that every project be specified somewhere in a &lt;distrib&gt; entity. The projects are then built and installed in the order specified, so any dependencies must be resolved in the order of projects within each product, and between products. I.e., if you have two projects, A and B, and B depends on A, do not place B before A either in the same product or in another product. </p>
+<p>If you do not specify a packager, the default non-portable packager will be used. When building under Windows, you will get a zip file. When building under Unix, you'll get a tgz equivalent. It is easy to add packagers to Boom, and you're encouraged to ask questions like "how come you guys did not try making a packager for Debian/ RedHat/ Windows MSI/ Commodore 64", and find answers like "duh, maybe I should try myself." </p>
+<p>It may help you to understand that this command done to a product: </p>
+<pre>
+boomake build
+</pre>
+<p>Actually does this to each project in turn: </p>
+<pre>
+boomake -install ../_install build install
+</pre>
+<p>and this command done to a product: </p>
+<pre>
+boomake install
+</pre>
+<p>Actually translates this done on each project: </p>
+<pre>
+boomake install
+</pre>
+<p>The _install directory holds the temporary install tree, complete with everything from executables, libraries, and include files, to readme files explaining that the -Pd option now creates a primary dump, while the -pD option prints the debug dump to stdout, and how this may still change in release 2.4.3.rc4. Sometimes you just wish you'd left that file alone. </p>
+<h3><a name="TOC96">Bootstrapping a Product</a></h3>
+<p>Some products have a very hard time getting up in the morning.  By this I mean that it's one thing to build a product on your development PC, where everything has gotten organically installed just in the right place, and where it all seems to work just perfectly.  Somehow, the moment you give your new baby to someone else to build and try, the problems start rolling in. </p>
+<p>A common problem is that sometimes you need more than just source code: you may also need some specific pre-built bits and pieces that you already have on your development PC, but which are not in the source code package. A good example is Base itself: in order to build this from scratch, you need a working copy of Libero and GSL. This looks like a paradox but is actually straight-forward to resolve. There are two specific situations we have to understand. First, working from the raw source code, and second, working from a source distribution. </p>
+<h4><a name="TOC97">Bootstrapping From Raw Sources</a></h4>
+<p>The raw sources are typically what we would get when we checkout a project from CVS. In well-run projects, generated source code does not go into CVS. So if we want to build a program which has some generated components, we need to have the code generator itself up and running. Which is problematic if the code generator is the tool we're building. Often, this kind of dependency can go around in little circles: in Base, Boom depends on GSL, GSL depends on GSL and on Libero; Libero depends on Libero. </p>
+<p>There are two possible solutions. The first is to damn the source control rules and put a minimum of generated code into the CVS anyhow. This is possible if we respect a few conditions: </p>
+<ul>
+<li><p>do not put the date and time in generated source code.</li>
+<li><p>document these exceptions very clearly.</li>
+</ul>
+<p>The problem with this approach is that it is fragile: people are not good at remembering why it was that this particular generated file should be in CVS while that one not. It is not a fail-safe approach. </p>
+<p>The second solution is to put some prebuilt code generators into a special project, and install this before trying to build the rest of the product. This approach also suffers from some issues. It means putting binaries into CVS, something that may also cause problems.  But at least it isolates the problem into a separate bootstrap project, which people are less likely to touch. </p>
+<p>In some cases, you may be able to put enough source code (generated and hand-written) into a bootstrap project to build it without storing binaries. But this is not realistic for complex cases. For instance to build GSL like this, we'd need to include Libero, SFL, SMT, and GSL with all generated code in the bootstrap project. This would be so unwieldy as to be unmanageable. </p>
+<h4><a name="TOC98">Bootstrapping From A Source Distribution</a></h4>
+<p>A source distribution does not need bootstrapping: it contains all generated code by design, so we can build it simply by building each project in turn. </p>
+<h4><a name="TOC99">The Standard Bootstrap Manager</a></h4>
+<p>A "bootstrap manager" is a script that decides how to bootstrap a product.  Boom provides a standard bootstrap manager (bootstrap.gsl) which you may include in your product PDL as follows: </p>
+<pre>
+&lt;actions&gt;
+  &lt;configure&gt;
+    &lt;embed script = "bootstrap.gsl" /&gt;
+  &lt;/configure&gt;
+&lt;/actions&gt;
+&lt;distrib name = "Bootstrap" type = "boot" &gt;
+    &lt;project directory = "bootstrap" /&gt;
+&lt;/distrib&gt;
+</pre>
+<p>If, that is, you have decided that you need a bootstrap project in order to build your product. In this example, we put the bootstrap project in a directory with the name "bootstrap" - it helps to make things obvious. The bootstrap.gsl script - which you are welcome to look at - generates a shell script called "boot.sh" which bootstraps the product. The boot.sh (or boot.bat) script does this: </p>
+<ul>
+<li><p>Prepares to build the projects</li>
+<li><p>Installs the projects in the boot distribution into the temporary install tree</li>
+<li><p>Builds each non-boot project in turn, installing into the temporary install tree</li>
+</ul>
+<p>Which means that if all works correctly, you can build a product, no matter how complex, using the single Unix command: </p>
+<pre>
+sh ./boot.sh
+</pre>
+<p>Or, under Windows: </p>
+<pre>
+boot
+</pre>
+<p>The standard bootstrap manager is general enough to many kinds of bootstrap model, so whether you bootstrap from binaries or generated source code is up to you. If you need to make custom bootstrap managers, see the section in "Advanced Techniques". </p>
+<p>One important note, however: you _must_ save the builder scripts (boomake and boomake.bat) for the bootstrap project in the source control system. The boot.sh/boot.bat script depends on this. </p>
+<p>You may also find that having Base installed (and especially Boom) is a necessary precondition to building projects from the raw source code. </p>
+<h2><a name="TOC100">Advanced Techniques</a></h2>
+<p>That you have gotten this far means that either you are cheating and skipping ahead to see if there are any more jokes, or you have tenaciously worked through everything up to here, have used Boom in a project or two, and now want to learn more about it. It's a tough call, but in my judgement, if you're interested in Boom at all, that means you have a serious lazy streak (which by the way, you should work on until you can call it a "refined talent"), and a truly lazy reader would simply be skimming. So, my bet is you're skimming. Well, skim on. We're about to get low-down and nasty. </p>
+<h3><a name="TOC101">Build Models</a></h3>
+<p>Who can resist a pretty model? Boom knows about two models, and I'm not talking about Naomi and Claudia here. Much more to the point, Boom can configure a project for debug or for release. The difference is mainly in the way C programs are compiled and linked. A program compiled and linked with debug options is larger and slower than a release version. Mysterious bugs that could provide days of amusement tend to vanish in debug versions. </p>
+<p>Under real operating systems like Linux you can compile some programs in debug mode, and others in release mode.  So, if you have a program that is crashing, you can rebuild it in debug mode, then run it under a debugger like 'gdb' and see exactly what's going on. </p>
+<p>Under Windows, on the other hand, you cannot mix debug and release programs in the same executable.  This means that _everything_ you link together must be built the same way.  This is about as much fun as discovering that "casual Friday" does not mean shorts and sandals but simply no tie. </p>
+<p>When working in Windows, you have to decide what build model you want early on, and stick to it.  Otherwise you will see many link errors along the lines of "defaultlib "LIBCMT" conflicts with use of other libs". </p>
+<p>Boom provides two ways to choose the build model.  One of these is more suitable to Linux and Unix; the other to Windows.  The first is to define the BOOM_MODEL environment variable: </p>
+<pre>
+set BOOM_MODEL=release
+set BOOM_MODEL=debug
+</pre>
+<p>The second is to use the -build option when configuring the project or product: </p>
+<pre>
+boom configure -build:release
+boom configure -build:debug
+</pre>
+<p>If you do not specify '-build' when configuring, the default value is taken from the BOOM_MODEL variable, and is 'release' if that variable is not defined. </p>
+<h3><a name="TOC102">Configure and Make</a></h3>
+<p>Boom provides an approximation of the Unix configure/make process. When you run boom you will find you get a 'configure' script (and batch file), plus a set of makefiles.  To build, run 'configure' and then 'make' (or 'nmake' on Windows).  You can also run the configure command with '-h' for help. </p>
+<p>Using makefiles is fun because it saves on recompilation.  Note that not _all_ dependencies are detected, so you will find that it's a good idea to do a "full build" (I.E. 'boom build') from time to time. </p>
+<h3><a name="TOC103">The Temporary Install Tree</a></h3>
+<p>Let's take a look under the hood and see how Boom handles the temporary install tree. Firstly, remember that this exists so that you can design projects that depend on one another, without having to install files into the real installation tree (under IBASE).  The temporary install tree (and I'm not going to TLA this) always sits in a directory under the product directory, called "_install".  To build a project and install it into the temporary install tree, you would do this: </p>
+<pre>
+boomake -install ../_install build install
+</pre>
+<p>And this is what the product builder does when building and installing child projects (when you run "boomake build").  When you actually install the projects, and I mean _really_ install them, the product builder does this: </p>
+<pre>
+boomake install
+</pre>
+<p>which zaps the deliverables into the IBASE install tree.  You can see how the boomake scripts handle these alternatives: </p>
+<pre>
+if [ "$1" = "-install" ]; then
+    _IBASE=$2
+    _LOCAL=1
+    PATH=$_IBASE/bin:$PATH
+    PERLLIB=$_IBASE/bin:$PERLLIB
+    INCDIR_ALT=$_IBASE/include
+    LIBDIR_ALT=$_IBASE/lib
+    export PATH PERLLIB INCDIR_ALT LIBDIR_ALT
+    shift;
+    shift;
+fi
+</pre>
+<p>Which does a number of things, not least setting-up the PATH so that we will search the _install/bin directory, and setting INCDIR_ALT and LIBDIR_ALT so that the C compilation and link processes will search these directories correctly.  It is somewhat delicate but works well. </p>
+<h3><a name="TOC104">Boom and Source Control Systems</a></h3>
+<p>Boom is designed to work happily with a source control system (SCS), but it will also work without one. (Although you, as a programmer, should be unhappy to work without one.) The current Boom code knows about CVS - the SCS we use at iMatix - but not in any fundamental way. It should be quite easy to adapt or extend Boom to handle another SCS. Let's have a look at the interactions between Boom and the SCS. </p>
+<h4><a name="TOC105">Types of Project</a></h4>
+<p>Boom defines three types of project: </p>
+<ul>
+<li><p>raw project files, checked out of the SCS.</li>
+<li><p>source projects, ready to compile, including generated code if any.</li>
+<li><p>binary projects, ready to run.</li>
+</ul>
+<p>In simple cases, the first two cases are equivalent.  If you don't use an SCS, Boom only considers the last two cases. </p>
+<p>So how do we tell whether we're in a "raw project" or a "source project"? When using CVS, we can tell by checking for a special subdirectory, "CVS", that is present in any projects checked-out from the SCS and absent if we got a source package. </p>
+<p>This first hook in Boom is a small piece of code in pwl_win32.gsl and pwl_unix.gsl that tests for the CVS directory.  We saw this code earlier in the discussion on workflows: </p>
+<pre>
+set event=source
+if exist CVS\\nul set event=repository
+</pre>
+<p>And under Unix: </p>
+<pre>
+event=source
+[ -d CVS ] &amp;&amp; event=repository
+</pre>
+<p>If you need to adapt Boom for another SCS, this is the place to hack. </p>
+<h4><a name="TOC106">Generated Code</a></h4>
+<p>The second interaction between Boom and an SCS is more philosophical. This is the distinction between "generated source code" and hand-written code.  It is good practice to keep generated code out of the SCS, and Boom assumes that this is the way you work.  What this means is that any file produced by a generate action is automatically deleted by a clean action. </p>
+<p>You should not put version headers or other generated files into CVS with the exception of boomake for bootstrap projects. </p>
+<h3><a name="TOC107">Defining Your Own Classes</a></h3>
+<p>Boom comes with a decent set of classes.  But you should treat these as a starting point, not a bible.  It is likely that you will want to define your own classes now and then.  It's easy. </p>
+<p>Remember that classes.pdl is just included in the prelude.pdl file. Like much of Boom, this is a soft-coded convention that you can play with.  I do not recommend that you change classes.pdl - that is asking for trouble the next time you re-install Boom.  But you don't need to.  Your projects _inherit_ their classes from classes.pdl.  If you define your own class with the same name as one of the predefined classes, your class wins. </p>
+<p>You can redefine any of the classes in classes.pdl, even base classes such as "private resource". Here is an example of a custom project class, taken from the GSL project: </p>
+<pre>
+&lt;class name = "gxl extension" &gt;
+    &lt;derive extension = ".c"   class = "generated module" /&gt;
+    &lt;generate&gt;
+        &lt;execute command = "gsl -q" /&gt;
+    &lt;/generate&gt;
+&lt;/class&gt;
+</pre>
+<p>Surprise - it looks just like the definitions in classes.pdl. </p>
+<h3><a name="TOC108">Writing Boom Extensions</a></h3>
+<p>A "Boom Extension" (BEX) is a script written in GSL that does arbitrary and hopefully non-random things with the project data tree. Since GSL as a language can do pretty much whatever you want it to, there are few limits to what a BEX can do. But to be useful we have to focus, and a useful BEX usually focusses on improving or extending the build environment rather than - for example - sending one's colleagues emails telling them that a particular project has just been rebuilt and is now available for download from the company intranet server. </p>
+<p>The difference between writing a BEX and simply throwing the entire PDL at your own GSL script is that a BEX runs inside the framework created by Boom. If you choose to process PDLs outside Boom - and this can be very useful - then you must redo some of the work Boom does when it loads, denormalises, and checks the PDL and associated PWLs. </p>
+<p>To write a BEX you do need to understand what GSL does and how the project tree is constructed. </p>
+<p>Boom lets you specify a BEX in the &lt;configure&gt;, &lt;generate&gt;, and &lt;build&gt; steps. The effect of each of these is somewhat different. A BEX script, like any GSL script, has two ways to focus its attention. Either it can do work, meaning stuff like manipulating the PDL tree, sending funny emails, etc., or it can produce useful output, which is sent either to the console or the current output stream.  When your BEX does work, you will want to control the "when" quite carefully.  The &lt;configure&gt; actions are done by the main boom.gsl script (you can take a look) when loading the PDL and before generating any builders.  The &lt;generate&gt; actions are done during code generation, and any BEX that you invoke at this moment will by default send output to the builder scripts, and this output will be executed when the builder generates code.  The same happens for a BEX attached to &lt;build&gt; actions.  So, a BEX called at these two places must check the current target and generate code accordingly: </p>
+<pre>
+if target.name = "win32"
+    blah...
+elsif target.name = "linux"
+    blah...
+endif
+</pre>
+<p>Here is an example of a class that invokes a BEX: </p>
+<pre>
+&lt;class name = "somename"&gt;
+  &lt;configure&gt;
+    &lt;embed script = "myscript.gsl" /&gt;
+  &lt;/configure&gt;
+&lt;/class&gt;
+</pre>
+<p>When a BEX is attached to a file or class, it is invoked for each file that uses it. We can also invoke the BEX at project level: </p>
+<pre>
+&lt;pdl&gt;
+...
+  &lt;actions&gt;
+    &lt;configure&gt;
+      &lt;embed script = "myscript.gsl" /&gt;
+    &lt;/configure&gt;
+  &lt;/actions&gt;
+&lt;/pdl&gt;
+</pre>
+<p>In which case the BEX is run exactly once. A project-level BEX must work through the PDL/PWL data structures to find and use the data it needs. Here is one example of a BEX that simply reports the list of project files with their classes (this is dump.gsl, included with Boom): </p>
+<pre>
+#   Dump files and classes to console, for debugging
+save root as "dump.xml"
+for root.pdl
+    for file
+        if generated
+            &gt;$(file.name)   ($(file.class), generated)
+        else
+            &gt;$(file.name)   ($(file.class))
+        endif
+    endfor
+endfor
+</pre>
+<p>Note the sneaky trick of dumping the entire XML tree to a file so that we can inspect it afterwards. This is a good way of seeing what XML data we have to play with. </p>
+<h3><a name="TOC109">Working with Project Subdirectories</a></h3>
+<p>Boom lets you work with directory structures within a project. You can construct an arbitrarily complex project, and define this within a single PDL, as long as you respect a few rules. The most critical of these is that you do not attempt to mix source code in different directories. For example, if you want to build an executable that has source routines in different directories, Boom will not be able to help you. See the next section on "Handling Object Libraries". You can work around this using external makefiles or build scripts. </p>
+<p>The &lt;pdl&gt; tag can include &lt;directory&gt; tags, and a directory can contain further directory items, as well as file and action items: </p>
+<pre>
+&lt;directory
+    name = "..."
+  [ keep_paths = "0 | 1"  ("1") ]
+  [ class = "..." ]
+  [ library = "..." ]
+  [ target = "..." ]
+    &gt;
+    &lt;directory&gt;
+    &lt;file&gt;
+    &lt;actions&gt;
+&lt;/directory&gt;
+</pre>
+<p>The keep_paths option tells Boom whether you want to keep the directory structure as part of your deliverable project.  When you have multiple nested directories, this option works independently at each level.  If it is set off (keep_paths = "0"), then the directory files will be installed into the main project directory. </p>
+<p>The target option tells Boom to install this directory only on a specific target.  Very useful in a bootstrap project in combination with keep_paths = "0". </p>
+<h3><a name="TOC110">Managing Object Libraries</a></h3>
+<p>Compiling and linking means creating object libraries along the way, except for trivial programs that are entirely self-contained. Boom will manage object libraries for you, so long as you tell it what libraries you intend to create, and what programs are not "main" programs. You can create multiple libraries in a project, although this is a Bad Idea since it makes things complex. One project should deliver a small and well-defined set of things, and if it's delivering an API, this means one library and one header file. </p>
+<p>When you compile C programs in subdirectories, they are placed into a library in that directory, and linked in that directory if needed. You cannot replace compiled object files into a library in the parent directory and you cannot mix libraries in different directories when you link main programs. </p>
+<h3><a name="TOC111">Installing Files with Rename</a></h3>
+<p>The installation process lets you slyly rename files as they are installed. This is useful if you're installing files on a system-per-system basis, using the "target" attribute: </p>
+<pre>
+&lt;install as [rename]&gt;
+</pre>
+<h3><a name="TOC112">Copying Files within Projects</a></h3>
+<p>You may sometimes need to copy files from one part of the project to another during the generate or build processes: </p>
+<pre>
+&lt;generate&gt; | &lt;build&gt;
+    &lt;copy from [filename]/&gt;
+&lt;/generate&gt; | &lt;/build&gt;
+</pre>
+<p>The filename should be a relative file, e.g. "../somefile". Don't use absolute file paths or your project will simply not build on other people's systems.  Copied files are always marked as "generated" and are always deleted when you do a "clean" action on a project. </p>
+<h3><a name="TOC113">The c and c.bat Scripts</a></h3>
+<p>If you do not program in C, you can ignore this section. If you do write C programs, kindly pay attention. If you are asleep, then please listen carefully: tomorrow you will go to your bank and transfer all your assets to iMatix. You will remember nothing of this. You will wake up rested and refreshed and filled with a new understanding of the term "poor". </p>
+<p>Boom uses an abstract compilation layer. What this means is that to compile a C program on a particular platform, you have to remember a single command, which is "c".  This is as frustrating to expert hackers as it is a relief to the rest of us.  You simply do not want to have to remember commands like: </p>
+<pre>
+cl /nologo /c /W3 /D"WIN32" /I"C:\imatix\include"
+/I"C:\Program Files\Microsoft Visual Studio\VC98\include" /Og
+</pre>
+<p>no matter how much power this gives you.  And don't get me started on the joys of C compilation under Unix.  :) </p>
+<p>The "abstract compilation layer" that c (both in its incarnations as a Unix shell script and a Win32 batch script) provides the following basic operations: </p>
+<ul>
+<li><p>compile a C program (aha!)</li>
+<li><p>replace a C program into an object library, creating the library if needed</li>
+<li><p>link a C program into an executable, possibly compiling it first</li>
+</ul>
+<p>Which you will see, if you type "c" to get help, correspond to the following commands: </p>
+<pre>
+c someprog
+c -r someprog
+c -l someprog
+
+This tells the C compiler where to look for user include files.
+You do not need to point the compiler to its own include files,
+most compilers are smart enough to do this themselves, and those
+that are not get a helping hand from the c script.
+Like INCDIR, this tells the C compiler where to look for user
+library files.  And, same thing, you do not need to tell the C
+compiler where its own libraries are - c/c.bat does this when
+necessary.
+
+Lets you pass arbitrary and possibly joyously destructive compile
+and link options to the compiler.  Boom uses this for exactly one
+thing: telling the compiler to include or exclude debug information.
+</pre>
+<p>You can now make more sense of the start of your generated boomake scripts, which contain stuff like this: </p>
+<pre>
+_IBASE=$IBASE
+test -z "$_IBASE" &amp;&amp; _IBASE=/usr/local/imatix
+INCDIR=$_IBASE/include
+LIBDIR=$_IBASE/lib
+</pre>
+<p>The c/c.bat scripts provide two options that let you work with a temporary install tree. These are the -li and -ll options. Buried deep inside the generated boomake scripts you will find code like this: </p>
+<pre>
+if [ "$1" = "-install" ]; then
+    INCDIR_ALT=$_IBASE/include
+    LIBDIR_ALT=$_IBASE/lib
+    export INCDIR_ALT LIBDIR_ALT
+    shift;
+    shift;
+fi
+</pre>
+<p>And then: </p>
+<pre>
+COPTS=-g
+test ! -z "$INCDIR_ALT" &amp;&amp; COPTS="$COPTS -li $INCDIR_ALT"
+test ! -z "$LIBDIR_ALT" &amp;&amp; COPTS="$COPTS -ll $LIBDIR_ALT"
+c $COPTS someprogram...
+</pre>
+<p>Which should be clear and obvious to you. See "Programmer" in the Boom Lexicon. </p>
+<h3><a name="TOC114">Important Boom Files</a></h3>
+<p>There is nothing like sitting down in a comfortable chair with some source code and a cup of hot cocoa.  The problem is that there is so much to chose from.  Where to start?  Well, allow me to play tourist guide and point out some nice files to open and look at: </p>
+<dl>
+<dt><b>project.pdl</b></dt>
+<dd>This is the Boom project definition.  It's a good place to start. </dd>
+<dt><b>classes.pdl</b></dt>
+<dd>The famous default classes file. </dd>
+<dt><b>prelude.pdl</b></dt>
+<dd>An example of how you can simplify your project definitions by making them standard. </dd>
+<dt><b>standard.wfl</b></dt>
+<dd>The standard workflow file.  Well, you *do* want to know what happens when you type "boomake build", don't you? </dd>
+<dt><b>pwl_win32.gsl</b></dt>
+<dd>If standard.wfl and its buddies are the intelligencia, then pwl_win32.gsl and pwl_unix.gsl are the exploited labour force. Basically these two GSL scripts do all the hard work of generating boomake files to suit your project. </dd>
+<dt><b>pwl_lib.gsl</b></dt>
+<dd>Common functions shared by the target scripts.  Some are obvious, some are bizarre.  But it's good to know what's there.  These functions are not documented elsewhere than in the source code. </dd>
+<dt><b>boom.gsl</b></dt>
+<dd>The main program, which brings it all together.  A good place to start if you want to see what GSL looks like. </dd>
+<dt><b>pdl.xnf</b></dt>
+<dd>The PDL grammar, in XNF format. </dd>
+<dt><b>pwl.xnf</b></dt>
+<dd>The PWL grammar, in XNF format. </dd>
+<dt><b>xnf.xnf</b></dt>
+<dd>The XNF grammar, in XNF format. :-) </dd>
+<dt><b>targets.pwl</b></dt>
+<dd>The actual list of targets that your project can work on. </dd>
+</dl>
+<h2><a name="TOC115">Frequently Asked Questions</a></h2>
+<p>&gt; 1. C sources are "sub program", "c/libero" or "library module" &gt; depending on whether they use a dialog or have a header module.  What &gt; if they do both? </p>
+<p>Look at examples in sfl (sflcvts).  There are various ways: either add the necessary stuff for that file, or if it happens a lot, define your own class.  It's trivial either way - the standard classes are just meant to give you a start.  If you want, we can also add more to the standard classes list. </p>
+<p>&gt; 2. OK I think I'm coming to grips with the idea of classes. &gt; The output script seems to check for the existence of too many files, &gt; ie even generated files.  This theory would explain its not building &gt; SFL properly as well as some behaviour I observe with GSL.  Is that &gt; possible? </p>
+<p>It is if the files are not defined as 'generated', or if they are marked as 'generated' but the code generation step is missing or commented out. </p>
+<h3><a name="TOC116">Is Boom Limited to C Programs?</a></h3>
+<p>No, Boom just happens to have some understanding of what it takes to turn a C program into executable code.  But you can use Boom for programs written in any language, compiled or otherwise.  C just happens to be the language that iMatix uses for its tools, and also happens to be a very complex language to compile correctly on all platforms.  More modern compilers, such as Java, tend to be portable across platforms.  OK, that was heavy irony. </p>
+<h3><a name="TOC117">How do I Add Support for Compiler XXX?</a></h3>
+<p>Under Windows (where this question gets asked most often), you will have to make changes to the c.bat file, which currently handles only MSVC. Under Unix, you will have to make changes to the c shell script, but note that this script already has support for zillions of Unix platforms. Check it first. </p>
+<h3><a name="TOC118">How do I Add Support for Operating System XXX?</a></h3>
+<p>See the section "Hacking Boom". </p>
+<h3><a name="TOC119">Do I Have to do "Code Generation" to Use Boom?</a></h3>
+<p>No, you do not need to "generate code" in order to use Boom. Boom just knows enough about what code generation means in order to integrate it into its workflows and builders. But frankly, if you're not doing any code generation in your work you should consider asking for your money back from the Code School you went to. Pieter's Rule is that 80% of all source code and 40% of documentation can be and therefore must be generated mechanically from original sources. This rule is derived from the Pyramid Principle which states that (a) making standard models is an essential part of mastering the problem of complexity, and (b) if you make standard models, then code generation lets you exploit these in order to produce variations on the models mechanically, because (c) any model that is based on the alternative - code packaging - is inherently tied to a specific programming language, and thus dead before it is even born. A decent code generator is the second most vital tool in software engineering, after a decent editor. Unfortunately, while there exist many hundreds of editors to chose from, the only decent code generator we have _ever_ seen is iMatix's own GSL. A menu with one choice is not very encouraging, but take my word for it: you simply cannot afford, as a professional programmer, to ignore the Pyramid Principle in your work. </p>
+<h3><a name="TOC120">Why is Boom so Complex?</a></h3>
+<p>This is a tricky question to answer but the truth is probably halfway between "because we're too stupid to make it simpler" and "because it takes a lot of complexity to make things look simple".  And when you look at Boom at the level of project definitions, it is very simple indeed.  You do not need to know much more than the basic PDL syntax and the principle classes to use Boom.  The complexity is there when you open the hood and look at the engine. </p>
+
+      <p>
+    </td>
+  </tr height="40">
+    <td width="5" bgcolor="#DDDDDDD">&nbsp;</td>
+    <td valign="bottom" class="footer">iMatix Corporation &amp;lt;tools@imatix.com&amp;gt; - Copyright (c) 2002-2009 iMatix Corporation</td>
+  </tr>
+</body>
+</html>

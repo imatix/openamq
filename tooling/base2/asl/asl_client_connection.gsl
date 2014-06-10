@@ -1,0 +1,369 @@
+.#
+.#   Copyright (c) 1996-2009 iMatix Corporation
+.#
+.#   This program is free software; you can redistribute it and/or modify
+.#   it under the terms of the GNU General Public License as published by
+.#   the Free Software Foundation; either version 2 of the License, or (at
+.#   your option) any later version.
+.#
+.#   This program is distributed in the hope that it will be useful, but
+.#   WITHOUT ANY WARRANTY; without even the implied warranty of
+.#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.#   General Public License for more details.
+.#
+.#   For information on alternative licensing for OEMs, please contact
+.#   iMatix Corporation.
+.#
+.open_output ("$(basename)_connection.icl")
+<?xml?>
+<!--
+    *** GENERATED FROM $(ARG?FILENAME) BY $(SCRIPT) USING GSL/4 ***
+
+.   if defined (copyright)
+        >#   $(copyright:)
+.   endif
+.   $(license:lower)_license ("")
+ -->
+<class
+    name      = "$(basename)_connection"
+    comment   = "$(basename) connection class"
+    version   = "1.0"
+    script    = "icl_gen"
+.   if defined (copyright)
+    copyright = "$(copyright)"
+.   endif
+    license   = "$(license)"
+    >
+<doc>
+A $(basename)_connection object establishes and manages a single
+connection to a $(protocol.name) server. The connection can hold
+many sessions - each is a $(basename)_session object. To use this
+API, first create a connection to the server, then create one or
+more sessions and do work on the sessions. Each session represents
+a serial stream of work. In simple applications, a single session
+is usually sufficient. In multithreaded applications, each thread
+will want its own session.
+</doc>
+
+<inherit class = "icl_object">
+    <option name = "alloc" value = "cache" />
+</inherit>
+<inherit class = "icl_init" />
+
+<import class = "asl" />
+<import class = "$(protocol.name)_constants" />
+<import class = "$(basename)_session" />
+.for class where count (field) by index
+<import class = "$(protocol.name)_content_$(name:c)"/>
+.endfor
+
+<context>
+    smt_thread_t
+        *thread;                        //  Thread for this connection
+    smt_method_queue_t
+        *method_queue;                  //  Replies from protocol agent
+    dbyte
+        channel_nbr;                    //  Top channel opened so far
+    Bool
+        silent;                         //  Don't print errors
+    Bool
+        alive;                          //  Connection is alive?
+    Bool
+        interrupt;                      //  Application was interrupted?
+    Bool
+        shutdown;                       //  We were shutdown
+    int
+        trace,                          //  Trace level 0-3
+        timeout;                        //  Connection timeout, msecs
+    char
+        *error_text;                    //  Last error cause
+    Bool
+        direct;                         //  Use Direct Protocol
+    icl_shortstr_t
+        host;                           //  Host we connected to
+.#  Expose all fields in reply methods
+.for class where name = "connection"
+.   for method where count (chassis, name = "client")
+.       for field where !field.global
+.           if count (protocol.connection_field, connection_field.name = field.name) = 0
+    $(ctype:)
+        $(name);                        //  $(string.trim(.)?:left)
+.               new connection_field to protocol
+.                   connection_field.name  = field.name
+.                   connection_field.type  = field.type
+.                   connection_field.ctype = field.ctype
+.                   connection_field.cargt = field.cargt
+.               endnew
+.           elsif protocol->connection_field (name = field.name).type <> field.type
+.               echo "E: $(name) has inconsistent types"
+.           endif
+.       endfor
+.   endfor
+.endfor
+.if count (connection_field, name = "reply_code") = 0
+.   abort "E: reply_code must be defined in at least one connection method"
+.endif
+.if count (connection_field, name = "reply_text") = 0
+.   abort "E: reply_text must be defined in at least one connection method"
+.endif
+.for class where name = "connection"
+.   for context
+$(gsl.exec (string.trim (context.), 1))
+.   endfor
+.endfor
+</context>
+
+<method name = "new">
+    <doc>
+    Create new connection to server.
+
+    The host argument specifies a server name or IP address, optionally
+    ending in ':' plus a port number.
+
+    The virtual_host name specifies the virtual host to which the connection
+    will connect.  The default virtual host is "/".
+
+    The auth_data provides an authentication block, used to login to the
+    server.  To create a plain-text authentication block, use the auth_plain
+    method.
+
+    The trace argument sets the trace level for the client API.
+
+    The timeout argument governs all synchronous exchanges with the server
+    - if the server does not respond within this time, the connection treats
+    it as a fatal error.  A timeout of zero means "infinite".  A good value
+    for fast networks is five to ten seconds; for a slower network, a value
+    of 30 seconds or more is reasonable.
+    </doc>
+    <argument name = "host" type = "char *">Host to connect to</argument>
+    <argument name = "virtual host" type = "char *">Virtual host</argument>
+    <argument name = "auth data" type = "icl_longstr_t *">Authentication data</argument>
+    <argument name = "instance" type = "char*">Client instance name</argument>
+    <argument name = "trace" type = "int">Trace level, 0 - 3</argument>
+    <argument name = "timeout" type = "int">Connection timeout, msecs</argument>
+    <local>
+    char
+        *env_value;                 //  Get environment setting
+    </local>
+    //
+    self->method_queue = smt_method_queue_sync_new ();
+    self->timeout = timeout;
+    self->trace = trace;
+    self->error_text = "no error";
+    icl_shortstr_cpy (self->host, host);
+
+    env_value = getenv ("WIREAPI_SILENT");
+    if (env_value && streq (env_value, "1"))
+        self->silent = TRUE;
+
+.for class where name = "connection"
+.   for constructor
+$(gsl.exec (string.trim (constructor.), 1))
+.   endfor
+.endfor
+    self->thread = $(basename)_agent_connection_thread_new (
+        self->method_queue,
+        &self->alive,
+        &self->interrupt,
+        &self->reply_code,
+        self->reply_text,
+        host,
+        virtual_host,
+        auth_data,
+        instance,
+        trace,
+        timeout);
+
+    //  Let the SMT engine take over until we get a reply on our queue
+    if (self->thread) {
+        if (s_wait_for_methods (self, self->timeout, TRUE) == 0) {
+            self->alive = TRUE;         //  Connection is ready for use
+            //  Decide whether to use Direct Mode or not
+            if ($(basename)_config_direct ($(basename)_config) || self->server_direct)
+                self->direct = TRUE;
+        }
+        else
+            self_destroy (&self);
+    }
+</method>
+
+<method name = "destroy">
+    <doc>
+    Close the connection and all sessions on it.  Call this when your
+    application ends, or if you want to break the connection to the
+    server.  This performs a clean shut-down of the connection, so any
+    server-side resources are freed.
+    </doc>
+    //
+.for class where name = "connection"
+.   for destructor
+$(gsl.exec (string.trim (destructor.), 1))
+.   endfor
+.endfor
+    if (self->alive) {
+        $(basename)_agent_connection_close (self->thread);
+        while (self->alive) {
+            //  Wait until we get back an CLOSED method, or timeout
+            s_wait_for_methods (self, self->timeout, FALSE);
+        }
+    }
+.for class where name = "connection"
+.   for method where count (chassis, name = "client")
+.       for field where !field.global & metat = "longstring"
+    icl_longstr_destroy (&self->$(name));
+.       endfor
+.   endfor
+.endfor
+    smt_method_queue_destroy (&self->method_queue);
+    smt_thread_unlink (&self->thread);
+</method>
+
+<method name = "auth plain" return = "auth data">
+    <doc>
+    Formats a new authentication data block for a plain login.
+    </doc>
+    <argument name = "login"    type = "char *" pass = "in">User login name</argument>
+    <argument name = "password" type = "char *" pass = "in">User password</argument>
+    <declare name = "auth data" type = "icl_longstr_t *">Authentication data</declare>
+    //
+    auth_data = ipr_sasl_plain_encode (login, password);
+</method>
+
+<method name = "wait" template = "function">
+    <doc>
+    Waits for any activity on the connection. Returns -1 if the connection
+    ended abnormally. If the timeout is zero, waits forever.
+    </doc>
+    <argument name = "timeout" type = "int" pass = "in">Timeout, in milliseconds</argument>
+    //
+    if (self->alive) {
+        if (s_wait_for_methods (self, timeout, FALSE))
+            rc = -1;
+    }
+    else
+        rc = -1;
+</method>
+
+<method name = "set silent" template = "function">
+    <argument name = "silent" type = "Bool" />
+    //
+    self->silent = silent;
+</method>
+
+<method name = "set timeout" template = "function">
+    <argument name = "timeout" type = "Bool" />
+    //
+    self->timeout = timeout;
+</method>
+.   produce_get_property ("silent",     "Bool")
+.   produce_get_property ("alive",      "Bool")
+.   produce_get_property ("error text", "char *")
+.   for connection_field
+.       produce_get_property (name, cargt)
+.   endfor
+
+<private name = "header">
+static int
+    s_wait_for_methods ($\(selftype) *self, int timeout, Bool blocking);
+</private>
+
+<private name = "footer">
+/*  Waits for methods from the protocol agent.  If the blocking argument
+    is true, returns only when receiving a synchronous reply method.  If not,
+    returns when any incoming method is received.  Returns 0 if ok, -1 if
+    the connection is closed or a blocking wait timed-out.
+ */
+static int
+s_wait_for_methods (
+    $\(selftype) *self,
+    int timeout,
+    Bool blocking)
+{
+    smt_method_t
+        *smt_method = NULL;
+    $(basename)_method_t
+        *proto_method;
+    int
+        rc = 0;                         //  OK by default
+
+    FOREVER {
+        smt_method_destroy (&smt_method);
+        smt_method_queue_wait (self->method_queue, timeout);
+        smt_method = smt_method_queue_pop (self->method_queue);
+        //  If we don't have a method, we timed-out
+        if (!smt_method) {
+            if (blocking) {
+                self->error_text = "No reply received - timeout";
+                rc = -1;
+            }
+            break;
+        }
+        else
+        //  ALMOST means we should wait for the next method...
+        if (smt_method->result == $(BASENAME)_REPLY_ALMOST) {
+            proto_method = ($(basename)_method_t *) smt_method->data;
+            if (proto_method)
+                $(basename)_method_execute (proto_method, self, NULL);
+        }
+        else
+        //  INTERN is an internal synchronisation from the agent
+        if (smt_method->result == $(BASENAME)_REPLY_INTERN)
+            break;                      //  We can return to caller
+        else
+        //  METHOD means the agent is sending us either:
+        //    - a sync method, which is a reply to a sync request
+        //    - an async method, which we want to process and then continue
+        //
+        //  We always stop when we get a sync method. If we have an async
+        //  method, we stop only if the queue is empty and we're not blocking.
+        //  Blocking means we want a sync method within the timeout.
+        //
+        if (smt_method->result == $(BASENAME)_REPLY_METHOD) {
+            proto_method = ($(basename)_method_t *) smt_method->data;
+            if (proto_method) {
+                $(basename)_method_execute (proto_method, self, NULL);
+                if (proto_method->sync)
+                    break;              //  Got synchronous method, end
+                else
+                if (smt_method_queue_isempty (self->method_queue) && !blocking)
+                    break;              //  Got final async method but not blocking
+            }
+            else
+                break;                  //  Synchronisation from agent
+        }
+        else
+        if (smt_method->result == $(BASENAME)_REPLY_CLOSED) {
+            self->alive = FALSE;        //  Connection is closed
+            rc = -1;                    //  Signal connection is closed
+            break;
+        }
+        else {
+            self->error_text = "Internal error - invalid reply method from protocol agent";
+            icl_console_print ("E: invalid reply result %d", smt_method->result);
+        }
+    }
+    smt_method_destroy (&smt_method);
+    return (rc);
+}
+</private>
+
+<method name = "initialise">
+    <doc internal = "1">
+    Initialise the connection class.  If the application has not already
+    loaded config data, loads this from wireapi.cfg.
+    </doc>
+    if (!$(basename)_config) {
+        $(basename)_config = $(basename)_config_new ();
+        $(basename)_config_load_xmlfile ($(basename)_config, "wireapi.cfg", FALSE);
+    }
+    smt_initialise ();
+    $(basename)_agent_init ();
+</method>
+
+<method name = "terminate">
+    $(basename)_config_destroy (&$(basename)_config);
+</method>
+
+<method name = "selftest" />
+
+</class>

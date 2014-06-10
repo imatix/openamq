@@ -1,0 +1,94 @@
+<?xml?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<pdl
+    name      = "Gurudoc"
+    acronym   = "gurudoc"
+    version   = "1.3b1"
+    copyright = "Copyright (c) 1996-2009 iMatix Corporation"
+    workflow  = "standard.pwl">
+
+<include filename = "prelude.pdl" />
+<file name = "guruver.gsl"          class = "gsl version"     >Project version header</file>
+<file name = "guruver.pl"           class = "perl version"    >Project version header</file>
+
+<file name = "gdl.txt"              class = "generated"       >GDL documentation</file>
+<file name = "gdl.xnf"              class = "private resource">GDL grammar</file>
+<file name = "gdlcode.gsl"          class = "generated script">GDL coding parser</file>
+<file name = "gdlparse.gsl"         class = "generated script">GDL validating parser</file>
+<file name = "gurudoc.gsl"          class = "public script"   >GuruDoc GSL script</file>
+<file name = "mkgdl"                class = "command script"  >Generate GDL file</file>
+<file name = "mkgdl.bat"            class = "dos wrapper"     >Generate GDL file</file>
+<file name = "gurudoc"              class = "command script"  >Generate default pages</file>
+<file name = "gurudoc.bat"          class = "dos wrapper"     >Generate default pages</file>
+<file name = "mod_gdl.gsl"          class = "public script"   >GDL module</file>
+<file name = "gd2xhtml"             class = "command script"  >Gurudoc-to-XHTML</file>
+<file name = "gd2xhtml.bat"         class = "dos wrapper"     >Gurudoc-to-XHTML</file>
+
+<!-- Template examples -->
+<file name = "test_html_frame.gsl"   class = "private resource">Template test script</file>
+<file name = "html_frame.gsl"        class = "public script"   >Template GDL module</file>
+<file name = "html_simple.gsl"       class = "public script"   >Template GDL module</file>
+<file name = "html_multi.gsl"        class = "public script"   >Template GDL module</file>
+<file name = "html_library.gsl"      class = "public script"   >Library functions</file>
+<file name = "txt_simple.gsl"        class = "public script"   >Template GDL module</file>
+<file name = "rtf_simple.gsl"        class = "public script"   >Template GDL module</file>
+<file name = "latex_simple.gsl"      class = "public script"   >Template GDL module</file>
+<file name = "mod_rtf.gsl"           class = "public script"   >RTF module</file>
+<file name = "texi_simple.gsl"       class = "public script"   >Template GDL module</file>
+<file name = "groff_simple.gsl"      class = "public script"   >Template GDL module</file>
+<file name = "ooo_document.gsl"      class = "public script"   >Template GDL module</file>
+<file name = "ooo_whitepaper.gsl"    class = "public script"   >Template GDL module</file>
+<file name = "tpl_frame.htm"         class = "public resource" >Template HTML file</file>
+<file name = "tpl_frame_body.htm"    class = "public resource" >Template HTML file</file>
+<file name = "tpl_frame_bot.htm"     class = "public resource" >Template HTML file</file>
+<file name = "tpl_frame_top.htm"     class = "public resource" >Template HTML file</file>
+<file name = "tpl_frame_toc.htm"     class = "public resource" >Template HTML file</file>
+<file name = "tpl_simple.htm"        class = "public resource" >Template HTML file</file>
+<file name = "tpl_document.sxw"      class = "public resource" >Template OOo file</file>
+<file name = "tpl_whitepaper.sxw"    class = "public resource" >Template OOo file</file>
+<file name = "tpl_latex.tex"         class = "public resource" >Template LaTeX file</file>
+<file name = "html_frameset.gsl"     class = "public script"   >Template GDL module</file>
+<file name = "tpl_frameset.htm"      class = "public resource" >Template HTML file</file>
+<file name = "tpl_frameset_body.htm" class = "public resource" >Template HTML file</file>
+<file name = "tpl_frameset_bot.htm"  class = "public resource" >Template HTML file</file>
+<file name = "tpl_frameset_top.htm"  class = "public resource" >Template HTML file</file>
+<file name = "tpl_frameset_toc.htm"  class = "public resource" >Template HTML file</file>
+<file name = "wikidot.gsl"           class = "public script"   >Template Wikidot module</file>
+
+<!-- Documentation -->
+<file name = "gddoc.txt"            class = "private resource">Documentation source</file>
+<actions when = "after">
+  <generate>
+    <!-- Need to call via Perl since script is not installed on PATH yet -->
+    <execute command = "perl mkgdl gddoc.txt"   />
+    <execute command = "gsl3 -quiet -tpl:html_frameset -gdl:gddoc gurudoc" />
+  </generate>
+</actions>
+<file name = "gddoc.gdl"            class = "generated"       >Generated GDL file</file>
+<file name = "gddoc*.html"          class = "gurudoc output"  >Generated documentation</file>
+<file name = "mainlogo.jpg"         class = "web resource"    >Default logo</file>
+<file name = "gdstyle.css"          class = "web resource"    >Cascading style sheet document</file>
+
+<actions>
+  <generate>
+    <execute command = "gsl3 -q -xnf:gdl -doc:text -parse:1 -code:1 buildxnf" />
+  </generate>
+</actions>
+
+</pdl>

@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<pdl
+    name      = "GSLgen"
+    acronym   = "gsl2"
+    version   = "2.01"
+    copyright = "Copyright (c) 1991-2009 iMatix Corporation"
+    workflow  = "standard.pwl"
+    library   = "libgsl2">
+
+<include filename = "prelude.pdl" />
+<file name = "version.h"    class = "c version"       >Project version file</file>
+
+<file name = "gslgen.c"     class = "main program"    >Main program source</file>
+<file name = "gslgen.l"     class = "c dialog"        >Main program dialog</file>
+<file name = "ggcode.c"     class = "c/libero"        >Code generator</file>
+<file name = "ggcode.h"     class = "private resource">Code generator header</file>
+<file name = "ggcomm.c"     class = "library module"  >Common functions</file>
+<file name = "ggeval.c"     class = "library module"  >Script evaluator</file>
+<file name = "ggfile.c"     class = "library module"  >File functions</file>
+<file name = "ggfunc.c"     class = "library module"  >Built-in GSL functions</file>
+<file name = "ggjs.h"       class = "private resource">JavaScript interface</file>
+<file name = "ggobjt.c"     class = "library module"  >Object module</file>
+<file name = "ggstrn.c"     class = "library module"  >String functions</file>
+<file name = "ggpars.c"     class = "dialog module"   >Script parser</file>
+
+<file name = "ggmacro.gsl"  class = "private resource">GSL macro examples</file>
+<file name = "ggreport.gsl" class = "private resource">GSL reporting examples</file>
+
+<!-- Deliverables -->
+<file name = "gslgen"       class = "public command"  >GSL command</file>
+
+<!-- Documentation -->
+<file name = "gsldoc.txt"   class = "documentation"   >Libero documentation source</file>
+<file name = "prelude.def"  class = "private resource">Documentation prelude</file>
+<file name = "macros.def"   class = "private resource">Documentation macros</file>
+<file name = "gslgen.gif"   class = "web resource"    >GSLgen image</file>
+<file name = "im0096c.gif"  class = "web resource"    >iMatix logo, old</file>
+
+<use>
+    <library name = "libsfl" />
+</use>
+
+</pdl>

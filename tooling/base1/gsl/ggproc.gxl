@@ -1,0 +1,237 @@
+<?xml?>
+<!--
+    GSL/proc - Process control functions
+
+    Provides GSL applications with the ability to start and stop
+    system processes.
+
+    Copyright (c) 1991-2009 iMatix Corporation
+
+    ------------------ GPL Licensed Source Code ------------------
+    iMatix makes this software available under the GNU General
+    Public License (GPL) license for open source projects.  For
+    details of the GPL license please see www.gnu.org or read the
+    file license.gpl provided in this package.
+
+    This program is free software; you can redistribute it and/or             
+    modify it under the terms of the GNU General Public License as            
+    published by the Free Software Foundation; either version 2 of            
+    the License, or (at your option) any later version.                       
+                                                                              
+    This program is distributed in the hope that it will be useful,           
+    but WITHOUT ANY WARRANTY; without even the implied warranty of            
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             
+    GNU General Public License for more details.                               
+                                                                               
+    You should have received a copy of the GNU General Public                  
+    License along with this program in the file 'license.gpl'; if             
+    not, write to the Free Software Foundation, Inc., 59 Temple               
+    Place - Suite 330, Boston, MA 02111-1307, USA.                            
+                                                                              
+    You can also license this software under iMatix's General Terms           
+    of Business (GTB) for commercial projects.  If you have not               
+    explicitly licensed this software under the iMatix GTB you may            
+    only use it under the terms of the GNU General Public License.            
+                                                                              
+    For more information, send an email to info@imatix.com.                   
+    --------------------------------------------------------------            
+ -->
+    
+<gxl script = "ggobjt.gsl" filename = "ggproc" title = "GSL/proc package" >
+
+<extra>
+#define GSLPROC_VERSION       "GSL/PROC/1.0"
+
+#define STRING_VALUE(arg,default)   (arg? string_value (&arg-> value): default)
+#define NUMBER_VALUE(arg,default)   (arg? number_value (&arg-> value): default)
+
+#define RETURN_STATUS(status) \
+    { \
+    result-> value.type = TYPE_NUMBER;\
+    result-> value.n    = (status);\
+    return (0); \
+    }
+</extra>
+
+
+<object name = "proc" title = "Process Management" >
+
+<!-------------------------------------------------------------------------
+    proc.version (type)
+
+    Returns version information.  Use the type argument as follows:
+        "obj"   Returns the version number of the GSL/proc interface
+    If the type argument is ommitted, the default is "obj".
+ -------------------------------------------------------------------------->
+
+<function name = "version" >
+  <parameter name = "type"   pass = "value"  />
+<body>
+{
+    char
+        *my_type,
+        *version;
+        
+    my_type = STRING_VALUE (type, "obj");
+    if (streq (my_type, "obj")) {
+        version = GSLPROC_VERSION;
+    }
+    else
+        version = "(illegal type argument)";    
+
+    result-> value.type = TYPE_STRING;
+    result-> value.s    = mem_strdup (version);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    proc.run (command, [workdir])
+
+    Runs the specified command in a sub-process.  The command is a native
+    system command.  If the command ran successfully, places the command
+    output, if any, in an item called 'process', with attributes 'stdout'
+    and 'stderr', beneath the current scope, and returns 0.  Returns -1 if
+    there was an error running the command.
+ -------------------------------------------------------------------------->
+
+<function name = "run" >
+  <parameter name = "command" pass = "value"  compulsory = "1" />
+  <parameter name = "workdir" pass = "value"  />
+<body>
+{
+    char
+        *my_command,
+        *my_workdir;
+    PROCESS
+        process;                        /*  Created process id               */
+    char
+        *my_stdout,                     /*  Capture output from command      */
+        *my_stderr;
+    XML_ITEM
+        *xml_item;                      /*  Where we return data             */
+    DESCR
+        *file_data;                     /*  Slurped data                     */
+    int
+        status;                         /*  Status to return                 */
+
+    my_command = STRING_VALUE (command, "");
+    my_workdir = STRING_VALUE (workdir, ".");
+    my_stderr  = get_tmp_file_name (".", NULL, "tmp");
+    my_stdout  = get_tmp_file_name (".", NULL, "tmp");
+    if ((xml_item = open_xml_item (gsl_thread, NULL, "process")) == NULL)
+        return (-1);
+                     
+    process = process_create (
+        my_command,                     /*  Name of file to execute          */
+        NULL,                           /*  Arguments for process, or NULL   */
+        my_workdir,                     /*  Working directory, or NULL       */
+        NULL,                           /*  Stdin device, or NULL            */
+        my_stdout,                      /*  Stdout device, or NULL           */
+        my_stderr,                      /*  Stderr device, or NULL           */
+        NULL,                           /*  Environment variables, or NULL   */
+        TRUE                            /*  Wait for process to end          */
+    );
+    if (process == NULL_PROCESS)
+        status = -1;
+    else {
+        file_data = file_slurp (my_stdout);
+        if (file_data && file_data-> size > 0) {
+            xml_put_attr (xml_item, "stdout", (char *) file_data-> data);
+            mem_free (file_data);
+        }
+        file_data = file_slurp (my_stderr);
+        if (file_data && file_data-> size > 0) {
+            xml_put_attr (xml_item, "stderr", (char *) file_data-> data);
+            mem_free (file_data);
+        }
+        status = 0;
+    }
+    file_delete (my_stdout);
+    file_delete (my_stderr);
+    mem_free (my_stdout);
+    mem_free (my_stderr);
+    RETURN_STATUS (status);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    proc.sleep (delay)
+
+    Sleeps for a specified delay in seconds.  The current implementation 
+    breaks the GSL multithreaded model and should be treated as experimental.
+ -------------------------------------------------------------------------->
+
+<function name = "sleep">
+  <parameter name = "delay" pass = "value"  compulsory = "1" />
+<body>
+{
+    long
+        my_delay;
+
+     my_delay = (long) NUMBER_VALUE (delay, 1);
+     sleep (my_delay);
+}
+</body>
+</function>
+
+</object>
+
+<extra>
+/*  Local function prototypes                                                */
+
+static XML_ITEM *open_xml_item (THREAD *gsl_thread, RESULT_NODE *scope, char *name);
+
+
+/*  ---------------------------------------------------------------------------
+    open_xml_item
+
+    Prepares a new XML item ready to receive data.  Returns the new XML item
+    if successful, else returns NULL.  Any existing items with the specified
+    name are deleted before the new empty item is created.
+    The following is black magic, unless you know how the GSL internals work.
+ */
+
+static XML_ITEM *
+open_xml_item (THREAD *gsl_thread, RESULT_NODE *scope, char *name)
+{
+    XML_ITEM
+        *xml_scope,                     /*  Parent scope                     */
+        *xml_item = NULL,               /*  Created item                     */
+        *xml_next;                      /*  Next item, for walking list      */
+    GGCODE_TCB
+        *tcb;                           /*  Thread control block             */
+    char
+        *gg_error;                      /*  Possible error from ggcomm       */
+
+    tcb = gsl_thread-> tcb;
+    xml_scope = extended_scope_xml (&tcb-> scope_stack,
+                                    scope? scope-> scope: NULL,
+                                    tcb-> ignorecase, &gg_error);
+    if (xml_scope) {
+        /*  Look for, delete any record items present as children of scope   */
+        xml_item = xml_first_child (xml_scope);
+        while (xml_item) {
+            xml_next = xml_next_sibling (xml_item);
+            if (streq (xml_item_name (xml_item), name))
+                xml_free (xml_item);
+            xml_item = xml_next;
+        }
+        xml_item = xml_new (xml_scope, name, NULL);
+    }
+    else {
+        if (gg_error)
+            strcpy (object_error, gg_error);
+        else
+            sprintf (object_error, "Unknown data scope: %s",
+                                    extended_scope_string (scope-> scope));
+    }
+    return (xml_item);
+}
+</extra>
+
+</gxl>
+

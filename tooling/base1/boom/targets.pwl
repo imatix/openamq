@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<!-- We support these target systems -->
+<target name    = "msvc9"
+        label   = "Microsoft Visual C/C++ 9.0"
+        script  = "pwl_msvc9.gsl"
+        output  = "boomakew.bat"
+        pathsep = "\"
+        inherit = "win32" />
+
+<target name    = "unix"
+        label   = "Unix"
+        script  = "pwl_unix.gsl"
+        output  = "boomake"
+        pathsep = "/"
+        />
+
+<target name    = "win32"
+        label   = "Windows NT/2000 console"
+        script  = "pwl_win32.gsl"
+        output  = "boomake.bat"
+        pathsep = "\"
+        />
+
+<!--
+<target name    = "msvc"
+        label   = "Microsoft Visual C/C++"
+        script  = "pwl_msvc.gsl"
+        output  = "boomakew.bat"
+        pathsep = "\"
+        inherit = "win32" />
+-->

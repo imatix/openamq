@@ -1,0 +1,274 @@
+.------------------------------------------------------------------------------
+.-                                                                            
+.-  ggobjt.gsl - Object module generator                                      
+.-                                                                            
+.-  Copyright (c) 1991-2009 iMatix Corporation                                
+.-                                                                            
+.-  ------------------ GPL Licensed Source Code ------------------            
+.-  iMatix makes this software available under the GNU General                
+.-  Public License (GPL) license for open source projects.  For               
+.-  details of the GPL license please see www.gnu.org or read the             
+.-  file license.gpl provided in this package.                                
+.-                                                                            
+.-  This program is free software; you can redistribute it and/or             
+.-  modify it under the terms of the GNU General Public License as            
+.-  published by the Free Software Foundation; either version 2 of            
+.-  the License, or (at your option) any later version.                       
+.-                                                                            
+.-  This program is distributed in the hope that it will be useful,           
+.-  but WITHOUT ANY WARRANTY; without even the implied warranty of            
+.-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             
+.-  GNU General Public License for more details.                              
+.-                                                                            
+.-  You should have received a copy of the GNU General Public                 
+.-  License along with this program in the file 'license.gpl'; if             
+.-  not, write to the Free Software Foundation, Inc., 59 Temple               
+.-  Place - Suite 330, Boston, MA 02111-1307, USA.                            
+.-                                                                            
+.-  You can also license this software under iMatix's General Terms           
+.-  of Business (GTB) for commercial projects.  If you have not               
+.-  explicitly licensed this software under the iMatix GTB you may            
+.-  only use it under the terms of the GNU General Public License.            
+.-                                                                            
+.-  For more information, send an email to info@imatix.com.                   
+.-  --------------------------------------------------------------            
+.------------------------------------------------------------------------------
+.template 0
+
+.-
+.- What the following incomprehensible lines accomplish is to build a series
+.- of lists of parameter pass types that will serve for all the functions
+.- described in the GXL
+.-
+parmv = "PARM_VALUE"
+parmr = "PARM_REFERENCE"
+parms = "PARM_SIMPLE_SCOPE"
+parmx = "PARM_EXTENDED_SCOPE"
+parme = "PARM_EXPRESSION"
+for object
+    for function
+        templist = ""
+.-
+.-      First build the list needed for this function
+.-
+        global.min_parms = 0
+        tot_parms = 0
+        for parameter
+            tot_parms += 1
+            if parameter.compulsory ? 0 & min_parms + 1 = index ()
+                global.min_parms += 1
+            endif
+            if pass = "value"
+                templist += "v"
+            elsif pass = "reference"
+                templist += "r"
+            elsif pass = "simple scope"
+                templist += "s"
+            elsif pass = "extended scope"
+                templist += "x"
+            elsif pass = "expression"
+                templist += "e"
+            else
+                abort "Unknown parameter pass type: $(pass)"
+            endif
+        endfor
+        if ! defined ([function].min_parms)
+            [function].min_parms = global.min_parms
+        endif
+        if ! defined ([function].max_parms)
+            [function].max_parms = count (parameter)
+        endif
+.-
+.-      Trim extraneous types from end of list
+.-
+        [function].cnt_parmt = tot_parms
+        while cnt_parmt > 1
+            if string.substr (templist, cnt_parmt - 1, , 1)                   \
+             = string.substr (templist, cnt_parmt - 2, , 1)
+                cnt_parmt -= 1
+                templist = string.substr (templist, , cnt_parmt - 1)
+            else
+                last
+            endif
+        endwhile
+.-
+.-      Now see whether a list exists which will do
+.-
+        for root.parmlist where string.locate (name, templist) ?= 0
+            [function].parmlist = name
+        endfor
+.-
+.-      Now see if a list exists that can be extended to make do.
+.-
+        if ! defined ([function].parmlist)
+            for root.parmlist where string.locate (templist, name) ?= 0
+                for gxl.object
+                    for function where [function].parmlist ?= parmlist.name
+                        [function].parmlist = templist
+                    endfor
+                endfor
+                parmlist.name = templist
+                [function].parmlist = name
+            endfor
+        endif
+.-
+.-      Only if all the above fails do we make a new list
+.-
+        if ! defined ([function].parmlist)
+            new parmlist to root
+                parmlist.name = templist
+                [function].parmlist = name
+            endnew
+        endif
+    endfor
+endfor
+
+.endtemplate
+.output "$(filename:).h"
+/*---------------------------------------------------------------------------
+ *  $(filename).h - $(title?:) header
+ *
+ *  Generated on $(date), $(time) from $(filename)
+ *  by ggobjt.gsl using GSLgen.
+ *  DO NOT MODIFY THIS FILE.
+ *
+ *  For documentation and updates see http://www.imatix.com.
+ *---------------------------------------------------------------------------*/
+
+#ifndef $(FILENAME)_INCLUDED
+#define $(FILENAME)_INCLUDED
+
+/*- Function prototypes -----------------------------------------------------*/
+
+.for object
+int register_$(name:c)_functions (void);
+.endfor
+
+#endif
+.close
+.output "$(filename:).c"
+/*---------------------------------------------------------------------------
+ *  $(filename).c - $(title?:)
+ *
+ *  Generated on $(date), $(time) from $(filename)
+ *  by ggobjt.gsl using GSLgen.
+ *  DO NOT MODIFY THIS FILE.
+ *
+ *  For documentation and updates see http://www.imatix.com.
+ *---------------------------------------------------------------------------*/
+
+#include "ggpriv.h"                     /*  Project header file              */
+#include "$(filename:).h"               /*  Include header file              */
+
+
+/*- Macros ------------------------------------------------------------------*/
+
+.for object
+#define $(NAME:c)_NAME "$(name)"        /*  $(title?:)                       */
+.endfor
+
+/*- Function prototypes -----------------------------------------------------*/
+
+.for object
+.    for function
+static EVAL_FUNCTION eval_$(object.name:c)_$(function.name:c);
+.    endfor
+.endfor
+
+/*- Global variables --------------------------------------------------------*/
+
+.[gsl].shuffle = 1
+.for root.parmlist
+static PARM_LIST parm_list_$(name)      = {\
+.    i = 0
+.    while i < string.length (name)
+.        c = string.substr (name, i, , 1)
+                                            $(PARM$(C))\
+.        i += 1
+.        if i < string.length (name)
+,
+.        endif
+.    endwhile
+ };
+.endfor
+
+.for object
+.[gsl].shuffle = 2
+static GSL_FUNCTION $(name:c)_functions [] = 
+.[gsl].shuffle = 1
+{
+.    for function by name
+    {"$(name:c)",   $(min_parms),\
+                       $(max_parms),\
+                          $(cnt_parmt),\
+                             (void *) &parm_list_$(parmlist),\
+                                                 $(immediate? 1),\
+                                                 eval_$(object.name:c)_$([function].name:c)}\
+.        if index () < total ()
+,
+.        endif
+.    endfor
+
+};
+.endfor
+.[gsl].shuffle = 2
+.for extra
+$(.?)
+.endfor
+.for object
+/*- Functions for object "$(name:)" - $(object.title?:)                      */
+.    if count (object.terminate)
+
+void $(name:c)_destructor (void)
+{
+$(object-> terminate)
+}
+.    endif
+
+int register_$(name:c)_functions (void)
+{
+.    if count (object.initialise)
+$(object-> initialise ? )
+.    endif
+.    if count (object.terminate)
+    return object_register ($(NAME:C)_NAME,
+                            $(name:c)_functions,
+                            tblsize ($(name:c)_functions),
+                            $(name:c)_destructor);
+.    else
+    return object_register ($(NAME:C)_NAME,
+                            $(name:c)_functions,
+                            tblsize ($(name:c)_functions),
+                            NULL);
+.    endif
+}
+
+.    for function
+static int
+eval_$(object.name:c)_$(function.name:c) (int argc, RESULT_NODE **argv, RESULT_NODE *result, THREAD *gsl_thread)
+{
+.        [gsl].shuffle = 1
+.        for parameter where defined (parameter.name)
+.            global.i = item () - 1
+    RESULT_NODE *$(name:c)\
+                         = argc > $(i)\
+                         ? argv [$(i)]\
+                         : NULL;
+.        endfor
+.        [gsl].shuffle = 2
+
+.        for parameter where (compulsory ? 0) | (defined ? 0)
+    if ($(name:c) && ($(name:c)-> value. type == TYPE_UNDEFINED))
+      {
+        result-> culprit = $(name:c)-> culprit;
+        return 0;
+      }
+.        endfor
+$(-> body)
+    return 0;
+}
+
+.    endfor
+
+.endfor
+.close

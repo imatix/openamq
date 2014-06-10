@@ -1,0 +1,963 @@
+#   
+#   ooo_document.gsl - Gurudoc template for OpenOffice.org document
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+##########################   DECLARE_REEL_STYLES   ##########################
+
+function declare_reel_styles
+    if ! defined (reel_styles)
+        reel_styles = ''
+    endif
+
+    reel_styles += '<style:style'
+    reel_styles += ' style:name="Horizontal Line"'
+    reel_styles += ' style:family="paragraph"'
+    reel_styles += ' style:parent-style-name="Standard"'
+    reel_styles += ' style:next-style-name="Text body"'
+    reel_styles += ' style:class="html">'
+    reel_styles += "\n"
+    reel_styles += ' <style:properties'
+    reel_styles += ' fo:margin-top="0pt"'
+    reel_styles += ' fo:margin-bottom="14.14pt"'
+    reel_styles += ' fo:font-size="6pt"'
+    reel_styles += ' style:font-size-asian="6pt"'
+    reel_styles += ' style:font-size-complex="6pt"'
+    reel_styles += ' style:border-line-width-bottom="0.06pt 0.99pt 0.06pt"'
+    reel_styles += ' fo:padding="0pt"'
+    reel_styles += ' fo:border-left="none"'
+    reel_styles += ' fo:border-right="none"'
+    reel_styles += ' fo:border-top="none"'
+    reel_styles += ' fo:border-bottom="1.11pt double #808080"'
+    reel_styles += ' text:number-lines="false"'
+    reel_styles += ' text:line-number="0"/>'
+    reel_styles += "\n"
+    reel_styles += '</style:style>'
+    reel_styles += "\n"
+
+    reel_styles += '<style:style'
+    reel_styles += ' style:name="Source Code"'
+    reel_styles += ' style:family="paragraph"'
+    reel_styles += ' style:parent-style-name="Text body">'
+    reel_styles += "\n"
+    reel_styles += ' <style:properties'
+    reel_styles += ' fo:color="#800000"'
+    reel_styles += ' fo:font-family="Courier"'
+    reel_styles += ' style:font-style-name="Medium"'
+    reel_styles += ' style:font-family-generic="modern"'
+    reel_styles += ' style:font-pitch="variable"'
+    reel_styles += ' fo:font-size="11pt"'
+    reel_styles += ' fo:font-weight="normal"'
+    reel_styles += ' fo:margin-left="0.2402inch"'
+    reel_styles += ' fo:margin-right="0inch"'
+    reel_styles += ' fo:text-indent="0inch"/>'
+    reel_styles += "\n"
+    reel_styles += '</style:style>'
+    reel_styles += "\n"
+endfunction
+
+
+##########################   DECLARE_AUTO_STYLES   ##########################
+
+function declare_auto_styles
+    if ! defined (auto_styles)
+        auto_styles = ''
+    endif
+
+    auto_styles += '<style:style'
+    auto_styles += ' style:name="GD_H1"'
+    auto_styles += ' style:family="paragraph"'
+    auto_styles += ' style:parent-style-name="Heading 1">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' fo:font-family="Arial"'
+    auto_styles += ' style:font-style-name=""'
+    auto_styles += ' fo:font-size="18pt"'
+    auto_styles += ' fo:font-weight="bold"'
+    auto_styles += ' fo:margin-top="0.1665inch"'
+    auto_styles += ' fo:margin-bottom="0.0835inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</style:style>'
+    auto_styles += "\n"
+
+    auto_styles += '<style:style'
+    auto_styles += ' style:name="GD_H2"'
+    auto_styles += ' style:family="paragraph"'
+    auto_styles += ' style:parent-style-name="Heading 2">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' fo:font-family="Arial"'
+    auto_styles += ' style:font-style-name=""'
+    auto_styles += ' fo:font-size="14pt"'
+    auto_styles += ' fo:font-style="italic"'
+    auto_styles += ' fo:font-weight="bold"'
+    auto_styles += ' fo:margin-top="0.1665inch"'
+    auto_styles += ' fo:margin-bottom="0.0835inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</style:style>'
+    auto_styles += "\n"
+
+    auto_styles += '<style:style'
+    auto_styles += ' style:name="GD_H3"'
+    auto_styles += ' style:family="paragraph"'
+    auto_styles += ' style:parent-style-name="Heading 3">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' fo:font-family="Arial"'
+    auto_styles += ' style:font-style-name=""'
+    auto_styles += ' fo:font-size="14pt"'
+    auto_styles += ' fo:font-weight="bold"'
+    auto_styles += ' fo:margin-top="0.1665inch"'
+    auto_styles += ' fo:margin-bottom="0.0835inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</style:style>'
+    auto_styles += "\n"
+
+    auto_styles += '<style:style'
+    auto_styles += ' style:name="GD_H4"'
+    auto_styles += ' style:family="paragraph"'
+    auto_styles += ' style:parent-style-name="Heading 4">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' fo:font-family="Arial"'
+    auto_styles += ' style:font-style-name=""'
+    auto_styles += ' fo:font-size="12pt"'
+    auto_styles += ' fo:font-style="italic"'
+    auto_styles += ' fo:font-weight="bold"'
+    auto_styles += ' fo:margin-top="0.1665inch"'
+    auto_styles += ' fo:margin-bottom="0.0835inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</style:style>'
+    auto_styles += "\n"
+
+    auto_styles += '<style:style'
+    auto_styles += ' style:name="GD_HR"'
+    auto_styles += ' style:family="paragraph"'
+    auto_styles += ' style:parent-style-name="Horizontal Line">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' fo:margin-top="0inch"'
+    auto_styles += ' fo:margin-bottom="0.0835inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</style:style>'
+    auto_styles += "\n"
+
+    auto_styles += '<style:style'
+    auto_styles += ' style:name="GD_PAR"'
+    auto_styles += ' style:family="paragraph"'
+    auto_styles += ' style:parent-style-name="Text body">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' fo:margin-top="0inch"'
+    auto_styles += ' fo:margin-bottom="0.0835inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</style:style>'
+    auto_styles += "\n"
+
+    auto_styles += '<style:style'
+    auto_styles += ' style:name="GD_PRE"'
+    auto_styles += ' style:family="paragraph"'
+    auto_styles += ' style:parent-style-name="Source Code">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' fo:color="#800000"'
+    auto_styles += ' fo:font-family="Courier"'
+    auto_styles += ' style:font-style-name="Medium"'
+    auto_styles += ' style:font-family-generic="modern"'
+    auto_styles += ' style:font-pitch="variable"'
+    auto_styles += ' style:auto-text-indent="false"'
+    auto_styles += ' fo:font-size="10pt"'
+    auto_styles += ' fo:font-weight="normal"'
+    auto_styles += ' fo:margin-left="0.2402inch"'
+    auto_styles += ' fo:margin-right="0inch"'
+    auto_styles += ' fo:text-indent="0inch"'
+    auto_styles += ' fo:margin-top="0inch"'
+    auto_styles += ' fo:margin-bottom="0.0835inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</style:style>'
+    auto_styles += "\n"
+
+    auto_styles += '<style:style'
+    auto_styles += ' style:name="GD_BULLET"'
+    auto_styles += ' style:family="paragraph"'
+    auto_styles += ' style:parent-style-name="Text body"'
+    auto_styles += ' style:list-style-name="GD_BULLET_SYMBOLS">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' fo:margin-top="0inch"'
+    auto_styles += ' fo:margin-bottom="0.0835inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</style:style>'
+    auto_styles += "\n"
+
+    auto_styles += '<text:list-style'
+    auto_styles += ' style:name="GD_BULLET_SYMBOLS">'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-bullet'
+    auto_styles += ' text:level="1"'
+    auto_styles += ' text:style-name="Bullet Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' text:bullet-char="">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:min-label-width="0.1965inch"'
+    auto_styles += ' fo:font-family="starbats"'
+    auto_styles += ' style:font-charset="x-symbol"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-bullet>'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-bullet'
+    auto_styles += ' text:level="2"'
+    auto_styles += ' text:style-name="Bullet Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' text:bullet-char="">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:space-before="0.1972inch"'
+    auto_styles += ' text:min-label-width="0.1965inch"'
+    auto_styles += ' fo:font-family="starbats"'
+    auto_styles += ' style:font-charset="x-symbol"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-bullet>'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-bullet'
+    auto_styles += ' text:level="3"'
+    auto_styles += ' text:style-name="Bullet Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' text:bullet-char="">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:space-before="0.3937inch"'
+    auto_styles += ' text:min-label-width="0.1965inch"'
+    auto_styles += ' fo:font-family="starbats"'
+    auto_styles += ' style:font-charset="x-symbol"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-bullet>'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-bullet'
+    auto_styles += ' text:level="4"'
+    auto_styles += ' text:style-name="Bullet Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' text:bullet-char="">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:space-before="0.5909inch"'
+    auto_styles += ' text:min-label-width="0.1965inch"'
+    auto_styles += ' fo:font-family="starbats"'
+    auto_styles += ' style:font-charset="x-symbol"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-bullet>'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-bullet'
+    auto_styles += ' text:level="5"'
+    auto_styles += ' text:style-name="Bullet Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' text:bullet-char="">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:space-before="0.7874inch"'
+    auto_styles += ' text:min-label-width="0.1965inch"'
+    auto_styles += ' fo:font-family="starbats"'
+    auto_styles += ' style:font-charset="x-symbol"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-bullet>'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-bullet'
+    auto_styles += ' text:level="6"'
+    auto_styles += ' text:style-name="Bullet Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' text:bullet-char="">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:space-before="0.9846inch"'
+    auto_styles += ' text:min-label-width="0.1965inch"'
+    auto_styles += ' fo:font-family="starbats"'
+    auto_styles += ' style:font-charset="x-symbol"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-bullet>'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-bullet'
+    auto_styles += ' text:level="7"'
+    auto_styles += ' text:style-name="Bullet Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' text:bullet-char="">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:space-before="1.1815inch"'
+    auto_styles += ' text:min-label-width="0.1965inch"'
+    auto_styles += ' fo:font-family="starbats"'
+    auto_styles += ' style:font-charset="x-symbol"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-bullet>'
+    auto_styles += "\n"
+
+    auto_styles += '<text:list-level-style-bullet'
+    auto_styles += ' text:level="8"'
+    auto_styles += ' text:style-name="Bullet Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' text:bullet-char="">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:space-before="1.3787inch"'
+    auto_styles += ' text:min-label-width="0.1965inch"'
+    auto_styles += ' fo:font-family="starbats"'
+    auto_styles += ' style:font-charset="x-symbol"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-bullet>'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-bullet'
+    auto_styles += ' text:level="9"'
+    auto_styles += ' text:style-name="Bullet Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' text:bullet-char="">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:space-before="1.5752inch"'
+    auto_styles += ' text:min-label-width="0.1965inch"'
+    auto_styles += ' fo:font-family="starbats"'
+    auto_styles += ' style:font-charset="x-symbol"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-bullet>'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-bullet'
+    auto_styles += ' text:level="10"'
+    auto_styles += ' text:style-name="Bullet Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' text:bullet-char="">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:space-before="1.7724inch"'
+    auto_styles += ' text:min-label-width="0.1965inch"'
+    auto_styles += ' fo:font-family="starbats"'
+    auto_styles += ' style:font-charset="x-symbol"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-bullet>'
+    auto_styles += "\n"
+    
+    auto_styles += '</text:list-style>'
+    auto_styles += "\n"
+
+    auto_styles += '<style:style'
+    auto_styles += ' style:name="GD_NUMBER"'
+    auto_styles += ' style:family="paragraph"'
+    auto_styles += ' style:parent-style-name="Text body"'
+    auto_styles += ' style:list-style-name="GD_NUMBERING_SYMBOLS">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' fo:margin-top="0inch"'
+    auto_styles += ' fo:margin-bottom="0.0835inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</style:style>'
+    auto_styles += "\n"
+
+    auto_styles += '<text:list-style'
+    auto_styles += ' style:name="GD_NUMBERING_SYMBOLS">'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-number'
+    auto_styles += ' text:level="1"'
+    auto_styles += ' text:style-name="Numbering Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' style:num-format="1">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:min-label-width="0.1965inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-number>'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-number'
+    auto_styles += ' text:level="2"'
+    auto_styles += ' text:style-name="Numbering Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' style:num-format="1">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:space-before="0.1972inch"'
+    auto_styles += ' text:min-label-width="0.1965inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-number>'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-number'
+    auto_styles += ' text:level="3"'
+    auto_styles += ' text:style-name="Numbering Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' style:num-format="1">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:space-before="0.3937inch"'
+    auto_styles += ' text:min-label-width="0.1965inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-number>'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-number'
+    auto_styles += ' text:level="4"'
+    auto_styles += ' text:style-name="Numbering Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' style:num-format="1">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:space-before="0.5909inch"'
+    auto_styles += ' text:min-label-width="0.1965inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-number>'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-number'
+    auto_styles += ' text:level="5"'
+    auto_styles += ' text:style-name="Numbering Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' style:num-format="1">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:space-before="0.7874inch"'
+    auto_styles += ' text:min-label-width="0.1965inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-number>'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-number'
+    auto_styles += ' text:level="6"'
+    auto_styles += ' text:style-name="Numbering Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' style:num-format="1">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:space-before="0.9846inch"'
+    auto_styles += ' text:min-label-width="0.1965inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-number>'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-number'
+    auto_styles += ' text:level="7"'
+    auto_styles += ' text:style-name="Numbering Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' style:num-format="1">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:space-before="1.1815inch"'
+    auto_styles += ' text:min-label-width="0.1965inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-number>'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-number'
+    auto_styles += ' text:level="8"'
+    auto_styles += ' text:style-name="Numbering Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' style:num-format="1">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:space-before="1.3787inch"'
+    auto_styles += ' text:min-label-width="0.1965inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-number>'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-number'
+    auto_styles += ' text:level="9"'
+    auto_styles += ' text:style-name="Numbering Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' style:num-format="1">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:space-before="1.5752inch"'
+    auto_styles += ' text:min-label-width="0.1965inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-number>'
+    auto_styles += "\n"
+    
+    auto_styles += '<text:list-level-style-number'
+    auto_styles += ' text:level="10"'
+    auto_styles += ' text:style-name="Numbering Symbols"'
+    auto_styles += ' style:num-suffix="."'
+    auto_styles += ' style:num-format="1">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' text:space-before="1.7724inch"'
+    auto_styles += ' text:min-label-width="0.1965inch"/>'
+    auto_styles += "\n"
+    auto_styles += '</text:list-level-style-number>'
+    auto_styles += "\n"
+    
+    auto_styles += '</text:list-style>'
+    auto_styles += "\n"
+
+    auto_styles += '<style:style'
+    auto_styles += ' style:name="GD_TABLE"'
+    auto_styles += ' style:family="table">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' style:width="17.59cm"'
+    auto_styles += ' table:align="margins"/>'
+    auto_styles += "\n"
+    auto_styles += '</style:style>'
+    auto_styles += "\n"
+
+    auto_styles += '<style:style'
+    auto_styles += ' style:name="GD_COL"'
+    auto_styles += ' style:family="table-column">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' style:width="7.00cm"'
+    auto_styles += ' style:rel-column-width="%50"/>'
+    auto_styles += "\n"
+    auto_styles += '</style:style>'
+    auto_styles += "\n"
+
+    auto_styles += '<style:style'
+    auto_styles += ' style:name="GD_CELL"'
+    auto_styles += ' style:family="table-cell">'
+    auto_styles += "\n"
+    auto_styles += ' <style:properties'
+    auto_styles += ' fo:padding="0.097cm"'
+    auto_styles += ' fo:border-left="0.002cm solid #000000"'
+    auto_styles += ' fo:border-right="0.002cm solid #000000"'
+    auto_styles += ' fo:border-top="0.002cm solid #000000"'
+    auto_styles += ' fo:border-bottom="0.002cm solid #000000"/>'
+    auto_styles += "\n"
+    auto_styles += '</style:style>'
+    auto_styles += "\n"
+endfunction
+
+
+###########################   UPDATE_XML_STYLES   ###########################
+
+function update_xml_styles
+    #   Output file 'styles.xml' with all fields updated.
+    #
+    g_tpl_styles = g_tpldir + '/styles.xml'
+    g_wrk_styles = g_wrkdir + '/styles.xml'
+
+    output g_wrk_styles
+    template 1
+.   include g_tpl_styles
+.   endtemplate
+    close
+endfunction
+
+
+##########################   UPDATE_XML_CONTENT   ###########################
+
+function update_xml_content
+    #   Output file 'content.xml' with all fields updated.
+    #
+    g_tpl_content = g_tpldir + '/content.xml'
+    g_wrk_content = g_wrkdir + '/content.xml'
+
+    output g_wrk_content
+    template 1
+.   include g_tpl_content
+.   endtemplate
+    close
+endfunction
+
+
+########################   SET_PRINTED_DATE_FORMAT   ########################
+
+function set_printed_date_format
+    #   Date and time value (OOo internal format)
+    #
+    date_fmt1 = date.picture (date, "yyyy-mm-dd")
+
+    #   Printed date (display format)
+    #
+    date_fmt2 = date.picture (date, "mm/dd/yy")
+endfunction
+
+
+###########################   GENERATE_SXW_FILE   ###########################
+
+function generate_sxw_file
+    #   Save current directory name...
+    olddir = dir.cwd ()
+    #   ...and change to the new one.
+    dir.setcwd (g_wrkdir)
+
+    #   Create a new scope...
+    new lst
+        #   ...and load in it, all necessary files.
+        dir.load (lst, , 1)
+    endnew
+ 
+    #   Create OOo file in the parent directory with files in the scope.
+    zip.create (gdl->lst, '../' + g_sxw_file)
+
+    #   Delete the scope...
+    delete gdl->lst
+    #   ...and come back to the saved directory.
+    dir.setcwd (olddir)
+endfunction
+
+
+##########################   GENERATE_GDL_BEFORE   ##########################
+
+function generate_gdl_before 
+    imageheader   = "bopenk.jpg"
+
+    g_header_level  = 0
+    g_figure_count  = 0
+    g_table_count  = 0
+
+    report = ""
+
+    g_doc_file = 'tpl_document.sxw'
+    g_sxw_file = base + '.sxw'
+    g_tpldir   = '_template'
+    g_wrkdir   = '_work'
+
+    #   Extract the template files in work and template directories.
+    zip.extract (g_doc_file, g_tpldir)
+    zip.extract (g_doc_file, g_wrkdir)
+endfunction
+
+
+##########################   GENERATE_GDL_AFTER   ###########################
+
+function generate_gdl_after
+    declare_reel_styles ()
+    declare_auto_styles ()
+
+    set_printed_date_format ()
+
+    #   and update work files.
+    update_xml_styles ()
+    update_xml_content ()
+
+    #   Then, generate OOo file.
+    generate_sxw_file ()
+
+    #   Clean all temporary files in sub-directories.
+    dir.delete (g_wrkdir, 1)
+    dir.delete (g_tpldir, 1)
+endfunction
+
+
+########################   GENERATE_HEADER_BEFORE   #########################
+
+function generate_header_before
+    g_header_level += 1
+
+    if defined (.)
+        if    g_header_level = 1
+            report += '<text:h text:style-name="GD_H1" text:level="1">'
+            found = 1
+        elsif g_header_level = 2
+            report += '<text:h text:style-name="GD_H2" text:level="2">'
+            found = 1
+        elsif g_header_level = 3
+            report += '<text:h text:style-name="GD_H3" text:level="3">'
+            found = 1
+        elsif g_header_level = 4
+            report += '<text:h text:style-name="GD_H4" text:level="4">'
+            found = 1
+        else
+            abort "no heading style found for level $(g_header_level): ."
+        endif
+
+        report += .?' '
+        report += '</text:h>' + "\n"
+    endif
+endfunction
+
+
+#########################   GENERATE_HEADER_AFTER   #########################
+
+function generate_header_after
+    g_header_level -= 1
+endfunction
+
+
+#######################   GENERATE_PARAGRAPH_BEFORE   #######################
+
+function generate_paragraph_before
+    report += '<text:p text:style-name="GD_PAR">'
+    report += .
+    report += '</text:p>' + "\n"
+endfunction
+
+
+#######################   GENERATE_PARAGRAPH_AFTER   ########################
+
+function generate_paragraph_after
+endfunction
+
+
+####################   FUNCTION GENERATE_QUOTE_BEFORE   #####################
+
+function generate_quote_before
+    report += '<text:p text:style-name="GD_PAR">'
+    report += .
+    report += '</text:p>' + "\n"
+endfunction
+
+
+#####################   FUNCTION GENERATE_QUOTE_AFTER   #####################
+
+function generate_quote_after
+endfunction
+
+
+########################   GENERATE_EXAMPLE_BEFORE   ########################
+
+function generate_example_before
+    report += '<text:p text:style-name="GD_PRE">' + "\n"
+    first_line = 1
+endfunction
+
+
+########################   GENERATE_EXAMPLE_AFTER   #########################
+
+function generate_example_after
+    report += '</text:p>' + "\n"
+endfunction
+
+
+#########################   GENERATE_LINE_BEFORE   ##########################
+
+function generate_line_before
+    if first_line
+        report += '<text:s text:c="4"/>'
+        first_line = 0
+    else
+        #   Because OOo convert a new line character by a space.
+        report += '<text:s text:c="3"/>'
+    endif
+    report += .?''
+    report += '<text:line-break/>' + "\n"
+endfunction
+
+
+#########################   GENERATE_RULER_BEFORE   #########################
+
+function generate_ruler_before
+    report += '<text:p text:style-name="GD_HR"/>' + "\n"
+endfunction
+
+
+#########################   GENERATE_ITEM_BEFORE   ##########################
+
+function generate_item_before
+    report += '<text:list-item>' + "\n"
+    if    name (-1) = 'itemize'
+        report += '<text:p text:style-name="GD_BULLET">' + "\n"
+    elsif name (-1) = 'enumerate'
+        report += '<text:p text:style-name="GD_NUMBER">' + "\n"
+    else
+        report += '<text:p text:style-name="GD_PAR">' + "\n"
+    endif
+    report += .?
+    report += '</text:p>' + "\n"
+    report += '</text:list-item>' + "\n"
+endfunction
+
+
+########################   GENERATE_ITEMIZE_BEFORE   ########################
+
+function generate_itemize_before
+    report += '<text:unordered-list text:style-name="GD_BULLET">' + "\n"
+endfunction
+
+
+########################   GENERATE_ITEMIZE_AFTER   #########################
+
+function generate_itemize_after
+    report += '</text:unordered-list>' + "\n"
+endfunction
+
+#######################   GENERATE_ENUMERATE_BEFORE   #######################
+
+function generate_enumerate_before
+    report += '<text:ordered-list text:style-name="GD_NUMBER">' + "\n"
+endfunction
+
+
+#######################   GENERATE_ENUMERATE_AFTER   ########################
+
+function generate_enumerate_after
+    report += '</text:ordered-list>' + "\n"
+endfunction
+
+
+######################   GENERATE_DEFINITION_BEFORE   #######################
+
+function generate_definition_before
+endfunction
+
+
+#######################   GENERATE_DEFINITION_AFTER   #######################
+
+function generate_definition_after
+endfunction
+
+
+#######################   GENERATE_DEF_TERM_BEFORE   ########################
+
+function generate_def_term_before
+    report += '<text:p text:style-name="List Heading">' + "\n"
+    report += '<text:span text:style-name="T1">' + "\n"
+    report += .?' '
+    report += '</text:span>' + "\n"
+    report += '</text:p>' + "\n"
+endfunction
+
+
+#######################   GENERATE_DEF_VALUE_BEFORE   #######################
+
+function generate_def_value_before
+    report += '<text:p text:style-name="List Contents">' + "\n"
+    report += '<text:span text:style-name="T2">' + "\n"
+    report += .?
+    report += '</text:span>' + "\n"
+    report += '</text:p>' + "\n"
+endfunction
+
+
+#########################   GENERATE_TABLE_BEFORE   #########################
+
+function generate_table_before
+    g_table_count += 1
+    
+    report += '<table:table table:name="Table' + g_table_count \
+           + '" table:style-name="GD_TABLE">' + "\n"
+    for table_row where item () = 1
+        if count (table_data)
+            report += '<table:table-column table:style-name="GD_COL"'
+            report += ' table:number-columns-repeated="' + count (table_data) \
+                   + '"/>' + "\n"
+        endif
+    endfor
+
+    first_row = 1
+endfunction
+
+
+#########################   GENERATE_TABLE_AFTER   ##########################
+
+function generate_table_after
+    report += '</table:table>' + "\n"
+    report += '<text:p/>' + "\n"
+endfunction
+
+
+#######################   GENERATE_TABLE_ROW_BEFORE   #######################
+
+function generate_table_row_before
+    if count (table_data)
+        report += '<table:table-header-rows>' + "\n"
+    endif
+    report += '<table:table-row>' + "\n"
+endfunction
+
+
+#######################   GENERATE_TABLE_ROW_AFTER   ########################
+
+function generate_table_row_after
+    report += '</table:table-row>' + "\n"
+    if count (table_data)
+        report += '</table:table-header-rows>' + "\n"
+    endif
+    first_row = 0
+endfunction
+
+
+######################   GENERATE_TABLE_DATA_BEFORE   #######################
+
+function generate_table_data_before
+    if first_row
+        report += '<table:table-cell table:style-name="GD_CELL"'
+        report += ' table:value-type="string">' + "\n"
+        report += '<text:p text:style-name="Table Heading">' + "\n"
+        report += .?
+        report += '</text:p>' + "\n"
+        report += '</table:table-cell>' + "\n"
+    else
+        report += '<table:table-cell table:style-name="GD_CELL"'
+        report += ' table:value-type="string">' + "\n"
+        report += '<text:p text:style-name="Table Contents">' + "\n"
+        report += .?' '
+        report += '</text:p>' + "\n"
+        report += '</table:table-cell>' + "\n"
+    endif
+endfunction
+
+
+#########################   GENERATE_IMAGE_BEFORE   #########################
+
+function generate_image_before
+    if ! file.exists ("$(g_wrkdir:)/Pictures")
+        dir.create ("$(g_wrkdir:)/Pictures")
+    endif
+    file.copy (filename, "$(g_wrkdir:)/Pictures/$(filename:)")
+    
+    report += '<text:p text:style-name="Standard">' + "\n"
+    report += '<draw:image'
+    report += ' draw:style-name="fr1"'
+    report += ' draw:name="Graphic1"'
+    report += ' text:anchor-type="as-char"'
+    report += ' svg:width="$(width?0)pt"'
+    report += ' svg:height="$(height?0)pt"'
+    report += ' draw:z-index="0"'
+    report += ' xlink:href="#Pictures/$(filename:)"'
+    report += ' xlink:type="simple"'
+    report += ' xlink:show="embed"'
+    report += ' xlink:actuate="onLoad"/>'
+    report += '</text:p>'
+endfunction
+
+
+########################   GENERATE_FIGURE_BEFORE   #########################
+
+function generate_figure_before
+    g_figure_count += 1
+
+    if ! file.exists ("$(g_wrkdir:)/Pictures")
+        dir.create ("$(g_wrkdir:)/Pictures")
+    endif
+    file.copy (filename, "$(g_wrkdir:)/Pictures/$(filename:)")
+
+    report += '<text:p text:style-name="Standard">' + "\n"
+    report += "Figure $(g_figure_count): $(caption?:)"
+    report += '</text:p>'
+
+    report += '<text:p text:style-name="Standard">' + "\n"
+    report += '<draw:image'
+    report += ' draw:style-name="fr1"'
+    report += ' draw:name="Graphic1"'
+    report += ' text:anchor-type="as-char"'
+    report += ' svg:width="$(width?0)pt"'
+    report += ' svg:height="$(height?0)pt"'
+    report += ' draw:z-index="0"'
+    report += ' xlink:href="#Pictures/$(filename:)"'
+    report += ' xlink:type="simple"'
+    report += ' xlink:show="embed"'
+    report += ' xlink:actuate="onLoad"/>'
+    report += '</text:p>'
+endfunction
+

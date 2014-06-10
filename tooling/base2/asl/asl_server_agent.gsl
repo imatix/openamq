@@ -1,0 +1,2287 @@
+.#
+.#   Copyright (c) 1996-2009 iMatix Corporation
+.#
+.#   This program is free software; you can redistribute it and/or modify
+.#   it under the terms of the GNU General Public License as published by
+.#   the Free Software Foundation; either version 2 of the License, or (at
+.#   your option) any later version.
+.#
+.#   This program is distributed in the hope that it will be useful, but
+.#   WITHOUT ANY WARRANTY; without even the implied warranty of
+.#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.#   General Public License for more details.
+.#
+.#   For information on alternative licensing for OEMs, please contact
+.#   iMatix Corporation.
+.#
+.open_output ("$(basename)_agent.smt")
+<?xml?>
+<!--
+    *** GENERATED FROM $(ARG?FILENAME) BY $(SCRIPT) USING GSL/4 ***
+
+.   if defined (copyright)
+        >#   $(copyright:)
+.   endif
+.   $(license:lower)_license ("")
+ -->
+<agent
+    name      = "$(basename)_agent"
+    script    = "smt_gen.gsl"
+    animate   = "1"
+.   if defined (copyright)
+    copyright = "$(copyright)"
+.   endif
+    license   = "$(license)"
+    >
+
+<!--  Theory of operation
+
+      The protocol agent is comprised of several cooperating threads:
+
+      Master thread:
+
+      In the server, the Master thread creates the listening socket, accepts
+      incoming connections on it and creates a Connection thread for each new
+      connection. It also registers handlers to catch SIGTERM and SIGINT, and
+      performs an orderly shutdown of all active connections on receipt of the
+      interrupt event (see the "defaults" and "shutting down" states).
+
+      Connection thread:
+
+      The Connection thread handles connection initialization (the "initialise
+      connection" state), sending outgoing protocol methods (the "connection
+      active" state) and ulimately connection shutdown (the "close the
+      connection" state). It is also responsible for creating and ensuring
+      shutdown of the Input and Heartbeat threads.
+
+      In the server, the Connection thread owns the corresponding synchronous
+      $(protocol.name)_server_connection object. In the client, the Connection
+      thread is created by the $(protocol.name)_client_connection object, and
+      is responsible for signalling it in the event of a connection shutdown.
+
+      The Connection thread handles the Direct Protocol, if requested by the
+      client.
+
+      Input thread:
+
+      The input thread is responsible for decoding and processing any incoming
+      protocol methods. In the server, protocol methods are passed by the
+      s_execute_method and s_execute_functional_method functions to
+      $(protocol.name)_server_method_execute for processing. In the client any
+      connection and channel methods are processed internally by the agent, and
+      s_execute_functional_method sends the method to
+      $(protocol.name)_client_session for processing.
+
+      Heartbeat thread and heartbeating:
+
+      The Heartbeat thread asynchronously monitors peer liveness by waking up
+      once every heartbeat interval and decrementing the liveness value. If
+      the liveness reaches zero the peer is pronounced dead and the heartbeat
+      thread will shut down the agent by shutting down the Connection and
+      Input threads. smt_thread_shut_down is used since the agent threads are
+      likely to be blocked on socket requests and we need to override this.
+
+      The liveness value is reset to the maximum value (FULL_LIVENESS) each
+      time the Input thread reads a frame header from the peer. This allows
+      any frame to reset the liveness, not just heartbeat frames. Outgoing
+      heartbeat frames are sent by the connection thread once every heartbeat
+      interval.
+
+      Channel management:
+
+      The current implementation only supports a single channel. For
+      compatibility with existing code which expects to use channel objects, we
+      create and destroy a single channel object. In the server, the channel
+      table and single channel object are stored in the
+      $(protocol.name)_server_connection object. In the client, the channel
+      table and single channel object are stored in the connection context and
+      the channel object is also our interface to the
+      $(protocol.name)_client_session object, which is the application
+      interface to a channel.
+
+      Error handling:
+
+      Error handling is complex due to the requirement to initiate a connection
+      close sequence (and wait for it to complete!) on receipt of a connection
+      error, and also due to the fact that we cannot safely interrupt the input
+      thread with an exception since it may be in the middle of reading a frame
+      (between "read frame header" and "read frame payload") which would result
+      in the stream being desynchronized.
+
+      We recognize the following classes of error, and summarize how each class
+      is handled by the thread that detects the error:
+
+      Hard error:
+
+      This includes any network errors, peer heartbeat stopping, and any
+      protocol errors where it is not safe to intiate a normal connection close
+      handshake, e.g. malformed frames.
+
+      Input thread: Raise an "external exception" in the Connection thread and
+      shut down. The "external error" will cause the Connection thread to shut
+      down immediately.
+
+      Connection thread: Shut down the Input and Heartbeat threads and shut
+      down the agent.
+
+      Connection error:
+
+      A protocol error detected by the agent where we wish to intiate a
+      connection close handshake.
+
+      Input thread: Raise a "connection error" exception in the Connection
+      thread. Then, transition to the "connection closing" state and wait for
+      receipt of a "connection close ok". On receipt of the "close ok" notify
+      the Connection thread and shut down. The "connection error" exception in
+      the Connection thread will cause it to immediately transition to the
+      "close the connection" state and initiate an active close.
+
+      Connection thread: Transition to the "close the connection" state and
+      initiate an active close. The input thread will eventually receive the
+      "connection close ok", notify the Connection thread and shut down.
+
+      Passive close:
+
+      This occurs if the Input thread receives a "connection close" from the
+      peer. We notify the Connection thread using a "connection close"
+      exception, and shut down. The "connection close" exception will cause the
+      Connection thread to transition to the "close the connection" state, send
+      the "connection close ok" and shut down the agent.
+
+      Channel error executing protocol method (server only):
+
+      An error raise asynchronously by a server agent executing a protocol
+      method through a call to $(protocol.name)_server_channel_error. In this
+      case we wish to close the channel as soon as possible, so this will
+      result in a high priority "channel error" method being queued with the
+      connection thread, which will immediately transition the channel to a
+      CLOSING state and send the "channel close".
+
+      Connection error executing protocol method: (server only)
+
+      An error raised synchronously by $(protocol.name)_server_method_execute
+      while executing a connection method through a call to self_exception, or
+      an error raised asynchronously by a server agent executing a protocol
+      method through a call to $(protocol.name)_server_connection_error.
+
+      In the synchronous case, the Input thread will raise a "connection error"
+      exception and proceed as in the "Connection error" case.
+
+      In the asynchronous case, this will result in a "connection error" method
+      being queued with the Connection thread, and at the same time an
+      exception raised in the $(protocol.name)_server_connection object. The
+      "connection error" method will cause the Connection thread to intiate an
+      active close. The presence of an exception in the
+      $(protocol.name)_server_connection object will cause the input thread to
+      abort processing on the next frame boundary and transition to the
+      "connection closing" state, however we also handle the case where the
+      Input thread may receive the "connection close ok" immediately, in which
+      case it will notify the Connection thread and shut down.
+
+      Notes regarding "syncapi":
+
+      The client agent can be generated in one of two variants. Syncapi is the
+      normal client API. The syncapi=0 case is used to generate agents
+      suitable for use as an asynchronous client incorporated inside a broker
+      (e.g. for peering). The asynchronous case is basically a "dumb" client
+      with no channel objects, and all interaction with the caller is done by
+      calling \$(basename)_method_execute (Input) or via the output methods,
+      and/or \$(basename)_agent_push (Output).
+-->
+
+<import class = "asl" />
+<import class = "asl_field" />
+<import class = "$(protocol.name)_constants" />
+<import class = "$(protocol.name)_broker" />
+<import class = "$(protocol.name)_lease" />
+<import class = "$(basename)_method" />
+
+<private name = "types">
+#define BASE_ANIMATE            1
+#define FULL_LIVENESS           4       //  Four missing heartbeats -> dead
+
+//  Channel states
+#define ASL_CHANNEL_CLOSED      0
+#define ASL_CHANNEL_OPEN        1
+#define ASL_CHANNEL_CLOSING     2
+#define ASL_CHANNEL_OPENING     3
+
+#include "version.h"
+</private>
+
+<!--  Catch SMT error codes                                                 -->
+
+<catch error = "SMT_SOCKET_ERROR"   event = "socket error" />
+<catch error = "SMT_SOCKET_CLOSING" event = "socket closing" />
+<catch error = "SMT_TIMEOUT"        event = "socket timeout" />
+<catch                              event = "smt error" />
+
+<!---------------------------------------------------------------------------->
+<!--  Application methods that the agent accepts                            -->
+
+<!--  Set per-connection trace level
+      Called from $(basename)_connection                                    -->
+<method name = "set trace" priority = "high">
+    <argument name = "trace" type = "int" />
+</method>
+
+<!--  Operator requested connection shutdown
+      Called from $(basename)_connection                                    -->
+<method name = "kill connection" priority = "high">
+</method>
+
+<!--  Called by $(basename)_connection_error to signal an error processing a
+      method on the connection                                              -->
+<method name = "connection error" priority = "high">
+    <argument name = "reply code" type = "dbyte" />
+    <argument name = "reply text" type = "char *" />
+    <argument name = "faulting method id" type = "dbyte" />
+    <argument name = "faulting class id" type = "dbyte" />
+</method>
+
+<!--  Called by $(basename)_channel_error to signal an error processing a
+      method on a channel                                                   -->
+<method name = "channel error" priority = "high">
+    <argument name = "channel" type = "$(basename)_channel_t *" />
+    <argument name = "reply code" type = "dbyte" />
+    <argument name = "reply text" type = "char *" />
+    <argument name = "faulting method id" type = "dbyte" />
+    <argument name = "faulting class id" type = "dbyte" />
+    <possess>
+        channel = $(basename)_channel_link (channel);
+    </possess>
+    <release>
+        $(basename)_channel_unlink (&channel);
+    </release>
+</method>
+
+<!--  Called by input thread when a connection start ok is received -->
+<method name = "connection start ok" priority = "high">
+</method>
+
+<!--  Called by input thread when a connection tune ok is received -->
+<method name = "connection tune ok" priority = "high">
+</method>
+
+<!--  Called by input thread when a connection open is received -->
+<method name = "connection open" priority = "high">
+</method>
+
+<!--  Called by input thread when a channel open is received -->
+<method name = "send channel open ok" priority = "high">
+</method>
+
+<!--  Called by input thread when a channel close is received -->
+<method name = "send channel close ok" priority = "high">
+</method>
+
+<!--  Called by input thread when a connection close ok is received -->
+<method name = "connection close ok" priority = "high">
+</method>
+
+<!--  Called by master thread during server shutdown -->
+<method name = "shutdown" priority = "high">
+</method>
+
+<!--  Outgoing protocol methods                                             -->
+
+.for class by index
+.   for method where !method.internal & count (chassis, name <> protocol.chassis)
+<!-- $(string.trim(.)?:block,left,neat) -->
+<method name = "$(class.name) $(method.name)">
+    <argument name = "channel nbr" type = "dbyte" />
+.       if method.content
+    <argument name = "content"     type = "$(protocol.name)_content_$(class.name)_t *" />
+.       endif
+.       for field where !field.global
+    <argument name = "$(name)"     type = "$(cargt:)" />
+.       endfor
+.       if method.content
+    <!-- Tells the connection what to do when the content has been sent -->
+    <argument name = "callback"    type = "void *" />
+.       endif
+    <possess>
+.       if method.content
+        assert (content);
+        content  = $(protocol.name)_content_$(class.name)_link (content);
+.       endif
+.       for field where metat = "string"
+        $(name) = icl_mem_strdup ($(name));
+.       endfor
+.       for field where metat = "longstring"
+        $(name) = icl_longstr_dup ($(name));
+.       endfor
+    </possess>
+    <release>
+.       if method.content
+        $(protocol.name)_content_$(class.name)_unlink (&content);
+.       endif
+.       for field where metat = "string"
+        icl_mem_free ($(name));
+.       endfor
+.       for field where metat = "longstring"
+        icl_longstr_destroy (&$(name));
+.       endfor
+    </release>
+</method>
+
+.   endfor
+.endfor
+<!--  Pass an already-prepared method to the client                         -->
+<method name = "push">
+    <argument name = "channel nbr" type = "dbyte" />
+    <argument name = "method" type = "$(basename)_method_t *" />
+    <possess>
+        method = $(basename)_method_link (method);
+    </possess>
+    <release>
+        $(basename)_method_unlink (&method);
+    </release>
+</method>
+
+<!-- Send a message from a feed using the direct protocol                   -->
+<method name = "direct out">
+    <argument name = "content" type = "$(protocol.name)_content_basic_t *" />
+    <argument name = "options" type = "byte" />
+    <possess>
+        content = $(protocol.name)_content_basic_link (content);
+    </possess>
+    <release>
+        $(protocol.name)_content_basic_unlink (&content);
+    </release>
+</method>
+
+
+<!---------------------------------------------------------------------------->
+<!--  Initialise agent, create master thread                                -->
+
+<handler name = "agent init">
+    <argument name = "thread p" type = "smt_thread_t **" />
+    smt_thread_t
+        *thread;
+
+    rc = SMT_OK;
+    if ($(basename)_config_trace ($(basename)_config) >= ASL_TRACE_HIGH)
+        smt_socket_request_trace (TRUE);
+    thread = $(basename)_agent_master_thread_new ();
+    *thread_p = thread;
+    smt_thread_wake (thread);
+    smt_thread_unlink (&thread);
+</handler>
+
+<!---------------------------------------------------------------------------->
+<!--  Master thread                                                         -->
+
+<thread name = "master" schedule = "poll">
+    <context>
+        smt_socket_t
+            *master_socket,             //  Socket for connect requests
+            *client_socket;             //  Newly-accepted socket
+    </context>
+
+    <handler name = "thread init">
+        if ($(basename)_config_trace ($(basename)_config) >= ASL_TRACE_MED)
+            thread->animate = TRUE;
+        smt_thread_set_next_event (thread, ok_event);
+    </handler>
+
+    <handler name = "thread destroy">
+        smt_socket_destroy (&tcb->client_socket);
+        smt_socket_destroy (&tcb->master_socket);
+    </handler>
+
+    <!--  Initialise Master
+          Create listening socket                                           -->
+
+    <state name = "initialise master">
+        <event name = "ok" nextstate = "accepting connections">
+            <action name = "initialise server" />
+            <action name = "allow thread to settle" />
+            <action name = "report server ready" />
+        </event>
+    </state>
+
+    <action name = "initialise server">
+        icl_shortstr_t
+            hostname;                   //  Holds host name
+        apr_pool_t
+            *pool;                      //  APR pool for host addresses
+        apr_sockaddr_t
+            *sockaddr;                  //  The associated socket addresses
+        char
+            *port,                      //  Port to bind to
+            *address,                   //  To hold socket address string
+            *user,                      //  User to run as
+            *group;                     //  Group to run as
+        int
+            rc = SMT_OK,
+            new_size,                   //  New buffer size
+            old_size;                   //  Old buffer size
+        static Bool
+            rcv_warned = FALSE,
+            snd_warned = FALSE;
+
+        port  = $(basename)_config_port  ($(basename)_config);
+        user  = $(basename)_config_user  ($(basename)_config);
+        group = $(basename)_config_group ($(basename)_config);
+        if (atoi (port) < 1024
+        ||  atoi (port) > 65535) {
+            smt_log_print ($(protocol.name)_broker->alert_log,
+                "E: port %s is not valid for this service", port);
+            exit (1);                   //  FIXME: see BASE2-289
+        }
+        else {
+            apr_pool_create (&pool, icl_global_pool);
+            apr_pool_tag (pool, "$(basename)_initialise_server)");
+
+            //  Report hostname and all visible network interfaces
+            if (apr_gethostname (hostname, ICL_SHORTSTR_MAX, pool) == APR_SUCCESS) {
+                apr_sockaddr_info_get (&sockaddr, hostname, APR_UNSPEC, 0, 0, pool);
+                if (sockaddr) {
+                    apr_sockaddr_ip_get (&address, sockaddr);
+                    smt_log_print ($(protocol.name)_broker->alert_log,
+                        "I: hostname is %s (%s)", hostname, address);
+                }
+                else
+                    smt_log_print ($(protocol.name)_broker->alert_log,
+                        "E: cannot translate host name '%s'", hostname);
+            }
+            //  Report which interfaces server is going to listen to
+            icl_shortstr_cpy (hostname, $(basename)_config_listen ($(basename)_config));
+            if (streq (hostname, "*")) {
+                smt_log_print ($(protocol.name)_broker->alert_log,
+                    "I: listening on port %s, all network interfaces", port);
+                icl_shortstr_cpy (hostname, APR_ANYADDR);
+            }
+            else
+                smt_log_print ($(protocol.name)_broker->alert_log,
+                    "I: listening on port %s, interface %s", port, hostname);
+
+            apr_sockaddr_info_get (&sockaddr, hostname, APR_UNSPEC, 0, 0, pool);
+            if (sockaddr) {
+                apr_sockaddr_ip_get (&address, sockaddr);
+                icl_shortstr_fmt ($(protocol.name)_broker->host, "%s:%s", address, port);
+            }
+            else
+                smt_log_print ($(protocol.name)_broker->alert_log,
+                    "E: cannot translate host name '%s'", hostname);
+
+            apr_pool_destroy (pool);
+            tcb->master_socket = smt_socket_new ();
+            if (tcb->master_socket) {
+                //  Set Nagle's algorithm on or off
+                rc = smt_socket_set_nodelay (tcb->master_socket,
+                    $(basename)_config_tcp_nodelay ($(basename)_config));
+                if (rc)
+                    smt_log_print ($(protocol.name)_broker->alert_log,
+                        "W: could not set TCP/IP NODELAY option: "
+                        "Socket Error");
+
+                //  Report and set socket buffers if wanted
+                new_size = $(basename)_config_tcp_rcvbuf ($(basename)_config);
+                if (new_size) {
+                    rc = smt_socket_set_rcvbuf (tcb->master_socket, new_size, &old_size);
+                    if (!rcv_warned) {
+                        rcv_warned = TRUE;
+                        if (rc)
+                            smt_log_print ($(protocol.name)_broker->alert_log,
+                                "W: could not set TCP/IP receive buffer size: "
+                                "Socket Error");
+                        else
+                            smt_log_print ($(protocol.name)_broker->alert_log,
+                                "I: TCP/IP receive buffer was %d, setting to %d",
+                                old_size, new_size);
+                    }
+                }
+                new_size = $(basename)_config_tcp_sndbuf ($(basename)_config);
+                if (new_size) {
+                    rc = smt_socket_set_sndbuf (tcb->master_socket, new_size, &old_size);
+                    if (!snd_warned) {
+                        snd_warned = TRUE;
+                        if (rc)
+                            smt_log_print ($(protocol.name)_broker->alert_log,
+                                "W: could not set TCP/IP send buffer size: "
+                                "Socket Error");
+                        else
+                            smt_log_print ($(protocol.name)_broker->alert_log,
+                                "I: TCP/IP sending buffer was %d, setting to %d",
+                                old_size, new_size);
+                    }
+                }
+                //  Start listening for connections on socket
+                rc = smt_socket_passive (tcb->master_socket, thread, port, hostname, 500);
+
+                //  Try to drop to safe user/group, complain if not possible
+                if (*user && *group) {
+                    if (ipr_uid_run_as (user, group)) {
+                        smt_log_print ($(protocol.name)_broker->alert_log,
+                            "E: could not run as user=%s group=%s", user, group);
+                        exit (1);
+                    }
+                    else
+                        smt_log_print ($(protocol.name)_broker->alert_log,
+                            "I: server is now running as user=%s group=%s", user, group);
+                }
+            }
+            if (!tcb->master_socket || (rc != SMT_OK)) {
+                smt_log_print ($(protocol.name)_broker->alert_log,
+                    "E: could not open port %s: %s", port,
+                    smt_thread_error (thread));
+                exit (1);               //  FIXME: see BASE2-289
+            }
+        }
+    </action>
+
+    <action name = "allow thread to settle">
+        smt_timer_request_delay (thread, 1 * 1000 * 1000, SMT_NULL_EVENT);
+    </action>
+
+    <action name = "report server ready">
+        smt_log_print ($(protocol.name)_broker->alert_log,
+            "I: server ready for incoming $(protocol.name:upper) connections");
+        if ($(basename)_config_direct ($(basename)_config))
+            smt_log_print ($(protocol.name)_broker->alert_log,
+                "I: Direct Mode enabled for all client applications by default");
+        smt_thread_set_next_event (thread, ready_event);
+    </action>
+
+   <!--  Accepting Connections
+         Accept new connections and create connection threads               -->
+
+    <state name = "accepting connections">
+        <event name = "ready">
+            <action name = "accept connection" />
+        </event>
+        <event name = "new connection">
+            <action name = "create connection thread" />
+            <action name = "accept connection" />
+        </event>
+        <event name = "socket error">
+            <action name = "report accept error" />
+            <action name = "accept connection" />
+        </event>
+    </state>
+
+    <action name = "accept connection">
+        smt_socket_request_accept (thread, tcb->master_socket, 0,
+            new_connection_event, &tcb->client_socket);
+    </action>
+
+    <action name = "create connection thread">
+        smt_thread_t
+            *connection_thread;
+        $(basename)_agent_connection_context_t
+            *connection_tcb;
+
+        connection_thread = $(basename)_agent_connection_thread_new ();
+        connection_thread->priority = SMT_PRIORITY_HIGH;
+
+        connection_tcb                    = connection_thread->context;
+        connection_tcb->socket            = tcb->client_socket;
+        connection_tcb->connection_thread = connection_thread;
+        connection_tcb->input_thread      = NULL;
+        connection_tcb->heartbeat_thread  = NULL;
+        tcb->client_socket                = NULL;
+
+        smt_thread_wake   ( connection_thread);
+        smt_thread_unlink (&connection_thread);
+    </action>
+
+    <action name = "report accept error">
+        int
+            accept_retry_timeout;
+
+        smt_log_print ($(protocol.name)_broker->alert_log,
+            "E: could not accept connection: %s",
+            smt_thread_error (thread));
+
+        //  If we ran out of files wait the configured amount of time and retry
+        if (thread->result == SMT_SOCKET_ERROR &&
+           (APR_STATUS_IS_ENFILE(thread->error) ||
+            APR_STATUS_IS_EMFILE(thread->error))) {
+            accept_retry_timeout =
+                $(basename)_config_accept_retry_timeout ($(basename)_config);
+            smt_log_print ($(protocol.name)_broker->alert_log,
+                "E: waiting %d seconds before accepting new connections",
+                accept_retry_timeout);
+            smt_timer_request_delay (thread, accept_retry_timeout * 1000 * 1000,
+                SMT_NULL_EVENT);
+        }
+        //  Otherwise, some other error happened, assume it's bad
+        else {
+            abort ();
+        }
+    </action>
+
+    <!--  Defaults for master thread                                        -->
+
+    <state name = "defaults">
+        <event name = "smt error" nextstate = "">
+            <action name = "report smt error" />
+        </event>
+        <method name = "shutdown" nextstate = "">
+            <action name = "close master socket" />
+        </method>
+    </state>
+
+    <action name = "report smt error">
+        smt_log_print ($(protocol.name)_broker->alert_log,
+            "E: SMT error: %s", smt_thread_error (thread));
+    </action>
+
+    <action name = "close master socket">
+        if (tcb->master_socket)
+            smt_socket_request_close (thread, &tcb->master_socket, 0, SMT_NULL_EVENT);
+    </action>
+
+</thread>
+
+<!---------------------------------------------------------------------------->
+<!--  Connection context                                                    -->
+
+<context name = "connection">
+    smt_thread_t
+        *connection_thread,             //  Master thread
+        *input_thread,                  //  Socket input thread
+        *heartbeat_thread;              //  Heartbeat monitor thread
+    smt_socket_t
+        *socket;                        //  Socket for i/o
+    $(basename)_connection_t
+        *connection;                    //  Connection object
+    $(basename)_channel_t
+        *channel;                       //  Channel object
+    int
+        channel_state;                  //  Internal channel state
+    $(basename)_method_t
+        *method_in,                     //  Last received method
+        *method_out;                    //  Last sent method
+    asl_reader_t
+        reader;                         //  Body reader
+    ipr_bucket_t
+        *bucket_in;                     //  Last received bucket
+    icl_shortstr_t
+        strerror;                       //  Reply text for method errors
+    byte
+        protocol_header [8];            //  Used to initiate connection
+    asl_frame_header_t
+        frame_header;                   //  Header for frame i/o
+    dbyte
+        out_class_id,                   //  Last class we sent
+        out_method_id;                  //  Last method we sent
+    qbyte
+        frame_max,                      //  Negotiated maximum frame size
+        heartbeat;                      //  Connection heartbeat interval
+    int
+        liveness,                       //  If this reaches zero, peer is dead
+        trace;                          //  Trace level
+    smt_timer_request_t
+        *setup_timer;                   //  Connection setup timer
+
+    //  Direct Protocol handling
+    int
+        type;                           //  Direct protocol type
+    byte
+        rlength;                        //  Request length from socket
+    icl_shortstr_t
+        request;                        //  Request string
+    $(protocol.name)_lease_t
+        *lease;                         //  Lease to sink or feed
+    size_t
+        batching;                       //  Configured batch size
+    int
+        direct_heartbeat;               //  Direct heartbeat, seconds
+</context>
+
+<!---------------------------------------------------------------------------->
+<!--  Connection thread                                                     -->
+
+<thread
+    name = "connection"
+    schedule = "poll"
+    context = "connection"
+    >
+    <handler name = "thread init">
+        apr_sockaddr_t
+            *sockaddr;                  //  Address of peer
+        char
+            *address_ip;                //  IP address of peer
+        icl_shortstr_t
+            address_full;               //  Formatted address
+
+        //  Create $(basename)_connection object
+        tcb->connection = $(basename)_connection_new (
+            $(protocol.name)_broker->connections, thread);
+        $(basename)_connection_list_push (
+            $(protocol.name)_broker->connection_list,
+            tcb->connection);
+
+        tcb->channel_state = ASL_CHANNEL_CLOSED;
+        tcb->liveness      = FULL_LIVENESS;
+        tcb->frame_max     = tcb->connection->frame_max;
+        tcb->heartbeat     = tcb->connection->heartbeat;
+        tcb->trace         = tcb->connection->trace;
+        tcb->direct_heartbeat = 5;
+
+        //  Set peer address for reporting
+        apr_socket_addr_get (&sockaddr, APR_REMOTE,
+            tcb->socket->pollfd.desc.s);
+        apr_sockaddr_ip_get (&address_ip, sockaddr);
+        icl_shortstr_fmt (address_full, "%s:%u", address_ip, sockaddr->port);
+        $(basename)_connection_set_address (tcb->connection, address_full);
+
+        thread->animate = (tcb->trace >= ASL_TRACE_MED);
+        smt_thread_set_next_event (thread, ok_event);
+    </handler>
+
+    <handler name = "thread destroy">
+        tcb->connection_thread = NULL;
+
+        //  Destroy $(basename)_connection object
+        $(basename)_connection_destroy (&tcb->connection);
+
+        //  Free resources
+        $(protocol.name)_lease_unlink (&tcb->lease);
+        $(basename)_method_unlink (&tcb->method_in);
+        $(basename)_method_unlink (&tcb->method_out);
+        $(basename)_channel_destroy (&tcb->channel);
+        ipr_bucket_unlink (&tcb->bucket_in);
+        smt_socket_destroy (&tcb->socket);
+    </handler>
+
+    <!--  Initialise Connection                                             -->
+
+    <state name = "initialise connection">
+        <event name = "ok">
+            <action name = "start setup timer" />
+            <action name = "read protocol header" />
+        </event>
+        <event name = "have protocol header">
+            <action name = "check protocol header" />
+            <action name = "start input thread" />
+            <action name = "send connection start" />
+        </event>
+        <!-- We have a Direct Protocol connection, check lease -->
+        <event name = "direct protocol" nextstate = "direct connection">
+            <action name = "accept direct connection" />
+            <action name = "read direct request" />
+            <action name = "check direct lease" />
+        </event>
+        <event name = "bad lease" nextstate = "">
+            <action name = "flush the connection" />
+        </event>
+        <method name = "connection start ok">
+            <action name = "send connection tune" />
+        </method>
+        <method name = "connection tune ok">
+            <action name = "start heartbeat thread" />
+            <action name = "start heartbeat timer" />
+        </method>
+        <method name = "connection open" nextstate = "connection active">
+            <action name = "send connection open ok" />
+        </method>
+        <event name = "bad protocol" nextstate = "">
+            <action name = "write desired header" />
+            <action name = "flush the connection" />
+            <action name = "report bad protocol" />
+        </event>
+        <event name = "version mismatch" nextstate = "">
+            <action name = "write desired header" />
+            <action name = "flush the connection" />
+            <action name = "report version mismatch" />
+        </event>
+        <method name = "connection error" nextstate = "">
+            <call state = "close the connection" event = "active close" />
+        </method>
+        <event name = "setup timeout" nextstate = "">
+            <action name = "shut down slave threads" />
+            <action name = "report setup timeout" />
+        </event>
+        <method name = "shutdown" nextstate = "">
+            <action name = "shut down slave threads" />
+        </method>
+    </state>
+
+    <action name = "start setup timer">
+        //  Schedule a timeout event to protect against misbehaving clients
+        tcb->setup_timer = smt_timer_request_delay (thread,
+            $(basename)_config_setup_timeout ($(basename)_config) * 1000 * 1000,
+            setup_timeout_event);
+    </action>
+
+    <action name = "read protocol header">
+        assert (strlen ("$(protocol_name:)") == 4);
+        smt_socket_request_read (thread, tcb->socket, 0, 8, 8,
+            tcb->protocol_header, have_protocol_header_event);
+    </action>
+
+    <action name = "check protocol header">
+        //  Check the first 4 bytes are "$(protocol_name:)"
+        if (memcmp (tcb->protocol_header, "$(protocol_name:)", 4) != 0)
+            smt_thread_raise_exception (thread, bad_protocol_event);
+        else
+        //  Next we check the protocol number & version
+        if (memcmp (tcb->protocol_header + 4, DP_HEADER, 4) == 0)
+            smt_thread_raise_exception (thread, direct_protocol_event);
+        else
+.if defined (protocol_accept)
+        if (memcmp (tcb->protocol_header + 4, "$(protocol_version)", 4)
+        &&  memcmp (tcb->protocol_header + 4, "$(protocol_accept)", 4))
+            smt_thread_raise_exception (thread, version_mismatch_event);
+.else
+        if (memcmp (tcb->protocol_header + 4, "$(protocol_version)", 4))
+            smt_thread_raise_exception (thread, version_mismatch_event);
+.endif
+    </action>
+
+    <action name = "write desired header">
+        //  Write our own protocol header to the socket
+        s_socket_write (thread, (byte *) "$(protocol_name:)$(protocol_version)", 8);
+    </action>
+
+    <action name = "accept direct connection">
+        tcb->batching = $(basename)_config_batching ($(basename)_config);
+        if (tcb->batching < 2048)
+            tcb->batching = 0;
+        s_socket_write_shortstr (thread, "200 OK DP/0.1");
+        s_socket_read (thread, &tcb->rlength, 1);
+    </action>
+
+    <action name = "read direct request">
+        s_socket_read (thread, (byte *) tcb->request, (int) (tcb->rlength));
+    </action>
+
+    <action name = "check direct lease">
+        icl_shortstr_t
+            response;
+
+        tcb->request [tcb->rlength] = 0;
+        tcb->lease = $(protocol.name)_lease_search (tcb->request);
+        if (tcb->lease) {
+            tcb->type = tcb->lease->type;
+            if ($(protocol.name)_lease_acquire (tcb->lease, thread, tcb->socket)) {
+                s_socket_write_shortstr (thread, "402 BAD-LEASE Lease already acquired");
+                $(protocol.name)_lease_unlink (&tcb->lease);
+                smt_thread_raise_exception (thread, bad_lease_event);
+            }
+            else
+            if (tcb->type == DP_SINK) {
+                //  Confirm OK to client
+                icl_shortstr_fmt (response, "200 OK Sink '%s' ready", tcb->lease->sink->name);
+                s_socket_write_shortstr (thread, response);
+
+                //  Slurp a bucket of data from the network
+                //  Min. size for a packed 6-DMP content is 12 bytes
+                //  We always read as much as we can, limited by ipr_bucket
+                tcb->bucket_in = ipr_bucket_new (IPR_BUCKET_MAX_SIZE);
+                smt_socket_request_read (thread, tcb->socket, 0,
+                    12, tcb->bucket_in->max_size, tcb->bucket_in->data,
+                    direct_in_event);
+            }
+            else
+            if (tcb->type == DP_FEED) {
+                //  Confirm OK to client
+                icl_shortstr_fmt (response, "200 OK Feed '%s' ready", tcb->lease->feed->name);
+                s_socket_write_shortstr (thread, response);
+                //  Start feed heartbeat
+                smt_timer_request_delay (thread, tcb->direct_heartbeat * 1000 * 1000, heartbeat_event);
+            }
+        }
+        else {
+            s_socket_write_shortstr (thread, "402 BAD-LEASE Lease is not valid for this connection");
+            smt_thread_raise_exception (thread, bad_lease_event);
+        }
+    </action>
+
+    <action name = "report bad protocol">
+        smt_log_print ($(protocol.name)_broker->alert_log,
+            "E: client at '%s' sent invalid protocol header",
+            tcb->connection->client_address);
+    </action>
+
+    <action name = "report version mismatch">
+        smt_log_print ($(protocol.name)_broker->alert_log,
+            "E: version mismatch: client at '%s' sent (%u, %u, %u, %u)",
+            tcb->connection->client_address,
+            tcb->protocol_header [4],
+            tcb->protocol_header [5],
+            tcb->protocol_header [6],
+            tcb->protocol_header [7]);
+    </action>
+
+    <action name = "start input thread">
+        smt_thread_t
+            *input_thread;
+
+        //  Start input thread
+        input_thread = $(basename)_agent_input_thread_new (thread);
+
+        tcb->input_thread = input_thread;
+
+        //  This thread needs to watch the input thread so that it
+        //  doesn't get swamped by incoming methods between socket polls.
+        smt_thread_watch (thread, input_thread);
+
+        smt_thread_wake   ( input_thread);
+        smt_thread_unlink (&input_thread);
+    </action>
+
+    <action name = "send connection start">
+        icl_longstr_t
+            *properties,                //  Connection properties
+            *mechanisms,                //  Supported authentication mechanisms
+            *locales;                   //  Supported locales
+        asl_field_list_t
+            *field_list;                //  List for connection properties
+        icl_shortstr_t
+            system;                     //  System (platform) name
+
+        field_list = asl_field_list_new (NULL);
+        asl_field_new_string (field_list, "host", $(protocol.name)_broker->host);
+        asl_field_new_string (field_list, "product", "$(product_name:)");
+        asl_field_new_string (field_list, "version", VERSION);
+        asl_field_new_string (field_list, "copyright", COPYRIGHT);
+        asl_field_new_string (field_list, "platform", icl_system_name (system));
+        asl_field_new_string (field_list, "information", BUILDMODEL);
+        asl_field_new_string (field_list, "connection", tcb->connection->id);
+        asl_field_new_string (field_list, "identifier", $(protocol.name)_broker->identifier);
+        asl_field_new_integer (field_list, "direct", $(basename)_config_direct ($(basename)_config));
+
+        properties = asl_field_list_flatten (field_list);
+        asl_field_list_destroy (&field_list);
+
+        mechanisms = icl_longstr_new ("PLAIN", 5);
+        locales    = icl_longstr_new ("en_US", 5);
+
+        $(basename)_method_unlink (&tcb->method_out);
+        tcb->method_out = $(basename)_method_new_connection_start (
+            $(protocol_major), $(protocol_minor), properties, mechanisms,
+            locales);
+        s_send_method_out (thread, 0, $(protocol.name)_broker->debug_log);
+
+        icl_longstr_destroy (&properties);
+        icl_longstr_destroy (&mechanisms);
+        icl_longstr_destroy (&locales);
+    </action>
+
+    <action name = "send connection tune">
+        $(basename)_method_unlink (&tcb->method_out);
+        tcb->method_out = $(basename)_method_new_connection_tune (
+            tcb->connection->channel_max,
+            tcb->connection->frame_max,
+            tcb->connection->heartbeat);
+        s_send_method_out (thread, 0, $(protocol.name)_broker->debug_log);
+    </action>
+
+    <action name = "start heartbeat thread">
+        smt_thread_t
+            *heartbeat_thread;
+
+        //  If client is heartbeat enabled, start heartbeat thread
+        if (tcb->heartbeat) {
+            heartbeat_thread = $(basename)_agent_heartbeat_thread_new (thread);
+            tcb->heartbeat_thread = heartbeat_thread;
+            smt_thread_wake   ( heartbeat_thread);
+            smt_thread_unlink (&heartbeat_thread);
+        }
+    </action>
+
+    <action name = "start heartbeat timer">
+        //  If client is heartbeat enabled, (re)start outgoing heartbeat timer
+        if (tcb->heartbeat)
+            smt_timer_request_delay (thread, tcb->heartbeat * 1000 * 1000,
+                heartbeat_event);
+    </action>
+
+    <action name = "report setup timeout">
+        smt_log_print ($(protocol.name)_broker->alert_log,
+            "E: client timed out during connection setup, closing connection "\
+            "(%s)", tcb->connection->client_address);
+    </action>
+
+    <!--  Connection Active                                                 -->
+    <!--  Process any outgoing protocol methods.                            -->
+
+    <state name = "connection active">
+.for class by index
+.   for method where !method.internal & count (chassis, name <> protocol.chassis)
+        <method name = "$(class.name) $(method.name)">
+            <action name = "send $(class.name) $(method.name)" />
+.       if method.content
+            <call state = "send content body if any" event = "start" />
+.       endif
+        </method>
+.   endfor
+.endfor
+        <method name = "push">
+            <action name = "push method to client" />
+            <call state = "send content body if any" event = "start" />
+        </method>
+        <!--  Channel close initiated by us due to error -->
+        <method name = "channel error">
+            <action name = "send channel close" />
+        </method>
+        <!--  Channel open initated by peer -->
+        <method name = "send channel open ok">
+            <action name = "send channel open ok" />
+        </method>
+        <!--  Channel close initiated by peer -->
+        <method name = "send channel close ok">
+            <action name = "send channel close ok" />
+        </method>
+        <!--  Connection close initated by us due to error -->
+        <method name = "connection error">
+            s_connection_exception (thread,
+                connection_error_m->reply_code,
+                connection_error_m->reply_text,
+                connection_error_m->faulting_class_id,
+                connection_error_m->faulting_method_id);
+        </method>
+        <!--  Called by master thread during server shutdown -->
+        <!--  We raise an exception in the server connection object so that
+              the Input thread picks up on this at the next frame boundary. -->
+        <method name = "shutdown" nextstate = "">
+            $(basename)_connection_raise_exception (tcb->connection,
+                100, "Operator requested server shutdown", 0, 0);
+            <call state = "close the connection" event = "active close" />
+        </method>
+        <!--  Called by console -->
+        <method name = "kill connection">
+            s_connection_exception (thread,
+                ASL_CONNECTION_FORCED,
+                "Operator killed connection explicitly", 0, 0);
+        </method>
+        <!--  Triggered when an attempt to send a method
+              on a OPENING/CLOSED/CLOSING channel is made. -->
+        <event name = "discard method" nextstate = "connection active">
+        </event>
+    </state>
+.for class by index
+.   for method where !method.internal \
+        & count (chassis, name <> protocol.chassis)
+
+    <action name = "send $(class.name) $(method.name)">
+        //  Check channel is OPEN
+        assert ($(class.name)_$(method.name:c)_m->channel_nbr == 1);
+        if (tcb->channel_state == ASL_CHANNEL_OPEN) {
+            $(basename)_method_unlink (&tcb->method_out);
+            tcb->method_out =
+                $(basename)_method_new_$(class.name)_$(method.name:c) (
+.       for field where !field.global
+                    $(class.name)_$(method.name:c)_m->$(name)$(last()??');'?',')
+.       else
+                );
+.       endfor
+.       if method.content
+            tcb->method_out->content =
+                $(protocol.name)_content_$(class.name)_link (
+                    $(class.name)_$(method.name:c)_m->content
+                );
+            assert (tcb->method_out->content);
+            tcb->connection->contents_out++;
+            ipr_meter_count ($(protocol.name)_broker->ometer);
+.       endif
+            s_send_method_out (thread, 1,
+                $(protocol.name)_broker->debug_log);
+
+            //  Force immediate release of SMT method
+            smt_method_destroy (&thread->method);
+        }
+        else
+            //  Channel is not OPEN, discard the method
+            smt_thread_raise_exception (thread, discard_method_event);
+    </action>
+.   endfor
+.endfor
+
+    <action name = "send connection open ok">
+        $(basename)_method_unlink (&tcb->method_out);
+        tcb->method_out = $(basename)_method_new_connection_open_ok (NULL);
+        s_send_method_out (thread, 0, $(protocol.name)_broker->debug_log);
+    </action>
+
+    <!--  Passive channel open -->
+
+    <action name = "send channel open ok">
+        icl_longstr_t
+            *channel_id;                //  Unique channel ID sent to client
+
+        //  Assert channel is OPENING
+        assert (tcb->channel_state == ASL_CHANNEL_OPENING);
+        //  We only support a single channel, so just send the same ID each time
+        channel_id = icl_longstr_new ("0-1#", 4);
+        //  Send the channel open ok
+        $(basename)_method_unlink (&tcb->method_out);
+        tcb->method_out =
+            $(basename)_method_new_channel_open_ok (channel_id);
+        s_send_method_out (thread, 1, $(protocol.name)_broker->debug_log);
+        icl_longstr_destroy (&channel_id);
+        //  Channel is now OPEN
+        tcb->channel_state = ASL_CHANNEL_OPEN;
+    </action>
+
+    <!--  Passive channel close -->
+
+    <action name = "send channel close ok">
+        //  Assert channel is CLOSING
+        assert (tcb->channel_state == ASL_CHANNEL_CLOSING);
+        //  Send the channel close ok
+        $(basename)_method_unlink (&tcb->method_out);
+        tcb->method_out = $(basename)_method_new_channel_close_ok ();
+        s_send_method_out (thread, 1, $(protocol.name)_broker->debug_log);
+        //  Destroy the channel object
+        $(basename)_channel_destroy (&tcb->channel);
+        //  Channel is now CLOSED
+        tcb->channel_state = ASL_CHANNEL_CLOSED;
+    </action>
+
+    <action name = "push method to client">
+        //  Check channel is OPEN
+        assert (push_m->channel_nbr == 1);
+        if (tcb->channel_state == ASL_CHANNEL_OPEN) {
+            //  Send method as-is, with no reconstruction
+            $(basename)_method_unlink (&tcb->method_out);
+            tcb->method_out = $(basename)_method_link (push_m->method);
+            s_send_method_out (thread, 1, $(protocol.name)_broker->debug_log);
+        }
+        else
+            //  Channel is not OPEN, discard method
+            smt_thread_raise_exception (thread, discard_method_event);
+    </action>
+
+    <action name = "send channel close">
+        //  Assert channel is OPEN
+        assert (channel_error_m->channel == tcb->channel);
+        if (tcb->channel_state == ASL_CHANNEL_OPEN) {
+            //  Report the error
+            s_report_error (thread, "Channel", "closing channel",
+                channel_error_m->reply_code,
+                channel_error_m->reply_text,
+                channel_error_m->faulting_class_id,
+                channel_error_m->faulting_method_id);
+            //  Send the method
+            $(basename)_method_unlink (&tcb->method_out);
+            tcb->method_out = $(basename)_method_new_channel_close (
+                channel_error_m->reply_code,
+                channel_error_m->reply_text,
+                channel_error_m->faulting_class_id,
+                channel_error_m->faulting_method_id);
+            s_send_method_out (thread, 1, $(protocol.name)_broker->debug_log);
+            //  Channel is now CLOSING
+            tcb->channel_state = ASL_CHANNEL_CLOSING;
+        }
+        else
+            //  Channel is not OPEN
+            s_connection_exception (thread,
+                ASL_CHANNEL_ERROR, "Channel is not open",
+                $(BASENAME)_CHANNEL, $(BASENAME)_CHANNEL_CLOSE);
+    </action>
+
+    <!--  Send Content Body If Any                                          -->
+    <!--  Sends a content header, followed by a number of body frames       -->
+
+    <state name = "send content body if any">
+        <event name = "start">
+            <action name = "send content header" />
+            <action name = "send content body frame" />
+        </event>
+        <event name = "continue">
+            <action name = "send content body frame" />
+        </event>
+        <event name = "finished">
+            <return />
+        </event>
+    </state>
+
+    <action name = "send content header">
+        ipr_bucket_t
+            *payload = NULL;            //  Bucket ready to send
+
+        if (tcb->method_out->content) {
+.   for class where count (field)
+.       if index () > 1
+            else
+.       endif
+            //  Chronometer on content sent to wire
+            $(protocol.name)_content_basic_chrono_add (tcb->method_out->content);
+            if (tcb->method_out->class_id == $(BASENAME)_$(CLASS.NAME)) {
+                payload = $(protocol.name)_content_$(class.name)_replay_header (
+                    tcb->method_out->content);
+                s_write_payload (thread, 1, ASL_FRAME_HEADER, &payload);
+                $(protocol.name)_content_$(class.name)_set_reader (
+                    tcb->method_out->content, &tcb->reader, tcb->frame_max);
+            }
+.   endfor
+        }
+        else
+            smt_thread_raise_exception (thread, finished_event);
+    </action>
+
+    <action name = "send content body frame">
+        ipr_bucket_t
+            *payload = NULL;            //  Bucket ready to send
+
+.   for class where count (field)
+.       if index () > 1
+        else
+.       endif
+        if (tcb->method_out->class_id == $(BASENAME)_$(CLASS.NAME))
+            payload = $(protocol.name)_content_$(class.name)_replay_body (
+                tcb->method_out->content, &tcb->reader);
+.   endfor
+        if (payload) {
+            s_write_payload (thread, 1, ASL_FRAME_BODY, &payload);
+            smt_thread_set_next_event (thread, continue_event);
+        }
+        else {
+            $(basename)_channel_earn (tcb->channel);
+            smt_thread_set_next_event (thread, finished_event);
+        }
+    </action>
+
+    <!--  Defaults for connection thread                                    -->
+
+    <state name = "defaults">
+        <!--  Exception events -->
+        <event name = "socket error" nextstate = "">
+            <action name = "shut down slave threads" />
+            <action name = "report socket error" />
+        </event>
+        <event name = "socket timeout" nextstate = "">
+            <action name = "shut down slave threads" />
+            <action name = "report socket timeout" />
+        </event>
+        <event name = "socket closing" nextstate = "">
+            <action name = "shut down slave threads" />
+            <action name = "report socket error" />
+        </event>
+        <event name = "smt error" nextstate = "">
+            <action name = "shut down slave threads" />
+            <action name = "report smt error" />
+        </event>
+        <!--  Passive close on input -->
+        <event name = "connection close" nextstate = "">
+            <call state = "close the connection" event = "passive close" />
+        </event>
+        <!--  Recoverable protocol/internal error on the connection -->
+        <event name = "connection error" nextstate = "">
+            <call state = "close the connection" event = "active close" />
+        </event>
+        <!--  Unrecoverable error on the connection -->
+        <event name = "connection abort" nextstate = "">
+            <action name = "shut down slave threads" />
+        </event>
+        <!--  Notification of exception from input or heartbeat thread -->
+        <event name = "external exception" nextstate = "">
+            <action name = "shut down slave threads" />
+        </event>
+        <!--  Event from heartbeat timer -->
+        <event name = "heartbeat">
+            <action name = "send heartbeat frame" />
+            <action name = "start heartbeat timer" />
+        </event>
+        <!--  Late setup timer, ignore it -->
+        <event name = "setup timeout">
+            <!-- Do nothing -->
+        </event>
+        <!--  External events which can be handled in any state -->
+        <method name = "set trace">
+            tcb->trace                      = set_trace_m->trace;
+            tcb->input_thread->animate      =
+            tcb->heartbeat_thread->animate  =
+            tcb->connection_thread->animate = (tcb->trace >= ASL_TRACE_MED);
+            smt_socket_trace (tcb->socket, (tcb->trace >= ASL_TRACE_HIGH));
+        </method>
+    </state>
+
+    <action name = "shut down slave threads">
+        //  Shut down other two threads if they are still active.
+        if (tcb->input_thread)
+            smt_thread_shut_down (tcb->input_thread);
+        if (tcb->heartbeat_thread)
+            smt_thread_shut_down (tcb->heartbeat_thread);
+    </action>
+
+    <!--  Close The Connection                                              -->
+    <!--  Called when closing the connection.
+          For an active close we send a connection close and then discard
+          anything until we get a corresponding connection close.ok.  For a
+          passive close (initated by peer), we process the close, send a
+          connection close.ok and shut down.                                -->
+
+    <state name = "close the connection">
+        <event name = "active close">
+            <action name = "send connection close" />
+        </event>
+        <method name = "connection close ok">
+            <action name = "shut down slave threads" />
+            <action name = "flush the connection" />
+            <return />
+        </method>
+        <event name = "passive close">
+            <action name = "shut down slave threads" />
+            <action name = "execute connection close" />
+            <action name = "send connection close ok" />
+            <action name = "flush the connection" />
+            <return />
+        </event>
+        <event name = "close timeout">
+            <action name = "shut down slave threads" />
+            smt_log_print ($(protocol.name)_broker->alert_log,
+                "E: timed out waiting for connection.close-ok from client" \
+                " (%s, %s, %s, %s)",
+                tcb->connection->client_address,
+                tcb->connection->client_product,
+                tcb->connection->client_version,
+                tcb->connection->client_instance);
+            <return />
+        </event>
+        <!--  Neither of the following two exceptions should occur under normal
+              conditions in this state, but if we do get them then report
+              and shut down immediately.                                    -->
+        <event name = "connection error">
+            <action name = "shut down slave threads" />
+            smt_log_print ($(protocol.name)_broker->alert_log,
+                "E: connection error while " \
+                "waiting for connection.close-ok from client" \
+                " (%s, %s, %s, %s)",
+                tcb->connection->client_address,
+                tcb->connection->client_product,
+                tcb->connection->client_version,
+                tcb->connection->client_instance);
+            <return />
+        </event>
+        <event name = "connection close">
+            <action name = "shut down slave threads" />
+            smt_log_print ($(protocol.name)_broker->alert_log,
+                "E: received connection close while " \
+                "waiting for connection.close-ok from client" \
+                " (%s, %s, %s, %s)",
+                tcb->connection->client_address,
+                tcb->connection->client_product,
+                tcb->connection->client_version,
+                tcb->connection->client_instance);
+            <return />
+        </event>
+        <!--  Ignore any unhandled methods or events -->
+        <default>
+        </default>
+    </state>
+
+    <action name = "send connection close">
+        //  Schedule a timeout event to protect against misbehaving clients
+        smt_timer_request_delay (thread,
+            $(basename)_config_close_timeout ($(basename)_config) * 1000 * 1000,
+            close_timeout_event);
+        //  Send connection close
+        $(basename)_method_unlink (&tcb->method_out);
+        tcb->method_out = $(basename)_method_new_connection_close (
+            tcb->connection->reply_code,
+            tcb->connection->reply_text,
+            tcb->connection->faulting_class_id,
+            tcb->connection->faulting_method_id);
+        s_send_method_out (thread, 0, $(protocol.name)_broker->debug_log);
+    </action>
+
+    <!--  We can't use s_execute_method here since that might pick up an
+          async exception, and we already know it's a connection close -->
+    <action name = "execute connection close">
+        $(basename)_method_execute (tcb->method_in, tcb->connection,
+            NULL);
+    </action>
+
+    <action name = "send connection close ok">
+        $(basename)_method_unlink (&tcb->method_out);
+        tcb->method_out = $(basename)_method_new_connection_close_ok ();
+        s_send_method_out (thread, 0, $(protocol.name)_broker->debug_log);
+    </action>
+
+    <action name = "flush the connection">
+        if (tcb->socket)
+            smt_socket_request_close (thread, &tcb->socket, 0, SMT_NULL_EVENT);
+    </action>
+
+    <action name = "report socket error">
+        smt_log_print ($(protocol.name)_broker->alert_log,
+            "E: %s, connection to client lost "\
+            "(%s, %s, %s, %s)",
+            smt_thread_error (thread),
+            tcb->connection->client_address,
+            tcb->connection->client_product,
+            tcb->connection->client_version,
+            tcb->connection->client_instance);
+    </action>
+
+    <action name = "report socket timeout">
+        smt_log_print ($(protocol.name)_broker->alert_log,
+            "E: socket timeout, connection to client lost "\
+            "(%s, %s, %s, %s)",
+            tcb->connection->client_address,
+            tcb->connection->client_product,
+            tcb->connection->client_version,
+            tcb->connection->client_instance);
+    </action>
+
+    <action name = "send heartbeat frame">
+        ipr_bucket_t
+           *bucket;                     //  Header bucket
+        byte
+            *bucket_ptr;
+
+        bucket = ipr_bucket_new (ASL_HEADER_SIZE + 1);
+        bucket_ptr = bucket->data;
+        PUT_OCTET (bucket_ptr, ASL_FRAME_HEARTBEAT);
+        PUT_SHORT (bucket_ptr, 0);
+        PUT_LONG  (bucket_ptr, 0);
+        PUT_OCTET (bucket_ptr, ASL_FRAME_END);
+        bucket->cur_size = bucket_ptr - bucket->data;
+        s_socket_write_bucket (thread, bucket);
+        ipr_bucket_unlink (&bucket);
+    </action>
+
+    <!--  Direct Connection                                                 -->
+    <state name = "direct connection">
+        <event name = "direct in">
+            <action name = "deliver direct contents" />
+        </event>
+        <method name = "direct out">
+            <action name = "write direct content" />
+        </method>
+        <method name = "shutdown" nextstate = "">
+            <action name = "flush the connection" />
+        </method>
+        <event name = "heartbeat">
+            <action name = "write direct heartbeat" />
+        </event>
+        <event name = "socket closing" nextstate = "">
+            <action name = "flush the connection" />
+        </event>
+    </state>
+
+    <action name = "deliver direct contents">
+        $(protocol.name)_content_basic_t
+            *content;
+        size_t
+            pending,
+            offset;
+        byte
+            options;                    //  Publish options octet
+
+        //  Update bucket with amount read, check if complete
+        tcb->bucket_in->cur_size += tcb->socket->io_size;
+        pending = $(protocol.name)_content_basic_wire_pending (tcb->bucket_in);
+        if (pending)
+            smt_socket_request_read (
+                thread, tcb->socket, 0,
+                pending, pending, tcb->bucket_in->data + tcb->bucket_in->cur_size,
+                direct_in_event);
+        else {
+            //  Process each content in the bucket
+            offset = 0;
+            tcb->lease->connection->traffic_in += tcb->bucket_in->cur_size;
+            content = $(protocol.name)_content_basic_wire_get (tcb->bucket_in, &offset, &options);
+            while (content) {
+                if (tcb->trace >= ASL_TRACE_LOW) {
+                    smt_log_print ($(protocol.name)_broker->debug_log,
+                        "I: direct to sink '%s'", tcb->lease->sink->name);
+                    icl_console_print ("I: direct to sink '%s'", tcb->lease->sink->name);
+                }
+                //  Chronometer on content received from wire
+                $(protocol.name)_content_basic_chrono_add (content);
+
+                ipr_meter_count ($(protocol.name)_broker->imeter);
+                $(protocol.name)_lease_sink (tcb->lease, content, options);
+                $(protocol.name)_content_basic_unlink (&content);
+                content = $(protocol.name)_content_basic_wire_get (tcb->bucket_in, &offset, &options);
+                icl_atomic_inc32 ((volatile qbyte *) &($(protocol.name)_broker->direct_in));
+                tcb->lease->connection->contents_in++;
+            }
+            //  Reset bucket and get fresh contents data
+            tcb->bucket_in->cur_size = 0;
+            smt_socket_request_read (thread, tcb->socket, 0,
+                12, tcb->bucket_in->max_size, tcb->bucket_in->data,
+                direct_in_event);
+        }
+    </action>
+
+    <action name = "write direct content">
+        ipr_bucket_t
+            *bucket;
+        smt_method_t
+            *method;
+        int
+            rc;
+        Bool
+            batch;                      //  Do we batch more messages or not?
+
+        //  Chronometer on content sent to wire
+        $(protocol.name)_content_basic_chrono_add (direct_out_m->content);
+        if (tcb->batching) {
+            //  We start by putting one message into a batch-sized bucket
+            bucket = ipr_bucket_new (tcb->batching);
+            rc = $(protocol.name)_content_basic_wire_put (
+                direct_out_m->content, bucket, direct_out_m->options);
+            if (rc == 0)
+                batch = TRUE;           //  Success, so continue batching
+            else {
+                //  If the message is oversized, grab a max.sized bucket and try again
+                batch = FALSE;
+                ipr_bucket_unlink (&bucket);
+                bucket = ipr_bucket_new (IPR_BUCKET_MAX_SIZE);
+                rc = $(protocol.name)_content_basic_wire_put (
+                    direct_out_m->content, bucket, direct_out_m->options);
+                assert (rc == 0);       //  We can't have a message bigger than this
+            }
+        }
+        else {
+            //  Batching has been disabled
+            batch = FALSE;
+            bucket = ipr_bucket_new ($(protocol.name)_content_basic_wire_size (direct_out_m->content));
+            rc = $(protocol.name)_content_basic_wire_put (
+                direct_out_m->content, bucket, direct_out_m->options);
+            assert (rc == 0);
+        }
+        ipr_meter_count ($(protocol.name)_broker->ometer);
+        icl_atomic_dec32 ((volatile qbyte *) &(tcb->lease->pending));
+        icl_atomic_inc32 ((volatile qbyte *) &($(protocol.name)_broker->direct_out));
+        tcb->lease->connection->contents_out++;
+        if (tcb->trace >= ASL_TRACE_LOW) {
+            smt_log_print ($(protocol.name)_broker->debug_log,
+                "I: direct from feed '%s'", tcb->lease->feed->name);
+            icl_console_print ("I: direct from feed '%s'", tcb->lease->feed->name);
+        }
+        while (batch && rc == 0 && thread->reply_list->smt_method.list_next != &thread->reply_list->smt_method) {
+            method = smt_method_list_pop (thread->reply_list);
+            if (method->event == direct_out_m_event) {
+                //  Chronometer on content sent to wire
+                $(protocol.name)_content_basic_chrono_add (
+                    (($(protocol.name)_server_agent_direct_out_t *) method->data)->content);
+                rc = $(protocol.name)_content_basic_wire_put (
+                    (($(protocol.name)_server_agent_direct_out_t *) method->data)->content, bucket, direct_out_m->options);
+                if (rc == 0) {
+                    ipr_meter_count ($(protocol.name)_broker->ometer);
+                    icl_atomic_dec32 ((volatile qbyte *) &(tcb->lease->pending));
+                    icl_atomic_inc32 ((volatile qbyte *) &($(protocol.name)_broker->direct_out));
+                    tcb->lease->connection->contents_out++;
+                    if (tcb->trace >= ASL_TRACE_LOW) {
+                        smt_log_print ($(protocol.name)_broker->debug_log,
+                            "I: direct from feed '%s'", tcb->lease->feed->name);
+                        icl_console_print ("I: direct from feed '%s'", tcb->lease->feed->name);
+                    }
+                    smt_method_unlink (&method);
+                }
+            }
+            if (method) {               //  Not bundled, push back & stop
+                smt_method_list_push (thread->reply_list, method);
+                smt_method_unlink (&method);
+                break;
+            }
+        }
+        tcb->lease->connection->traffic_out += bucket->cur_size;
+        smt_socket_request_write_bucket (
+            thread, tcb->socket, 0, bucket, SMT_NULL_EVENT);
+        ipr_bucket_unlink (&bucket);
+    </action>
+
+    <action name = "write direct heartbeat">
+        static byte
+            null_message [4] = { 0, 0, 0, 0 };
+
+        //  Send a null message and restart the heartbeat timer
+        smt_socket_request_write (thread, tcb->socket, 0, 4, null_message, SMT_NULL_EVENT);
+        smt_timer_request_delay  (thread, tcb->direct_heartbeat * 1000 * 1000, heartbeat_event);
+    </action>
+</thread>
+
+<!---------------------------------------------------------------------------->
+<!--  Input thread                                                          -->
+
+<thread
+    name = "input"
+    schedule = "poll"
+    context = "connection"
+    share = "1"
+    >
+
+    <handler name = "thread init">
+        thread->animate = (tcb->trace >= ASL_TRACE_MED);
+        smt_thread_set_next_event (thread, ok_event);
+    </handler>
+
+    <handler name = "thread destroy">
+        tcb->input_thread = NULL;
+    </handler>
+
+    <state name = "start">
+        <event name = "ok" nextstate = "have incoming method">
+            <call state = "read method" event = "read method" />
+            <action name = "check method class" />
+        </event>
+    </state>
+
+    <!--  Read Method                                                       -->
+    <!--  Reads a single method frame from the socket, looping on heartbeat
+          frames.  Raises an exception for any other frames.                -->
+
+    <state name = "read method">
+        <event name = "read method">
+            <action name = "read frame header" />
+            <action name = "read frame payload" />
+            <action name = "check frame format" />
+            <action name = "decode method" />
+            <return />
+        </event>
+    </state>
+
+    <action name = "read frame header">
+        ipr_bucket_unlink (&tcb->bucket_in);
+        s_socket_read_bucket (thread, &tcb->bucket_in, ASL_HEADER_SIZE);
+    </action>
+
+    <action name = "read frame payload">
+        byte
+            *bucket_ptr;
+        icl_shortstr_t
+            reply_text;
+
+        bucket_ptr = tcb->bucket_in->data;
+        tcb->frame_header.type    =  bucket_ptr [0];
+        tcb->frame_header.channel = (bucket_ptr [1] << 8)  +  bucket_ptr [2];
+        tcb->frame_header.size    = (bucket_ptr [3] << 24) + (bucket_ptr [4] << 16)
+                                  + (bucket_ptr [5] << 8)  +  bucket_ptr [6];
+
+        if (tcb->frame_header.size > tcb->frame_max) {
+            icl_shortstr_fmt (reply_text, "Peer sent oversized frame (%d > %d)",
+                tcb->frame_header.size, tcb->frame_max);
+            s_connection_abort (thread, ASL_FRAME_ERROR, reply_text, 0, 0);
+        }
+        else {
+            //  Read method payload plus frame-end
+            ipr_bucket_unlink (&tcb->bucket_in);
+            s_socket_read_bucket (thread, &tcb->bucket_in,
+                tcb->frame_header.size + 1);
+        }
+        //  We have successfully read a frame header, reset peer liveness
+        tcb->liveness = FULL_LIVENESS;
+    </action>
+
+    <action name = "check frame format">
+        //  The bucket must be at least 1 octet long, and end with a frame-end
+        tcb->bucket_in->cur_size = tcb->socket->io_size;
+        if (tcb->bucket_in->cur_size > 0
+        &&  tcb->bucket_in->data [tcb->bucket_in->cur_size - 1] == ASL_FRAME_END) {
+            //  Strip off frame-end octet
+            tcb->bucket_in->cur_size--;
+        }
+        else
+            s_connection_abort (thread, ASL_SYNTAX_ERROR,
+                tcb->bucket_in->cur_size?
+                "Badly-formatted method frame - missing frame-end octet":
+                "Badly-formatted method frame - zero-sized frame",
+                0, 0);
+    </action>
+
+    <action name = "decode method">
+        //  Loop if we received a heartbeat frame
+        if (tcb->frame_header.type == ASL_FRAME_HEARTBEAT)
+            smt_thread_raise_exception (thread, read_method_event);
+        else
+        //  Decode method
+        if (tcb->frame_header.type == ASL_FRAME_METHOD) {
+            $(basename)_method_unlink (&tcb->method_in);
+            tcb->method_in = $(basename)_method_decode (tcb->bucket_in, tcb->strerror);
+            if (tcb->method_in) {
+                if (tcb->trace >= ASL_TRACE_LOW)
+                    $(basename)_method_dump (tcb->method_in,
+                    $(protocol.name)_broker->debug_log, "I: recv ");
+            }
+            else
+                s_connection_abort (thread,
+                    ASL_SYNTAX_ERROR, tcb->strerror, 0, 0);
+        }
+        else
+            s_connection_exception (thread,
+                ASL_SYNTAX_ERROR, "Expected a method frame", 0, 0);
+    </action>
+
+    <!--  Have Incoming Method                                              -->
+    <!--  Process an incoming method or content.                            -->
+
+    <state name = "have incoming method">
+        <event name = "connection class" nextstate = "have connection method">
+            <action name = "check connection method" />
+        </event>
+        <event name = "channel class" nextstate = "have channel method">
+            <action name = "check channel method" />
+        </event>
+.for class where count (field) by index
+        <event name = "$(class.name) content" nextstate = "have incoming method">
+            <call state = "read $(class.name) content" event = "header" />
+            <action name = "execute functional method" />
+            <call state = "read method" event = "read method" />
+            <action name = "check method class" />
+        </event>
+.endfor
+        <event name = "other method" nextstate = "have incoming method">
+            <action name = "execute functional method" />
+            <call state = "read method" event = "read method" />
+            <action name = "check method class" />
+        </event>
+        <!--  Triggered if we receive a method on
+              a channel which is not OPEN. -->
+        <event name = "discard method" nextstate = "have incoming method">
+            <call state = "read method" event = "read method" />
+            <action name = "check method class" />
+        </event>
+    </state>
+
+    <action name = "check method class">
+        if (tcb->method_in->class_id == $(BASENAME)_CONNECTION)
+            smt_thread_set_next_event (thread, connection_class_event);
+        else
+        if (tcb->method_in->class_id == $(BASENAME)_CHANNEL)
+            smt_thread_set_next_event (thread, channel_class_event);
+        else
+.saw_content = 0
+.for class where count (field) by index
+.   for method where !method.internal & count (chassis, name = protocol.chassis)
+.       if method.content
+        if (tcb->method_in->class_id  == $(BASENAME)_$(CLASS.NAME)
+        &&  tcb->method_in->method_id == $(BASENAME)_$(CLASS.NAME)_$(METHOD.NAME:C))
+            smt_thread_set_next_event (thread, $(class.name)_content_event);
+        else
+.           saw_content = 1
+.       endif
+.   endfor
+.endfor
+.if saw_content
+            smt_thread_set_next_event (thread, other_method_event);
+.else
+        smt_thread_set_next_event (thread, other_method_event);
+.endif
+    </action>
+
+    <action name = "check connection method">
+        //  Check channel is valid
+        if (tcb->frame_header.channel != 0)
+            s_connection_exception (thread, ASL_CHANNEL_ERROR,
+            "Invalid channel",
+            tcb->method_in->class_id,
+            tcb->method_in->method_id);
+        else
+        if (tcb->method_in->method_id == $(BASENAME)_CONNECTION_START_OK)
+            smt_thread_set_next_event (thread, connection_start_ok_event);
+        else
+        if (tcb->method_in->method_id == $(BASENAME)_CONNECTION_TUNE_OK)
+            smt_thread_set_next_event (thread, connection_tune_ok_event);
+        else
+        if (tcb->method_in->method_id == $(BASENAME)_CONNECTION_OPEN)
+            smt_thread_set_next_event (thread, connection_open_event);
+        else
+        if (tcb->method_in->method_id == $(BASENAME)_CONNECTION_CLOSE)
+            smt_thread_set_next_event (thread, connection_close_event);
+        else
+        if (tcb->method_in->method_id == $(BASENAME)_CONNECTION_CLOSE_OK)
+            smt_thread_set_next_event (thread, connection_close_ok_event);
+        else
+            s_connection_exception (thread, ASL_SYNTAX_ERROR,
+                "Method not allowed",
+                tcb->method_in->class_id,
+                tcb->method_in->method_id);
+    </action>
+
+    <action name = "check channel method">
+        //  Check channel is valid
+        if (tcb->frame_header.channel != 1)
+            s_connection_exception (thread, ASL_CHANNEL_ERROR,
+            "Invalid channel",
+            tcb->method_in->class_id,
+            tcb->method_in->method_id);
+        else
+        if (tcb->method_in->method_id == $(BASENAME)_CHANNEL_OPEN)
+            smt_thread_set_next_event (thread, channel_open_event);
+        else
+        if (tcb->method_in->method_id == $(BASENAME)_CHANNEL_CLOSE)
+            smt_thread_set_next_event (thread, channel_close_event);
+        else
+        if (tcb->method_in->method_id == $(BASENAME)_CHANNEL_CLOSE_OK)
+            smt_thread_set_next_event (thread, channel_close_ok_event);
+        else
+        if (tcb->method_in->method_id == $(BASENAME)_CHANNEL_FLOW)
+            smt_thread_set_next_event (thread, channel_flow_event);
+        else
+        if (tcb->method_in->method_id == $(BASENAME)_CHANNEL_FLOW_OK)
+            smt_thread_set_next_event (thread, channel_flow_ok_event);
+        else
+            s_connection_exception (thread, ASL_SYNTAX_ERROR,
+                "Method not allowed",
+                tcb->method_in->class_id,
+                tcb->method_in->method_id);
+    </action>
+
+    <action name = "execute functional method">
+        //  Trap possible async exception before executing method
+        if ($(basename)_connection_exception_raised (tcb->connection))
+            smt_thread_raise_exception (thread, async_connection_error_event);
+        else
+        //  Check channel is valid
+        if (tcb->frame_header.channel != 1)
+            s_connection_exception (thread, ASL_CHANNEL_ERROR,
+            "Invalid channel",
+            tcb->method_in->class_id,
+            tcb->method_in->method_id);
+        else
+        //  Check channel is OPEN
+        if (tcb->channel_state == ASL_CHANNEL_OPEN)
+            s_execute_functional_method (thread,
+                tcb->method_in->class_id, tcb->method_in->method_id,
+                tcb->out_class_id, tcb->out_method_id);
+        else
+            //  Channel is not OPEN, discard the method
+            smt_thread_raise_exception (thread, discard_method_event);
+    </action>
+
+    <!--  Have Connection Method                                            -->
+    <!--  The only connection method we can receive on input is a connection
+          close.  In this case, we notify the connection thread and let it
+          deal with it.                                                     -->
+
+    <state name = "have connection method">
+        <event name = "connection start ok" nextstate = "have incoming method">
+            <action name = "execute connection start ok" />
+            <action name = "notify connection of start ok" />
+            <call state = "read method" event = "read method" />
+            <action name = "check method class" />
+        </event>
+        <event name = "connection tune ok" nextstate = "have incoming method">
+            <action name = "execute connection tune ok" />
+            <action name = "notify connection of tune ok" />
+            <call state = "read method" event = "read method" />
+            <action name = "check method class" />
+        </event>
+        <event name = "connection open" nextstate = "have incoming method">
+            <action name = "execute connection open" />
+            <action name = "notify connection of open" />
+            <call state = "read method" event = "read method" />
+            <action name = "check method class" />
+        </event>
+        <event name = "connection close" nextstate = "">
+            <action name = "notify connection of passive close" />
+        </event>
+        <event name = "connection close ok" nextstate = "">
+            <action name = "notify connection of close ok" />
+        </event>
+    </state>
+
+    <action name = "execute connection start ok">
+        s_execute_method (thread, FALSE,
+            $(BASENAME)_CONNECTION, $(BASENAME)_CONNECTION_START_OK);
+    </action>
+
+    <action name = "notify connection of start ok">
+        $(basename)_agent_connection_start_ok (tcb->connection_thread);
+    </action>
+
+    <action name = "execute connection tune ok">
+        s_execute_method (thread, FALSE,
+            $(BASENAME)_CONNECTION, $(BASENAME)_CONNECTION_TUNE_OK);
+        tcb->frame_max = tcb->connection->frame_max;
+        tcb->heartbeat = tcb->connection->heartbeat;
+    </action>
+
+    <action name = "notify connection of tune ok">
+        $(basename)_agent_connection_tune_ok (tcb->connection_thread);
+    </action>
+
+    <action name = "execute connection open">
+        s_execute_method (thread, FALSE,
+            $(BASENAME)_CONNECTION, $(BASENAME)_CONNECTION_OPEN);
+    </action>
+
+    <action name = "notify connection of open">
+        $(basename)_agent_connection_open (tcb->connection_thread);
+    </action>
+
+    <action name = "notify connection of passive close">
+        //  Report error if any
+        s_report_error (thread, "Connection", "closing connection",
+            tcb->method_in->payload.connection_close.reply_code,
+            tcb->method_in->payload.connection_close.reply_text,
+            tcb->method_in->payload.connection_close.class_id,
+            tcb->method_in->payload.connection_close.method_id);
+        //  Notify connection thread
+        smt_thread_raise_exception (tcb->connection_thread,
+            connection_close_event);
+        smt_thread_wake (tcb->connection_thread);
+    </action>
+
+    <action name = "notify connection of close ok">
+        $(basename)_agent_connection_close_ok (tcb->connection_thread);
+    </action>
+
+    <!--  Have Channel Method                                               -->
+
+    <state name = "have channel method">
+        <!--  Peer initiated channel open -->
+        <event name = "channel open" nextstate = "have incoming method">
+            <action name = "execute channel open" />
+            <call state = "read method" event = "read method" />
+            <action name = "check method class" />
+        </event>
+        <!--  Peer initiated channel close -->
+        <event name = "channel close" nextstate = "have incoming method">
+            <action name = "execute channel close" />
+            <call state = "read method" event = "read method" />
+            <action name = "check method class" />
+        </event>
+        <!--  Response to channel close initiated by us -->
+        <event name = "channel close ok" nextstate = "have incoming method">
+            <action name = "execute channel close ok" />
+            <call state = "read method" event = "read method" />
+            <action name = "check method class" />
+        </event>
+        <!--  Peer initiated channel flow -->
+        <event name = "channel flow" nextstate = "have incoming method">
+            <action name = "execute channel flow" />
+            <call state = "read method" event = "read method" />
+            <action name = "check method class" />
+        </event>
+        <!--  Response to channel flow initated by us -->
+        <event name = "channel flow ok" nextstate = "have incoming method">
+            <action name = "execute channel flow ok" />
+            <call state = "read method" event = "read method" />
+            <action name = "check method class" />
+        </event>
+    </state>
+
+    <!--  Peer initiated channel open                                       -->
+
+    <action name = "execute channel open">
+        //  Check channel is CLOSED
+        if (tcb->channel_state == ASL_CHANNEL_CLOSED) {
+            //  Create the channel
+            tcb->channel = $(basename)_channel_new (
+                tcb->connection->channels, tcb->connection,
+                1);
+            //  Channel is now OPENING
+            tcb->channel_state = ASL_CHANNEL_OPENING;
+            //  Execute the channel open
+            s_execute_method (thread, TRUE,
+                $(BASENAME)_CHANNEL, $(BASENAME)_CHANNEL_OPEN);
+            //  Queue the channel open ok
+            if (!smt_thread_exception_raised (thread))
+                $(basename)_agent_send_channel_open_ok (tcb->connection_thread);
+        }
+        else
+            //  Channel is not CLOSED
+            s_connection_exception (thread,
+                ASL_CHANNEL_ERROR, "Channel is already open",
+                $(BASENAME)_CHANNEL, $(BASENAME)_CHANNEL_OPEN);
+    </action>
+
+    <!--  Peer initated channel close                                       -->
+
+    <action name = "execute channel close">
+        //  Check channel is OPEN
+        if (tcb->channel_state == ASL_CHANNEL_OPEN) {
+            //  Report error if any
+            s_report_error (thread, "Channel", "closing channel",
+                tcb->method_in->payload.channel_close.reply_code,
+                tcb->method_in->payload.channel_close.reply_text,
+                tcb->method_in->payload.channel_close.class_id,
+                tcb->method_in->payload.channel_close.method_id);
+            //  Channel is now CLOSING
+            tcb->channel_state = ASL_CHANNEL_CLOSING;
+            //  Execute the channel close
+            s_execute_method (thread, TRUE,
+                $(BASENAME)_CHANNEL, $(BASENAME)_CHANNEL_CLOSE);
+            //  Queue the channel close ok
+            if (!smt_thread_exception_raised (thread))
+                $(basename)_agent_send_channel_close_ok (tcb->connection_thread);
+        }
+        else
+            //  Channel is not OPEN
+            s_connection_exception (thread,
+                ASL_CHANNEL_ERROR, "Channel is not open",
+                $(BASENAME)_CHANNEL, $(BASENAME)_CHANNEL_CLOSE);
+    </action>
+
+    <!--  Response to channel close initiated by us                         -->
+
+    <action name = "execute channel close ok">
+        //  Check channel is CLOSING
+        if (tcb->channel_state == ASL_CHANNEL_CLOSING) {
+            //  Destroy the channel object
+            $(basename)_channel_destroy (&tcb->channel);
+            //  Channel is now CLOSED
+            tcb->channel_state = ASL_CHANNEL_CLOSED;
+        }
+        else
+            //  Channel is not CLOSING
+            s_connection_exception (thread,
+                ASL_CHANNEL_ERROR, "Channel is not closing",
+                $(BASENAME)_CHANNEL, $(BASENAME)_CHANNEL_CLOSE_OK);
+    </action>
+
+    <action name = "execute channel flow">
+        if (tcb->channel_state == ASL_CHANNEL_OPEN)
+            s_execute_method (thread, TRUE,
+                $(BASENAME)_CHANNEL, $(BASENAME)_CHANNEL_FLOW);
+        else
+            s_connection_exception (thread,
+                ASL_CHANNEL_ERROR, "Channel is not open",
+                $(BASENAME)_CHANNEL, $(BASENAME)_CHANNEL_FLOW);
+    </action>
+
+    <action name = "execute channel flow ok">
+        if (tcb->channel_state == ASL_CHANNEL_OPEN)
+            s_execute_method (thread, TRUE,
+                $(BASENAME)_CHANNEL, $(BASENAME)_CHANNEL_FLOW_OK);
+        else
+            s_connection_exception (thread,
+                ASL_CHANNEL_ERROR, "Channel is not open",
+                $(BASENAME)_CHANNEL, $(BASENAME)_CHANNEL_FLOW_OK);
+    </action>
+.for class where count (field) by index
+
+    <!--  Read $(Class.Name) Content                                        -->
+    <!--  Called when reading $(class.name) content.  Read a header frame,
+          followed by multiple body frames.  Loops on heartbeat frames,
+          accepts only exception methods (see comments below).              -->
+
+    <state name = "read $(class.name) content">
+        <event name = "header">
+            <action name = "read frame header" />
+            <action name = "read frame payload" />
+            <action name = "check frame format" />
+            <action name = "expect content $(class.name) header" />
+            <action name = "check if $(class.name) body complete" />
+            <return />
+        </event>
+        <event name = "expect body">
+            <action name = "read frame header" />
+            <action name = "read frame payload" />
+            <action name = "check frame format" />
+            <action name = "expect content $(class.name) body" />
+            <action name = "check if $(class.name) body complete" />
+            <return />
+        </event>
+        <!--  Exception method received -->
+        <event name = "method" nextstate = "have incoming method">
+            <action name = "decode method" />
+            <action name = "expect exception method" />
+        </event>
+    </state>
+
+    <action name = "expect content $(class.name) header">
+        if (tcb->frame_header.type == ASL_FRAME_HEARTBEAT)
+            smt_thread_raise_exception (thread, header_event);
+        else
+        if (tcb->frame_header.type == ASL_FRAME_METHOD)
+            smt_thread_raise_exception (thread, method_event);
+        else
+        if ($(basename)_connection_exception_raised (tcb->connection))
+            smt_thread_raise_exception (thread, async_connection_error_event);
+        else
+        //  Check channel is valid
+        if (tcb->frame_header.channel != 1)
+            s_connection_exception (thread, ASL_CHANNEL_ERROR,
+            "Invalid channel",
+            tcb->method_in->class_id,
+            tcb->method_in->method_id);
+        else
+        if (tcb->frame_header.type == ASL_FRAME_HEADER) {
+            ipr_meter_count ($(protocol.name)_broker->imeter);
+            tcb->connection->contents_in++;
+            tcb->method_in->content =
+                $(protocol.name)_content_$(class.name)_new ();
+            if ($(protocol.name)_content_$(class.name)_record_header (
+                ($(protocol.name)_content_$(class.name)_t *)
+                tcb->method_in->content,
+                tcb->bucket_in))
+                s_connection_exception (thread, ASL_SYNTAX_ERROR,
+                    "Invalid content header frame",
+                    tcb->method_in->class_id,
+                    tcb->method_in->method_id);
+            else
+            if ((($(protocol.name)_content_$(class.name)_t *)
+                tcb->method_in->content)->class_id != $(BASENAME)_$(CLASS.NAME))
+                s_connection_exception (thread, ASL_SYNTAX_ERROR,
+                    "Content class does not match method class",
+                    tcb->method_in->class_id,
+                    tcb->method_in->method_id);
+
+            //  Chronometer on content received from wire
+            $(protocol.name)_content_basic_chrono_add (tcb->method_in->content);
+        }
+        else
+            s_connection_exception (thread, ASL_SYNTAX_ERROR,
+                "Expected a content header frame",
+                tcb->method_in->class_id,
+                tcb->method_in->method_id);
+    </action>
+
+    <action name = "check if $(class.name) body complete">
+        assert (($(protocol.name)_content_$(class.name)_t *) tcb->method_in);
+        assert (($(protocol.name)_content_$(class.name)_t *) tcb->method_in->content);
+
+        if ((($(protocol.name)_content_$(class.name)_t *)
+            tcb->method_in->content)->body_size
+        <   (($(protocol.name)_content_$(class.name)_t *)
+            tcb->method_in->content)->body_expect)
+            smt_thread_raise_exception (thread, expect_body_event);
+    </action>
+
+    <action name = "expect content $(class.name) body">
+        if (tcb->frame_header.type == ASL_FRAME_HEARTBEAT)
+            smt_thread_raise_exception (thread, expect_body_event);
+        else
+        if (tcb->frame_header.type == ASL_FRAME_METHOD)
+            smt_thread_raise_exception (thread, method_event);
+        else
+        if ($(basename)_connection_exception_raised (tcb->connection))
+            smt_thread_raise_exception (thread, async_connection_error_event);
+        else
+        //  Check channel is valid
+        if (tcb->frame_header.channel != 1)
+            s_connection_exception (thread, ASL_CHANNEL_ERROR,
+            "Invalid channel",
+            tcb->method_in->class_id,
+            tcb->method_in->method_id);
+        else
+        if (tcb->frame_header.type == ASL_FRAME_BODY)
+            $(protocol.name)_content_$(class.name)_record_body (
+                ($(protocol.name)_content_$(class.name)_t *)
+                tcb->method_in->content, tcb->bucket_in);
+        else
+            s_connection_exception (thread, ASL_SYNTAX_ERROR,
+                "Expected a content body frame",
+                tcb->method_in->class_id,
+                tcb->method_in->method_id);
+    </action>
+.endfor
+
+    <!--  If we receive a method while reading content, verify that it is a
+          legitimate exception and process it immediately.                  -->
+
+    <action name = "expect exception method">
+        if (tcb->method_in->class_id  == $(BASENAME)_CONNECTION &&
+            tcb->method_in->method_id == $(BASENAME)_CONNECTION_CLOSE)
+            smt_thread_set_next_event (thread, connection_class_event);
+        else
+        if (tcb->method_in->class_id  == $(BASENAME)_CONNECTION &&
+            tcb->method_in->method_id == $(BASENAME)_CONNECTION_CLOSE_OK)
+            smt_thread_set_next_event (thread, connection_class_event);
+        else
+        if (tcb->method_in->class_id  == $(BASENAME)_CHANNEL &&
+            tcb->method_in->method_id == $(BASENAME)_CHANNEL_CLOSE)
+            smt_thread_set_next_event (thread, channel_class_event);
+        else
+            s_connection_exception (thread, ASL_SYNTAX_ERROR,
+                "Method not allowed",
+                tcb->method_in->class_id,
+                tcb->method_in->method_id);
+    </action>
+
+    <!--  Defaults for input thread                                         -->
+    <!--  Don't handle any exceptions ourselves, just pass them on to the
+          connection thread.                                                -->
+
+    <state name = "defaults">
+        <!-- Exception events -->
+        <event name = "socket error" nextstate = "">
+            <action name = "notify connection of exception" />
+            <action name = "report socket error" />
+        </event>
+        <event name = "socket timeout" nextstate = "">
+            <action name = "notify connection of exception" />
+            <action name = "report socket timeout" />
+        </event>
+        <event name = "socket closing" nextstate = "">
+            <action name = "notify connection of exception" />
+            <action name = "report socket error" />
+        </event>
+        <event name = "smt error" nextstate = "">
+            <action name = "notify connection of exception" />
+            <action name = "report smt error" />
+        </event>
+        <event name = "connection abort" nextstate = "">
+            <action name = "notify connection of exception" />
+        </event>
+        <event name = "connection error" nextstate = "">
+            <action name = "notify connection of error" />
+            <call state = "connection closing" event = "closing" />
+        </event>
+        <!--  Connection error raised asynchronously by
+              $(basename)_connection_error.
+              If this is the case the appropriate method will have been
+              queued with the connection thread, so we want to abort
+              processing as soon as possible. -->
+        <event name = "async connection error" nextstate = "">
+            <call state = "connection closing" event = "closing" />
+        </event>
+    </state>
+
+    <action name = "notify connection of exception">
+        smt_thread_raise_exception (tcb->connection_thread,
+            external_exception_event);
+        smt_thread_wake (tcb->connection_thread);
+    </action>
+
+    <action name = "notify connection of error">
+        smt_thread_raise_exception (tcb->connection_thread,
+            connection_error_event);
+        smt_thread_wake (tcb->connection_thread);
+    </action>
+
+    <!--  Connection Closing                                                -->
+    <!--  Called when a connection exception is raised in the input thread.
+          The connection thread will initiate an active close, so we can
+          discard anything else received in the mean time.                  -->
+
+    <state name = "connection closing">
+        <event name = "closing">
+            <action name = "read frame header" />
+            <action name = "read frame payload" />
+            <action name = "check frame format" />
+            <action name = "expect method frame" />
+        </event>
+        <event name = "method">
+            <action name = "decode method" />
+            <action name = "expect connection close ok" />
+        </event>
+        <event name = "discard frame">
+            <action name = "read frame header" />
+            <action name = "read frame payload" />
+            <action name = "check frame format" />
+            <action name = "expect method frame" />
+        </event>
+        <event name = "connection close ok" nextstate = "">
+            <action name = "notify connection of close ok" />
+        </event>
+        <!--  Override to prevent looping -->
+        <event name = "connection error" nextstate = "">
+            <action name = "notify connection of exception" />
+        </event>
+    </state>
+
+    <action name = "expect method frame">
+        if (tcb->frame_header.type != ASL_FRAME_METHOD)
+            smt_thread_set_next_event (thread, discard_frame_event);
+        else
+            smt_thread_set_next_event (thread, method_event);
+    </action>
+
+    <action name = "expect connection close ok">
+        if (tcb->method_in->class_id  == $(BASENAME)_CONNECTION &&
+            tcb->method_in->method_id == $(BASENAME)_CONNECTION_CLOSE_OK)
+            smt_thread_set_next_event (thread, connection_close_ok_event);
+        else
+            smt_thread_set_next_event (thread, discard_frame_event);
+    </action>
+
+</thread>
+
+.include "asl_agent_common.gsl"
+
+</agent>
+.close

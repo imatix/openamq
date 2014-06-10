@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+#   Generates, builds, and runs a PAL script
+
+die() { echo $@; exit 1; }
+
+if [ "x$1" = "x" ]; then 
+    echo "usage $0 file.pal"
+    exit -1
+fi
+
+for FILE in $*; do
+    if [ -f $FILE.pal ]; then
+        FILE=$FILE.pal
+    elif [ ! -f $FILE ]; then
+        echo "E: '$FILE' is not a PAL script"
+        exit 1
+    fi
+    gsl -q $FILE               || die "E: generation failed"
+    c -l `basename $FILE .pal` || die "E: compilation failed"
+done

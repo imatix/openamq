@@ -1,0 +1,11 @@
+<?xml?>
+<pal script = "demo_pal_gen">
+    This script demonstrates how to start a protocol server so that the
+    script is fully self-hosting.  Note that all console output from the
+    server will show in the script window.
+    <server name = "../demo_srv" where = ".." />
+    <session>
+        <echo>Connected to $server_product/$server_version - $server_platform</echo>
+    </session>
+</pal>
+

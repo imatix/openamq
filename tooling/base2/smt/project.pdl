@@ -1,0 +1,128 @@
+<?xml?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<pdl
+    name      = "SMT"
+    version   = "5.0a0"
+    workflow  = "standard.pwl"
+    library   = "libsmt"
+    >
+
+<include filename = "prelude.pdl" />
+<inherit filename = "../icl/icl_classes.pdl" />
+<inherit filename = "smt_classes.pdl" />
+<file name = "version.h" class = "c version">Project version file</file>
+
+<!-- iCL/SMT toolkit -->
+<file name = "icl_smt.gsl"            class = "public resource"     >iCL add-ons for SMT objects</file>
+<file name = "smt_object.xnf"         class = "gsl data"            >iCL+SMT grammar</file>
+<file name = "smt_object.icl"         class = "public resource"     >iCL add-ons for SMT objects</file>
+<file name = "smt_object_gen.gsl"     class = "generated resource"  >SMT wrap</file>
+<file name = "smt_object_preproc.gsl" class = "generated resource"  >SMT preprocessor</file>
+<file name = "smt_object_inherit.gsl" class = "generated resource"  >SMT inheritor</file>
+<file name = "smt_object_parse.gsl"   class = "generated resource"  >SMT parser</file>
+<file name = "smt_object_doc.txt"     class = "generated"           >SMT documentation</file>
+<file name = "smt_object_tracker.icl" class = "icl abstract class"  >Object tracker class</file>
+
+<!-- SMT toolkit -->
+<file name = "smt.xnf"         class = "gsl data"            >SMT grammar</file>
+<file name = "smt_gen.gsl"     class = "generated resource"  >SMT code wrapper</file>
+<file name = "smt_preproc.gsl" class = "generated resource"  >SMT preprocessor</file>
+<file name = "smt_inherit.gsl" class = "generated resource"  >SMT inheritor</file>
+<file name = "smt_parse.gsl"   class = "generated resource"  >SMT parser</file>
+<file name = "smt_doc.txt"     class = "generated"           >SMT documentation</file>
+
+<!-- SMT code generators -->
+<file name = "smt_stdc.gsl"    class = "public resource"   >Code generator for SMT/C</file>
+<file name = "smt_doc.gsl"     class = "public resource"   >Documentation generator for SMT</file>
+<file name = "smt_classes.pdl" class = "public resource"   >SMT Boom classes</file>
+
+<file name = "smt_method.icl"               class = "icl public class">SMT method class</file>
+<file name = "smt_method_queue.icl"         class = "icl public class">SMT thread-safe reply container</file>
+<file name = "smt_method_list.icl"          class = "icl public cont" >SMT thread-local reply container</file>
+<file name = "smt_os_thread.icl"            class = "icl public class">SMT OS thread class</file>
+<file name = "smt_os_thread_by_status.icl"  class = "icl public cont" >SMT OS thread container</file>
+<file name = "smt_os_thread_list.icl"       class = "icl public cont" >SMT OS thread container</file>
+<file name = "smt_thread.icl"               class = "icl public class">SMT thread class</file>
+<file name = "smt_thread_by_status.icl"     class = "icl public class">SMT thread container</file>
+<file name = "smt_thread_list.icl"          class = "icl public cont" >SMT thread container</file>
+<file name = "smt_thread_queue.icl"         class = "icl public cont" >SMT thread container</file>
+<file name = "smt_fileio.icl"               class = "icl public class">SMT file i/o class</file>
+<file name = "smt_fileio_request.icl"       class = "icl public class">SMT file i/o request class</file>
+<file name = "smt_timer_request.icl"        class = "icl public class">SMT timer request class</file>
+<file name = "smt_timer_request_list.icl"   class = "icl public cont" >SMT timer request container</file>
+<file name = "smt_timer_request_by_thread.icl"
+                                            class = "icl public cont" >SMT timer request container</file>
+<file name = "smt_socket.icl"               class = "icl public class">SMT socket class</file>
+<file name = "smt_socket_request.icl"       class = "icl public class">SMT socket request class</file>
+<file name = "smt_socket_request_by_thread.icl"
+                                            class = "icl public cont" >SMT socket request container</file>
+<file name = "smt_socket_request_by_socket.icl"
+                                            class = "icl public cont" >SMT timer request container</file>
+<file name = "smt_position.icl"             class = "icl public class">SMT position class</file>
+<file name = "smt_position_list.icl"        class = "icl public cont" >SMT position container</file>
+<file name = "smt_signal.icl"               class = "icl public class">SMT signal class</file>
+<file name = "smt_signal_table.icl"         class = "icl public cont" >SMT signal table container</file>
+<file name = "smt_signal_by_thread.icl"     class = "icl public cont" >SMT signal list container</file>
+
+<file name = "smt_coremark.icl"             class = "async public"    >CoreMark calculator</file>
+
+<!-- SMT logging agent -->
+<file name = "smt_log.icl"                  class = "async public"    >Log management class</file>
+
+<!-- Asynchronous portal implementation -->
+<file name = "smt_demo_portal.icl"          class = "icl private class">Example async portal</file>
+<file name = "smt_demo_portal_client.icl"   class = "async private"    >Example async portal client</file>
+<file name = "smt_demo_portal_server.icl"   class = "async private"    >Example async portal server</file>
+<file name = "smt_demo_portal_front.icl"    class = "generated"        >Front-end portal wrapper</file>
+<file name = "smt_demo_portal_back.icl"     class = "generated"        >Back-end portal wrapper</file>
+
+<!-- Demo agents -->
+<file name = "smt_echo.smt"                 class = "smt main"         >Echo server agent</file>
+<file name = "tstnull.smt"                  class = "smt main"         >OS thread test main</file>
+<file name = "tstsock.smt"                  class = "smt main"         >Socket test main</file>
+<file name = "smt_demo_timer.smt"           class = "fat main"         >Demo of SMT timer</file>
+<file name = "smt_demo_object.icl"          class = "async private"    >Demo of read/write lock manager</file>
+<file name = "smt_demo_object_action.icl"   class = "async private"    >Demo of read/write lock manager</file>
+
+<file name = "smt_demo_server.smt"          class = "smt public module">Simple SMT demo server</file>
+<file name = "smt_demo_client.smt"          class = "smt main"         >Simple SMT demo client</file>
+
+<!-- Deliverables -->
+<file name = "libsmt"        class = "public library"   >SMT library</file>
+
+<!-- Deliverable header files -->
+<file name = "smt.h"         class = "public header"    >Memory cache</file>
+
+<!-- Documentation -->
+<file name = "icl_make_doc.ignore"     class = "private resource" >List of classes not to document</file>
+
+<actions when = "after">
+  <generate>
+    <collect into = "smt.h" class = "public header" >
+      <file name = "smt_thread.h" />
+      <file name = "smt_coremark.h" />
+      <file name = "smt_os_thread.h" />
+    </collect>
+  </generate>
+</actions>
+
+<use>
+    <library name = "libsfl" />
+</use>
+
+</pdl>

@@ -1,0 +1,903 @@
+iCL is the iMatix Class Language. iCL is a fat programming language used
+to build and maintain classes, which are packages of code and data. The 
+goal of iCL is to provide a standard framework in which to write modular
+library functions and classes. iCL is loosely based on object-oriented  
+concepts.                                                               
+
+Summary of language
+===================
+
+This summary shows the hierarchy of elements you can use, with the
+required and optional attributes for each element.  The XML entity and
+attribute names are case-sensitive and we use only lower-case names.
+
+    <class name version [abstract] [after] [copyright] [license] [before] [comment] [role]
+         [animate] [import] [target] [base] [trace] [stats] [opaque]>
+       <inherit name [phase] [condition]>
+          <option name value/>
+       </inherit>
+       <data [name]/>
+       <invoke [script] [phase]/>
+       <public [name]>
+          <doc [domain]/>
+       </public>
+       <private [name]>
+          <doc .../>
+       </private>
+       <context [export]>
+          <doc .../>
+          <property type name [condition] [readonly]>
+             <put/>
+             <get/>
+          </property>
+       </context>
+       <doc .../>
+       <import class [condition]/>
+       <assert role/>
+       <option .../>
+       <method name [template] [abstract] [condition] [inherit] [export] [private] [cname]
+            [base] [return] [inline] [trace]>
+          <option .../>
+          <inherit .../>
+          <argument name [condition] [type] [pass] [index] [default] [precalc] [animate] [ref] [export]>
+             <doc .../>
+          </argument>
+          <animate format name [value] [condition]/>
+          <dismiss argument value/>
+          <declare type name [condition] [default] [precond] [animate]/>
+          <local>
+             <doc .../>
+          </local>
+          <header [export]/>
+          <footer [export]/>
+          <doc .../>
+          <invoke .../>
+       </method>
+       <todo [owner]/>
+    </class>
+
+Detailed specifications
+=======================
+
+All child entities are optional and can occur zero or more times without
+any specific limits unless otherwise specified.  The same tag may occur
+at different levels with different meanings, and in such cases will be
+detailed more than once here.
+
+The 'icl' item
+--------------
+
+The class tag defines the class. One iCL file defines exactly one class.
+
+    <class
+        name = "..."
+        version = "..."
+      [ abstract = "0 | 1"  ("0") ]
+      [ after = "..." ]
+      [ copyright = "..." ]
+      [ license = "bsd | gpl"  ("gpl") ]
+      [ before = "..." ]
+      [ comment = "..." ]
+      [ role = "..." ]
+      [ animate = "0 | 1"  ("$(switches.animate?0)") ]
+      [ import = "0 | 1"  ("0") ]
+      [ target = "doc | stdc"  ("stdc") ]
+      [ base = "..."  ("$(name)") ]
+      [ trace = "..."  ("0") ]
+      [ stats = "0 | 1"  ("$(switches.stats?0)") ]
+      [ opaque = "..."  ("0") ]
+        >
+        <inherit>
+        <data>
+        <invoke>
+        <public>
+        <private>
+        <context>
+        <doc>
+        <import>
+        <assert>
+        <option>
+        <method>
+        <todo>
+    </class>
+
+The icl item can have these attributes:
+
+abstract:
+    If set, the entity only exists in order to be inherited - no code is    
+    generated. The abstract attribute is optional. Its default value is "0".
+    It can take one of the following values:                                
+
+Value: Meaning:
+0: normal entity
+1: abstract entity
+
+role:
+    A file may fulfill a role. This serves two purposes: asserting that      
+    essential roles are fulfilled and helping to define the inheritence order
+    using the 'before' and 'after' attributes. The role attribute is         
+    optional.                                                                
+
+before:
+    Specifies a role before which this file should should be inherited. The
+    before attribute is optional.                                          
+
+after:
+    Specifies a role before which this file should should be inherited. The
+    after attribute is optional.                                           
+
+copyright:
+    This specifies the copyright string for the model. This string is stamped
+    into the generated sources, if specified. The copyright attribute is     
+    optional.                                                                
+
+license:
+    Specifies the license of the model. This license is applied to all models
+    inherited or built from the current model. The license attribute is      
+    optional. Its default value is "gpl". It can take one of the following   
+    values:                                                                  
+
+Value: Meaning:
+bsd: generates a BSD license header
+gpl: generates a GPL license header
+
+name:
+    Specifies the name of the class. This name will be used to prefix all   
+    function names and will also be used as the filename for generated code.
+    The name attribute is required.                                         
+
+comment:
+    An optional one-line comment that describes the class. The comment
+    attribute is optional.                                            
+
+version:
+    Specifies the version of the class. This text can take any format but we
+    recommend this standard format: '2.4b1' which is major version 2, minor 
+    version 4, release b, update 1. This string is stamped into the project 
+    sources. The version attribute is required.                             
+
+animate:
+    If set, the generated code contains animation that can be switched on and
+    off at runtime. This option can be overridden by a command-line switch   
+    (e.g. "-animate:0"). The animate option can be inherited from a parent   
+    class. The animate attribute is optional. Its default value is           
+    "$(switches.animate?0)". It can take one of the following values:        
+
+Value: Meaning:
+0: do not animate
+1: generate animation code
+
+import:
+    If set, the class is only a collection of imports of other classes. The
+    import attribute is optional. Its default value is "0". It can take one
+    of the following values:                                               
+
+Value: Meaning:
+0: normal class
+1: import-only class
+
+target:
+    Specifies the name of the target environment; the target is implemented 
+    by a GSL script that generates code for a specific language environment.
+    The target can be inherited from a parent class. Specifies the name of  
+    the target environment; the target is implemented by a GSL script that  
+    generates code for a specific language environment. The target can be   
+    inherited from a parent class. The target attribute is optional. Its    
+    default value is "stdc". It can take one of the following values:       
+
+Value: Meaning:
+doc: Documentation
+stdc: Standard ANSI C + iMatix runtime
+
+base:
+    Generated functions usually begin with the class name. This can be    
+    over-ridden by the use of the attribute 'base', which can be set to   
+    empty. The base attribute is optional. Its default value is "$(name)".
+
+trace:
+    Specifies which trace object to use; default means global trace; 0 means
+    no trace. The trace attribute is optional. Its default value is "0".    
+
+stats:
+    If set, the generated code contains statistics collection code. This     
+    option can be overridden by a command-line switch (e.g. "-stats:0") at   
+    class code generation time. The stats option can be inherited from a     
+    parent class. The generated code must in any case be activated by a      
+    compile time switch as well (see generated code for details). The stats  
+    attribute is optional. Its default value is "$(switches.stats?0)". It can
+    take one of the following values:                                        
+
+Value: Meaning:
+0: 
+1: 
+
+opaque:
+    Generates an opaque object, i.e. one who's properties cannot be seen or
+    modified by external programs. This is relevant to objects with context
+    blocks. The opaque attribute is optional. Its default value is "0".    
+
+
+The 'inherit' item
+------------------
+
+
+
+    <inherit
+        name = "..."
+      [ phase = "preproc | parse" ]
+      [ condition = "..." ]
+        >
+        <option>
+    </inherit>
+
+The inherit item can have these attributes:
+
+name:
+    Name of entity to inherit from. The name attribute is required.
+
+phase:
+    The processing phase during which this inheritence is performed. The 
+    phase attribute is optional. It can take one of the following values:
+
+Value: Meaning:
+preproc: inherited in preprocessor
+parse: inherited in parser
+
+condition:
+    Specifies a condition which must be TRUE for the inheritence to occur.
+    The condition attribute is optional.                                  
+
+
+The 'option' item
+-----------------
+
+Passes an option to an inherited class. Options can be used in the template
+code generation logic, or in method handlers.                              
+
+    <option
+        name = "..."
+        value = "..."
+        />
+
+The option item can have these attributes:
+
+name:
+    The name of the option. The name attribute is required.
+
+value:
+    The value for the option. The value attribute is required.
+
+
+The 'data' item
+---------------
+
+Holds a block of arbitrary XML data, for use by invoke scripts. The data
+blocks' grammar is defined by implicit accord with the invoked scripts. 
+
+    <data
+      [ name = "..." ]
+        />
+
+The data item has this single attribute:
+
+name:
+    The name attribute is optional.
+
+
+The 'invoke' item
+-----------------
+
+Invoke gsl code to operate on the class tree. Invokes the gsl code         
+contained in the invoke item body, if any, followed by the gsl code        
+specified by the script attribute, if present. The gsl code can access the 
+class entity and manipulate it in any way desired. It may also generate    
+other files; the script is invoked before any other code generation starts.
+The invoke tag can contain arbitrary XML definitions for use by the gsl    
+script. Note that while method templates are resolved _after_ all invoke   
+tags, class inheritence is done before, and the invoked script cannot      
+affect it.                                                                 
+
+    <invoke
+      [ script = "..." ]
+      [ phase = "preproc | parse" ]
+        />
+
+The invoke item can have these attributes:
+
+script:
+    The name of the GSL script, without any extension (.gsl is enforced). The
+    script attribute is optional.                                            
+
+phase:
+    The processing phase during which this invoke is executed. The phase
+    attribute is optional. It can take one of the following values:     
+
+Value: Meaning:
+preproc: rule is used in preprocessor
+parse: rule is used in parser
+
+
+The 'public' item
+-----------------
+
+Public definitions, exported for use by callers of the class. In C, these 
+definitions are copied into the class header file. Public definitions are 
+inherited from the parent classes unless you specify inherit = "0". If the
+definitions are named, each named block is indepedently inherited.        
+
+    <public
+      [ name = "header | include | types | structure | functions | inline | footer"  ("types") ]
+        >
+        <doc>
+    </public>
+
+The public item has this single attribute:
+
+name:
+    The name of the public block, which really means the place in the      
+    generated code that this public block shoud be inserted. The name      
+    attribute is optional. Its default value is "types". It can take one of
+    the following values:                                                  
+
+Value: Meaning:
+header: issued before class imports, in first pass
+include: issued after class imports, in each pass
+types: for type definitions
+structure: after structure definition
+functions: for functions prototypes
+inline: for inline functions
+footer: issued at end of file
+
+
+The 'doc' item
+--------------
+
+Documentation for the current element: this is included in the generated 
+source code in a suitable form. Documentation should be in iMatix gurudoc
+format.                                                                  
+
+    <doc
+      [ domain = "..." ]
+        />
+
+The doc item has this single attribute:
+
+domain:
+    Allows documentation of different types to be included in the iCL
+    definitions. The domain attribute is optional.                   
+
+
+The 'private' item
+------------------
+
+Private definitions, used by the class itself. The private definitions can
+include static variables and local functions. Private definitions are     
+inherited from the parent classes unless you specify inherit = "0". If the
+definitions are named, each named block is indepedently inherited.        
+
+    <private
+      [ name = "defines | header | body | footer"  ("body") ]
+        >
+        <doc>
+    </private>
+
+The private item has this single attribute:
+
+name:
+    The name of the private block, can be "header" to hint the code generator
+    to place this at the top of the generated file. The name attribute is    
+    optional. Its default value is "body". It can take one of the following  
+    values:                                                                  
+
+Value: Meaning:
+defines: issued before class header
+header: issued after class header
+body: issued in middle of source
+footer: issued at end of source
+
+
+The 'context' item
+------------------
+
+Defines a context block; one or more variables which will be held in all
+class instances.                                                        
+
+    <context
+      [ export = "none | default | before | after"  ("default") ]
+        >
+        <doc>
+        <property>
+    </context>
+
+The context item has this single attribute:
+
+export:
+    Specifies how this item may be inherited. The export attribute is
+    optional. Its default value is "default". It can take one of the 
+    following values:                                                
+
+Value: Meaning:
+none: may not be inherited
+default: inherited in the default manner
+before: inherited before existing items
+after: inherited after existing items
+
+
+The 'property' item
+-------------------
+
+Defines one property of the class. The body of this entity is used to     
+describe the property. Properties are added to the context and are visible
+to the calling application via get/set methods.                           
+
+    <property
+        type = "..."
+        name = "..."
+      [ condition = "..." ]
+      [ readonly = "..."  ("0") ]
+        >
+        <put>
+        <get>
+    </property>
+
+The property item can have these attributes:
+
+condition:
+    Specifies a condition which must be TRUE for the entity to be created.
+    The condition attribute is optional.                                  
+
+name:
+    The name of the property. The name attribute is required.
+
+type:
+    The type of the argument, which is a native type name. To use a reference
+    to the the current class (a pointer in C), use the value "$(selftype) *".
+    The type attribute is required.                                          
+
+readonly:
+    If 0, methods are produced to set and get the property. If 1, only the 
+    get method is produced. The readonly attribute is optional. Its default
+    value is "0".                                                          
+
+
+The 'property put' item
+-----------------------
+
+Defines the code that sets the property. If no put block is defined, the
+property is copied into the context.                                    
+
+    <put>
+
+
+
+The 'property get' item
+-----------------------
+
+Defines the code that retrieves the property. If no get block is defined,
+the property is copied from the context.                                 
+
+    <get>
+
+
+
+The 'import' item
+-----------------
+
+Specifies other classes that this class refers to. Note if you want the   
+generated code to be correct you must define an import item for each class
+that you refer to in your class context or methods. By default, the import
+tag is inherited unless you specify inherit = "0".                        
+
+    <import
+        class = "..."
+      [ condition = "..." ]
+        />
+
+The import item can have these attributes:
+
+condition:
+    Specifies a condition which must be TRUE for the entity to be created.
+    The condition attribute is optional.                                  
+
+class:
+    The name of the class imported. The class attribute is required.
+
+
+The 'assert' item
+-----------------
+
+Asserts that a specified class role is present at code generation.
+
+    <assert
+        role = "..."
+        />
+
+The assert item has this single attribute:
+
+role:
+    The name of the class role being asserted. If no class is present 
+    (inherited or current) with this role, the code generation process
+    aborts. The role attribute is required.                           
+
+
+The 'method' item
+-----------------
+
+Methods provide functionality for the component class. Methods can operate
+on specific objects, on the whole class of objects, or on other arbitrary 
+data. Methods are inherited from parent classes unless the inherit        
+attribute is set to "0". In the new and destroy methods, the class is     
+addressed using the name "self".                                          
+
+    <method
+        name = "..."
+      [ template = "..." ]
+      [ abstract = "0 | 1"  ("0") ]
+      [ condition = "..." ]
+      [ inherit = "none | overlay"  ("overlay") ]
+      [ export = "none | default | before | after"  ("default") ]
+      [ private = "0 | 1"  ("0") ]
+      [ cname = "..."  ("$(expand(method.name):c)") ]
+      [ base = "..." ]
+      [ return = "..." ]
+      [ inline = "0 | 1"  ("0") ]
+      [ trace = "..." ]
+        >
+        <option>
+        <inherit>
+        <argument>
+        <animate>
+        <dismiss>
+        <declare>
+        <local>
+        <header>
+        <footer>
+        <doc>
+        <invoke>
+    </method>
+
+The method item can have these attributes:
+
+condition:
+    Specifies a condition which must be TRUE for the entity to be created.
+    The condition attribute is optional.                                  
+
+template:
+    If specified, defines an entity that acts as template for this entity.
+    The template attribute is optional.                                   
+
+abstract:
+    If set, the entity only exists in order to be inherited - no code is    
+    generated. The abstract attribute is optional. Its default value is "0".
+    It can take one of the following values:                                
+
+Value: Meaning:
+0: normal entity
+1: abstract entity
+
+name:
+    The name of the method, used in the API. The name attribute is required.
+
+inherit:
+    Specifies whether this method may inherit from other classes. The inherit
+    attribute is optional. Its default value is "overlay". It can take one of
+    the following values:                                                    
+
+Value: Meaning:
+none: may not inherit
+overlay: may inherit
+
+export:
+    Specifies how this item may be inherited. The export attribute is
+    optional. Its default value is "default". It can take one of the 
+    following values:                                                
+
+Value: Meaning:
+none: may not be inherited
+default: inherited in the default manner
+before: inherited before existing items
+after: inherited after existing items
+
+private:
+    Specifies whether this method is for public or private (internal) access.
+    The private attribute is optional. Its default value is "0". It can take 
+    one of the following values:                                             
+
+Value: Meaning:
+0: This method is for public use.
+1: This method is for internal use only.
+
+cname:
+    The name of the generated C function; by default use the method name. The
+    cname attribute is optional. Its default value is                        
+    "$(expand(method.name):c)".                                              
+
+base:
+    Generated functions usually begin with the class name. This can be   
+    over-ridden by the use of the attribute 'base'. The base attribute is
+    optional.                                                            
+
+return:
+    The name of the returned value. This must be one of the items declared in
+    the method body using 'declare'. The return attribute is optional.       
+
+inline:
+    Specifies whether this method should be created as an inline function. 
+    The inline attribute is optional. Its default value is "0". It can take
+    one of the following values:                                           
+
+Value: Meaning:
+0: Create a normal function.
+1: Create an inline function.
+
+trace:
+    Specifies which trace object to use; default means global trace; 0 means
+    no trace. The trace attribute is optional.                              
+
+
+The 'argument' item
+-------------------
+
+Defines one argument passed to the method. The body of this entity is used
+to document the argument.                                                 
+
+    <argument
+        name = "..."
+      [ condition = "..." ]
+      [ type = "..." ]
+      [ pass = "in | out | inout"  ("inout") ]
+      [ index = "..." ]
+      [ default = "..." ]
+      [ precalc = "..." ]
+      [ animate = "..."  ("1") ]
+      [ ref = "0 | 1"  ("0") ]
+      [ export = "none | default | before | after"  ("default") ]
+        >
+        <doc>
+    </argument>
+
+The argument item can have these attributes:
+
+condition:
+    Specifies a condition which must be TRUE for the entity to be created.
+    The condition attribute is optional.                                  
+
+name:
+    The name of the argument. The name attribute is required.
+
+type:
+    The type of the argument, which is a native type name. The type attribute
+    is optional. Its default value is "".                                    
+
+pass:
+    Defines whether argument is to be passed into function, out of it, or    
+    both. "in" arguments are also to be considered const, i.e. not modified  
+    within the function. The pass attribute is optional. Its default value is
+    "inout". It can take one of the following values:                        
+
+Value: Meaning:
+in: Pass argument into the function
+out: Pass argument out of the function
+inout: Pass argument both into the function and out of it
+
+index:
+    The index if the argument is to be declared as an array. An empty string
+    gives an indefinite array ('[]') The index attribute is optional.       
+
+default:
+    The argument default value, used for integer arguments with value zero,  
+    and string and reference arguments with value null. The default attribute
+    is optional.                                                             
+
+precalc:
+    The argument is precalculated by a macro in the header. The precalc
+    attribute is optional.                                             
+
+animate:
+    If set to 0, argument does not show in animation The animate attribute is
+    optional. Its default value is "1".                                      
+
+ref:
+    Pass argument by reference. If this option is selected, the name of the
+    argument has a _p appended to it and a * appended to its type. A       
+    <declare> is also generated with the original name, type and default   
+    value of the argument. The ref attribute is optional. Its default value
+    is "0". It can take one of the following values:                       
+
+Value: Meaning:
+0: Pass argument by value
+1: Pass argument by reference
+
+export:
+    Specifies how this item may be inherited. The export attribute is
+    optional. Its default value is "default". It can take one of the 
+    following values:                                                
+
+Value: Meaning:
+none: may not be inherited
+default: inherited in the default manner
+before: inherited before existing items
+after: inherited after existing items
+
+
+The 'animate' item
+------------------
+
+Provides a message or comment that will be shown when animating the     
+component. The animate tag can be mixed with code. Defines an additional
+item (besides argument & declare) to animate.                           
+
+    <animate
+        format = "..."
+        name = "..."
+      [ value = "..."  ("$(name)") ]
+      [ condition = "..." ]
+        />
+
+The animate item can have these attributes:
+
+condition:
+    Specifies a condition which must be TRUE for the entity to be created.
+    The condition attribute is optional.                                  
+
+name:
+    The name of the variable to be output with the animation. The name to  
+    output for this value in the animation. The name attribute is required.
+
+value:
+    The value to animate. May be an expression. The value attribute is
+    optional. Its default value is "$(name)".                         
+
+format:
+    The format string to output the variable. The format (eg '%s') for
+    outputting the animated value. The format attribute is required.  
+
+
+The 'dismiss' item
+------------------
+
+Dismisses an argument: the argument is removed from the API and provided 
+with a calculated value. Argument dismissal can be useful when building  
+large classes with multiple parentage, where some arguments are redundant
+and can be removed from the API (thus making life simpler for the caller,
+which is a Good Thing).                                                  
+
+    <dismiss
+        argument = "..."
+        value = "..."
+        />
+
+The dismiss item can have these attributes:
+
+argument:
+    The name of the argument. The argument attribute is required.
+
+value:
+    The calculated value of the argument. The value attribute is required.
+
+
+The 'declare' item
+------------------
+
+Defines data declarations for the code that follows. All local variables   
+used in the code body must be placed in declare tags so that the final code
+can be correctly generated.                                                
+
+    <declare
+        type = "..."
+        name = "..."
+      [ condition = "..." ]
+      [ default = "..." ]
+      [ precond = "..." ]
+      [ animate = "..."  ("0") ]
+        />
+
+The declare item can have these attributes:
+
+condition:
+    Specifies a condition which must be TRUE for the entity to be created.
+    The condition attribute is optional.                                  
+
+name:
+    The name of the variable. For non-atomic variables like arrays, this can
+    contain the full variable declaration. Note that only atomic variables  
+    can be passed as arguments. The name attribute is required.             
+
+type:
+    The type of the argument, which is a native type name. To use a reference
+    to the the current class (a pointer in C), use the value "$(selftype) *".
+    The type attribute is required.                                          
+
+default:
+    The default value for the variable. To define a string value, you must
+    enclose it in &quot; symbols. The default attribute is optional.      
+
+precond:
+    Allows code generated from 'declare' entity to be surrounded by a  
+    preprocessor condition, thus avoiding th annoying 'unused variable'
+    compilation warning. The precond attribute is optional.            
+
+animate:
+    If set to 1, value is animated at start of method as well as end. The
+    animate attribute is optional. Its default value is "0".             
+
+
+The 'local' item
+----------------
+
+Variable definitions used by the method itself. The local definitions are a
+simpler way of defining blocks of variables than using declare items. Note 
+you must use a declare for the return value.                               
+
+    <local>
+        <doc>
+    </local>
+
+
+
+The 'header' item
+-----------------
+
+Defines a block of method code that should come before all bodies from the
+current and parent classes. Do not use for variable declarations, use     
+'local'.                                                                  
+
+    <header
+      [ export = "none | default | before | after"  ("default") ]
+        />
+
+The header item has this single attribute:
+
+export:
+    Specifies how this item may be inherited. The export attribute is
+    optional. Its default value is "default". It can take one of the 
+    following values:                                                
+
+Value: Meaning:
+none: may not be inherited
+default: inherited in the default manner
+before: inherited before existing items
+after: inherited after existing items
+
+
+The 'footer' item
+-----------------
+
+Defines a block of method code that should come after all bodies from the
+current and parent classes.                                              
+
+    <footer
+      [ export = "none | default | before | after"  ("default") ]
+        />
+
+The footer item has this single attribute:
+
+export:
+    Specifies how this item may be inherited. The export attribute is
+    optional. Its default value is "default". It can take one of the 
+    following values:                                                
+
+Value: Meaning:
+none: may not be inherited
+default: inherited in the default manner
+before: inherited before existing items
+after: inherited after existing items
+
+
+The 'todo' item
+---------------
+
+Defines a change request, bug or other issue that needs changing in the iCL
+class. Todo items are formalised so that they can be extracted and         
+processed mechanically.                                                    
+
+    <todo
+      [ owner = "..." ]
+        />
+
+The todo item has this single attribute:
+
+owner:
+    The developer who registered the issue and will deal with it, specified
+    as an email address. The owner attribute is optional.                  
+

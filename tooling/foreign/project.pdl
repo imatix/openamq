@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2007 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<pdl
+    name      = "iMatix Foreign"
+    acronym   = "foreign"
+    version   = "1.2b0"
+    copyright = "Various, see individual subprojects"
+    workflow  = "product.pwl">
+
+    <inherit filename = "classes.pdl" />
+
+    <file name = "project.pdl"  class = "private resource" >Project Definition</file>
+    <file name = "readme.txt"   class = "private resource" >Top-level Read Me</file>
+    <file name = "release.txt"  class = "private resource" >Release notes</file>
+
+    <distrib name = "Foreign Source" type = "source">
+        <project directory = "c" />
+        <project directory = "apr" />
+        <project directory = "pcre" />
+        <project directory = "zlib" />
+        <project directory = "tests" />
+    </distrib>
+
+    <distrib name = "Foreign Install" type = "install">
+        <project directory = "c" />
+        <project directory = "apr" />
+        <project directory = "pcre" />
+        <project directory = "zlib" />
+        <project directory = "tests" />
+    </distrib>
+</pdl>

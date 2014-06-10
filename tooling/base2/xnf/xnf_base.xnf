@@ -1,0 +1,157 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<xnf
+    name     = "xnf_base"
+    version  = "1.0a0"
+    abstract = "1"
+    >
+
+<entity name = "top" abstract = "1">
+    <attr name = "abstract" default = "0" short = "Abstract entity" inherit = "0">
+    If set, the entity only exists in order to be inherited - no code is
+    generated.
+        <restrict value = "0" >normal entity</restrict>
+        <restrict value = "1" >abstract entity</restrict>
+    </attr>
+    <attr name = "role">
+    A file may fulfill a role.  This serves two purposes: asserting that
+    essential roles are fulfilled and helping to define the inheritence
+    order using the 'before' and 'after' attributes.
+    </attr>
+    <attr name = "before">
+    Specifies a role before which this file should should be inherited.
+    </attr>
+    <attr name = "after">
+    Specifies a role before which this file should should be inherited.
+    </attr>
+    <attr name = "copyright" short = "Copyright string">
+    This specifies the copyright string for the model. This string is stamped
+    into the generated sources, if specified.
+    </attr>
+    <attr name = "license" default = "gpl" short = "Model license">
+    Specifies the license of the model.  This license is applied to all
+    models inherited or built from the current model.
+        <restrict value = "bsd">generates a BSD license header</restrict>
+        <restrict value = "gpl">generates a GPL license header</restrict>
+    </attr>
+
+    <allow entity = "option"  export = "before"/>
+    <allow entity = "inherit" export = "before"/>
+
+    <rule phase = "preproc" when = "before">
+    if defined (my.entity.role)
+        global.have_role_$(my.entity.role) = 1
+    endif
+    </rule>
+</entity>
+
+<entity name = "default" abstract = "1">
+    <attr name = "template" >
+    If specified, defines an entity that acts as template for this entity.
+    </attr>
+    <attr name = "abstract" default = "0" short = "Abstract entity" inherit = "0">
+    If set, the entity only exists in order to be inherited - no code is
+    generated.
+        <restrict value = "0" >normal entity</restrict>
+        <restrict value = "1" >abstract entity</restrict>
+    </attr>
+
+    <allow entity = "option"  export = "before"/>
+    <allow entity = "inherit" export = "before"/>
+    
+    <rule phase = "preproc" when = "attrs">
+        #   Fudge for backwards compatibility  
+        if defined (my.entity.template)
+            my.firstinherit = my.entity->inherit ?
+            if defined (my.firstinherit)
+                new my.entity.inherit before my.firstinherit
+                    inherit.name = my.entity.template
+                endnew
+            else
+                new my.entity.inherit
+                    inherit.name = my.entity.template
+                endnew
+            endif
+            my.entity.template =
+        endif
+    </rule>
+</entity>
+
+<entity name = "inherit" unique = "0">
+    <attr name = "name" required = "1" phase = "preproc">Name of entity to inherit from.</attr>
+    <attr name = "phase" >
+    The processing phase during which this inheritence is performed.
+        <restrict value = "preproc" >inherited in preprocessor</restrict>
+        <restrict value = "parse"   >inherited in parser</restrict>
+    </attr>
+    <attr name = "condition" inherit = "0">
+    Specifies a condition which must be TRUE for the inheritence to occur.
+    </attr>
+    
+    <allow entity = "option" />
+    
+    <rule phase = "preproc" when = "before">
+        #   Fudge for backwards compatibility  
+        inherit.name ?= inherit.$(name($(-1))) ?
+        if defined (inherit.name)
+            inherit.name = gsl.exec (inherit.name, 1)
+        endif
+        inherit._key ?= inherit.name ? 
+    </rule>
+</entity>
+
+<entity name = "option" >
+    Passes an option to an inherited class.  Options can
+    be used in the template code generation logic, or in method handlers.
+    <attr name = "name" required = "1" short = "name of option" phase = "preproc">
+    The name of the option.
+    </attr>
+    <attr name = "value" required = "1" short = "value for option" phase = "preproc">
+    The value for the option.
+    </attr>
+
+    <rule phase = "preproc" when = "after">
+    #   Export option to parent and all children
+    my.parent = my.option.parent ()
+    if defined (my.parent.$(my.option.name)) & my.parent.$(my.option.name) <> my.option.value
+        preproc_error ("Option '$(my.option.name)' is already defined in $(name(my.parent)): $(my.parent._key?)")
+    else
+        define_throughout (my.parent, my.option)
+    endif
+    </rule>
+    <rule phase = "inherit" when = "after">
+    #   Export option to parent and all children
+    if !defined (my.target.$(name))
+        define_throughout (my.target, option)
+    endif
+    </rule>
+</entity>
+
+<entity name = "condition" abstract = "1">
+    <attr name = "condition" inherit = "0">
+    Specifies a condition which must be TRUE for the entity to be created.
+    </attr>
+    <rule phase = "parse" when = "after">
+        if defined (condition) & ! gsl.exec ("\$(("+condition+")?0)",1)
+            my.entity.delete ()
+        endif
+    </rule>
+</entity>
+
+</xnf>

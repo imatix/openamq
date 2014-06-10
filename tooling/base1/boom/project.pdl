@@ -1,0 +1,101 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<pdl
+    name      = "Boom"
+    acronym   = "boom"
+    version   = "2.5d1"
+    copyright = "Copyright (c) 1996-2009 iMatix Corporation"
+    workflow  = "scripted.pwl"
+    >
+
+<include filename = "prelude.pdl" />
+<file name = "boom_ver.gsl"  class = "gsl version"     >Project version header</file>
+
+<file name = "boom"          class = "command script"  target = "unix" >Boom shell script</file>
+<file name = "pkg_zip.bat"   class = "command script"  target = "win32">Packager - zip files</file>
+<file name = "pkg_tgz"       class = "command script"  target = "unix" >Packager - tar.gz files</file>
+<file name = "boom.gsl"      class = "public script"   >Boom GSL script</file>
+<file name = "boom.bat"      class = "dos wrapper"     >Boom batch file</file>
+<file name = "bootstrap.gsl" class = "public script"   >Boom plug-in for bootstrapping</file>
+<file name = "mkpdl.bat"     class = "dos wrapper"     >Generate default PDL</file>
+<file name = "mkpdl"         class = "command script"  >Generate default PDL</file>
+<file name = "version"       class = "command script"  >Version tool</file>
+<file name = "buildxnf.gsl"  class = "public script"   >XNF code generator</file>
+<file name = "mod_xnf.gsl"   class = "public script"   >XNF module</file>
+<file name = "mod_pdl.gsl"   class = "public script"   >PDL module</file>
+<file name = "mod_pwl.gsl"   class = "public script"   >PWL module</file>
+<file name = "pwl_win32.gsl" class = "public script"   >PWL script for Win32</file>
+<file name = "pwl_msvc.gsl"  class = "public script"   >PWL script for Windows MSVC</file>
+<file name = "pwl_msvc9.gsl" class = "public script"   >PWL script for Windows MSVC 9</file>
+<file name = "pwl_os2.gsl"   class = "public script"   >PWL script for OS/2</file>
+<file name = "pwl_unix.gsl"  class = "public script"   >PWL script for Unix</file>
+<file name = "pwl_vms.gsl"   class = "public script"   >PWL script for OpenVMS</file>
+<file name = "pwl_lib.gsl"   class = "public script"   >PWL shared library</file>
+<file name = "pdlparse.gsl"  class = "public script"   >PDL validating parser</file>
+<file name = "pwlparse.gsl"  class = "public script"   >PWL validating parser</file>
+<file name = "version.gsl"   class = "public script"   >Generate version headers</file>
+<file name = "makefile.gsl"  class = "public script"   >Generate makefiles</file>
+<file name = "license.gsl"   class = "public script"   >Generate licenses</file>
+<file name = "classes.pdl"   class = "public resource" >Standard PDL class definitions</file>
+<file name = "standard.pwl"  class = "public resource" >Standard project workflow</file>
+<file name = "scripted.pwl"  class = "public resource" >Scripted project workflow</file>
+<file name = "simple.pwl"    class = "public resource" >Simple project workflow</file>
+<file name = "product.pwl"   class = "public resource" >Product workflow</file>
+<file name = "targets.pwl"   class = "public resource" >Standard PWL target definitions</file>
+<file name = "parsers.gsl"   class = "private resource">Generate parsers</file>
+
+<file name = "xnf.xnf"       class = "private resource">XNF grammar</file>
+<file name = "pdl.xnf"       class = "private resource">PDL grammar</file>
+<file name = "pwl.xnf"       class = "private resource">PWL grammar</file>
+<file name = "boom.txt"      class = "private resource">Boom documentation source</file>
+<file name = "gdstyle.css"   class = "web resource"    >Gurudoc style sheet</file>
+<file name = "mainlogo.jpg"  class = "web resource"   >iMatix logo</file>
+<file name = "boom.html"     class = "documentation"   >Main frameset</file>
+<file name = "boom_1.html"   class = "documentation"   >Chapter 1</file>
+<file name = "boom_2.html"   class = "documentation"   >Chapter 2</file>
+<file name = "boom_3.html"   class = "documentation"   >Chapter 3</file>
+<file name = "boom_bot.html" class = "documentation"   >Bottom frame</file>
+<file name = "boom_toc.html" class = "documentation"   >Table of contents</file>
+<file name = "boom_top.html" class = "documentation"   >Top frame</file>
+<!-- These files are produced during documentation construction 
+<file name = "boom.gdl"      class = "generated"       >Gurudoc output in GDL</file>
+<file name = "xnf.txt"       class = "generated"       >XNF documentation</file>
+<file name = "pdl.txt"       class = "generated"       >PDL documentation</file>
+<file name = "pwl.txt"       class = "generated"       >PWL documentation</file>
+<file name = "classes.txt"   class = "generated"       >Class documentation</file>
+<file name = "product.txt"   class = "generated"       >Workflow documentation</file>
+<file name = "scripted.txt"  class = "generated"       >Workflow documentation</file>
+<file name = "simple.txt"    class = "generated"       >Workflow documentation</file>
+<file name = "standard.txt"  class = "generated"       >Workflow documentation</file>
+-->
+<actions>
+  <generate>
+    <execute command = "gsl3 -quiet -xnf:xnf -parse:0 buildxnf" />
+    <execute command = "gsl3 -quiet -xnf:pdl -parse:1 buildxnf" />
+    <execute command = "gsl3 -quiet -xnf:pwl -parse:1 buildxnf" />
+    <!-- Does not work, gurudoc is not installed before Boom...
+         For now the Boom documentation is built by hand.
+    <execute command = "gsl3 -quiet -autodoc:1 boom"                              />
+    <execute command = "perl -S mkgdl boom.txt"                                  />
+    <execute command = "gsl3 -quiet -page:4 -tpl:html_frameset -gdl:boom gurudoc" />
+     -->
+  </generate>
+</actions>
+
+</pdl>

@@ -1,0 +1,805 @@
+.#
+.#   Copyright (c) 1996-2009 iMatix Corporation
+.#
+.#   This program is free software; you can redistribute it and/or modify
+.#   it under the terms of the GNU General Public License as published by
+.#   the Free Software Foundation; either version 2 of the License, or (at
+.#   your option) any later version.
+.#
+.#   This program is distributed in the hope that it will be useful, but
+.#   WITHOUT ANY WARRANTY; without even the implied warranty of
+.#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.#   General Public License for more details.
+.#
+.#   For information on alternative licensing for OEMs, please contact
+.#   iMatix Corporation.
+.#
+.open_output ("$(basename)_session.icl")
+<?xml?>
+<!--
+    *** GENERATED FROM $(ARG?FILENAME) BY $(SCRIPT) USING GSL/4 ***
+
+.   if defined (copyright)
+        >#   $(copyright:)
+.   endif
+.   $(license:lower)_license ("")
+ -->
+<class
+    name      = "$(basename)_session"
+    comment   = "$(basename) connection session class"
+    version   = "1.0"
+    script    = "icl_gen"
+.   if defined (copyright)
+    copyright = "$(copyright)"
+.   endif
+    license   = "$(license)"
+    >
+<doc>
+This class provides the session serialisation API.
+</doc>
+
+<inherit class = "icl_object">
+    <option name = "alloc" value = "cache" />
+</inherit>
+<inherit class = "icl_init" />
+
+<import class = "$(basename)_classes" />
+<import class = "$(protocol.name)_constants" />
+<import class = "$(basename)_connection" />
+<import class = "$(protocol.name)_content_basic_list" />
+
+<context>
+    $(basename)_connection_t
+        *connection;                    //  Parent connection object
+    smt_method_queue_t
+        *method_queue;                  //  Replies from protocol agent
+    dbyte
+        channel_nbr;                    //  Session channel number
+    Bool
+        alive;                          //  Is the session alive?
+    apr_time_t
+        timestamp;                      //  Time session was opened
+    volatile qbyte
+        flow_stopped;                   //  Is flow of messages from server stopped?
+    char
+        *error_text;                    //  Last error cause
+    char
+        *chrono_block;                  //  Accumulated chrono deltas
+    ipr_hash_table_t
+        *dp_sinks,                      //  DP sink threads
+        *dp_feeds;                      //  DP feed threads
+.#  Expose all fields in reply methods
+.for class where name <> "connection"
+.   for method where count (chassis, name = "client")
+.       for field where !field.global
+.           if count (protocol.session_field, session_field.name = field.name) = 0
+    $(ctype:)
+        $(name);                        //  $(string.trim(.)?:left)
+.               new session_field to protocol
+.                   session_field.name  = field.name
+.                   session_field.type  = field.type
+.                   session_field.ctype = field.ctype
+.                   session_field.cargt = field.cargt
+.               endnew
+.           elsif protocol->session_field (name = field.name).type <> field.type
+.               echo "E: $(name) has inconsistent types"
+.           endif
+.       endfor
+.   endfor
+.endfor
+.if count (session_field, name = "reply_code") = 0
+.   abort "E: reply_code must be defined in at least one method"
+.endif
+.if count (session_field, name = "reply_text") = 0
+.   abort "E: reply_text must be defined in at least one method"
+.endif
+.for class where name <> "connection"
+.   for context
+$(gsl.exec (string.trim (context.), 1))
+.   endfor
+.endfor
+    //  Handling for basic messages
+    $(protocol.name)_content_basic_list_t
+        *arrived_basic_list;            //  Basic messages
+    $(protocol.name)_content_basic_list_t
+        *returned_basic_list;           //  Returned basic messages
+    $(protocol.name)_content_basic_list_t
+        *chrono_list;                   //  Pending chrono messages
+</context>
+
+<method name = "new">
+    <doc>
+    Create new session on an established connection.
+
+    The connection argument refers to a previously-created connection
+    object.
+    </doc>
+    <argument name = "connection" type = "$(basename)_connection_t *" />
+    <local>
+    int
+        rc;
+    </local>
+    //
+    assert (connection);
+
+    self->connection   = connection;
+    self->channel_nbr  = ++connection->channel_nbr;
+    self->method_queue = smt_method_queue_sync_new ();
+    self->error_text   = "no error";
+    self->arrived_basic_list = $(protocol.name)_content_basic_list_new ();
+    self->returned_basic_list = $(protocol.name)_content_basic_list_new ();
+    self->chrono_list = $(protocol.name)_content_basic_list_new ();
+    self->dp_sinks = ipr_hash_table_new ();
+    self->dp_feeds = ipr_hash_table_new ();
+
+    //  Chrono block is the batch size plus enough for one delta
+    //  Thus we dispatch the chrono block when it's GE the batch size
+    self->chrono_block = icl_mem_alloc (
+        $(basename)_config_chrono_batch ($(basename)_config)
+        + ICL_SHORTSTR_MAX);
+    strclr (self->chrono_block);
+
+.for class where name <> "connection"
+.   for constructor
+$(gsl.exec (string.trim (constructor.), 1))
+.   endfor
+.endfor
+    if (connection->alive) {
+        rc = $(basename)_agent_channel_open (
+            self->connection->thread,
+            self->method_queue,
+            &self->alive,
+            &self->reply_code,
+            self->reply_text,
+            self->channel_nbr);
+
+        //  If no immediate error, wait for confirmation that session was OK
+        if (!rc) {
+            if (s_wait_for_methods (self, self->connection->timeout, TRUE, FALSE) == 0) {
+                self->alive = TRUE;     //  Session is ready for use
+                self->timestamp = apr_time_now ();
+            }
+        }
+    }
+    else {
+        self->error_text = "connection is closed";
+        rc = -1;
+    }
+    if (!self->alive)
+        self_destroy (&self);
+</method>
+
+<method name = "destroy">
+    <doc>
+    Close the session.
+    </doc>
+    //  Close and flush any Direct Mode connections
+    ipr_hash_table_apply (self->dp_sinks, s_close_dp_connection, self);
+    ipr_hash_table_destroy (&self->dp_sinks);
+    ipr_hash_table_apply (self->dp_feeds, s_close_dp_connection, self);
+    ipr_hash_table_destroy (&self->dp_feeds);
+
+.for class where name <> "connection"
+.   for destructor
+$(gsl.exec (string.trim (destructor.), 1))
+.   endfor
+.endfor
+    //  Close main connection
+    if (self->alive) {
+        $(basename)_agent_channel_close (self->connection->thread, self->channel_nbr);
+        while (self->alive) {
+            //  Wait until we get back an CLOSED method, or timeout
+            s_wait_for_methods (self, self->connection->timeout, FALSE, FALSE);
+        }
+    }
+.for class where name <> "connection"
+.   for method where count (chassis, name = "client")
+.       for field where !field.global & metat = "longstring"
+    icl_longstr_destroy (&self->$(name));
+.       endfor
+.   endfor
+.endfor
+    icl_mem_free (self->chrono_block);
+    smt_method_queue_destroy (&self->method_queue);
+    $(protocol.name)_content_basic_list_destroy (&self->arrived_basic_list);
+    $(protocol.name)_content_basic_list_destroy (&self->returned_basic_list);
+    $(protocol.name)_content_basic_list_destroy (&self->chrono_list);
+</method>
+
+<method name = "wait" template = "function">
+    <doc>
+    Waits for any activity on the session.  Returns 0 if content arrived
+    or the timeout expired, -1 if the session ended abnormally.  If the timeout
+    is zero, waits forever.  If the timeout is -1, does not wait at all, but
+    processes pending methods and then returns.
+    </doc>
+    <argument name = "timeout" type = "int">Timeout, in milliseconds</argument>
+.if protocol.name = "amq"
+    <local>
+    $(protocol.name)_content_basic_t
+        *content;
+    </local>
+.endif
+    //
+.if protocol.name = "amq"
+    //  This would be a good time to publish any pending chrono contents
+    content = $(protocol.name)_content_basic_list_pop (self->chrono_list);
+    if (content) {
+        amq_client_session_basic_publish (self,
+            content, 0, "amq.status", "chrono", FALSE, FALSE);
+        $(protocol.name)_content_basic_unlink (&content);
+    }
+.endif
+    if (!$(protocol.name)_content_basic_list_isempty (self->arrived_basic_list)
+    ||  !$(protocol.name)_content_basic_list_isempty (self->returned_basic_list))
+        return (0);                    //  Return if there is content to process
+    if (self->alive) {
+        if (s_wait_for_methods (self, timeout, FALSE, TRUE))
+            rc = -1;
+    }
+    else {
+        self->error_text = "session is closed";
+        rc = -1;
+    }
+</method>
+
+.macro generate_method (nowait)
+<method name = "$(class.name) $(method.name)$(my.nowait??' nowait')" template = "function">
+    <doc>
+    $(string.trim(.)?:block,left,neat).
+.   if method.content
+    The caller must create a new $(protocol.name)_content_basic object
+    for this call; the object is destroyed after being sent.
+.   endif
+    Returns 0 on success, 1 on failure.
+    </doc>
+.   if method.content
+    <argument name = "content" type = "$(protocol.name)_content_basic_t *">Message content</argument>
+.   endif
+.   for field where !field.global & field.name <> "nowait"
+    <argument name = "$(name)" type = "$(cargt:)">$(string.trim(.)?:left)</argument>
+.   endfor
+.   for method.argument
+.       delete argument
+.   endfor
+.   new argument to method
+.       argument.name = "self->connection->thread"
+.       argument.desc = "Connection thread"
+.   endnew
+.   new argument to method
+.       argument.name = "self->channel_nbr"
+.       argument.desc = "Channel to send on"
+.   endnew
+.   for protocol.class as proto_class where name = class.name
+.       for action where name = method.name
+.           for local where defined (local.)
+    <local>
+    $(gsl.exec (string.trim (.), 1))
+    </local>
+.           endfor
+.       endfor
+.   endfor
+.   if method.content
+.       new argument to method
+.           argument.name = "content"
+.           argument.desc = "Message content"
+.       endnew
+    assert (content);                   //  Content must be supplied
+.   endif
+.   for field where !field.global
+.       new argument to method
+.           if field.name = "nowait"
+.               argument.name = "$(my.nowait??'TRUE'?'FALSE')"
+.           else
+.               argument.name = field.name
+.           endif
+.           argument.desc = "$(string.trim(.)?:left)"
+.       endnew
+.   endfor
+.
+.   for protocol.class as proto_class where name = class.name
+.       for action where name = method.name & (when?"before") = "before"
+.           if defined (action.)
+    //  Action handler before calling method
+$(gsl.exec (string.trim (.), 1))
+.           endif
+.       endfor
+.   endfor
+.
+    if (self->alive) {
+        rc = $(basename)_agent_$(class.name)_$(method.name:c) (
+.   for argument
+            $(name:)$(last()??');'?',')  //  $(desc)
+.   endfor
+
+        if (rc == 0) {
+.   if method.synchronous & !my.nowait
+            if (self->alive) {
+                //  Wait until the agent has synchronised with us
+                if (s_wait_for_methods (self, self->connection->timeout, TRUE, FALSE))
+                    rc = -1;
+            }
+            else {
+                self->error_text = "session is closed";
+                rc = -1;
+            }
+.   else
+            if (s_wait_for_methods (self, self->connection->timeout, FALSE, FALSE))
+                rc = -1;
+.   endif
+        }
+.   if method.content
+        else
+            self->error_text = "unable to send method to protocol agent";
+.   endif
+    }
+    else {
+        self->error_text = "session is closed";
+        rc = -1;
+    }
+.   for protocol.class as proto_class where name = class.name
+.       for action where name = method.name & (when?"before") = "after"
+.           if defined (action.)
+    //  Action handler after calling method
+    if (rc == 0) {
+$(gsl.exec (string.trim (.), 1))
+    }
+.           endif
+.       endfor
+.   endfor
+</method>
+
+.endmacro
+.for class where name <> "direct" by index
+.   for method where !method.internal & count (chassis, name <> protocol.chassis)
+.       generate_method (0)             #   Normal versions
+.       if count (field, name = "nowait")
+.           generate_method (1)         #   Nowait versions where needed
+.       endif
+.   endfor
+.endfor
+.
+<method name = "push arrived" template = "function">
+    <doc>
+    Stores an arrived content, and takes appropriate action if the arrived
+    queue hits the high water mark.
+    </doc>
+    <argument name = "content" type = "$(protocol.name)_content_basic_t *">Message content</argument>
+    <argument name = "exchange" type = "char *">Value to stamp into content</argument>
+    <argument name = "routing key" type = "char *">Value to stamp into content</argument>
+    <argument name = "consumer tag" type = "char *">Value to stamp into content</argument>
+    <argument name = "delivery tag" type = "int64_t">Value to stamp into content</argument>
+    <local>
+    size_t
+        high_water,                     //  Value of high water setting
+        queue_size;                     //  Queue size before we push our content
+    char
+        *on_overflow;                   //  on_overflow action for direct connections
+    </local>
+    //
+    //  Stamp content with values from method, if any
+    if (exchange && *exchange)
+        icl_shortstr_cpy (content->exchange, exchange);
+    if (routing_key && routing_key)
+        icl_shortstr_cpy (content->routing_key, routing_key);
+    if (consumer_tag && *consumer_tag)
+        icl_shortstr_cpy (content->consumer_tag, consumer_tag);
+    content->delivery_tag = delivery_tag;
+
+    //  Send chronometer deltas, if any, to chrono@amq.status exchange
+    if ($(basename)_config_chrono_enabled ($(basename)_config))
+        s_process_chrono (self, content);
+
+    //  Check if queue would overflow, take appropriate action
+    high_water = $(basename)_config_high_water ($(basename)_config);
+    if (high_water) {                   //  If it's zero, we don't interfere
+        queue_size = self_get_basic_arrived_count (self);
+        if (queue_size == high_water) {
+            if (self->connection->direct) {
+                on_overflow = $(basename)_config_on_overflow ($(basename)_config);
+                if (streq (on_overflow, "warn")) {
+                    //  Warn that we hit high-water, but only once per tide
+                    if (icl_atomic_cas32 (&self->flow_stopped, TRUE, FALSE) == FALSE) {
+                        icl_console_print ("W: high-water mark reached, application is too slow");
+                        icl_console_print ("I: contact iMatix for help on tuning your application");
+                    }
+                }
+                else
+                if (streq (on_overflow, "trim")) {
+                    //  Chuck away oldest content on arrived list
+                    $(protocol.name)_content_basic_t
+                        *trimmed;
+                    trimmed = $(protocol.name)_content_basic_list_pop (self->arrived_basic_list);
+                    $(protocol.name)_content_basic_unlink (&trimmed);
+                }
+                else
+                if (streq (on_overflow, "drop")) {
+                    //  Chuck away new incoming content
+                    content = NULL;     //  Just don't store the content
+                }
+                else
+                if (streq (on_overflow, "kill")) {
+                    //  To die. In the rain. Alone.
+                    icl_system_panic ("$(basename)_session",
+                        "E: high water reached (%d): on_overflow requested fatal stop", high_water);
+                    icl_system_panic ("$(basename)_session",
+                        "I: contact iMatix for help on tuning your application");
+                    exit (1);
+                }
+            }
+            else
+            //  If we're in normal AMQP mode, send Channel.Flow Off if needed
+            if (icl_atomic_cas32 (&self->flow_stopped, TRUE, FALSE) == FALSE)
+                $(basename)_session_channel_flow (self, FALSE);
+        }
+    }
+    //  Queue content if we did not discard it
+    if (content)
+        $(protocol.name)_content_basic_list_queue (self->arrived_basic_list, content);
+</method>
+
+<method name = "push returned" template = "function">
+    <doc>
+    Stores a returned content.  Currently not guarded by any high water marks.
+    </doc>
+    <argument name = "content" type = "$(protocol.name)_content_basic_t *">Message content</argument>
+    <argument name = "exchange" type = "char *">Value to stamp into content</argument>
+    <argument name = "routing key" type = "char *">Value to stamp into content</argument>
+    <argument name = "consumer tag" type = "char *">Value to stamp into content</argument>
+    //
+    //  Stamp content with values from method, if any
+    if (exchange && *exchange)
+        icl_shortstr_cpy (content->exchange, exchange);
+    if (routing_key && routing_key)
+        icl_shortstr_cpy (content->routing_key, routing_key);
+    if (consumer_tag && *consumer_tag)
+        icl_shortstr_cpy (content->consumer_tag, consumer_tag);
+    content->delivery_tag = 0;
+
+    //  Set the returned flag - is this actually useful?
+    content->returned = TRUE;
+
+    //  Queue content
+    $(protocol.name)_content_basic_list_queue (self->returned_basic_list, content);
+    if (!self->connection->silent)
+        icl_console_print ("W: basic message was returned: %d - %s",
+            self->reply_code, self->reply_text);
+</method>
+
+<method name = "get basic arrived count" template = "function">
+    rc = $(protocol.name)_content_basic_list_count (self->arrived_basic_list);
+</method>
+
+<method name = "basic arrived" return = "content">
+    <argument name = "self"  type = "$\(selftype) *">Session object</argument>
+    <declare name = "content" type = "$(protocol.name)_content_basic_t *" default = "NULL">Message content</declare>
+    //
+    //  Get next message off list, if any
+    content = $(protocol.name)_content_basic_list_pop (self->arrived_basic_list);
+
+    //  Patch session to properly reflect this content's properties
+    if (content) {
+        icl_shortstr_cpy (self->exchange, content->exchange);
+        icl_shortstr_cpy (self->routing_key, content->routing_key);
+        if (*content->consumer_tag)
+            icl_shortstr_cpy (self->consumer_tag, content->consumer_tag);
+        self->delivery_tag = content->delivery_tag;
+    }
+    if ($(basename)_config_high_water ($(basename)_config)
+    && self_get_basic_arrived_count (self) == $(basename)_config_low_water ($(basename)_config)
+    && icl_atomic_cas32 (&self->flow_stopped, FALSE, TRUE) == TRUE)
+        self_channel_flow (self, TRUE);
+</method>
+
+<method name = "get basic returned count" template = "function">
+    rc = $(protocol.name)_content_basic_list_count (self->returned_basic_list);
+</method>
+
+<method name = "basic returned" return = "content">
+    <argument name = "self"  type = "$\(selftype) *">Session object</argument>
+    <declare name = "content" type = "$(protocol.name)_content_basic_t *" default = "NULL">Message content</declare>
+    //
+    //  Get next message off list, if any
+    content = $(protocol.name)_content_basic_list_pop (self->returned_basic_list);
+</method>
+.
+.produce_get_property ("alive",      "Bool")
+.produce_get_property ("error text", "char *")
+.for session_field
+.    produce_get_property (name, cargt)
+.endfor
+
+<method name = "dp new" return = "thread">
+    <argument name = "self"  type = "$\(selftype) *">Session object</argument>
+    <argument name = "name"  type = "char *">Resource name</argument>
+    <argument name = "type"  type = "int">Resource type</argument>
+    <declare name = "thread" type = "smt_thread_t *" default = "NULL" />
+    <local>
+    int
+        rc = 0;
+    ipr_hash_t
+        *hash;
+    </local>
+    //
+    //  Start a new direct connection
+    //  - send Direct.Put or Direct.Get via main connection
+    //  - server provides lease via Put-Ok or Get-Ok
+    //  - create new direct thread and give it the lease
+    //
+    assert (type == DP_SINK || type == DP_FEED);
+    if (name == NULL)
+        name = "";                            //  Blank name is valid
+
+    //  Request lease and wait for response
+    if (type == DP_SINK)
+        $(basename)_agent_direct_put (self->connection->thread, self->channel_nbr, name);
+    else
+        $(basename)_agent_direct_get (self->connection->thread, self->channel_nbr, name);
+    rc = s_wait_for_methods (self, self->connection->timeout, TRUE, FALSE);
+    assert (!rc);
+
+    //  Create direct connection thread and wait for it to signal ready
+    thread = $(basename)_agent_direct_thread_new (
+        type,
+        self->method_queue,
+        self->connection->host,
+        self->lease,
+        self->connection->trace,
+        self->connection->timeout);
+    assert (thread);
+    smt_thread_wake (thread);
+    rc = s_wait_for_methods (self, self->connection->timeout, TRUE, FALSE);
+    assert (!rc);
+
+    //  Store thread in hash table with extra link, so that caller can
+    //  unlink thread properly.
+    if (type == DP_SINK)
+        hash = ipr_hash_new (self->dp_sinks, name, smt_thread_link (thread));
+    else
+        hash = ipr_hash_new (self->dp_feeds, name, smt_thread_link (thread));
+    ipr_hash_unlink (&hash);
+</method>
+
+<method name = "dp lookup" return = "thread">
+    <argument name = "self"  type = "$\(selftype) *">Session object</argument>
+    <argument name = "name"  type = "char *">Resource name</argument>
+    <argument name = "type"  type = "int">Resource type</argument>
+    <declare name = "thread" type = "smt_thread_t *" default = "NULL" />
+    //
+    <local>
+    ipr_hash_t
+        *hash;
+    </local>
+    assert (type == DP_SINK || type == DP_FEED);
+    if (type == DP_SINK)
+        hash = ipr_hash_table_search (self->dp_sinks, name);
+    else
+        hash = ipr_hash_table_search (self->dp_feeds, name);
+
+    if (hash) {
+        thread = smt_thread_link ((smt_thread_t *) hash->data);
+        ipr_hash_unlink (&hash);
+    }
+</method>
+
+<method name = "dp destroy" template = "function">
+    <argument name = "name"  type = "char *">Resource name</argument>
+    <argument name = "type"  type = "int">Resource type</argument>
+    <local>
+    ipr_hash_t
+        *hash;
+    </local>
+    //
+    assert (type == DP_SINK || type == DP_FEED);
+    if (type == DP_SINK) {
+        hash = ipr_hash_table_search (self->dp_sinks, name);
+        if (hash) {
+            s_close_dp_connection (hash, self);
+            ipr_hash_destroy (&hash);
+        }
+    }
+    else {
+        hash = ipr_hash_table_search (self->dp_feeds, name);
+        if (hash) {
+            s_close_dp_connection (hash, self);
+            ipr_hash_destroy (&hash);
+        }
+    }
+</method>
+
+<private name = "header">
+static int
+    s_wait_for_methods ($\(selftype) *self, int timeout, Bool blocking, Bool want_content);
+static void
+    s_process_chrono ($\(selftype) *self, $(protocol.name)_content_basic_t *content);
+static void
+    s_close_dp_connection (ipr_hash_t *hash, void *argument);
+</private>
+
+<private name = "footer">
+/*  Waits for methods from the protocol agent.  If the blocking argument
+    is true, returns only when receiving a synchronous reply method.  If not,
+    returns when any incoming method is received.  Returns 0 if ok, -1 if
+    the connection is closed or a blocking wait timed-out.
+ */
+static int
+s_wait_for_methods (
+    $\(selftype) *self,
+    int timeout,
+    Bool blocking,
+    Bool want_content)
+{
+    smt_method_t
+        *smt_method = NULL;
+    $(basename)_method_t
+        *proto_method;
+    int
+        rc = 0;                         //  OK by default
+    qbyte
+        pending;                        //  Size of method queue
+    Bool
+        got_content = FALSE;            //  Did we get 1+ contents?
+
+    smt_method_queue_t
+        *smt_queue = smt_method_queue_link (self->method_queue);
+    assert (!smt_queue->zombie);
+    FOREVER {
+        smt_method_unlink (&smt_method);
+        if (timeout >= 0)
+            smt_method_queue_wait (smt_queue, timeout);
+        smt_method = smt_method_queue_pop (smt_queue);
+        pending = smt_queue->count;
+        //  If we don't have a method, we timed-out
+        if (!smt_method) {
+            if (blocking) {
+                if (smt_queue->zombie)
+                    self->error_text = "No reply - method queue destroyed";
+                else
+                    self->error_text = "No reply received - timeout";
+                rc = -1;
+            }
+            break;
+        }
+        //  ALMOST means we should wait for the next method...
+        if (smt_method->result == $(BASENAME)_REPLY_ALMOST) {
+            proto_method = ($(basename)_method_t *) smt_method->data;
+            if (proto_method)
+                $(basename)_method_execute (proto_method, self->connection, self);
+        }
+        else
+        //  INTERN is an internal synchronisation from the agent
+        if (smt_method->result == $(BASENAME)_REPLY_INTERN)
+            break;                      //  We can return to caller
+        else
+        //  METHOD means the agent is sending us either:
+        //    - a sync method, which is a reply to a sync request
+        //    - an async method, which we want to process and then continue
+        //
+        //  We always stop when we get a sync method. If we have an async
+        //  method, we stop only if the queue is empty and we're not blocking.
+        //  Blocking means we want a sync method within the timeout.
+        //
+        if (smt_method->result == $(BASENAME)_REPLY_METHOD) {
+            proto_method = ($(basename)_method_t *) smt_method->data;
+            if (proto_method) {
+                $(basename)_method_execute (proto_method, self->connection, self);
+                if (proto_method->content)
+                    got_content = TRUE;
+                if (proto_method->sync
+                || (got_content && want_content && pending == 0))
+                    break;              //  Got synchronous method, end
+            }
+            else
+                break;                  //  Synchronisation from agent
+        }
+        else
+        if (smt_method->result == $(BASENAME)_REPLY_CLOSED) {
+            self->error_text = "session is closed";
+            self->alive = FALSE;        //  Session is closed
+            rc = -1;                    //  Signal session is closed
+            break;                      //  We can return to caller
+        }
+        else
+        //  DIRECT_OK means the direct thread started ok
+        if (smt_method->result == $(BASENAME)_REPLY_DIRECT_OK)
+            break;                      //  We can return to caller
+        else
+        //  DIRECT_NG means the direct thread did not start
+        if (smt_method->result == $(BASENAME)_REPLY_DIRECT_NG) {
+            self->error_text = "direct connection failed";
+            rc = -1;                    //  Signal session is closed
+            break;                      //  We can return to caller
+        }
+        else
+        //  DIRECT_MSG means we have a message, process & continue
+        if (smt_method->result == $(BASENAME)_REPLY_DIRECT_MSG) {
+            self_push_arrived (
+                self, ($(protocol.name)_content_basic_t *) smt_method->data, NULL, NULL, NULL, 0);
+            if (want_content && pending == 0)
+                break;                  //  We were waiting for content
+        }
+        else {
+            self->error_text = "Internal error - invalid reply method from protocol agent";
+            icl_console_print ("E: invalid reply result %d", smt_method->result);
+        }
+    }
+    smt_method_queue_unlink (&smt_queue);
+    smt_method_unlink (&smt_method);
+    return (rc);
+}
+
+static void
+s_process_chrono (
+    $\(selftype) *self,
+    $(protocol.name)_content_basic_t *content)
+{
+.#  If client = ACME Inc. A more generic way of disposing of chrono deltas
+.#  would be appropriate here, maybe using portals... Consider this a hack
+.#  to be cleaned up once working.
+.if protocol.name = "amq"
+    icl_shortstr_t
+        deltas;                         //  Chronometer deltas
+    int
+        floor = amq_client_config_chrono_floor (amq_client_config);
+
+    amq_content_basic_chrono_add (content);
+    amq_content_basic_chrono_get (content, deltas, floor);
+    if (*deltas) {
+        size_t
+            size = strlen (self->chrono_block);
+        if (size > (uint) amq_client_config_chrono_batch (amq_client_config)) {
+            amq_content_basic_t
+                *content;
+
+            //  We can't publish the chrono block here since we're in the
+            //  middle of handling events from the client agent; if we try
+            //  a publish we will open a new instance of this event handler
+            //  which gets us into unpleasant territory.  So we queue the
+            //  content for later dispatching.
+            //
+            content = amq_content_basic_new ();
+            amq_content_basic_set_body (content, self->chrono_block, size, icl_mem_free);
+            $(protocol.name)_content_basic_list_queue (self->chrono_list, content);
+            amq_content_basic_unlink (&content);
+
+            //  Allocate a new chrono block
+            self->chrono_block = icl_mem_alloc (
+                amq_client_config_chrono_batch (amq_client_config)
+                + ICL_SHORTSTR_MAX);
+            strclr (self->chrono_block);
+        }
+        //  It is impossible to append a literal newline due to GSL's
+        //  pleasure in unescaping backslashes, sorry for this nasty
+        //  hack.  10 is of course a newline character.
+        if (*self->chrono_block) {
+            strcat (self->chrono_block, " ");
+            strlast (self->chrono_block) = 10;
+        }
+        strcat (self->chrono_block, deltas);
+    }
+.endif
+}
+
+static void
+s_close_dp_connection (ipr_hash_t *hash, void *argument)
+{
+    $\(selftype)
+        *self = argument;
+    smt_thread_t
+        *thread = (smt_thread_t *) hash->data;
+
+    //  Ensure connection is really closed before returning to caller
+    //  This call will also flush any data pending to be written
+    $(basename)_agent_direct_close (thread);
+    s_wait_for_methods (self, self->connection->timeout, FALSE, FALSE);
+    smt_thread_unlink (&thread);
+}
+</private>
+
+<method name = "initialise">
+    $(basename)_agent_init ();
+</method>
+
+<method name = "selftest" />
+
+</class>

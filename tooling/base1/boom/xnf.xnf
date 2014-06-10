@@ -1,0 +1,201 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<xnf name = "xnf" >
+An XNF file defines the grammar for an XML file.  The mod_xnf.gsl script
+works on this grammar to generate textual documentation of the language,
+and to generate customized GSL processors for the language in question.
+These processors can act as validating parsers, and as code generators.
+
+<entity name = "xnf" tag = "xnf" cdata = "1" >
+  The 'xnf' item contains the set of entities and classes that define
+  the language grammar.  It also contains functions and errorhandlers
+  that are included in any eventual language processor produced from
+  the grammar, and include definitions that let you construct XNF files
+  from reusable fragments.
+    <allow entity = "include"     />
+    <allow entity = "entity"      />
+    <allow entity = "class"       />
+    <allow entity = "function"    />
+    <allow entity = "errorhandler"/>
+    <attr name = "name" required = "1" >
+    This attribute is used when generating code, to name the resulting
+    output files.  It should be the name of the XML language that the XNF
+    grammar defines.
+    </attr>
+</entity>
+
+<entity name = "include" tag = "include" >
+  The 'include' item specifies the name of an XNF fragment to be included
+  in the main XNF file.  An XNF include file does not contain a root xnf
+  item, but a set of entity, class, function, or errorhandler entities.
+  The XNF processor will load partial XNF files specified in any include
+  entities before processing the remainder of the XNF file.
+    <attr name = "filename" required = "1" >
+    Specifies the full or relative name of a partial XNF file.
+    </attr>
+</entity>
+
+<entity name = "entity" tag = "entity" cdata = "1" >
+  The 'entity' item defines an XNF entity.  XNF entities are either
+  expressed with a body, or as a list of allowed child entities.
+    <body entity = "entity-element" />
+    <attr name = "name" required = "1">
+    Specifies the name of the entity, which is unique in the PFL file.
+    </attr>
+    <attr name = "tag">
+    If supplied, it tells the XNF processor that this entity matches an
+    XML entity tag.  Otherwise the entity is used as part of the grammar
+    but not mapped to an XML entity.  A tag definition is required if the
+    entity is defined with attributes.
+    </attr>
+    <attr name = "class">
+    Specifies the name of a class.  The entity will inherit the contents
+    of the class, and the class tag and description if it does not already
+    have a tag and description.
+    </attr>
+    <attr name = "sameas">
+    For documentation, specifies that the entity is equivalent to the one
+    specified.
+    </attr>
+    <attr name = "cdata" default = "0">
+    Specifies whether the entity contains a value that is used for
+    code generation or documentation.  The cdata tag may be used by tools
+    such an XNF editor.
+        <restrict value = "0">entity does not use a value</restrict>
+        <restrict value = "1">entity uses a value</restrict>
+    </attr>
+</entity>
+
+<entity name = "class" tag = "class" >
+  The 'class' item defines an XNF entity class.  Classes do not form part
+  of the grammar but allow you to normalize entities to avoid duplication.
+  When two or more entities have the same body or structure, you can define
+  one class and base the entities on that class.
+    <body entity = "entity-element" />
+</entity>
+
+<entity name = "entity-element" >
+  An XNF entity can be a simple entity, with neither body nor allow list.
+  You would use this to describe an entity that may not contain child
+  entities. More complex, you can use an allow list to define grouping and
+  repetition of child entities.  Finally, you can normalize multiple entities
+  that use the same allow list, with the 'body' entity.  You cannot use both
+  'allow' and 'body' at once.
+    <allow entity = "allow"        />
+    <allow entity = "body"         occurs = "0/1" />
+    <allow entity = "rule"         occurs = "0/1" />
+    <allow entity = "attr"         />
+</entity>
+
+<entity name = "body" tag = "body" >
+  The 'body' item tells that XNF processor that the body of this entity is
+  defined by another entity.  Use this construct when you have the same allow
+  list used in several places.
+    <attr name = "entity" required = "1">
+    Specifies the name of another entity in the XNF file that provides the
+    structure of this entity. The body tag refers to an entity that is
+    constructed from an allow list.
+    </attr>
+</entity>
+
+<entity name = "allow" tag = "allow" >
+  The 'allow' item defines a child entity that can occur or must occur within
+  the current entity.
+    <attr name = "entity" required = "1">
+    Specifies the name of a child entity.  The entity must be defined in the XNF
+    file.
+    </attr>
+    <attr name = "occurs" default = "0+">
+    Specifies whether the child entity is required or optional, and whether it
+    can occur multiple times or not.
+        <restrict value = "1"  >entity is required</restrict>
+        <restrict value = "1+" >entity is required and can occur more than once</restrict>
+        <restrict value = "0+" >entity is can occur zero or more times</restrict>
+        <restrict value = "0/1">entity is optional</restrict>
+    </attr>
+</entity>
+
+<entity name = "rule" tag = "rule" cdata = "1" >
+  The 'rule' item provides GSL processor code for a specific entity.  A
+  single XNF file may define rules for multiple processors, e.g. 'parse'
+  and 'code'.  The processor works through the input XML file, and executes
+  any rule code specified for each entity.  By default, the rule code
+  executes before the processor goes to work on any child entities.  The
+  GSL code is taken from the rule item value.
+    <attr name = "disconnect" default = "0">
+    Specifies whether child items are automatically processed or not.  If
+    'disconnect' is specified, the child items must be manually processed in
+    rule code for the parent.  The disconnect option gives you a level of
+    manual control in the generated processor that can be very valuable.
+        <restrict value = "0">children are automatically processed</restrict>
+        <restrict value = "1">children must be processed manually</restrict>
+    </attr>
+    <attr name = "when" default = "before" >
+    Specifies whether the rule is applied before or after child items are
+    processed.  You will usually either define one rule (before) or define
+    both a 'before' and 'after' rule.
+        <restrict value = "before">rule code executes before processing child items</restrict>
+        <restrict value = "after" >rule code executes after processing child items</restrict>
+    </attr>
+</entity>
+
+<entity name = "attr" tag = "attr" >
+  The 'attr' item defines an entity attribute, possibly with restrictions on
+  the allowed values.
+    <allow entity = "restrict" />
+    <attr name = "required" default = "0">
+    Specifies whether the attribute is required or not.
+        <restrict value = "0">the attribute is optional</restrict>
+        <restrict value = "1">the attribute is required</restrict>
+    </attr>
+    <attr name = "default">
+    Specifies a default value for the attribute.  If the grammar does not
+    define a default, an empty value ("") is used as default.  If you use
+    the default specification, there is no meaning in specifying 'required'
+    as well.
+    </attr>
+</entity>
+
+<entity name = "restrict" tag = "restrict" cdata = "1" >
+  The 'restrict' item defines one of a set of possible values for an
+  attribute.  If the attribute contains one or more restrict definitions,
+  the attribute can only take one of these values.  Otherwise it can take
+  any value.
+    <attr name = "value" required = "1">
+    Specifies one of the allowed attribute values.
+    </attr>
+</entity>
+
+<entity name = "function" tag = "function" cdata = "1" >
+  The 'function' entity provides GSL code for the specified processor.
+  The function item value is appended to the generated processor.  It is
+  intended to hold GSL functions that are referenced in rule code.
+</entity>
+
+<entity name = "errorhandler" tag = "errorhandler" cdata = "1" >
+  The 'errorhandler' entity provides GSL code for an error handler.  If
+  this entity is not defined, the GSL processer gets a default error
+  handler.  The error handler must be a function with the name
+  'xnf_xxxx_error' where xxxx is the name of the rule (e.g. 'parse' or
+  'code').  The error handler receives a single argument, being an error
+  message.  You can define your own error handler to provide more context
+  to the user in cases of errors.
+</entity>
+
+</xnf>

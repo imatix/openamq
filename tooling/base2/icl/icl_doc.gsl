@@ -1,0 +1,194 @@
+#  ----------------------------------------------------------------------------
+#   iCL template for Standard ANSI-C documentation
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+#
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#  ----------------------------------------------------------------------------
+
+#   Note to maintainers: please check the generated code regularly to make
+#   sure blank lines and indentation remains correct.
+
+missing_doc = 0
+
+function missing(item)
+    if !defined (switches.quiet)
+        if (!missing_doc) 
+            my.title = "Component $(selfname:c)"
+            missing_doc = 1
+        endif    
+        echo "Missing " + my.item
+    endif
+endfunction
+
+function output_title (title, linetype)
+    >
+    >$(my.title:)
+    >$((my.linetype + "") * string.length (my.title?")))"))
+endfunction
+
+.function output_code (entity)
+    if defined (my.entity.)
+>$(gsl.exec (string.trim (my.entity.), 1))
+    endif
+.endfunction
+
+.function output_context (entity)
+    if defined (my.entity.)
+        while 1
+            my.start = string.locate(my.entity., "#if")?
+            my.end = string.locate(my.entity., "#endif")?
+            if (defined(my.start) & defined(my.end))
+                my.entity.="$(string.substr(my.entity., 0, my.start - 1))$(string.substr(my.entity., my.end + 7))"
+            else
+                last
+            endif
+        endwhile
+>$(gsl.exec (string.trim (my.entity.), 1))
+    endif
+.endfunction
+
+.function output_doc (entity)
+    if defined (my.entity.)
+>$(gsl.exec (string.trim (my.entity.), 1):left)
+    endif
+.endfunction
+
+.macro generate_documentation
+.   output "$(selfname:c).txt"
+.-  Class title
+.if !defined (comment)
+.    missing("component short description")
+.endif
+.output_title("Component $(selfname:c)$(abstract??" (abstract)"?) - $(comment)", "=")
+.output_title("Summary", "-")
+
+.-  Class attributes
+.if defined(version)
+Class version:
+    $(version:)
+.else
+.    missing("version")
+.endif    
+.if defined(role)
+Class role:
+    $(role:)
+.else
+.    missing("role")
+.endif    
+.if defined (class->inherit)
+Class inheritance:
+.    my.comma = ""
+.    my.list = ""
+.    for class.inherit
+.        if defined (inherit.class)
+.            my.list += "$(my.comma)$(inherit.class:)"
+.        else
+.            my.list += "$(my.comma)$(inherit.name:)"
+.        endif
+.        my.comma = ", "
+.    endfor
+    $(my.list)
+.else
+.    missing("inheritance")
+.endif
+
+.if count (doc) > 0
+.   for doc
+.       output_doc (doc)
+.   endfor
+.else
+.    missing("component description")
+.endif
+
+.output_title("Context", "-")
+.   if count (context) <= 0
+This class does not create stateful objects.
+.   endif
+
+.   if count (context) > 0
+.       for context
+.           output_context (context)
+.       endfor
+.   endif
+.   for method where private?0 = 0
+.       my.name = method.cname?method.name
+.output_title("$(base:c)$(my.name:c)", "-")
+.       gsl "\
+
+    $(returnt)
+    $(base:c)$(my.name:c)"
+ (
+.       for argument where (!defined (precalc)) & (!defined (prefill))
+.gsl "    $(type)  $(my.name)$(last()??')'?',')  //  $(argument.?'Not documented')      
+"
+.       else
+        void)
+.       endfor
+
+.       if count (doc) > 0
+.           for doc
+.               output_doc (doc)
+.           endfor
+.       else
+.           missing("method description ($(name))")
+.       endif
+.   endfor
+.   close
+.endmacro generate_documentation
+
+
+.#############################   GENERATE DOCUMENTATION   #############################
+
+.function generate_class (class)
+  scope my.class
+
+    #   Override animation with external option if specified
+    if defined (switches.animate)
+        class.animate = switches.animate
+    endif
+
+    #   Prepare API for methods
+    for method
+        for argument
+            if name <> "..."
+                argument.prefill = method->dismiss(dismiss.argument = argument.name).value ?
+                name = "$(name:c)"
+            endif
+        endfor
+        for declare
+            name = "$(name:c)"
+        endfor
+        if defined (return)
+            [return] = "$(return:c)"
+            returnvar = method->declare (name = return)?
+            if !defined (returnvar)
+                returnvar = method->argument (name = return)?
+            endif
+            if defined (returnvar)
+                .returnt = returnvar.type
+            else
+                abort "No declare or argument for '$(return)' in method '$(method.name)' for $(selfname)"
+            endif
+        else
+            .returnt = "void"
+        endif
+    endfor
+
+    if !defined (switches.quiet)
+        echo "Generating $(selfname) documentation..."
+    endif
+    generate_documentation ()
+  endscope
+.endfunction

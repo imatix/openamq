@@ -1,0 +1,8 @@
+<?xml?>
+<pal script = "demo_pal_gen">
+    This script demonstrates how to greet the world.
+    <echo>
+    Hello world!
+    </echo>
+</pal>
+

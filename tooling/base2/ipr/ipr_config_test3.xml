@@ -1,0 +1,29 @@
+<config>
+    <general>
+        <security>
+            <profile name = "custom"
+                maxusers = "250"
+                timeout = "0" />
+        </security>
+    </general>
+    <queues>
+        <queue name = "test"
+            maxusers = "10"
+            overflow = "2000"
+            prefill = "0"
+            maxsize = "32000"
+            blocksize = "4000" >This is a test queue</queue>
+        <queue name = "prime"
+            template = "non-persistent" />
+        <template name = "non-persistent"
+            maxusers = "250" />
+    </queues>
+    <profiles>
+        <!-- Should replace, not merge with, example profile in test2 -->
+        <profile name = "example">
+            <limit value = "1000"   action = "warn" />
+            <limit value = "10000"  action = "trim" />
+            <limit value = "100000" action = "kill" />
+        </profile>
+    </profiles>
+</config>

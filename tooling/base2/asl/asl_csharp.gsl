@@ -1,0 +1,182 @@
+#  ----------------------------------------------------------------------------
+#   ASL target for C#
+#
+#   Generates server or client chassis from the ASL specifications.
+#
+#  ----------------------------------------------------------------------------
+
+
+############################  GENERATE CHASSIS  ############################
+
+.macro generate_chassis ()
+.include "build/asl_chassis_csharp.gsl"
+.endmacro
+
+
+#################################   MAIN   #################################
+
+function generate_protocol (protocol)
+ scope my.protocol
+    ignorecase = 1
+    target_protocol_for_csharp ()
+    generate_chassis ()
+ endscope
+endfunction
+
+function getCSharpFieldName(rawName)
+    return getCSharpName(my.rawName, 1)
+endfunction
+
+function getCSharpClassName(rawName)
+    return getCSharpName(my.rawName, 1)
+endfunction
+
+function getCSharpName(rawName, initialUpper)
+    if my.rawName = "class"
+        my.rawName = "clazz"
+    elsif my.rawName = "private"
+        my.rawName = "isPrivate"
+    endif
+    
+    result = ""
+    length = string.length(my.rawName)
+    i = 0
+    makeUpper = my.initialUpper
+    while i < length
+        ch = string.substr(my.rawName, i, i)
+        if ch = " " | ch = "-"
+            makeUpper = 1
+        else
+            if makeUpper = 1
+                result += "$(ch:upper)"
+                makeUpper = 0
+            else
+                result += ch
+            endif
+        endif        
+        i += 1
+    endwhile
+    return result
+endfunction
+
+function checkLastBoolean(lastField, field)
+    if my.lastField.type = "bit" & (!defined(my.field) |(defined(my.field) & my.field.type <> "bit"))
+        my.lastField.encodeMethod += "});"
+    endif
+endfunction
+
+function target_protocol_for_csharp
+    protocol.basename = protocol.name
+    for class by index
+        for method
+            if class.name = "connection" \
+            | (class.name = "channel" & method.name = "close-ok")
+                method.internal = 1
+            else
+                method.internal = 0
+            endif
+            
+            #if class.name = "connection" & method.name = "start"
+            #    method.framingSuperclass = "AMQFrame"
+            #else
+                method.framingSuperclass = "AMQMethodBody"
+            #endif
+            
+            # Whether this boolean requires a new byte to be declared (1 if the case)            
+            booleanCount = 0
+            # An index of the current boolean being iterated through (always incremented)
+            booleanIndex = 0
+            lastField = 0
+            
+            for field
+                field.csname = getCSharpFieldName(field.name)
+                
+                checkLastBoolean(lastField, field)                
+                if type = "char"
+                    field.cstype = "char"
+
+                    field.encodedSize = 1
+                    field.encodeMethod = "buffer.Put($(field.csname:no));"
+                    field.decodeMethod = "buffer.GetChar();"
+                elsif type = "bit"
+                    field.cstype = "bool"                  
+                    # Boolean fields are packed so that you write 1 byte per 8
+                    # bits
+                    if booleanCount = 0                    
+                        field.encodeMethod = "EncodingUtils.WriteBooleans(buffer, new bool[]{ \n            $(field.csname:no)"
+                        field.decodeMethod = "bool[] bools = EncodingUtils.ReadBooleans(buffer); \n        $(field.csname:no) = bools[0]"
+                    else
+                        field.encodeMethod = "            , $(field.csname:no)"
+                        field.decodeMethod = "$(field.csname:no) = bools[$(booleanIndex)]"
+                    endif
+
+                    booleanIndex += 1
+                    booleanCount += 1
+                    if booleanCount = 1
+                        field.encodedSize = 1
+                    else
+                        field.encodedSize = 0
+                    endif
+                    if booleanCount > 7
+                       booleanCount = 0
+                    endif                   
+                elsif type = "octet"
+                    field.cstype = "byte"
+                    field.encodedSize = 1
+                    field.encodeMethod = "buffer.Put($(field.csname:no));"
+                    field.decodeMethod = "$(field.csname:no) = buffer.Get()"
+                elsif type = "short"
+                    field.cstype = "ushort"
+                    field.encodedSize = 2
+                    field.encodeMethod = "buffer.Put($(field.csname:no));"
+                    field.decodeMethod = "$(field.csname:no) = buffer.GetUnsignedShort()"
+                elsif type = "long"
+                    field.cstype = "uint"
+                    field.encodedSize = 4
+                    field.encodeMethod = "buffer.Put($(field.csname:no));"
+                    field.decodeMethod = "$(field.csname:no) = buffer.GetUnsignedInt()"
+                elsif type = "longlong" | type = "timestamp"
+                    field.cstype = "ulong"
+                    field.encodedSize = 8
+                    field.encodeMethod = "buffer.Put($(field.csname:no));"
+                    field.decodeMethod = "$(field.csname:no) = buffer.GetUnsignedLong()"
+                elsif type = "shortstr"
+                    field.cstype = "string"
+                    field.encodedSize = "EncodingUtils.EncodedShortStringLength($(field.csname:no))"
+                    field.encodeMethod = "EncodingUtils.WriteShortStringBytes(buffer, $(field.csname:no));"
+                    field.decodeMethod = "$(field.csname:no) = EncodingUtils.ReadShortString(buffer)"
+                elsif type = "longstr" 
+                    field.cstype = "byte[]"
+                    field.encodedSize = "4 + (($(field.csname:no) == null)?0:$(field.csname:no).Length)"
+                    field.encodeMethod = "EncodingUtils.WriteLongstr(buffer, $(field.csname:no));"
+                    field.decodeMethod = "$(field.csname:no) = EncodingUtils.ReadLongstr(buffer)"
+                elsif type = "table"
+                    field.cstype = "FieldTable"
+                    field.encodedSize = "EncodingUtils.EncodedFieldTableLength($(field.csname:no))"
+                    field.encodeMethod = "EncodingUtils.WriteFieldTableBytes(buffer, $(field.csname:no));"
+                    field.decodeMethod = "$(field.csname:no) = EncodingUtils.ReadFieldTable(buffer)"
+                elsif type = "peer properties"
+                    field.cstype = "FieldTable"
+                    field.encodedSize = "EncodingUtils.EncodedFieldTableLength($(field.csname:no))"
+                    field.encodeMethod = "EncodingUtils.WriteFieldTableBytes(buffer, $(field.csname:no));"
+                    field.decodeMethod = "$(field.csname:no) = EncodingUtils.ReadFieldTable(buffer)"
+                else
+                    abort "Unknown field type: $(type)"
+                endif
+                lastField = field                             
+            endfor
+            
+            checkLastBoolean(lastField)
+            
+            for response
+                for class.method as class_method where name = response.name
+                    if defined (class_method.predecessor)
+                        echo "Duplicate route to $(class_method.name)"
+                    endif
+                    class_method.predecessor = method.index
+                endfor
+            endfor
+        endfor
+    endfor
+endfunction
+

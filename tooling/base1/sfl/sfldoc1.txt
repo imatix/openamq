@@ -1,0 +1,796 @@
+.-----------------------------------------------------------------
+.-  sfldoc1.txt   SFL Documentation
+.-
+.define BASE      sfl
+.define author    Pieter Hintjens
+.define written   24 Feb 1996
+.define revised    1 Jan 1999
+.-----------------------------------------------------------------
+.include prelude.def
+.ignore header 4
+
+.if $(superdoc?0) == 1
+.page sfldoc.htm=The Standard Function Library
+.else
+.page index.htm=The Standard Function Library
+.endif
+
+.ignore header
+<H1>$(TITLE)</H1>
+
+<P>The SFL (Standard Function Library) from iMatix is a portable function
+library for C/C++ programs. The SFL is the result of many years'
+development, and is provided as Open Source software for the benefit of the
+Internet community.
+
+<P>You may want to go straight to the $(*TOC=Table of Contents).
+.if $(superdoc?0) == 0
+Also, this documentation is available as a single compressed
+$(*sflbig.zip=zip file) or $(*sflbig.tgz=gzipped tar file), suitable for printing.
+.endif
+
+<P>The SFL is written in ANSI C and has been ported to MS-DOS, Windows,
+OS/2, Linux and other UNIX systems (IBM AIX, SunOS, HP/UX, Solaris, NetBSD,
+FreeBSD, SCO OpenServer, Digital UNIX) and Digital OpenVMS. It comes with
+complete sources and documentation in HTML.
+
+<P>The SFL provides about 450 functions that cover these areas:
+<UL>
+<LI>Compression, encryption, and encoding;
+<LI>Datatype conversion and formatting;
+<LI>Dates, times, and calendars;
+<LI>Directory and environment access;
+<LI>User and process groups;
+<LI>Inverted bitmap indices;
+<LI>Symbol tables;
+<LI>Error message files;
+<LI>Configuration files;
+<LI>String manipulation and searching;
+<LI>File access;
+<LI>Internet socket access;
+<LI>Internet programming (MIME, CGI);
+<LI>SMTP (e-mail) access;
+<LI>Server (batch) programming;
+<LI>Program tracing.
+</UL>
+
+<P>The SFL is free software that you may use and distribute for
+private or commercial purposes according to the
+$(*license=SFL License Agreement).
+
+<P>Send comments about the SFL, bug reports, and submissions to
+<A HREF="mailto:sfl@imatix.com">sfl@imatix.com</A>.
+
+.ignore header
+.build anchor TOC
+<H2>Table of Contents</H2>
+.build toc
+.if $(superdoc?0) == 1
+.ignore pages
+.endif
+
+.-----------------------------------------------------------------
+.page What Is The SFL
+<H2>$(TITLE)</H2>
+
+<H3>Origins</H3>
+
+<P>At iMatix we develop portable free and commercial software. We work in
+ANSI C to cover the widest range possible. A major part of our toolkit has
+always been our subroutine library. This was initially written for MS-DOS in
+1991 but has developed into a more ambitious project since then.
+
+<P>From the outset, we ignored commercial libraries. Our software is usually
+Open Source and using a commercial library would have been a problem. We
+looked for free libraries, but found only specialised and mostly
+non-portable collections of functions. So, we built our own. We hope you
+like it. We certainly use it all the time.
+
+<H3>Objectives</H3>
+
+<P>When we designed the SFL, we had certain things in mind:
+
+<UL>
+<LI>Portability: we are lazy, and don't have much time. So, we want to do
+our editing and testing on the fastest PC possible, then move the results to
+a 'real' system (UNIX, VMS, whatever) recompile, and test. Obviously, some
+code cannot be tested fully on all systems - we don't have sockets under
+MS-DOS - but this approach works for most projects. The SFL
+<EM>encapsulates</EM> non-portable aspects so that application programs do
+not need to know about specific systems.
+
+<LI>Building servers, i.e. programs that run in the background, for a long
+time, without intervention from a user or operator. Servers have specific
+needs, and must be extremely robust, since they must run for long periods.
+The SFL provides many functions that are specifically meant for this type of
+program.
+
+<LI>Functionality: the classic purpose of any library. If a problem has a
+clean, tested, documented, and portable solution, we will use that instead
+of re-inventing it. The SFL provides a stable home for code that might
+otherwise float around in various projects.
+
+<LI>Discipline: we make our code public, and expect people to read it. We
+actually include the code for each function as part of its documentation.
+This forces us to be crystal clear.
+
+<LI>Hubris: we think our code is so great that it should live for ever. So,
+we take great pains to make it useful, clean, efficient, and well-packaged,
+so you'll think so too.
+</UL>
+
+<H3>Portability</H3>
+
+<P>The SFL is in use on at least these systems:
+<UL>
+<LI>MS-Windows (MSVC, Borland, Watcom, gcc)
+<LI>MS-DOS (MSVC, Borland Turbo-C)
+<LI>OS/2 (EMX)
+<LI>Linux
+<LI>IBM RS/6000 AIX
+<LI>Sun SunOS
+<LI>Sun Solaris
+<LI>HP HP/UX
+<LI>Digital UNIX
+<LI>FreeBSD
+<LI>NetBSD
+<LI>SCO OpenServer
+<LI>SCO UnixWare
+<LI>Digital OpenVMS
+</UL>
+
+<P>Some recent functions may not have been tested or implemented across all
+platforms. Some functions are empty on some platforms. Since the SFL is
+continually improving and enlarging, there are always newer functions that
+are less tested, and possibly less than 100% portable. Our intention is that
+the transparency of the SFL makes these functions easy to test and improve.
+
+.-----------------------------------------------------------------
+.page Installing The SFL
+<H2>$(TITLE)</H2>
+
+<H3>Availability and Distribution</H3>
+
+<P>We supply the SFL as two archives: a source kit and a documentation kit
+(in HTML). These files are available for download by HTTP from our
+$(*imatix=website) on a permanent basis. You need to recompile the SFL for
+your specific system, using an ANSI C compiler. We don't provide binary kits
+for several reasons:
+<UL>
+<LI>With one source archive and one documentation archive, the
+SFL is easier to distribute.
+<LI>The SFL changes rapidly - a source distribution is simpler.
+<LI>You can pick and choose the functions you want.
+<LI>The sources are the primary source of documentation.
+<LI>The license terms are such that the sources must be supplied
+or be available in any case.
+</UL>
+
+<H4>Getting The Source Archive</H4>
+
+<P>The SFL source archive is supplied as a $(*sflsrc.zip=zip file)
+and a $(*sflsrc.tgz=GNU gzipped tar file).  These are the files in
+the /pub/sfl/src directory:
+.build dir /pub/sfl/src
+
+<P>If you have trouble accessing the iMatix site, send us an
+$(*info=e-mail) and we'll send you the SFL archives by return
+e-mail.
+
+<H4>Getting The The Documentation Kit</H4>
+
+<P>The SFL documentation is supplied as HTML files, available on-line or
+off-line as a $(*sfldoc.zip=single .zip file) that you can install on a hard
+disk for rapid access, and also as a $(*sfldoc.tgz=gzipped tar file).
+These are the files in the /pub/sfl/doc directory:
+.build dir /pub/sfl/doc
+
+<P>We recommend that you unzip or gunzip/detar the archive into a
+subdirectory.  Point your browser at the <TT>index.htm</TT> file.
+We use relative addressing in all HTML documents, so that links
+work just as well on a local hard-disk as on-line on our website.
+In a windowing environment is it easy and useful to create an icon
+that runs a Web browser on this file.
+
+<HR>
+<H3>Installation for UNIX Systems</H3>
+
+<P>To install the SFL on a UNIX system you need to:
+<OL>
+<LI>Download the source archive and decompress it.
+<LI>Run the 'build' script to compile the SFL sources and build
+the libsfl.a archive file.
+<LI>Optionally, install the libsfl.a file in the /usr/lib
+directory.
+<LI>Optionally, install the SFL header file(s) in the /usr/include
+directory.
+</OL>
+
+<H4>Decompressing The Source Archive</H4>
+
+<P>To unzip the $(*sflsrc.zip=source .zip file), you need the Infozip
+$(*info-zip=unzip) tool:
+<PRE>$ mkdir temp
+$ mv sflsrc$(version_no).zip temp
+$ cd temp
+$ unzip -a sflsrc$(version_no)
+</PRE>
+
+<P>To decompress the $(*sflsrc.tgz=source archive) you need GNU
+gzip/gunzip and tar:
+<PRE>$ mkdir temp
+$ mv sflsrc$(version_no).tgz temp
+$ cd temp
+$ gzip -d sflsrc$(version_no).tgz
+  or
+$ gunzip sflsrc$(version_no).tgz
+$ tar -xvf sflsrc$(version_no).tar
+</PRE>
+
+<P>You can also, in extreme cases, unzip the files on a PC and
+transfer the individual files to the UNIX system.
+
+<H4>Compiling The SFL Sources</H4>
+
+<P>The SFL source archive includes a script, <TT><B>c</B></TT>,
+that you can (and should) use to compile the SFL sources.  This
+script invokes the ANSI C compiler to produce an object code file.
+It detects the platform and invokes the compiler with the
+necessary switches for ANSI C compilation.  On some systems this
+is the normal behaviour for the <B>cc</B> command.  On other
+systems it is not normal.  You should make the <TT>c</TT> script
+executable, (preferrably) install it in a shared directory like
+/usr/local/bin, and try it out:
+<PRE>$ chmod a+rx c
+$ mv c /usr/local/bin
+$ c
+</PRE>
+
+<P>To compile the SFL sources, use this command:
+<PRE>$ chmod +x build
+$ ./build
+</PRE>
+
+<P>If you get warnings or error messages, this is usually a bad
+sign.  Some compilers issue warnings just because you ask for ANSI
+compilation.  If you get any other error messages, please let us
+know.
+
+<P>You can use individual SFL files simply by specifying them on
+the command line when you compile and link a program.  However,
+this is usually a pain.  Therefore, the build script creates a
+library file called libsfl.a.  The linker can automatically search
+this file for the SFL functions.  To install libsfl.a in the
+/usr/lib directory, do this:
+<PRE>$ mv libsfl.a /usr/lib
+</PRE>
+
+<H4>Using The SFL In Your Applications</H4>
+
+<P>To use an SFL function in your applications you must include a
+header file that defines the structures, prototypes, and types for
+the function API.  The SFL provides three types of header
+files:
+<OL>
+<LI>One header file per function group.  These are provided for
+reference; you will normally not use these directly.
+<LI>A $(*uhf=Universal Header File) which encapsulates and
+replaces all local header files.  Again, this is provided for
+reference; you do not normally use this directly.
+<LI>A $(*lhf=Library Header File) that contains the Universal
+Header File and all the SFL header files in one go.  This is meant
+to simplify application programming and installation.
+</OL>
+
+<P>We recommend that you install the <TT>sfl.h</TT> file in
+/usr/include.  A typical application program starts like this:
+<PRE>#include &lt;sfl.h&gt;
+</PRE>
+
+<P>To link an application program, use the <TT>c -l</TT> command.
+This assumes that libsfl.a is installed /usr/lib.
+
+<HR>
+<H3>Installation for Digital VMS Systems</H3>
+
+<P>To install the SFL on a Digital VMS system you need to:
+<OL>
+<LI>Download the source archive and decompress it.
+<LI>Run the 'build.txt' command file to build the libsfl.olb
+library file.
+<LI>Optionally, install the libsfl.olb file in the SYS$LIBRARY
+directory.
+<LI>Optionally, install the SFL header file(s) in the SYS$LIBRARY
+directory.
+</OL>
+
+<H4>Decompressing The Source Archive</H4>
+
+<P>To unzip the $(*sflsrc.zip=source .zip file), you need the Infozip
+$(*info-zip=unzip) tool (note that you need the -a switch):
+<PRE>$ create/dir [.temp]
+$ ren sflsrc$(version_no).zip [.temp]
+$ set def [.temp]
+$ unzip -a sflsrc$(version_no)
+</PRE>
+
+<P>You can also, in extreme cases, unzip the files on a PC and
+transfer the individual files to the VMS system.
+
+<H4>Compiling The SFL Sources</H4>
+
+<P>To compile the SFL sources, use this command:
+<PRE>$ @build.txt
+</PRE>
+
+<P>If you get warnings or error messages, this is a bad sign -
+please let us know.
+
+<P>The build.txt command file creates a library file called
+libsfl.olb.  You can install this in a central directory like
+SYS$LIBRARY if you wish.  You'll need system privileges to do
+this.
+
+<H4>Using The SFL In Your Applications</H4>
+
+<P>To use an SFL function in your applications you must include a
+header file that defines the structures, prototypes, and types for
+the function API.  The SFL provides three types of header
+files:
+<OL>
+<LI>One header file per function group.  These are provided for
+reference; you will normally not use these directly.
+<LI>A $(*uhf=Universal Header File) which encapsulates and
+replaces all local header files.  Again, this is provided for
+reference; you do not normally use this directly.
+<LI>A $(*lhf=Library Header File) that contains the Universal
+Header File and all the SFL header files in one go.  This is meant
+to simplify application programming and installation.
+</OL>
+
+<P>We recommend that you install the <TT>sfl.h</TT> file in
+SYS$LIBRARY.  A typical application program starts like this:
+<PRE>#include &lt;sfl.h&gt;
+</PRE>
+
+<HR>
+<H3>Installation for Windows</H3>
+
+<P>Briefly, either create a static library, and include that in
+your project; create a .DLL and call that, or add the files you
+want to use to your project and compile them as part of the
+application.
+
+<P>With MSVC 4.0, we find it useful to create a main project for the
+application in hand, and a subproject for the SFL. We build the SFL as a
+static library. If you use MFC, you must compile everything (including MFC)
+in single-threaded mode, and use libd.
+
+<P>Under MSVC 1.5x, there is a bug in the project manager that generates
+invalid make files: the SFL prelude.h file refers to various non-Windows
+include files, within #if statements. The MSVC 1.5x project manager includes
+these in the make file; you must manually remove them. One solution is to
+edit prelude.h; another is to use a Perl or Awk script to edit the make file
+each time you change the project. You could also move to a different 16-bit
+compiler. Finally, you can create the make files as empty files in the C
+include directory.
+
+<P>To build using the build.bat file with MSVC, you need to increase the
+environment space to (e.g. to 16K), and define some variables in the
+autoexec.bat file:
+<PRE>SET CCNAME=msvc
+SET CCDIR=C:\MSDEVSTD
+SET INCDEF=C:\MSDEVSTD\INCLUDE
+SET LIBDIR=C:\MSDEVSTD\sfl\lib
+</PRE>
+Where the LIBDIR variable is the directory where you unzipped the SFL stuff.
+
+
+<HR>
+<H3>Installation for MS-DOS</H3>
+
+<P>To install the SFL on a MS-DOS system you need to:
+<OL>
+<LI>Download the source archive and decompress it.
+<LI>Run build.bat to build the libsfl.lib library file.
+<LI>Optionally, install the libsfl.lib file in central
+directory.
+<LI>Optionally, install the SFL header file(s) in a central
+directory.
+</OL>
+
+<H4>Decompressing The Source Archive</H4>
+
+<P>To unzip the $(*sflsrc.zip=source .zip file), you need the Infozip
+$(*info-zip=unzip) tool, or PKzip version 2.04g or later, or a
+compatible unzip program.:
+<PRE>C:\DOWNLOAD> md temp
+C:\DOWNLOAD> copy sflsrc$(version_no).zip temp
+C:\DOWNLOAD> del sflsrc$(version_no).zip
+C:\DOWNLOAD> cd temp
+C:\DOWNLOAD> unzip sflsrc$(version_no)
+</PRE>
+
+<H4>Compiling The SFL Sources</H4>
+
+<P>To compile under MS-DOS you need a Borland, Microsoft, or Watcom
+compiler, or lcc-win32 or djgpp.  Look at the c.bat file, and set the
+CCNAME and/or CCDIR environment variables as required.  Then, check that you
+can compile a single program. e.g. 'c sflbits'.  When this works, run the
+build.bat file to rebuild everything.
+
+<P>The build scripts create a library file called libsfl.lib. You can
+install this, and sfl.h, in a central directory if you wish.
+
+<H4>Using The SFL In Your Applications</H4>
+
+<P>To use an SFL function in your applications you must include a
+header file that defines the structures, prototypes, and types for
+the function API.  The SFL provides three types of header
+files:
+<OL>
+<LI>One header file per function group.  These are provided for
+reference; you will normally not use these directly.
+<LI>A $(*uhf=Universal Header File) which encapsulates and
+replaces all local header files.  Again, this is provided for
+reference; you do not normally use this directly.
+<LI>A $(*lhf=Library Header File) that contains the Universal
+Header File and all the SFL header files in one go.  This is meant
+to simplify application programming and installation.
+</OL>
+
+<P>We recommend that you install the <TT>sfl.h</TT> file in the
+/include directory of your compiler.  A typical application
+program starts like this:
+<PRE>#include &lt;sfl.h&gt;
+</PRE>
+
+.-----------------------------------------------------------------
+.page Using The SFL
+<H2>$(TITLE)</H2>
+
+.build anchor uhf
+<H3>The Universal Header File - prelude.h</H3>
+
+<H4>What and Why?</H4>
+
+<P>The Universal Header File a technology that we have developed
+to make C applications more easily portable with less effort.  One
+of the big difficulties in compiling C code on different platforms
+is that header files change their names, locations, and internal
+functions from system to system, even on one system over time.
+
+<P>Typically, you may see C programs that start with a rash of
+<TT>#ifdef</TT>'s mixed with <TT>#include</TT>'s depending on the
+system, compiler, and specific needs of the program.
+
+<P>Since we are basically really lazy, all this unnecessary work
+is intolerable.  We would <EM>much</EM> rather make the compiler
+work harder.  The systems we develop on (typically MS-DOS with
+Turbo-C) are so fast that we can afford to take a really lazy
+approach.
+
+<P>So, what we do is this: we include every 'useful' and
+'standard' header file that we can think of.  We then include
+every 'useful' non-portable file that we've ever needed, in a
+clean way, so that application code does not need to 'know' how it
+was done.
+
+<P>At the same time we define lots of things that make life
+easier.  Generally we don't like macros, since these create
+'pseudo languages' that are just more work to learn.  However,
+some things (like <TT>#define FOREVER for (;;)</TT>) are so useful
+and pretty comonplace, so we stick them in too.
+
+<P>Lastly, we flatten-out the problem called 'what system am I
+running on', by providing a set of definitions like
+<TT>__UNIX__</TT> and <TT>__UTYPE_SUNOS</TT> that code can use if
+it has to.  Again, it can be quite messy to figure-out that we're
+compiling on a Brand X, so we need this-and-that header file.  We
+hide this so that we can forget about it.
+
+<P>Okay, those are the benefits of this approach.  What are the
+costs?  We typically hear these criticisms:
+<UL>
+<LI>Compilation is a <EM>lot</EM> slower.  True, but when you
+create portable applications, you can do 90% of your compiles on a
+system that is so fast that this is irrelevant
+<LI>Some C programmers may feel they are losing control over which
+header files are included, in which order, etc.  True, but it's
+the kind of control we don't want.
+<LI>We get some comments about 'polluting the namespace'.  We
+don't really understand this one.  We try to stay away from
+already-defined symbols.
+<LI>People don't like the macros we define, like TRUE and FALSE.
+This can become a matter of personal choice; we've tried to
+provide useful stuff without becoming baroque.
+</UL>
+
+<P>We use the Universal Header File in <EM>all</EM> C projects
+(not just those based on the SFL).  If it was not for the simple
+fact that it has helped us a lot, we'd probably not make it
+available.
+
+<H4>Using the Universal Header File</H4>
+
+<P>You should probably read through the <TT>prelude.h</TT> file to
+best understand it.  Our usual habit is to comment the code first,
+so that it's self-explanatory.  The SFL documentation has a
+section on the Universal Header File.  This section is generated
+from the code.
+
+<P>When you use the SFL Library Header File (<TT>sfl.h</TT>), you
+don't need to include <TT>prelude.h</TT>, since it's already
+embedded in <TT>sfl.h</TT>.  This makes application programming
+easier (just one header file to include).  If you need to change
+<TT>prelude.h</TT>, you can either change <TT>sfl.h</TT> as well,
+or rebuild <TT>sfl.h</TT> using the build script.  Better still,
+tell us what you want to change, so that we can maintain a single
+version of the file.
+
+.build anchor lhf
+<H3>The Library Header File - sfl.h</H3>
+
+<P>Each module in the SFL consists of a header file and one or
+more C source files.  You can choose to include the header files
+that you want (this is what the SFL source code does), but this
+can quickly become burdensome.  To simplify matters, a single
+header file <TT>sfl.h</TT> contains all the individual header
+files.  It also contains the Universal Header File.
+
+<H3>System Notes</H3>
+
+<H4>MS-DOS</H4>
+
+<P>Most of the SFL is portable to MS-DOS.  Exceptions are: the
+socket i/o functions (sflsock), the user/group ID functions
+(sfluid) and the server process functions (sflserv).  These are
+all null; you can call any of the functions, but they will return
+either an okay feedback (in most cases) or an error feedback (for
+the socket functions).  The SFL compiles cleanly with Borland
+Turbo C/C++ 1.0 and Microsoft VC++ 4.x and 5.x, and should work
+with Borland C/C++ and C++ Builder.
+
+<H4>MS-Windows</H4>
+
+<P>Most of the SFL is portable to Windows 3.x, Windows 95, and
+Windows NT.  Exceptions are: the user/group ID functions (sfluid)
+and the server process functions (sflserv).  These are all null;
+you can call any of the functions, but they will return an okay
+feedback.  The SFL compiles cleanly with Microsoft VC++ 4.x and
+5.x, and should work with Borland C/C++ and C++ Builder.
+
+<H4>Digital VAX</H4>
+
+<P>The SFL is portable to Digital VMS except for the directory
+access functions (sfldir), user/group functions (sfluid) and the
+server process functions (sflserv).  The sfldir functions will be
+implemented at a later date.  The other functions are null; you
+can call any of the functions, but they will return an okay
+feedback.  The SFL compiles cleanly with Vax C and Dec C and has
+been tested with various releases of these compilers.
+
+<H4>Linux</H4>
+
+<P>The SFL is fully portable to Linux and has been tested with GNU
+C.  It should give no compiler warning errors.
+
+<H4>Sun OS and Sun Sparc</H4>
+
+<P>The SFL is fully portable to Sun OS.  You may have trouble
+finding an ANSI C compiler, especially on Sparc systems.  People
+sometimes install GNU C, using the Sun header files and libraries.
+This should work, although we have not tested it recently.
+Sometimes the Sun ANSI C compiler is called acc, not cc.  You can
+use the CCNAME environment variable to point to the right compiler
+name.  Some Sun C compilers give warnings when you use the ANSI
+compile mode.  You can ignore these warnings.
+
+<P>See also the warning about 'Other UNIX Systems'; some SunOS
+installations show this symptom.
+
+<H4>HP/UX</H4>
+
+<P>The SFL is fully portable to HP/UX.  It should give no compiler
+warning errors.
+
+<H4>IBM AIX</H4>
+
+<P>The SFL is fully portable to IBM/AIX.  It should give no
+compiler warning errors.
+
+<H4>Digital UNIX</H4>
+
+<P>The SFL is fully portable to Digital UNIX.  It should give no
+compiler warning errors.  When compiling on an Alpha system, the
+word size is 64 bits.
+
+<H4>Other UNIX Systems</H4>
+
+<P>The directory functions can fail on SVr4 if the &lt;dirent.h&gt;
+file does not match the C library.  Recompile with CCDEFINES set to
+the value "-D _USE_BSD_DIRENT" and they should work a bit better.
+Under Solaris with GCC, you should <EM>not</EM> define this macro.
+
+<H4>OS/2</H4>
+
+<P>The SFL was ported to OS/2 by Ewen McNiell around New Year's
+Eve 1996.  It runs under EMX.  The SFL distribution kit includes
+an OS/2 build script.  The 'c' script runs under OS/2 as well as
+UNIX.
+
+<H3>To Do List</H3>
+
+<UL>
+<LI>There are many areas that we've just started to look at, or
+have ignored completely.  For instance, the encryption functions
+are useful but basic.
+<LI>We have not conducted exhaustive tests on all platforms, so
+while older routines are certainly very well tested and portable,
+some of the newer ones are still doubtful.  What we would really
+like (sigh) is an automated test suite that checks-out every
+function.
+<LI>The bitstring functions in SFLBITS are part of an ongoing
+project.  We are building an indexing tool that provides the kind
+of fast lookup you find in modern search engines.  The basic idea
+is really quite simple.  You number each text block (page, file,
+paragraph).  Then you read the text and take each word.  The word
+corresponds to a bitstring, with one bit corresponding to each
+text block.  So, if you have a million text blocks, the bitstring
+is a million bits long.  You set the corresponding bit for that
+text block to 1, and save the bitmap.  You repeat this for all
+words in all blocks of text.  That's the indexing part.  Now, to
+do a lookup, you take the bitstrings that correspond to the words
+entered.  Each bitstring is effectively a list of text blocks.
+You can AND and OR the bitstrings to come-up with a final result.
+Find all the 1's, read the text blocks, and that's it.  Of course
+the real work is to make the results useful: you have to filter
+junk, false matches, etc.  The bitstring functions currently just
+do one thing: they let you store and change really long bitmaps
+in a compressed form.
+</UL>
+
+.-----------------------------------------------------------------
+.page Contributors and References
+<H2>$(TITLE)</H2>
+
+<UL>
+<LI>The main authors of the SFL were:
+Pieter Hintjens &lt;ph@imatix.com&gt;,
+Pascal Antonnaux &lt;pascal@imatix.com&gt;,
+Jonathan Schultz &lt;jonathan@imatix.com&gt;, and
+Ewen McNeill &lt;ewen@imatix.com&gt;.
+Scott Beasley &lt;jscottb@InfoAve.Com&gt;
+<LI>Many dozens of people helped make the SFL a great library, and
+we've stopped trying to list them all.  You know who you are, and
+we thank you.
+<LI>The xstrcat() function was based on a snippet from Dr Dobb's
+Journal, Nov 1992, p. 155.
+<LI>The strhash() function was based on an article in Dr Dobb's
+Journal, Apr 1996, p. 26.  The original algorithm was by Peter
+Weinberger.
+<LI>The strmatch() function was based on an algorithm by Leif
+Svalgaard &lt;leif@ibm.net&gt;.
+<LI>The LZ compression functions were based on work by Kurt Haenen
+&lt;ghgaea8@blekul11&gt;.
+<LI>The symbol table functions were based on code provided with
+MKS Lex and Yacc for MS-DOS.
+<LI>The socket i/o functions were originally based on the book
+"Internetworking With TCP/IP Volume III: Client-Server Programming
+And Applications BSD Socket Version" by Douglas E. Comer and David
+L. Stevens, published 1993 by Prentice-Hall Inc. ISBN
+0-13-020272-X
+<LI>The encryption functions were based on the cryptosystem
+library by Andrew Brown &lt;asb@cs.nott.ac.uk&gt;.
+<LI>The date_to_days() and days_to_date() functions were based on
+work by Robert G. Tantzen (Collected Algorithms of The CACM number
+199), translated into C by Nat Howard.
+<LI>The memfind() function was based on work by R. Boyer and S.
+Moore, CACM 20 762-72, with improvements by R. N. Horspool, A.
+Hume, and D. M. Sunday.
+<LI>The point-in-shape functions were based on code in the NCSA
+HTTPd server.
+<LI>The MIME encoding/decoding functions were based on RFC 1123
+and RFC 1521.
+<LI>The UNIX 'c' script contains code taken from the libwww
+installation script.
+</UL>
+
+<P>If you want beginners C material to cushion the learning curve,
+you might want to try an informative text, "Pointers on C" by Kenneth
+A. Reek, ISBN# 0-673-99986-6.
+
+.-----------------------------------------------------------------
+.page The SFL License Agreement
+.build anchor license
+
+<H2>$(TITLE)</H2>
+
+<P>This license agreement covers your use of the iMatix <EM>STANDARD
+FUNCTION LIBRARY (SFL)</EM>, its source code, documentation, and executable
+files, hereinafter referred to as <EM>"the Product"</EM>.
+
+<P>The Product is Copyright &#169; 1991-2009 iMatix Corporation. You may use
+it and distribute it according to this following License Agreement. If you
+do not agree with these terms, please remove the Product from your system.
+By incorporating the Product in your work or distributing the Product to
+others you implicitly agree to these license terms.
+
+.ignore header
+<H3>Statement Of Copyright</H3>
+
+<P>The Product is, and remains, Copyright &#169; 1991-2009 iMatix Corporation,
+with exception of specific copyrights as noted in the individual source
+files.
+
+.ignore header
+<H3>Conditions Of Use</H3>
+
+<P>You do not need to provide the source code for the Product as
+part of your product.  However, you must do one of these things to
+comply with the Product License Agreement:
+<OL>
+<LI>Provide the source code for Product modules that you use, or
+
+<LI>Make your product freely available according to a license
+similar to the GNU General Public License, or the Perl Artistic
+License, or
+<LI>Add this phrase to the documentation for your product:
+<EM>"This product uses parts of the iMatix SFL, Copyright &#169;
+1991-2000 iMatix Corporation &lt;http://www.imatix.com&gt;"</EM>.
+</OL>
+
+.ignore header
+<H3>Rights Of Usage</H3>
+
+<P>You may freely and at no cost use the Product in any project,
+commercial, academic, military, or private, so long as you respect
+the License Agreement.  The License Agreement does not affect any
+software except the Product.  In particular, any application that
+uses the Product does not itself fall under the License Agreement.
+
+
+<P>You may modify any part of the Product, including sources and
+documentation, except this License Agreement, which you may not
+modify.
+
+<P>You must clearly indicate any modifications at the start of
+each source file.  The user of any modified Product code must know
+that the source file is not original.
+
+<P>At your discretion, you may rewrite or reuse any part of the
+Product so that your derived code is not obviously part of the
+Product.  This derived code does not fall under the Product
+License Agreement directly, but you must include a credit at the
+start of each source file indicating the original authorship and
+source of the code, and a statement of copyright as follows:<BR>
+<EM>"Parts copyright (c) 1991-2000 iMatix Corporation."</EM>
+
+.ignore header
+<H3>Rights Of Distribution</H3>
+
+<P>You may freely distribute the Product, or any subset of the
+Product, by any means.  The License, in the form of the file
+called "LICENSE.TXT" must accompany any such distribution.
+
+<P>You may charge a fee for distributing the Product, for
+providing a warranty on the Product, for making modifications to
+the Product, or for any other service provided in relation to the
+Product.  You are not required to ask our permission for any of
+these activities.
+
+<P>At no time will iMatix associate itself with any distribution
+of the Product except that supplied from the Internet site
+http://www.imatix.com.
+
+.ignore header
+<H3>Disclaimer Of Warranty</H3>
+
+<P>The Product is provided as free software, in the hope that it
+will be useful.  It is provided "as-is", without warranty of any
+kind, either expressed or implied, including, but not limited to,
+the implied warranties of merchantability and fitness for a
+particular purpose.  The entire risk as to the quality and
+performance of the Product is with you.  Should the Product prove
+defective, the full cost of repair, servicing, or correction lies
+with you.

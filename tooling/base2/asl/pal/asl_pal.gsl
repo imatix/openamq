@@ -1,0 +1,122 @@
+#  ----------------------------------------------------------------------------
+#   ASL target for protocol automation language (PAL)
+#
+#   Generates a PAL grammar from the ASL specifications:
+#   - the grammar will produce a front-end parser
+#   Generates a back-end generator
+#   - this will be invoked from the front-end depending on target
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+#
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#  ----------------------------------------------------------------------------
+
+#################################   MAIN   #################################
+
+function generate_protocol (protocol)
+ scope my.protocol
+    target_protocol_for_stdc ()
+    ignorecase = 0
+.   template
+.       include "asl_pal_xnf.gsl"
+.       include "asl_pal_stdc.gsl"
+.       include "asl_pal_txt.gsl"
+.#       include "asl_pal_jms.gsl"
+.#       include "asl_pal_perl.gsl"
+.   endtemplate
+ endscope
+endfunction
+
+function std_connection_field (name, text)
+    new protocol.connection_field
+        .name = my.name
+        .type = "shortstr"
+        .metat = "string"
+        . = my.text
+    endnew
+endfunction
+
+function target_protocol_for_stdc
+    for class by index
+        #   Prepare content type fields, if any
+        set_field_types_for_stdc ()
+        for method
+            set_field_types_for_stdc ()
+        endfor
+    endfor
+
+    #   Collect all unique connection properties together
+    for class where name = "connection"
+        for method where count (chassis, name = "client")
+            for field where !field.global & metat <> "longstring"
+                if count (protocol.connection_field, connection_field.name = field.name) = 0
+                    copy field to protocol as connection_field
+                endif
+            endfor
+        endfor
+    endfor
+
+    #   Add hard-coded connection properties - see asl_client.asl
+    std_connection_field ("server_host",        "server hostname:port")
+    std_connection_field ("server_port",        "server port")
+    std_connection_field ("server_product",     "name of server implementation")
+    std_connection_field ("server_version",     "version of server")
+    std_connection_field ("server_platform",    "operating platform")
+    std_connection_field ("server_copyright",   "server copyright")
+    std_connection_field ("server_information", "other server information")
+
+    #   Collect all unique session properties together
+    for class where name <> "connection"
+        for method where count (chassis, name = "client")
+            for field where !field.global & metat <> "longstring"
+                if count (protocol.session_field, session_field.name = field.name) = 0
+                    copy field to protocol as session_field
+                endif
+            endfor
+        endfor
+    endfor
+endfunction
+
+function set_field_types_for_stdc
+    for field
+        field.name = "$(field.name:c)"
+        if type = "bit"
+            field.ctype = "Bool"
+            field.metat = "integer"
+        elsif type = "char"
+            field.ctype = "char"
+            field.metat = "char"
+        elsif type = "octet"
+            field.ctype = "byte"
+            field.metat = "integer"
+        elsif type = "short"
+            field.ctype = "dbyte"
+            field.metat = "integer"
+        elsif type = "long"
+            field.ctype = "qbyte"
+            field.metat = "integer"
+        elsif type = "longlong" | type = "timestamp"
+            field.ctype = "int64_t"
+            field.metat = "integer"
+        elsif type = "shortstr"
+            field.ctype = "icl_shortstr_t"
+            field.metat = "string"
+        elsif type = "longstr" | type = "table"
+            field.ctype = "icl_longstr_t *"
+            field.metat = "longstring"
+        else
+            abort "Unknown field type: $(type)"
+        endif
+    endfor
+endfunction

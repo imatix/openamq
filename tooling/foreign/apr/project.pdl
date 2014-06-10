@@ -1,0 +1,245 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2007 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<pdl
+    name      = "apr"
+    version   = "1.3.3"
+    copyright = "Various, see apr/LICENSE"
+    workflow  = "standard.pwl"
+    >
+
+<!--
+    APR project
+    Builds APR and moves deliverables into apr directory
+-->
+
+<inherit filename = "classes.pdl" />
+<file name = "project.pdl"        class = "private resource">Project definition</file>
+<file name = "apr_package_lst.pl" class = "private resource">Packaging helper script</file>
+
+<!-- Deliverables -->
+<file name = "libapr"     class = "public library"    >APR library</file>
+<file name = "libaprutil" class = "public library"    >APR Util library</file>
+<file name = "base_apr.h" class = "public header"     >APR wrapper file</file>
+<file name = "apr*.h"     class = "generated header"  >APR header files</file>
+<file name = "apu*.h"     class = "generated header"  >APR Util header files</file>
+
+<actions>
+  <!-- Generate source tree -->
+  <generate>
+    <execute target = "unix">
+    echo "/*  Placeholder  */">apr.h
+    echo "/*  Placeholder  */">apu.h
+    </execute>
+    <execute target = "win32">
+    echo /*  Placeholder  */>apr.h
+    echo /*  Placeholder  */>apu.h
+    </execute>
+  </generate>
+
+  <!-- Package the source tree -->
+  <distsrc>
+   <execute target = "unix">
+    (cd apr;      test -f Makefile && make -s distclean >/dev/null)
+    (cd apr-util; test -f Makefile && make -s distclean >/dev/null)
+
+    (cd ..; perl apr/apr_package_lst.pl apr/apr apr/apr-util >>_package.lst)
+   </execute>
+   <execute target = "win32">
+    set APR_TARGET=
+    if "!BOOM_MODEL_ST!"=="1" (
+        set APR_TARGET=apr_nonthreaded
+        set APRUTIL_TARGET=aprutil_nonthreaded
+        set XML_TARGET=xml_nonthreaded
+    )
+    if "!BOOM_MODEL_MT!"=="1" (
+        set APR_TARGET=apr
+        set APRUTIL_TARGET=aprutil
+        set XML_TARGET=xml
+    )
+    if !APR_TARGET!.==. (
+        echo boom E: BOOM_MODEL invalid or not set
+        exit /b 1
+    )
+    call boomvs --where=apr --using=apr --target=!APR_TARGET! clean
+    if errorlevel 1 exit /b 1
+    call boomvs --where=apr-util\\xml\\expat\\lib --using=xml --target=!XML_TARGET! clean
+    if errorlevel 1 exit /b 1
+    call boomvs --where=apr-util --using=aprutil --target=!APRUTIL_TARGET! clean
+    if errorlevel 1 exit /b 1
+
+    pushd ..
+    perl apr\\apr_package_lst.pl apr\\apr apr\\apr-util >>_package.lst
+    popd
+   </execute>
+  </distsrc>
+
+  <!-- Build the library and test programs -->
+  <build>
+    <execute target = "unix">
+    <!-- figure out options to configure -->
+    conf_opts="--without-libtool --disable-shared --without-sendfile --enable-threads --enable-nonportable-atomics"
+    if [ -z "$BOOM_TRACE" ]; then
+	conf_opts="$conf_opts --quiet"
+    fi
+    if [ "$BOOM_MODEL_RELEASE" ]; then
+        conf_opts="$conf_opts --disable-debug"
+    elif [ "$BOOM_MODEL_DEBUG" ]; then
+        conf_opts="$conf_opts --enable-debug"
+    else
+        croak "BOOM_MODEL is invalid or not set"
+    fi
+    conf_opts="$conf_opts $APR_BOOM_CONF_OPTS"
+    <!-- find gnu make and ranlib -->
+    if type ranlib >/dev/null 2>&1; then
+        RANLIB='ranlib'
+    else
+        RANLIB='/bin/true'
+    fi
+    if type gmake >/dev/null 2>&1; then
+	MAKE='gmake'
+    else
+	MAKE='make'
+    fi
+    if [ -z "$BOOM_TRACE" ]; then
+	MAKE="$MAKE -s"
+    fi
+    <!-- apr -->
+    cd apr
+    if [ ! -f Makefile ]; then
+        [ "$BOOM_TRACE" ] && echo "(apr) ./configure $conf_opts"
+        ./configure $conf_opts  || croak "(apr) ./configure $conf_opts failed"
+    fi
+    <!-- the non-use and then use of RANLIB is needed to get a non-libtool build to work -->
+    [ "$BOOM_TRACE" ] && echo "(apr) $MAKE RANLIB=/bin/true"
+    $MAKE RANLIB=/bin/true    || croak "(apr) $MAKE RANLIB=/bin/true failed"
+    $RANLIB libapr*.la
+    cd ..
+    <!-- apr-util -->
+    conf_opts="$conf_opts --with-apr=../apr --without-gdbm --without-ndbm --without-berkeley-db --without-pgsql --without-mysql --without-sqlite2 --without-sqlite3 --without-oracle --without-freetds --without-odbc"
+    conf_opts="$conf_opts $APR_BOOM_CONF_OPTS"
+    cd apr-util
+    if [ ! -f Makefile ]; then
+        [ "$BOOM_TRACE" ] && echo "(apr-util) ./configure $conf_opts"
+        ./configure $conf_opts  || croak "(apr-util) ./configure $conf_opts failed"
+    fi
+    [ "$BOOM_TRACE" ] && echo "(apr-util) $MAKE RANLIB=/bin/true"
+    $MAKE RANLIB=/bin/true    || croak "(apr-util) $MAKE RANLIB=/bin/true failed"
+    $RANLIB libaprutil*.la
+    cd ..
+    <!-- copy deliverables -->
+    (
+        cp apr/libapr*.la          libapr.a          || exit 1
+        cp apr/include/apr*.h      .                 || exit 1
+        cp apr-util/libaprutil*.la libaprutil.a      || exit 1
+        cp apr-util/include/apr*.h .                 || exit 1
+        cp apr-util/include/apu*.h .                 || exit 1
+    ) || croak "Missing deliverables for apr/apr-util"
+    </execute>
+
+    <execute target = "win32">
+    set APR_TARGET=
+    if "!BOOM_MODEL_ST!"=="1" (
+        set APR_TARGET=apr_nonthreaded
+        set APRUTIL_TARGET=aprutil_nonthreaded
+        set XML_TARGET=xml_nonthreaded
+    )
+    if "!BOOM_MODEL_MT!"=="1" (
+        set APR_TARGET=apr
+        set APRUTIL_TARGET=aprutil
+        set XML_TARGET=xml
+    )
+    if !APR_TARGET!.==. (
+        echo boom E: BOOM_MODEL invalid or not set
+        exit /b 1
+    )
+    set APR_LIBDIR=
+    if "!BOOM_MODEL_RELEASE!"=="1" set APR_LIBDIR=libR
+    if "!BOOM_MODEL_DEBUG!"=="1" set APR_LIBDIR=libD
+    if !APR_LIBDIR!.==. (
+        echo boom E: BOOM_MODEL invalid or not set
+        exit /b 1
+    )
+    call boomvs --where=apr --using=apr --target=!APR_TARGET! build
+    if errorlevel 1 exit /b 1
+    call boomvs --where=apr-util\\xml\\expat\\lib --using=xml --target=!XML_TARGET! build
+    if errorlevel 1 exit /b 1
+    call boomvs --where=apr-util --using=aprutil --target=!APRUTIL_TARGET! build
+    if errorlevel 1 exit /b 1
+
+    if not exist apr\\!APR_LIBDIR!\\apr-1.lib (
+        echo boom E: Build of apr failed.  Check msdev messages above for errors.
+        exit /b 1
+    )
+    if not exist apr-util\\!APR_LIBDIR!\\aprutil-1.lib (
+        echo boom E: Build of apr-util failed.  Check msdev messages above for errors.
+        exit /b 1
+    )
+    copy /y/b apr\\!APR_LIBDIR!\\apr-1.lib libapr.lib
+    copy /y/b apr-util\\!APR_LIBDIR!\\aprutil-1.lib libaprutil.lib
+    xcopy /y/q apr\\include\\apr*.h      .
+    xcopy /y/q apr-util\\include\\apr*.h .
+    xcopy /y/q apr-util\\include\\apu*.h .
+    </execute>
+  </build>
+
+  <!-- Remove all built files, revert to clean source tree -->
+  <clean>
+    <execute target = "unix">
+    (cd apr;      test -f Makefile && make -s distclean>/dev/null)
+    (cd apr-util; test -f Makefile && make -s distclean>/dev/null)
+    rm -f libapr*.a apr*.h apu*.h
+    if [ -f stamp_source ]; then
+        echo "/*  Placeholder  */">apr.h
+        echo "/*  Placeholder  */">apu.h
+    fi
+    </execute>
+    <execute target = "win32">
+    set APR_TARGET=
+    if "!BOOM_MODEL_ST!"=="1" (
+        set APR_TARGET=apr_nonthreaded
+        set APRUTIL_TARGET=aprutil_nonthreaded
+        set XML_TARGET=xml_nonthreaded
+    )
+    if "!BOOM_MODEL_MT!"=="1" (
+        set APR_TARGET=apr
+        set APRUTIL_TARGET=aprutil
+        set XML_TARGET=xml
+    )
+    if !APR_TARGET!.==. (
+        echo boom E: BOOM_MODEL invalid or not set
+        exit /b 1
+    )
+    call boomvs --where=apr --using=apr --target=!APR_TARGET! clean
+    if errorlevel 1 exit /b 1
+    call boomvs --where=apr-util\\xml\\expat\\lib --using=xml --target=!XML_TARGET! clean
+    if errorlevel 1 exit /b 1
+    call boomvs --where=apr-util --using=aprutil --target=!APRUTIL_TARGET! clean
+    if errorlevel 1 exit /b 1
+    if exist libapr*.lib del libapr*.lib
+    if exist apr*.h      del apr*.h
+    if exist apu*.h      del apu*.h
+    if exist stamp_source (
+        echo /*  Placeholder  */>apr.h
+        echo /*  Placeholder  */>apu.h
+    )
+    </execute>
+  </clean>
+</actions>
+
+</pdl>

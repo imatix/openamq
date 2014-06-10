@@ -1,0 +1,977 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<xnf
+    name    = "smt"
+    script  = "xnf_gen.gsl"
+    version = "5.0"
+    license = "gpl"
+    >
+
+SMT is a state machine code generator that's built on GSL and Libero.
+This is the fifth major design iteration of SMT.  In 1995, we built the
+first version.  Version 2 was a fuller threading micro kernel built in
+1996 and used as the basis for Xitami.  Version 3 was started in 1999
+and used for GSL/3 and GSL/4.  SMT/4 was built in 2004 and used for the
+initial OpenAMQ architectures.  Version 5 was built in 2005 and combines
+OS multithreads, full XNF inheritence, and generation from iCL classes
+in one glorious Model Oriented Programming (MOP) package.
+
+<inherit name = "xnf_base" />
+
+<produce filename = "smt_gen.gsl"     type = "wrap"   />
+<produce filename = "smt_preproc.gsl" type = "preproc"/>
+<produce filename = "smt_inherit.gsl" type = "inherit"/>
+<produce filename = "smt_parse.gsl"   type = "parse"  />
+<produce filename = "smt_doc.txt"     type = "gurudoc"/>
+
+<rule phase = "wrap" when = "after">
+if global.errno = 0
+    [gsl].include ("smt_$(global.top.target).gsl")
+    generate_agent (global.top)
+endif
+</rule>
+
+<entity name = "smt" tag = "agent" cdata = "1" template = "top">
+    An SMT agent.
+
+    <attr name = "name" required = "1" >
+    Agent name.
+    </attr>
+    <attr name = "script" required = "1" >
+    GSL script to process the agent definition.
+        <restrict value = "smt_gen.gsl" >The SMT processor</restrict>
+    </attr>
+    <attr name = "target" default = "$(switches.target?'stdc':)"
+     short = "Target platform">
+    Specifies the name of the target environment; the target is implemented by
+    a GSL script that generates code for a specific language environment.
+    The target can be inherited from a parent class.
+        <restrict value = "stdc">Standard ANSI C + iMatix runtime</restrict>
+        <restrict value = "doc" >Documentation</restrict>
+    </attr>
+    <attr name = "version" short = "Version number">
+    Specifies the version of the class. This text can take any format but we
+    recommend this standard format: '2.4b1' which is major version 2, minor version
+    4, release b, update 1.  This string is stamped into the project sources.
+    </attr>
+    <attr name = "animate" default = "0" short = "Enable animation">
+    If set, the generated code contains animation that can be switched on
+    and off at runtime.  This option can be overridden by a command-line
+    switch (e.g. "-animate:0").  The animate option can be inherited from
+    a parent class.
+        <restrict value = "0" >do not animate</restrict>
+        <restrict value = "1" >generate animation code</restrict>
+    </attr>
+    <attr name = "trace_size" short = "Trace size">
+    Allows default trace size to be over-ridden in this agent.
+    </attr>
+
+    <allow entity = "include"       />
+    <allow entity = "import"        />
+    <allow entity = "private"       />
+    <allow entity = "public"        />
+    <allow entity = "agent context" />
+    <allow entity = "agent handler" />
+    <allow entity = "agent state"   />
+    <allow entity = "thread"        />
+    <allow entity = "agent event"   />
+    <allow entity = "agent action"  />
+    <allow entity = "catch"         />
+    <allow entity = "method"        />
+    <allow entity = "message"       />
+    <allow entity = "actionlist"    />
+    
+    <rule phase = "preproc" when = "before">
+    #   Initialise house-keeping attributes
+    agent.lastthread     = 0
+    agent.laststate      = 0
+    agent.lastevent      = 0
+    agent.lastaction     = 0
+    agent.lastactionlist = 0
+    agent.lastplace      = 0
+    agent.animate        = switches.animate ? agent.animate ? 0
+    
+    #   Create defaults state if it doesn't exist
+    my.defaults = agent-> state (name = "defaults") ?
+    if ! defined (my.defaults)
+        my.defaults = agent.new ("state")
+        my.defaults.name = "defaults"
+    endif
+    preproc_agent_state (my.defaults)
+    
+    #   Create shutdown state
+    my.shutdown = agent.new ("state")
+    my.shutdown.name = ""
+    
+    #   Create shutdown event in defaults state if it doesn't exist
+    my.shutdown = my.defaults-> event (name = "shutdown") ?
+    if ! defined (my.shutdown)
+        my.shutdown           = my.defaults.new ("event")
+        my.shutdown.name      = "shutdown"
+        my.shutdown.nextstate = ""
+    endif
+    </rule>
+    
+    <rule phase = "parse" when = "after">
+        for thread
+            #   Check for unused states and delete unreached states        
+            for state where state.reached ? 0 = 0
+                if state.inherited ? 0 = 0
+                    echo "WARNING: Thread: $(thread.name:) State: $(state.name:) unused"
+                endif
+                state.delete ()
+            endfor
+            
+            /*   Sort states so code is generated in the correct order.          */
+            sort state by 0.place
+        endfor
+        
+        #   Parse places
+        for thread
+            for agent.place where place.thread = thread.name
+                if place.nextstate <> ""
+                    my.nextstate = thread-> state (name = place.nextstate) ?
+                    if ! defined (my.nextstate)
+                        parse_error ("Unknown state: '$(place.nextstate)'$(my.location)")
+                    else
+                        place.nextplace = my.nextstate.place
+                    endif
+                endif
+            endfor
+        endfor
+    
+            #   Check for undefined actions
+        for action where ! defined (action->)
+            echo "WARNING: Undefined action: $(action.name:)$(my.location)"
+        endfor
+        
+        #   Last parse through actions - check for unused actions and renumber
+        #   only real (not pseudo-) actions.
+        my.last_final_id = 0
+        for action
+            if action.used ? 0 = 0
+                echo "WARNING: Unused action: $(action.name:)$(my.location)"
+            endif
+            if ! defined (action-> action)    # Not a pseudo-action
+                my.last_final_id += 1
+                action.final_id = my.last_final_id
+            endif
+        endfor
+</rule>
+</entity>
+
+<entity name = "include" >
+    The 'include' element permits direct inclusion from another file.  The
+    included file must be a valid XML file which is included in the SMT tree 
+    as-is.
+
+    <attr name = "filename" required = "1" >
+    The name of the XML-format file to be included in place of the
+    'include' element.
+    </attr>
+    <attr name = "required" default = "1">
+        <restrict value = "0" >File is not required</restrict>
+        <restrict value = "1" >File is required</restrict>
+    If set to zero, the include file is ignored if it is missing.
+    </attr>
+    <rule phase = "preproc" when = "after">
+    agent.load_file (filename)
+    </rule>
+</entity>
+
+<entity name = "catch" key = "error" >
+    <attr name = "error"                />
+    <attr name = "event" required = "1" />
+    <link from = "event" entity = "agent event" disconnect = "1"/>
+</entity>
+
+<entity name = "private" unique = "0" cdata = "1" >
+    Private code blocks, which are copied to the generated code.
+
+    <attr name = "name"  >
+    What kind of code is this?  Type or function definitions?
+        <restrict value = "types">
+            The code is inserted before type definitions
+        </restrict>
+        <restrict value = "data">
+            The code is inserted before data definitions
+        </restrict>
+        <restrict value = "functions">
+            The code is inserted before function definitions
+        </restrict>
+    </attr>
+</entity>
+
+<entity name = "public" unique = "0" cdata = "1" >
+    Public code blocks, which are copied to the generated header file.
+
+    <attr name = "name" >
+    What kind of code is this?  Type or function definitions?
+        <restrict value = "include">
+            The code is inserted in each pass - for iCL class collections.
+        </restrict>
+        <restrict value = "types">
+            The code is inserted before type definitions
+        </restrict>
+        <restrict value = "functions">
+            The code is inserted before function definitions
+        </restrict>
+    </attr>
+</entity>
+
+<entity name = "import" tag = "import" key = "class" sequence = "after">
+    <inherit name = "condition"/>
+    Specifies other classes that this class refers to.  Note if you
+    want the generated code to be correct you must define an import item
+    for each class that you refer to in your class context or methods.
+    By default, the import tag is inherited unless you specify inherit
+    = "0".
+    <attr name = "class" required = "1" short = "Name of class">
+    The name of the class imported.
+    </attr>
+</entity>
+
+<entity name = "agent context" tag = "context" cdata = "1" >
+    Thread context block defined at agent level.  To use a context block
+    of this type, a thread should request a context block with this name.
+
+    <attr name = "name" required = "1" >
+    Context name.
+    </attr>
+</entity>
+
+<entity name = "agent handler" tag = "handler" cdata = "1" >
+    <allow entity = "argument" />
+    <attr name = "name" >
+        <restrict value = "agent init" />
+        <restrict value = "agent term" />
+    </attr>
+</entity>
+
+<entity name = "argument" >
+    <attr name = "name" required = "1"/>
+    <attr name = "type" required = "1"/>
+</entity>
+
+<entity name = "agent state" tag = "state" cdata = "1" >
+    State common to all threads.
+    
+    <inherit name = "default"/>
+    
+    <attr name = "name" required = "1" />
+
+    <allow entity = "state handler" />
+    <allow entity = "agent state event"   />
+    <allow entity = "other"   />
+    
+    <rule phase = "preproc" when = "before">
+        for my.[agent state].method
+            new my.[agent state].event
+                event.name = method.name + "_m"
+                event.nextstate = method.nextstate ?
+                for method. as child
+                    move child to event
+                endfor
+            endnew
+            method.delete ()
+        endfor
+    </rule>
+    <rule phase = "inherit" when = "after">
+        [agent state].inherited = 1
+    </rule>
+</entity>
+
+<entity name = "state handler" tag = "handler" cdata = "1" >
+    <attr name = "name" required = "1">
+        <restrict value = "before state"      />
+    </attr>
+</entity>
+
+<entity name = "state action" tag = "action" unique = "0" cdata = "1" disconnect = "1" >
+    <attr name = "name" />
+</entity>
+
+<entity name = "agent state event" tag = "event" inherit = "insert">
+    <attr name = "name"      required = "1" />
+    <attr name = "nextstate"                />
+    <allow entity = "agent state action"    />
+    <rule phase = "preproc" when = "after">
+        for my.[agent state event]. as child
+            if ! (name () ?= "action")
+                build_action (child)
+            endif
+        endfor
+    </rule>
+</entity>
+
+<entity name = "agent action" tag = "action" cdata = "1" disconnect = "1" >
+    <attr  name = "name"    />
+    <allow entity = "call"  />
+    <allow entity = "return"/>
+    <rule phase = "preproc" when = "after">
+        /*  Build implicit actions                                           */
+        if count (my.[agent action].) > 1
+            for my.[agent action]. as child
+                if ! (name () ?= "action")
+                    build_action (child)
+                endif
+            endfor
+        endif
+    </rule>
+    <rule phase = "parse" when = "after">
+        for my.[agent action]. as child where defined (name ())
+            if name () = "call" | name () = "return"
+                parse_$(name()) (child)
+            endif
+        endfor
+    </rule>
+</entity>
+
+<entity name = "agent state action" tag = "action" unique = "0" cdata = "1" disconnect = "1" >
+    <attr name = "name" />
+</entity>
+
+<entity name = "call" >
+    <attr name = "state" required = "1" />
+    <attr name = "event"                />
+    <link from = "state" entity = "agent state" disconnect = "1"/>
+    <link from = "event" entity = "agent event" disconnect = "1"/>
+    <rule phase = "parse" when = "before">
+        #   We don't know which thread this call is in, so try all threads
+        my.action_id = -1.id
+        for agent.thread where defined (thread-> action (0.id = my.action_id))
+            my.state = thread-> state (0.name = my.call.state) ?
+            if defined (my.state)
+                if (my.state.reached ? 0) = 0
+                    scope my.state as [thread state]
+                        parse_thread_state ([thread state])
+                    endscope
+                endif
+            endif
+        endfor
+    </rule>
+    <rule phase = "parse" when = "after">
+        for agent.thread where defined (thread-> action (0.id = my.action_id))
+            my.callplace = my.call-> callplace (0.thread = thread.name) ?
+            if ! defined (my.callplace)
+                my.callplace = my.call.new ("callplace")
+                my.callplace.thread = thread.name
+            endif
+        endfor
+
+        if defined (my.call.event)
+            my.event = agent-> event (0.name = my.call.event)
+            my.call.event_id = my.event.id
+        endif
+    </rule>
+</entity>
+
+<entity name = "return" >
+</entity>
+
+<entity name = "other" tag = "default" >
+    <attr name = "nextstate"                />
+    <allow entity = "thread state action"   />
+    <link  from = "nextstate" entity = "thread state" disconnect = "1">
+        <rule phase = "parse" when = "before">
+            if my.[other].nextstate <> ""
+        </rule>
+        <rule phase = "parse" when = "after">
+            endif
+        </rule>
+    </link>
+    <rule phase = "parse" when = "before">
+    my.[other].nextstate ?= [thread state].name
+    </rule>
+    <rule phase = "preproc" when = "after">
+        for my.[other]. as child
+            if ! (name () ?= "action")
+                build_action (child)
+            endif
+        endfor
+    </rule>
+    <rule phase = "parse" when = "after">
+        my.[other].actionlist = ""
+        for my.[other].action
+            my.[other].actionlist += action.actionlist
+        endfor
+        
+        build_place (my.[other])
+        
+        if my.[other].nextstate <> ""
+            my.nextstate = thread-> state (0.name = my.[other].nextstate) ?
+            if ! defined (my.nextstate)
+                parse_error ("Unknown state: '$(my.[other].nextstate)'$(my.location)")
+            elsif (my.nextstate.reached ? 0) = 0
+                scope my.nextstate as [thread state]
+                    parse_thread_state ([thread state])
+                endscope
+            endif
+        endif
+    </rule>
+</entity>
+
+<entity name = "thread" disconnect = "1" >
+    <inherit name = "default" />
+    
+    <attr name = "name"    required = "1" />
+    <attr name = "context"                />
+    <attr name = "schedule">
+        <restrict value = "poll" />
+        <restrict value = "cpu"  />
+    </attr>
+    <attr name = "share" default = "0">
+    Does this thread share context with another thread?
+    </attr>
+
+    <allow entity = "thread context" />
+    <allow entity = "thread handler" />
+    <allow entity = "thread state"   />
+    <allow entity = "thread action"  />
+    
+    <link from = "context" entity = "agent context" >
+        <rule phase = "parse" when = "inherit">
+            my.target = my.thread.new ("context")
+        </rule>
+    </link>
+    
+    <rule phase = "preproc" when = "before">
+        #   If this is a share thread then generate "smt_thread_t *share"
+        #   argument to thread new handler.
+        if thread.share ? 0
+            my.handler = thread->handler (name = "thread new") ?
+            if ! defined (my.handler)
+                my.handler = thread.new ("handler")
+                my.handler.name = "thread new"
+            endif
+            my.argument = xml.new ("argument")
+            my.argument.name = "share"
+            my.argument.type = "smt_thread_t *"
+            my.firstargument = my.handler->argument ?
+            if defined (my.firstargument)
+                move my.argument before my.firstargument
+            else
+                move my.argument to my.handler
+            endif
+        endif
+        
+        #   Create defaults state if it doesn't exist
+        my.defaults = thread-> state (name = "defaults") ?
+        if ! defined (my.defaults)
+            my.defaults = thread.new ("state")
+            my.defaults._entity = "thread state"
+            my.defaults.name    = "defaults"
+            my.defaults._key    = "defaults"
+        endif
+        preproc_thread_state (my.defaults)
+    </rule>
+    <rule phase = "preproc" when = "after">
+        /*  Because thread is disconnected, manually process children        */
+        for thread.inherit
+            preproc_inherit (inherit)
+        endfor
+        for thread.context as [thread context]
+            preproc_thread_context ([thread context])
+        endfor
+        for thread.handler as [thread handler]
+            preproc_thread_handler ([thread handler])
+        endfor
+        for thread.state as [thread state]
+            preproc_thread_state ([thread state])
+        endfor
+        for thread.action as [thread action]
+            preproc_thread_action ([thread action])
+        endfor
+    </rule>
+    <rule phase = "parse" when = "before">
+        agent.lastthread += 1
+        thread.id = agent.lastthread
+
+        agent.lastplace += 1
+        thread.place = agent.lastplace
+    </rule>        
+    <rule phase = "parse" when = "after">
+        /*  Because thread is disconnected, manually process children        */
+        for thread.inherit
+            parse_inherit (inherit)
+        endfor
+        for thread.context as [thread context]
+            parse_thread_context ([thread context])
+        endfor
+        for thread.handler as [thread handler]
+            parse_thread_handler ([thread handler])
+        endfor
+        
+        /*  Only parse first thread - others will be parsed when readched.   */
+        my.first_state = thread-> state ?
+        if defined (my.first_state)
+            scope my.first_state as [thread state]
+                parse_thread_state ([thread state])
+            endscope
+        else
+            preproc_error ("No state$(my.location)")
+        endif
+    </rule>
+</entity>
+
+<entity name = "thread context" tag = "context" cdata = "1" >
+    <attr name = "name" />
+    <rule phase = "parse" when = "before">
+        #   Copy named context item
+        if defined ([thread context].name)
+            if defined (agent-> context (0.name = [thread context].name & . <> [thread context].))
+                parse_error ("Duplicate context: $([thread context].name?'&lt;Unnamed>')")
+            endif
+        else
+            [thread context].name = thread.name
+            thread.context = [thread context].name
+        endif
+        if ! defined (agent-> context (0.name = [thread context].name))
+            copy [thread context] to agent
+        endif
+        
+        if thread.context ?<> [thread context].name
+            parse_error ("Ambiguous context declaration$(my.location)")
+        else
+            thread.context ?= [thread context].name
+        endif
+    </rule>
+</entity>
+
+<entity name = "thread handler" tag = "handler" cdata = "1" >
+    <allow entity = "argument" />
+    <attr name = "name" required = "1">
+        <restrict value = "thread new"        />
+        <restrict value = "thread init"       />
+        <restrict value = "thread destroy"    />
+    </attr>
+</entity>
+
+<entity name = "thread state" tag = "state" cdata = "1" >
+    State for a single thread.
+    <inherit name = "default"/>
+    
+    <attr name = "name" required = "1" />
+
+    <allow entity = "state handler" />
+    <allow entity = "thread state event"   />
+    <allow entity = "other"   />
+    
+    <rule phase = "preproc" when = "before">
+        for my.[thread state].method
+            new my.[thread state].event
+                event.name = method.name + "_m"
+                event.nextstate = method.nextstate ?
+                for method. as child
+                    move child to event
+                endfor
+            endnew
+            method.delete ()
+        endfor
+    </rule>
+    <rule phase = "inherit" when = "after">
+        my.source.inherited = 1
+    </rule>
+    <rule phase = "parse" when = "before">
+        my.[thread state].reached = (my.[thread state].reached ? 0) + 1
+    
+        /*  Inherit from agent state.                                        */
+        my.agent_state = agent-> state (0.name = my.[thread state].name) ?
+        if defined (my.agent_state)
+            perform_inherit_thread_state_item (my.[thread state], my.agent_state)
+            my.agent_state.inherited = 1
+        endif
+        
+        /*  Inherit from thread defaults state.                              */
+        my.defaults_state = thread-> state (0.name = "defaults") ?
+        if defined (my.defaults_state)
+            perform_inherit_thread_state_item (my.[thread state], my.defaults_state)
+            my.defaults_state.inherited = 1
+        endif
+        
+        /*  Inherit from agent defaults state.                               */
+        my.defaults_state = agent-> state (0.name = "defaults") ?
+        if defined (my.defaults_state)
+            perform_inherit_thread_state_item (my.[thread state], my.defaults_state)
+            my.defaults_state.inherited = 1
+        endif
+        
+        /*  Agent state is only to avoid duplicated names.  Same-named       */
+        /*  states in different threads are unconnected.                     */
+        my.[agent state] = agent-> state (0.name = my.[thread state].name) ?
+        if ! defined (my.[agent state])
+            my.[agent state] = agent.new ("state")
+            my.[agent state]._entity = "agent state"
+            my.[agent state].name = my.[thread state].name
+            my.[agent state]._key = my.[agent state].name
+            agent.laststate += 1
+            my.[agent state].id   = agent.laststate
+        elsif ! defined (my.[agent state].id)
+            agent.laststate += 1
+            my.[agent state].id = agent.laststate
+        endif
+        my.[thread state].id = my.[agent state].id
+        
+        agent.lastplace += 1
+        my.[thread state].place = agent.lastplace
+        
+        #   Assign place to each event/other so they are consecutive
+        for my.[thread state].event
+            agent.lastplace += 1
+            event.place = agent.lastplace
+        endfor
+        my.default = my.[thread state]->default ?
+        if defined (my.default)
+            agent.lastplace += 1
+            my.default.place = agent.lastplace
+        endif
+    </rule>
+</entity>
+
+<entity name = "thread state event" tag = "event" inherit = "insert" sequence = "after" >
+    <attr name = "name"      required = "1" />
+    <attr name = "nextstate"                />
+    <allow entity = "thread state action"   />
+    <link  from = "nextstate" entity = "thread state" disconnect = "1">
+        <rule phase = "parse" when = "before">
+            if my.[thread state event].nextstate <> ""
+        </rule>
+        <rule phase = "parse" when = "after">
+            endif
+        </rule>
+    </link>
+    <rule phase = "parse" when = "before">
+    my.[thread state event].nextstate ?= [thread state].name
+    </rule>
+    <rule phase = "preproc" when = "after">
+        for my.[thread state event]. as child
+            if ! (name () ?= "action")
+                build_action (child)
+            endif
+        endfor
+    </rule>
+    <rule phase = "parse" when = "before">
+        my.[agent event] = agent-> event (0.name = my.[thread state event].name) ?
+        if ! defined (my.[agent event])
+            my.[agent event] = agent.new ("event")
+            my.[agent event]._entity = "agent event"
+            my.[agent event].name = my.[thread state event].name
+            my.[agent event]._key = my.[agent event].name
+            agent.lastevent += 1
+            my.[agent event].id   = agent.lastevent
+        endif
+        my.[thread state event].id = my.[agent event].id
+    </rule>
+    <rule phase = "parse" when = "after">
+        my.[thread state event].actionlist = ""
+        for my.[thread state event].action
+            my.[thread state event].actionlist += action.actionlist
+        endfor
+        
+        build_place (my.[thread state event])
+        
+        if my.[thread state event].nextstate <> ""
+            my.nextstate = thread-> state (0.name = my.[thread state event].nextstate) ?
+            if ! defined (my.nextstate)
+                parse_error ("Unknown state: '$(my.[thread state event].nextstate)'$(my.location)")
+            elsif (my.nextstate.reached ? 0) = 0
+                scope my.nextstate as [thread state]
+                    parse_thread_state ([thread state])
+                endscope
+            endif
+        endif
+    </rule>
+</entity>
+
+<entity name = "thread state action" tag = "action" unique = "0" cdata = "1" disconnect = "1" >
+    <attr name = "name" />
+    
+    <rule phase = "parse" when = "before">
+    /*   Look up or create agent action.                                     */
+    my.[agent action] = agent-> action (0.name ?= my.[thread state action].name) ?
+    if !defined (my.[agent action])
+        my.[agent action] = agent.new ("action")
+    endif
+    if ! defined (my.[agent action].id)
+        agent.lastaction += 1
+        my.[agent action].id   = agent.lastaction
+        my.[agent action].name = my.[thread state action].name ?
+    endif
+    my.[thread state action].id = my.[agent action].id
+    if defined (my.[thread state action]->)
+        if ! defined (my.[agent action]->)
+            for my.[thread state action]. as child
+                move child to my.[agent action]
+            endfor
+        endif
+    endif
+    
+    #   Keep a record in the thread that this action was called in it.
+    if ! defined (thread-> action (id = my.[thread state action].id))
+        new thread.action
+            action.id = my.[thread state action].id
+        endnew
+    endif
+    
+    #   Make sure called states get parsed at the right time
+    for my.[agent action].call
+        my.state = thread->state (0.name = call.state) ?
+        if !defined (my.state)
+            parse_error ("Unknown state $(call.state)$(my.location)")
+        else
+            if (my.state.reached ? 0) = 0
+                scope my.state as [thread state]
+                    parse_thread_state ([thread state])
+                endscope
+            endif
+        endif
+    endfor
+    
+    #   Build implicit actions
+    if count (my.[agent action].) > 1
+        my.[agent action].actionlist = ""
+        for my.[agent action].action
+            parse_thread_state_action (action)
+            my.[agent action].actionlist += action.actionlist
+        endfor
+    else
+        
+        my.[agent action].actionlist = ":" + my.[thread state action].id
+        
+        #   Register which context is in place for this action
+        if defined (my.[agent action].context)
+            #   If action is used in multiple contexts then 'tcb' macro will be
+            #   unavailable.
+            if my.[agent action].context <> ""             \
+             & my.[agent action].context <> thread.context
+                my.[agent action].context = ""
+            endif
+        else
+            my.[agent action].context = thread.context
+        endif
+    endif
+    
+    my.[thread state action].name ?= "unnamed $(my.[thread state action].id)"
+    my.[agent action].name        ?= my.[thread state action].name
+    
+    my.[thread state action].actionlist = my.[agent action].actionlist
+    </rule>
+</entity>
+
+<entity name = "thread action" tag = "action" cdata = "1" disconnect = "1" >
+    <attr  name = "name"    />
+    <allow entity = "call"  />
+    <allow entity = "return"/>
+    <rule phase = "preproc" when = "before">
+        move my.[thread action] to agent
+    </rule>
+</entity>
+
+<entity name = "agent event" tag = "event">
+    <attr name = "name"      required = "1" />
+</entity>
+
+<entity name = "method" >
+    <attr name = "name"  required = "1" />
+    <attr name = "event" default = "$(name?)_m" />
+    <attr name = "priority" default = "normal">
+        <restrict value = "normal" >Normal priority</restrict>
+        <restrict value = "high"   >High priority</restrict>
+    </attr>
+    <attr name = "message" />
+    <allow entity = "argument" />
+    <allow entity = "possess"  />
+    <allow entity = "release"  />
+    
+    <link from = "event" entity = "agent event" disconnect = "1"/>
+    
+    <rule phase = "preproc" when = "before">
+        if defined (my.method-> argument) & ! defined  (my.method.message)
+            my.message = agent.new ("message")
+            my.message.name = my.method.name
+            my.message.priority = my.method.priority ? "normal"
+            for my.method.argument
+                move argument to my.message
+            endfor
+            for my.method.possess
+                move possess to my.message
+            endfor
+            for my.method.release
+                move release to my.message
+            endfor
+            move my.method to my.message
+        endif
+    </rule>
+</entity>
+
+<entity name = "possess" cdata = "1">
+    Code to allow the agent to take possession of the data in the method.
+</entity>
+
+<entity name = "release" cdata = "1">
+    Code to allow the agent to release possession of the data in the method.
+    This code is turned into a callback function for the method queue and is
+    called either on failure to deliver the method, or when the method is
+    destroyed.
+</entity>
+
+<entity name = "message" >
+    <attr name = "name"  required = "1" />
+    <attr name = "priority" default = "normal">
+        <restrict value = "normal" >Normal priority</restrict>
+        <restrict value = "high"   >High priority</restrict>
+    </attr>
+    <allow entity = "argument"       />
+    <allow entity = "message method" />
+    <allow entity = "possess"  />
+    <allow entity = "release"  />
+</entity>
+
+<entity name = "message method" tag = "method" >
+    <attr name = "name"  required = "1" />
+    <attr name = "event" default = "$(name?)_m" />
+    <attr name = "priority" default = "normal" />
+    <attr name = "message" />
+    <allow entity = "argument"  />
+    <allow entity = "possess"  />
+    <allow entity = "release"  />
+    <link from = "event" entity = "agent event" disconnect = "1"/>
+    <rule phase = "preproc" when = "before">
+        my.[message method].message ?= message.name
+        for message.argument
+            copy argument to my.[message method]
+        endfor
+        for message.possess
+            copy possess to my.[message method]
+        endfor
+        for message.release
+            copy release to my.[message method]
+        endfor
+        copy my.[message method] to agent
+    </rule>
+</entity>
+
+<entity name = "actionlist" disconnect = "1">
+    <rule phase = "parse" when = "after">
+        #   Identify call targets
+        for action
+            identify_call_targets (action)
+        endfor
+                
+        for place
+            my.thread = agent-> thread (name = place.thread)
+            place.key = my.thread.id
+            if place.nextstate <> ""
+                my.state = my.thread-> state (name ?= place.nextstate) ?
+                if ! defined (my.state)
+                    parse_error ("Unknown state: '$(place.nextstate)'$(my.location)")
+                else
+                    place.key += ":" + my.state.id
+                endif
+            endif
+            my.nextstate = actionlist-> nextstate (key = place.key) ?
+            if (! defined (my.nextstate))
+                my.nextstate = actionlist.new ("nextstate")
+                my.nextstate.key = place.key
+                my.nextstate.thread = place.thread
+                if place.nextstate <> "" & defined (my.state)
+                    my.nextstate.state = place.nextstate ?
+                    my.nextstate.place = my.state.place
+                endif
+            endif
+            copy place to my.nextstate
+        endfor
+    </rule>
+</entity>
+
+<rule phase = "preproc" when = "after" >
+function build_action (child)
+    my.newaction = xml.new ("action")
+    move my.newaction before my.child
+    move my.child to my.newaction
+        
+    #   Fudge a name for the action here...
+    if name (my.child) ?= "call"
+        my.newaction.name ?= "dialog call $(my.child.state) $(my.child.event?)"
+    elsif name (my.child) ?= "return"
+        my.newaction.name ?= "dialog return"
+    endif
+endfunction
+</rule>
+
+<rule phase = "parse" when = "after" >
+function build_actionlist (actionlist, action)
+    my.agentaction = agent-> action (0.id ?= my.action.id)
+    my.agentaction.used = (my.agentaction.used ? 0) + 1
+    for my.agentaction.action
+        build_actionlist (my.actionlist, action)
+    else
+        my.actionlist.lastaction += 1
+        new my.actionlist.action
+            action.num  = my.actionlist.lastaction
+            action.name = my.action.name
+            action.id   = my.action.id
+        endnew
+    endfor
+endfunction
+
+function build_place (parent)
+    /*  This is where we can optimise...  */
+    my.actionlist = agent-> actionlist (name=my.parent.actionlist) ?
+    if ! defined (my.actionlist)
+        my.actionlist = agent.new ("actionlist")
+        my.actionlist.name       = my.parent.actionlist
+        my.actionlist.lastaction = 0
+        agent.lastactionlist += 1
+        my.actionlist.id = agent.lastactionlist
+        for my.parent.action
+            build_actionlist (my.actionlist, action)
+        endfor
+    endif
+    my.parent.actionlist = my.actionlist.id
+    my.place = agent.new ("place")
+    my.place.thread    = thread.name
+    my.place.state     = [thread state].name
+    my.place.event     = my.parent.name      ?   #  May be undefined if 'other'
+    my.place.nextstate = my.parent.nextstate ?
+    my.place.id        = my.parent.place
+    copy my.place to my.actionlist
+    my.place.actionlist = my.actionlist.id
+endfunction
+
+function identify_call_targets (action)
+    my.agentaction = agent-> action (0.id ?= my.action.id)
+    for my.agentaction.call
+        for callplace
+            my.state = agent-> thread (0.name = callplace.thread) \
+                            -> state  (0.name = call.state)       ?
+            if defined (my.state)
+                callplace.place = my.state.place
+            else
+                callplace.delete ()
+            endif
+        endfor
+    endfor
+    for my.agentaction.action
+        identify_call_targets (action)
+    endfor
+endfunction
+
+</rule>
+
+</xnf>

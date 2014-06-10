@@ -1,0 +1,289 @@
+<?xml?>
+<!--
+    GSL/SQL - SQL interface for GSL programming
+
+    Provides GSL applications with access to SQL databases.  This
+    implementation uses MySQL.
+
+    Written: 2003/08/05    Pieter Hintjens
+    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    
+    Copyright (c) 1991-2009 iMatix Corporation
+
+    ------------------ GPL Licensed Source Code ------------------
+    iMatix makes this software available under the GNU General
+    Public License (GPL) license for open source projects.  For
+    details of the GPL license please see www.gnu.org or read the
+    file license.gpl provided in this package.
+
+    This program is free software; you can redistribute it and/or             
+    modify it under the terms of the GNU General Public License as            
+    published by the Free Software Foundation; either version 2 of            
+    the License, or (at your option) any later version.                       
+                                                                              
+    This program is distributed in the hope that it will be useful,           
+    but WITHOUT ANY WARRANTY; without even the implied warranty of            
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             
+    GNU General Public License for more details.                               
+                                                                               
+    You should have received a copy of the GNU General Public                  
+    License along with this program in the file 'license.gpl'; if             
+    not, write to the Free Software Foundation, Inc., 59 Temple               
+    Place - Suite 330, Boston, MA 02111-1307, USA.                            
+                                                                              
+    You can also license this software under iMatix's General Terms           
+    of Business (GTB) for commercial projects.  If you have not               
+    explicitly licensed this software under the iMatix GTB you may            
+    only use it under the terms of the GNU General Public License.            
+                                                                              
+    For more information, send an email to info@imatix.com.                   
+    --------------------------------------------------------------            
+ -->
+    
+<gxl script = "ggobjt.gsl" filename = "ggsql" title = "GSL/SQL package" >
+
+<extra>
+#if defined (__UNIX__)
+#  include &lt;mysql/mysql.h&gt;
+#else
+#  include "mysql.h"
+#endif
+
+
+#define GSLSQL_VERSION       "GSL/SQL/1.0"
+
+#define STRING_VALUE(arg,default)   (arg? string_value (&arg-> value): default)
+#define NUMBER_VALUE(arg,default)   (arg? number_value (&arg-> value): default)
+
+#define RETURN_ERROR(message) { \
+        strcpy (object_error, (message));\
+        return (-1); \
+    }
+
+#define RETURN_STATUS(status) { \
+        result-> value.type = TYPE_NUMBER;\
+        result-> value.n    = (status);\
+        return (0); \
+    }
+
+/*  We only work with a single database connection for now                   */
+
+static MYSQL
+    *db_handle = NULL;
+
+</extra>
+
+<object name = "sql" title = "SQL Functions" >
+<initialise>
+    db_handle = NULL;
+</initialise>
+
+
+<!-------------------------------------------------------------------------
+    sql.connect (database, user[, password] [,host])
+        database    name of database to connect to
+        user        name of user for database
+        password    optional password if necessary
+        host        optional host (else localhost)
+
+    Returns 0 if the connection worked, else returns -1.  The other SQL
+    functions can be used only after a succesful connect.
+ -------------------------------------------------------------------------->
+
+<function name = "connect" >
+  <parameter name = "database"  pass = "value"  compulsory = "1" />
+  <parameter name = "user"      pass = "value"  compulsory = "1" />
+  <parameter name = "password"  pass = "value" />
+  <parameter name = "host"      pass = "value" />
+<body>
+{
+    char
+        *my_database,
+        *my_user,
+        *my_password,
+        *my_host;
+
+    /*  Get arguments to method                                              */
+    my_database = STRING_VALUE (database, "");
+    my_user     = STRING_VALUE (user,     "");  
+    my_password = STRING_VALUE (password, "");  
+    my_host     = STRING_VALUE (host, "localhost");  
+
+    if (db_handle)
+        mysql_close (db_handle);
+    
+    db_handle = mysql_init ((MYSQL *) 0);
+    if (mysql_real_connect (db_handle,
+                            my_host, my_user, my_password,
+                            NULL, MYSQL_PORT, NULL, 0)) {
+        if (mysql_select_db (db_handle, my_database)) {
+            sprintf (object_error, "Cannot select database '%s' - %s",
+                                    my_database, mysql_error (db_handle));
+            mysql_close (db_handle);
+            db_handle = NULL;
+            return (-1);
+        }
+    }
+    else {
+        sprintf (object_error, "Cannot connect to '%s' on %s", my_database, my_host);
+        return (-1);
+    }
+    RETURN_STATUS (0);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    sql.disconnect ()
+        
+    Disconnects from the currently-connected database.  A disconnect is
+    also done automatically when the GSL script ends.
+ -------------------------------------------------------------------------->
+
+<function name = "disconnect" >
+<body>
+{
+    if (db_handle) {
+        mysql_close (db_handle);
+        db_handle = NULL;
+    }
+    RETURN_STATUS (0);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    sql.exec (sql [,scope])
+
+    Executes an SQL string and returns the number of rows affected.  If
+    the returned columns had names, the return values (1 or more rows)
+    from the SQL execution are stored in a child scope called "sqldata".
+    Each returned row is stored with the specified scope name, or "row"
+    if not specified.
+
+    Aborts the GSL script under these conditions:
+      - not connected to a database
+ -------------------------------------------------------------------------->
+
+<function name = "exec" >
+  <parameter name = "sql"   pass = "value"  compulsory = "1" />
+  <parameter name = "scope" pass = "value"  />
+<body>
+{
+    char
+        *my_sql,                        /*  SQL to execute                   */
+        *my_scope;                      /*  Scope to create                  */
+    XML_ITEM
+        *xml_scope,
+        *xml_item;                      /*  Created item                     */
+    MYSQL_RES
+        *result_data;
+    MYSQL_ROW
+        row_data;
+    MYSQL_FIELD
+        *field_data;
+    int
+        index,
+        field_count;
+    long
+        row_count;                      /*  Results of SQL execution         */
+
+    if (db_handle == NULL) {
+        sprintf (object_error, "Not connected to database");
+        return (-1);
+    }
+    /*  Get arguments to method                                              */
+    my_sql   = STRING_VALUE (sql,   "");
+    my_scope = STRING_VALUE (scope, "row");
+
+    if (mysql_query (db_handle, my_sql) == 0) {
+        if ((xml_scope = open_xml_item (gsl_thread, NULL, "sqldata")) == NULL)
+            return (-1);
+        result_data = mysql_store_result (db_handle);
+        if (result_data) {
+            row_count = (long) mysql_num_rows (result_data);
+            while ((row_data = mysql_fetch_row (result_data)) != NULL) {
+                xml_item = xml_new (xml_scope, my_scope, NULL);
+                field_count = mysql_num_fields (result_data);
+                field_data  = mysql_fetch_fields (result_data);
+                for (index = 0; index &lt; field_count; index++) {
+                    if (field_data [index].name [0]) {
+                        if (lexeq (field_data [index].name, "count(*)"))
+                            row_count = atol (row_data [index]);
+                        xml_put_attr (xml_item, field_data [index].name, row_data [index]);
+                    }
+                }
+            }
+            mysql_free_result (result_data);
+        }
+        RETURN_STATUS (row_count);
+    }
+    else {
+        sprintf (object_error, "Invalid SQL - %s", mysql_error (db_handle));
+        return (-1);
+    }
+}
+</body>
+</function>
+
+</object>
+
+
+<!-- ==========================   HELPER FUNCTIONS   ========================= -->
+
+<extra>
+/*  ---------------------------------------------------------------------------
+    open_xml_item
+
+    Prepares a new XML item ready to receive data.  Returns the new XML item
+    if successful, else returns NULL.  Any existing items with the specified
+    name are deleted before the new empty item is created.
+    The following is black magic, unless you know how the GSL internals work.
+    Note that for the author, this was and remains black magic.
+ */
+
+static XML_ITEM *
+open_xml_item (THREAD *gsl_thread, RESULT_NODE *scope, char *name)
+{
+    XML_ITEM
+        *xml_scope,                     /*  Parent scope                     */
+        *xml_item = NULL,               /*  Created item                     */
+        *xml_next;                      /*  Next item, for walking list      */
+    GGCODE_TCB
+        *tcb;                           /*  Thread control block             */
+    char
+        *gg_error;                      /*  Possible error from ggcomm       */
+
+    tcb = gsl_thread-> tcb;
+    xml_scope = extended_scope_xml (&tcb-> scope_stack,
+                                    scope? scope-> scope: NULL,
+                                    tcb-> ignorecase, &gg_error);
+    if (xml_scope) {
+        /*  Look for, delete any record items present as children of scope   */
+        xml_item = xml_first_child (xml_scope);
+        while (xml_item) {
+            xml_next = xml_next_sibling (xml_item);
+            if (streq (xml_item_name (xml_item), name))
+              {
+                remove_scope_references_to_xml (xml_item);
+                xml_free (xml_item);
+              }
+            xml_item = xml_next;
+        }
+        xml_item = xml_new (xml_scope, name, NULL);
+    }
+    else {
+        if (gg_error)
+            strcpy (object_error, gg_error);
+        else
+            sprintf (object_error, "Unknown data scope: %s",
+                                    extended_scope_string (scope-> scope));
+    }
+    return (xml_item);
+}
+</extra>
+
+</gxl>
+

@@ -1,0 +1,10 @@
+xml '<context black = "blue" />'
+data = string.xml (root)
+encoded = string.html_encode (data)
+echo encoded
+decoded = string.html_decode (encoded)
+echo decoded
+text = "xx123-456!789xx"
+echo string.prefix (text, ",-!")
+echo string.defix (text, ",-!")
+

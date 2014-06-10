@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<pdl
+    name      = "Gaggle"
+    acronym   = "gag"
+    version   = "1.0"
+    copyright = "Copyright (c) 1991-2009 iMatix Corporation"
+    workflow  = "scripted.pwl">
+
+<inherit filename = "classes.pdl"   />
+<file name = "framer"       class = "perl/libero"     >Framer Perl script</file>
+<file name = "framer.fmt"   class = "public resource" >Framer output formats</file>
+<file name = "srcdoc"       class = "perl/libero"     >Srcdoc Perl script</file>
+<file name = "srcdoc.fmt"   class = "public resource" >Srcdoc output formats</file>
+<file name = "srcdoc.man"   class = "documentation"   >Srcdoc documentation</file>
+<file name = "objtype.gsl"  class = "public resource" >Object template</file>
+</pdl>

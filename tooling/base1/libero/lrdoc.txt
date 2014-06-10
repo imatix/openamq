@@ -1,0 +1,71 @@
+.---------------------------------------------------------------------
+.-
+.-  lrdoc.txt - Libero documentation source                          
+.-                                                                   
+.-  Copyright (c) 1991-2009 iMatix Corporation                       
+.-                                                                   
+.-  ------------------ GPL Licensed Source Code ------------------
+.-  iMatix makes this software available under the GNU General
+.-  Public License (GPL) license for open source projects.  For
+.-  details of the GPL license please see www.gnu.org or read the
+.-  file license.gpl provided in this package.
+.-  
+.-  This program is free software; you can redistribute it and/or
+.-  modify it under the terms of the GNU General Public License as
+.-  published by the Free Software Foundation; either version 2 of
+.-  the License, or (at your option) any later version.
+.-  
+.-  This program is distributed in the hope that it will be useful,
+.-  but WITHOUT ANY WARRANTY; without even the implied warranty of
+.-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.-  GNU General Public License for more details.
+.-  
+.-  You should have received a copy of the GNU General Public
+.-  License along with this program in the file 'license.gpl'; if
+.-  not, write to the Free Software Foundation, Inc., 59 Temple
+.-  Place - Suite 330, Boston, MA 02111-1307, USA.
+.-  
+.-  You can also license this software under iMatix's General Terms
+.-  of Business (GTB) for commercial projects.  If you have not
+.-  explicitly licensed this software under the iMatix GTB you may
+.-  only use it under the terms of the GNU General Public License.
+.-  
+.-  For more information, send an email to info@imatix.com.
+.-  --------------------------------------------------------------
+.-                                                                   
+.---------------------------------------------------------------------
+
+.include prelude.def
+.define BASE lrdoc
+
+.block header
+<!DOCTYPE HTML PUBLIC "-//SQ//DTD Libero//EN">
+<HTML><HEAD><!--Built: $(DATE) Pieter Hintjens-->
+<TITLE>$(TITLE)</TITLE></HEAD>
+<BODY BACKGROUND="newstone.gif">
+<HR>
+.end
+
+.block footer
+<HR>
+<P><A HREF="../index.htm"><IMG SRC="im0096c.gif" ALT="iMatix"></A>
+Designed by <A HREF="people/pieter.htm">Pieter Hintjens</A>
+&#169; 1996 iMatix</P>
+</BODY></HTML>
+.end
+
+.page Libero Documentation
+.ignore header
+<H1>$(TITLE)</H1>
+.include contents.def
+.ignore pages
+.define ignore 99
+.define superdoc 1
+.include lrindex.txt
+.include lrintr.txt
+.include lrinst.txt
+.include lruser.txt
+.include lrexam.txt
+.include lrlang.txt
+.include lrtech.txt
+.define BASE lrdoc

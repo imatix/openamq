@@ -1,0 +1,126 @@
+%
+%   tpl_latex.tex - GuruDoc LaTeX template
+%
+%   Copyright (c) 1996-2009 iMatix Corporation
+%
+%   This program is free software; you can redistribute it and/or modify
+%   it under the terms of the GNU General Public License as published by
+%   the Free Software Foundation; either version 2 of the License, or (at
+%   your option) any later version.
+% 
+%   This program is distributed in the hope that it will be useful, but
+%   WITHOUT ANY WARRANTY; without even the implied warranty of
+%   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+%   General Public License for more details.
+% 
+%   For information on alternative licensing for OEMs, please contact
+%   iMatix Corporation.
+%
+
+% See file report.cls for full customization possibilities
+
+\\documentclass{report}
+
+\\usepackage{paralist}
+\\usepackage{fullpage}
+\\usepackage{graphicx}
+\\usepackage{fancyhdr}
+\\usepackage{url}
+
+\\title{$(title)}
+\\begin{document}
+
+% Fonts
+\\renewcommand{\\encodingdefault}{T1}
+% Standard available Latex fonts are in /usr/share/texmf/fonts
+\\renewcommand{\\rmdefault}{ptm} % Adobe times
+\\renewcommand{\\sfdefault}{phv} % Adobe helvetica
+\\renewcommand{\\ttdefault}{pcr} % Adobe courier
+
+% Count subsubsections
+\\setcounter {secnumdepth}{3}
+
+% Header/footer (contents)
+.r_header = "\\scriptsize{$(lesc(title):) - $(lesc(subtitle):)}"
+.l_header = "\\scriptsize{$(lesc(copyright):)}"
+.r_footer = "\\footnotesize{\\thepage}"
+.l_footer = "\\scriptsize{v$(lesc(version):) - $(lesc(date):)}"
+\\pagestyle{fancy} 
+\\fancyhead[l]{$(l_header:)} 
+\\fancyhead[r]{$(r_header:)} 
+\\fancyfoot[l]{$(l_footer:)} 
+\\fancyfoot[c]{} 
+\\fancyfoot[r]{$(r_footer:)} 
+.chapter_headers = "
+\\renewcommand\\headrulewidth{0pt}
+\\fancypagestyle{plain}{
+\\fancyhf{}
+\\fancyhead[r]{$(r_header:)} 
+\\fancyhead[l]{$(l_header:)} 
+\\fancyfoot[l]{$(l_footer:)} 
+"
+$(chapter_headers:)
+\\fancyfoot[r]{$(r_footer:)}}
+
+% Page configuration
+%http://www.iam.ubc.ca/~newbury/tex/page-set-up.html
+\\headheight 12pt 
+\\headsep 1cm 
+\\parindent 0in
+\\parskip 0pt
+\\newlength{\\auxparskip}
+\\setlength{\\auxparskip}{1.5ex}
+%\\oddsidemargin -.304in
+%\\evensidemargin -.304in
+%\\textheight 8.875in
+%\\textwidth 6.875in
+%\\itemindent -1em
+
+% items space
+\\setlength{\\pltopsep}{\\auxparskip}
+\\setlength{\\plitemsep}{1ex}
+
+% Titlepage
+\\begin{titlepage}
+\\begin{center}
+\\vspace*{3cm}
+\\huge{\\sffamily $(lesc(title)?"<title>":)\\\\}
+\\vspace*{1.5ex}
+\\huge{\\sffamily $(lesc(subtitle)?"<subtitle>":)}
+\\linebreak
+\\linebreak
+\\normalsize{version $(lesc(version)?"<version>":)}
+\\linebreak
+\\linebreak
+\\linebreak
+\\large{$(lesc(author)?"<author>":)}
+\\linebreak
+\\linebreak
+\\large{$(lesc(copyright)?"<copyright>":)}
+\\linebreak
+\\linebreak
+\\normalsize{Revised: $(lesc(date)?"<date>":)}
+\\vspace*{12cm}
+\\end{center}
+\\end{titlepage}
+
+% Contents
+\\newpage
+\\pagenumbering{roman}
+\\tableofcontents
+\\newpage
+
+% Custom page numbering
+.r_footer = "\\footnotesize{Page \\thepage}"
+\\fancyfoot[r]{$(r_footer:)} 
+$(chapter_headers:)
+\\fancyfoot[r]{$(r_footer:)}}
+
+% Body
+\\pagenumbering{arabic}
+$(body:)
+
+\\end{document}
+
+
+

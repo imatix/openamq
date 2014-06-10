@@ -1,0 +1,134 @@
+#
+#   bootstrap.gsl - Boom Bootstrap plugin
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+#   This script generates product bootstrap scripts for various
+#   targets.  The bootstrap script builds the product from a raw
+#   checkout.  To use, define this action in the product PDL
+#   file:
+#       <actions>
+#         <configure>
+#           <embed script = "bootstrap.gsl" />
+#         </configure>
+#       </actions>
+#
+#   Generates the following bootstrap scripts:
+#       boot.bat    For Win32 console
+#       boot.sh     For Unix/Linux
+#
+
+for root.pwl
+
+#   Generate Win32 Bootstrap script
+for target where name = "win32"
+    echo "Generating boot.bat..."
+    output "boot.bat"
+    >@echo off
+    >:-
+    >:-  Boom bootstrap script for $(pdl.name:) $(version)
+    >:-  $(copyright:)
+    >:-
+    >if not exist "%MSVCDir%\\bin" goto err_no_msvc
+    >set _IBASE=%IBASE%
+    >if "%_IBASE%"=="" set _IBASE=$(target.root)
+    >echo Boostrapping $(pdl.name) from raw sources
+    >echo - using MSVC compiler in %MSVCDir%
+    >echo - $(pdl.name) will be installed into %_IBASE%
+    >echo - PATH is:
+    >echo %_IBASE%;%PATH%
+    >echo - PERLLIB is:
+    >echo %_IBASE%;%PERLLIB%
+    >echo Press [Enter] to install with these settings.  To change the install
+    >echo root, press Ctrl-C, then set IBASE and run boot.bat again.
+    >pause
+    >set PATH=..\\_install\\bin;%_IBASE%\\bin;%PATH%
+    >set PERLLIB=..\\_install\\bin;%_IBASE%\\bin;%PERLLIB%
+    >set CCLIBS=
+    for pdl.distrib where type = "boot"
+        for project
+            >
+            >cd $(directory)
+            >call boomake -install ..\\_install install
+            >cd ..
+            for pdl.project as pdl_project where pdl_project.directory = project.directory
+                pdl_project.bootstrap = 1
+            endfor
+        endfor
+    endfor
+    for pdl.project where !defined (bootstrap)
+        >
+        >cd $(directory)
+        >call boom
+        >call boom -install ..\\_install build install
+        >cd ..
+    endfor
+    >echo Now run 'boomake install' to install projects
+    >goto exit
+    >
+    >:err_no_msvc
+    > echo No MSVC compiler found - aborting
+    > goto exit
+    >
+    >:exit
+endfor
+
+#   Generate Unix shell Bootstrap script
+for target where name = "unix"
+    echo "Generating boot.sh..."
+    output "boot.sh"
+    >#! /bin/sh
+    >#
+    >#   Boom bootstrap script for $(pdl.name:) $(version)
+    >#   $(copyright:)
+    >#
+    >_IBASE=$IBASE
+    >[ -z "$_IBASE" ] && _IBASE=$(target.root)
+    >echo Boostrapping $(pdl.name) from raw sources
+    >echo - $(pdl.name) will be installed into $_IBASE
+    >echo - PATH is:
+    >echo .:$_IBASE/bin:$PATH
+    >echo - PERLLIB is:
+    >echo .:$_IBASE/bin:$PERLLIB
+    >echo Press [Enter] to install with these settings.  To change the install
+    >echo root, press Ctrl-C, then set IBASE and run boot.sh again.
+    >read pause
+    >export PATH=.:../_install/bin:$_IBASE/bin:$PATH
+    >export PERLLIB=.:../_install/bin:$_IBASE/bin:$PERLLIB
+    >export CCLIBS=
+    for pdl.distrib where type = "boot"
+        for project
+            >
+            >cd $(directory)
+            >sh ./boomake -install ../_install install
+            >cd ..
+            for pdl.project as pdl_project where pdl_project.directory = project.directory
+                pdl_project.bootstrap = 1
+            endfor
+        endfor
+    endfor
+    for pdl.project where !defined (bootstrap)
+        >
+        >cd $(directory)
+        >sh boom
+        >sh boom -install ../_install build install
+        >cd ..
+    endfor
+    >echo Now run 'boomake install' to install projects
+endfor
+
+endfor

@@ -1,0 +1,512 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<xnf
+    name    = "asl"
+    script  = "xnf_gen.gsl"
+    version = "0.1"
+    license = "gpl"
+    >
+ASL is the Abstract Syntax Layer.  ASL a protocol specification
+language specifically designed to document and define a family of
+protocols.  The ASL specifications are used as input to code
+generators that produce framing code, class and method handlers,
+and documentation.
+
+<inherit xnf = "xnf_base" />
+
+<produce filename = "asl_gen.gsl"     type = "wrap" />
+<produce filename = "asl_preproc.gsl" type = "preproc" />
+<produce filename = "asl_inherit.gsl" type = "inherit" />
+<produce filename = "asl_parse.gsl"   type = "parse" />
+<produce filename = "asl_doc.txt"     type = "gurudoc" />
+
+<rule phase = "wrap" when = "after">
+if global.errno = 0
+    [gsl].include ("asl_$(global.top.target).gsl")
+    generate_protocol (global.top)
+endif
+</rule>
+
+<entity name = "asl" tag = "protocol" template = "top">
+    Defines the protocol.  One MDF file defines exactly one protocol
+    which may consist of many classes, each with appropriate methods.
+    <allow entity = "include" />
+    <allow entity = "constant" />
+    <allow entity = "class" />
+    <allow entity = "domain" />
+    <allow entity = "option" />
+
+    <attr name = "name" required = "1" short = "class name">
+    Specifies the name of the class.  This name will be used to prefix all
+    function names and will also be used as the filename for generated code.
+    </attr>
+    <attr name = "desc" short = "Short description">
+    An optional one-line comment that describes the class.
+    </attr>
+    <attr name = "target" default = "doc" short = "Target platform">
+    Specifies the name of the target environment; the target is implemented by
+    a GSL script that generates code for a specific language environment.
+    The target can be inherited from a parent class.
+    </attr>
+    <attr name = "version" required = "1" short = "Version number">
+    Specifies the version of the class. This text can take any format but we
+    recommend this standard format: '2.4b1' which is major version 2, minor version
+    4, release b, update 1.  This string is stamped into the project sources.
+    </attr>
+    <attr name = "chassis" short = "name of chassis">
+    The name of the chassis that this protocol implements.
+        <restrict value = "client">client peer</restrict>
+        <restrict value = "server">server peer</restrict>
+    </attr>
+    <attr name = "basename" short = "prefix for generator">
+    The prefix used for all code generation objects. Defaults to the
+    protocol name plus chassis, can be overridden for specific types
+    of output - see target code generators.
+    </attr>
+
+    <rule phase = "preproc" when = "before">
+    if my.asl = global.top
+        if defined (switches.target)
+            global.top.target = switches.target
+        endif
+    endif
+    </rule>
+    <rule phase = "parse" when = "before">
+    protocol.basename ?= "$(protocol.name)_$(protocol.chassis?'')"
+    </rule>
+    <rule phase = "parse" when = "after">
+    for class where !abstract
+        for method where !abstract
+            if !defined (method.index)
+                echo "E: method $(class.name).$(method.name) does not have an index"
+            endif
+        endfor
+    endfor
+    </rule>
+</entity>
+
+<entity name = "include" >
+    The 'include' element permits textual-inclusion from another file.
+
+    <attr name = "filename" required = "1" phase = "preproc">
+    The name of the XML-format file to be included in place of the
+    'include' element.
+    </attr>
+    <rule phase = "preproc" when = "attrs">
+    if !defined (asl.load_file (filename))
+        preproc_error ("Error loading include file: $(filename): $(xml.error?)")
+    endif
+    </rule>
+</entity>
+
+<entity name = "constant" cdata = "1">
+    Constants are used to define reply codes and other numeric
+    or constants that form part of the protocol specifications.
+
+    <attr name = "name" short = "constant name" required = "1">
+    The name of the constant.
+    </attr>
+    <attr name = "value" short = "constant value" required = "1">
+    The value of the constants.
+    </attr>
+    <attr name = "class" short = "constant class" default = "">
+    An arbitrary class name, which allows constants to be grouped for
+    specific purposes such as documentation generation.
+    </attr>
+</entity>
+
+<entity name = "class" template = "default">
+    The class tag defines the class.
+    <allow entity = "doc" />
+    <allow entity = "see" />
+    <allow entity = "chassis" />
+    <allow entity = "field" />
+    <allow entity = "method" />
+    <allow entity = "context" />
+    <allow entity = "action" />
+    <allow entity = "constructor" />
+    <allow entity = "destructor" />
+    <allow entity = "todo" />
+
+    <attr name = "name" required = "1" short = "class name">
+    Specifies the name of the class.  This name will be used to prefix all
+    function names and will also be used as the filename for generated code.
+    </attr>
+    <attr name = "template" default = "template" phase = "preproc">
+    The class template.
+    </attr>
+    <attr name = "comment" short = "Short description">
+    An optional one-line comment that describes the class.
+    </attr>
+    <attr name = "handler" short = "Exception handler">
+    The exception level for errors detected by this class. Should be the name
+    of a class that is able to handle exceptions.
+    </attr>
+    <attr name = "index">
+    This specifies the class index, 1 upwards.
+    </attr>
+</entity>
+
+<entity name = "doc" cdata = "1" unique = "0" inherit = "insert" sequence = "after">
+    Documentation for the current element: this is included in the
+    generated documentation files in a suitable form.  Should be in
+    iMatix gurudoc format.
+
+    <attr name = "name" short = "documentation domain" default = "">
+    Allows documentation of different types to be included in the ASL
+    definitions.
+    </attr>
+    <attr name = "test" short = "conformance test">
+    Specifically for rules, provides the name of the conformance
+    test that checks the documented rule.
+    </attr>
+</entity>
+
+<entity name = "see" cdata = "1">
+    Defines a reference to an external definition of some kind.
+
+    <attr name = "name" short = "name of term">
+    The name of an external reference.
+    </attr>
+</entity>
+
+<entity name = "chassis" tag = "chassis" cdata = "1">
+    Defines a chassis, which can be 'server' or 'client'.  This is the
+    role of the peer that must or may accept and handle the class or
+    method.
+
+    <attr name = "name" required = "1" short = "name of chassis">
+    The name of the chassis.
+        <restrict value = "client">client peer</restrict>
+        <restrict value = "server">server peer</restrict>
+    </attr>
+    <attr name = "implement" short = "implementation rule">
+        <restrict value = "MUST"  >MUST be implemented</restrict>
+        <restrict value = "SHOULD">SHOULD be implemented</restrict>
+        <restrict value = "MAY"   >MAY be implemented</restrict>
+    </attr>
+</entity>
+
+<entity name = "method" cdata = "1" template = "default">
+    Methods provide functionality for the component class.  All
+    methods inherit basic fields from the default method.
+    <allow entity = "doc" />
+    <allow entity = "see" />
+    <allow entity = "chassis" />
+    <allow entity = "field" />
+    <allow entity = "response" />
+
+    <attr name = "name" required = "1" short = "method name">
+    The name of the method, used in the API.
+    </attr>
+    <attr name = "template" default = "template" phase = "preproc">
+    The method template.
+    </attr>
+    <attr name = "synchronous" default = "0">
+    Defines a synchronous method, for the purposes of documentation. We
+    do not expect to generate parsers for these methods at the current
+    level of technology.
+    </attr>
+    <attr name = "content" default = "0">
+    Defines a content method. Content methods should be followed by a
+    content block in one or more frames.
+    </attr>
+
+    <rule phase = "parse">
+    method.fullname = "$(class.name:neat).$(method.name:neat)"
+    if abstract = 0 & count (chassis) = 0
+        parse_error ("Method '$(fullname)' needs a chassis")
+    endif
+    if class.name = "connection" \
+    | (class.name = "channel" & method.name = "open") \
+    | (class.name = "channel" & method.name = "open-ok") \
+    | (class.name = "channel" & method.name = "close") \
+    | (class.name = "channel" & method.name = "close-ok")
+        method.internal = 1
+    else
+        method.internal = 0
+    endif
+    </rule>
+</entity>
+
+<entity name = "response">
+    For a synchronous request, defines the expected reply method. If
+    this is not defined, a synchronous method is assumed to be a reply.
+
+    <attr name = "name" required = "1" short = "name of response method">
+    The name of the response method.
+    </attr>
+    <link from = "name" entity = "method" disconnect = "1"/>
+</entity>
+
+<entity name = "field" cdata = "1">
+    Defines a class or method field.  The body of this entity documents
+    the field.
+    <allow entity = "assert" />
+    <allow entity = "doc" />
+    <allow entity = "see" />
+
+    <attr name = "name" required = "1" short = "name of field">
+    The name of the field.
+    </attr>
+    <attr name = "domain" short = "field domain">
+    The domain for the field.
+    </attr>
+    <attr name = "type" short = "type of field">
+    The type of the field, which is a type primitive name.
+        <restrict value = "bit"      >single bit</restrict>
+        <restrict value = "octet"    >single octet</restrict>
+        <restrict value = "short"    >16-bit integer</restrict>
+        <restrict value = "long"     >32-bit integer</restrict>
+        <restrict value = "longlong" >64-bit integer</restrict>
+        <restrict value = "timestamp">64-bit timestamp</restrict>
+        <restrict value = "shortstr" >short string</restrict>
+        <restrict value = "longstr"  >long string</restrict>
+        <restrict value = "table"    >field table</restrict>
+    </attr>
+    <attr name = "global" default = "0" short = "global field">
+    If 1, the field is global to all methods.  Global fields may be kept
+    out of per-method APIs to reduce complexity.
+    </attr>
+    <link from = "domain" />
+</entity>
+
+<entity name = "domain">
+    A field domain, like a type definition.
+    <allow entity = "assert" />
+    <allow entity = "doc" />
+    <allow entity = "see" />
+
+    <attr name = "name" required = "1" short = "name of domain">
+    The name of the domain.
+    </attr>
+    <attr name = "type" required = "1" short = "type of domain">
+    The type of the domain, which is a type primitive name.
+    This is the same type list as for fields.
+        <restrict value = "bit"      >single bit</restrict>
+        <restrict value = "octet"    >single octet</restrict>
+        <restrict value = "short"    >16-bit integer</restrict>
+        <restrict value = "long"     >32-bit integer</restrict>
+        <restrict value = "longlong" >64-bit integer</restrict>
+        <restrict value = "shortstr" >short string</restrict>
+        <restrict value = "longstr"  >long string</restrict>
+        <restrict value = "timestamp">64-bit timestamp</restrict>
+        <restrict value = "table"    >field table</restrict>
+    </attr>
+</entity>
+
+<entity name = "assert">
+    Defines a field-level assertion that should be executed on incoming
+    method fields.
+    <allow entity = "value" />
+
+    <attr name = "check" required = "1" short = "type of assertion">
+    The type of the assertion.
+        <restrict value = "eq" >equal to some value</restrict>
+        <restrict value = "ne" >not equal to some value</restrict>
+        <restrict value = "gt" >greater than some value</restrict>
+        <restrict value = "ge" >greater than or equal to some value</restrict>
+        <restrict value = "lt" >less than some value</restrict>
+        <restrict value = "le" >less than or equal to some value</restrict>
+        <restrict value = "regexp" >match regular expression</restrict>
+        <restrict value = "length" >max length, for strings</restrict>
+        <restrict value = "notnull">not null, for strings</restrict>
+        <restrict value = "null"   >null, for strings</restrict>
+        <restrict value = "enum"   >one of a set of values</restrict>
+        <restrict value = "syntax" >validate data syntax</restrict>
+    </attr>
+    <attr name = "value" short = "value to compare with">
+    If specified, compare against this value.
+    </attr>
+    <attr name = "method" short = "method holding field to compare with">
+    If specified, compare with the specified field from this class.
+    </attr>
+    <attr name = "field" short = "field to compare with">
+    If specified, compare with this field.  Must have the same or a compatible
+    type as the field being asserted.
+    </attr>
+    <attr name = "rule" short = "syntax rule">
+    For syntax checks, the name of a standard rule that defines the allowed
+    syntax of the field.
+    </attr>
+
+    <rule phase = "parse" when = "before">
+    root.last_enum = 0
+    </rule>
+
+    <rule phase = "parse" when = "after">
+    if defined (assert.field)
+        assert.value = "the value of '$(assert.field)' in the last received $(class.name:neat).$(assert.method:neat) method"
+    endif
+    if check = "eq"
+        assert.text = "MUST be equal to " + value
+    elsif check = "ne"
+        assert.text = "MUST NOT be equal to " + value
+    elsif check = "gt"
+        assert.text = "MUST be greater than " + value
+    elsif check = "ge"
+        assert.text = "MUST be greater than or equal to " + value
+    elsif check = "lt"
+        assert.text = "MUST be less than " + value
+    elsif check = "le"
+        assert.text = "MUST be less than or equal to " + value
+    elsif check = "regexp"
+        assert.text = "MUST match the regular expression /" + value + "/"
+    elsif check = "length"
+        assert.text = "MUST not be longer than " + value + " octets"
+    elsif check = "notnull"
+        assert.text = "MUST not be empty"
+    elsif check = "null"
+        assert.text = "MUST be empty"
+    elsif check = "enum"
+        assert.text = "MUST be one of:"
+        for value
+            if index () > 1
+                assert.text += ","
+            endif
+            assert.text += " $(.value)=$(.name) (value.)"
+        endfor
+    endif
+    </rule>
+</entity>
+
+<entity name = "value">
+    Defines one of the valid values for a field, when used with the assert
+    check "enum".
+
+    <attr name = "name" required = "1" short = "name of enumerated value">
+    The name of the enumerated value.  Note that enumerations are always
+    numbered in order.
+    </attr>
+    <attr name = "value" short = "value for enumerated value">
+    The value of the enumerated value. If not defined, is automatically
+    assigned from 1 or the previous enum value upwards.
+    </attr>
+    <rule phase = "parse">
+    if defined (.value)
+        root.last_enum = .value
+    else
+        .value = (root.last_enum?0) + 1
+        root.last_enum = .value
+    endif
+    </rule>
+</entity>
+
+<entity name = "context" cdata = "1">
+    Defines a context block; one or more variables which will be held
+    on a per-session basis.  The exact meaning of a context block depends
+    on the ASL code generation scripts for the chosen target.
+</entity>
+
+<entity name = "action" cdata = "1">
+    Actions provide client or server implementation code for methods.
+    This code is used in ways that depend on the ASL code generation
+    scripts for the chosen target.  In general the action body is used
+    in a layer which receives the methods from the protocol handler
+    and which can then execute them in a manner suitable for the client
+    or server architecture.
+
+    <attr name = "name" required = "1" short = "name of action">
+    The name of the action, which must correspond to the name
+    of the method that it implements.
+    </attr>
+    <attr name = "sameas" short = "reuse action from other class">
+    If specified, indicates that the action body from the specified
+    class should be used.  Do not mix this attribute with an action body.
+    </attr>
+    <allow entity = "local" />
+    <allow entity = "header" />
+    <allow entity = "footer" />
+
+    <rule phase = "parse">
+    if count (class.method, name = action.name) = 0
+        parse_error ("Action '$(name)' in '$(class.name)' does not match a method")
+    endif
+    </rule>
+</entity>
+
+<entity name = "local" tag = "local" cdata = "1" inherit = "insert">
+    Local definitions used by the action.
+</entity>
+
+<entity name = "header" cdata = "1" inherit = "insert" sequence = "before">
+    Defines a block of action code that should come before all bodies
+    from the current and parent classes. Do not use for variable
+    declarations, use 'local'.
+
+    <attr name = "export" default = "default" >
+    Specifies how this item may be inherited.
+        <restrict value = "none"   >may not be inherited</restrict>
+        <restrict value = "default">inherited in the default manner</restrict>
+        <restrict value = "before" >inherited before existing items</restrict>
+        <restrict value = "after"  >inherited after existing items</restrict>
+    </attr>
+</entity>
+
+<entity name = "footer" cdata = "1" inherit = "insert" sequence = "after">
+    Defines a block of method code that should come after all bodies
+    from the current and parent classes.
+
+    <attr name = "export" default = "default" >
+    Specifies how this item may be inherited.
+        <restrict value = "none"   >may not be inherited</restrict>
+        <restrict value = "default">inherited in the default manner</restrict>
+        <restrict value = "before" >inherited before existing items</restrict>
+        <restrict value = "after"  >inherited after existing items</restrict>
+    </attr>
+</entity>
+
+<entity name = "constructor" cdata = "1">
+    Defines a block of code that will be executed when a new class instance is
+    created. The meaning of this block depends on the ASL code generation scripts
+    for the chosen target.
+</entity>
+
+<entity name = "destructor" cdata = "1">
+    Defines a block of code that will be executed when a new class instance is
+    destroyed. The meaning of this block depends on the ASL code generation scripts
+    for the chosen target.
+</entity>
+
+<entity name = "todo" cdata = "1">
+    Defines a change request, bug or other issue that needs changing in
+    the ASL grammar.  Todo items are formalised so that they can be
+    extracted and processed mechanically.
+
+    <attr name = "owner" short = "issue owner">
+    The developer who registered the issue and will deal with it, specified
+    as an email address.
+    </attr>
+</entity>
+
+<rule phase = "wrap">
+function open_output (filename)
+    if !defined (switches.quiet)
+        echo "Generating $(my.filename)..."
+    endif
+    output my.filename
+endfunction
+
+function output_code (entity)
+    if defined (my.entity.)
+        >$(gsl.exec (string.trim (my.entity.), 1))
+    endif
+endfunction
+</rule>
+
+</xnf>

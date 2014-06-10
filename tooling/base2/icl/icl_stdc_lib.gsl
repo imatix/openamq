@@ -1,0 +1,933 @@
+#  ----------------------------------------------------------------------------
+#   GSL library for iCL
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+#
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#  ----------------------------------------------------------------------------
+
+#   Note to maintainers: please check the generated code regularly to make
+#   sure blank lines and indentation remains correct.
+
+.function format (type)
+    if type = "char *"
+        return "%s"
+    elsif type = "size_t"
+        return "%u"
+    elsif type = "int"
+        return "%i"
+    elsif type = "uint"
+        return "%u"
+    elsif type = "longint"
+        return "%li"
+    elsif type = "qbyte"
+        return "%lu"
+    elsif type = "int64_t"
+        return "%lli"
+    elsif type = "Bool" | type = "long"
+        return "%i"
+    elsif regexp.match ("\\*$", type)
+        return "%pp"
+    endif
+.endfunction
+
+.function expand (gsl_script)
+    if defined (my.gsl_script)
+        my.result = gsl.exec (my.gsl_script, 1) ?
+        if ! defined (my.result)
+            abort "Error in GSL script:\n$(my.gsl_script)"
+        endif
+    endif
+    return my.result
+.endfunction
+
+.function output_code (entity)
+    if defined (my.entity.)
+        if switches.debug ? 0 = 1
+>//  $(my.entity._icl?) START
+        endif
+>$(expand (string.trim (my.entity.)):left)
+        if switches.debug ? 0 = 1
+>//  $(my.entity._icl?) END
+        endif
+    endif
+.endfunction
+
+.function output_doc (entity)
+    if defined (my.entity.)
+        if switches.debug ? 0 = 1
+>$(my.entity._icl?) START
+        endif
+>$(expand (string.trim (my.entity.)))
+        if switches.debug ? 0 = 1
+>$(my.entity._icl?) END
+        endif
+    endif
+.endfunction
+
+##############################  PARSE METHOD  #################################
+
+function parse_method
+    .declare = ((.private|.inline)??"static "?"") + (.inline??"inline "?"")
+    for argument
+        if name <> "..."
+            argument.prefill = expand (method->dismiss(dismiss.argument = argument.name).value) ?
+            name = "$(name:c)"
+            argument.format ?= format (argument.type) ?
+        endif
+    endfor
+    for declare
+        name = "$(name:c)"
+        declare.format ?= format (declare.type) ?
+    endfor
+    if defined (return)
+        [return] = "$(return:c)"
+        returnvar = method->declare (name = return)?
+        if !defined (returnvar)
+            returnvar = method->argument (name = return)?
+        endif
+        if defined (returnvar)
+            .returnt = returnvar.type
+        else
+            abort "No declare or argument for '$(return)' in method '$(method.name)' for $(selfname)"
+        endif
+    else
+        .returnt = "void"
+    endif
+endfunction
+
+########################  GENERATE METHOD PROTOTYPE  ##########################
+
+.macro generate_method_prototype (second_pass)
+.   if defined (->argument (defined (0.precalc)))
+#define $(base)$(cname)(\
+.       for argument where (!defined (precalc)) & (!defined (prefill))
+.           if name <> "..."
+$(expand (name))$(!last()??','?)\
+.           else
+$(name)$(!last()??','?)\
+.           endif
+.       endfor
+)\
+                                        $(base)$(cname)_\
+.       for argument where !defined (prefill)
+$(first()??' ('?', ')$(precalc?name:c)$(last()??')'?)\
+.       endfor
+
+.   endif
+$(expand (declare))$(expand (returnt))
+    $(base)$(cname)\
+.       if my.second_pass = 1
+_v\
+.       endif
+.       if defined (->argument (defined (precalc)))
+_\
+.       endif
+ (
+.       for argument where !defined (prefill)
+.           if type = "..."
+.               if my.second_pass = 0
+\...\
+.               else
+va_list $(expand (name))\
+.               endif
+.           elsif ! argument.ref
+$(expand (type)) $(expand (name))\
+.           else
+$(expand (type)) ( * $(expand (name))_p )\
+.           endif
+.           if defined (argument.index)
+[$(index)]\
+.           endif
+$(!last()??', '?)                       //  $(string.trim (argument.?'Not documented'):left)
+.       else
+void\
+.       endfor
+);
+
+.endmacro
+
+#########################  GENERATE METHOD FUNCTION  ##########################
+
+.macro generate_method_function (second_pass)
+/*  -------------------------------------------------------------------------
+    $(base)$(cname)\
+.if my.second_pass = 1
+_v\
+.endif
+
+
+    Type: Component $(name ())
+.       for doc
+.           output_doc (doc)
+.       endfor
+    -------------------------------------------------------------------------
+ */
+
+.       gsl "\
+$(declare)$(returnt)
+    $(base)$(cname)"
+.       if my.second_pass = 1
+_v\
+.       endif
+.       if defined (->argument (defined (precalc)))
+_\
+.       endif
+ (
+.
+.--- Output arguments ---------------------------------------------------------
+.
+.       for argument where !defined (prefill)
+.           if type = "..."
+.               if my.second_pass = 0
+\...\
+.               else
+va_list $(expand (name))\
+.               endif
+.           elsif ! argument.ref
+    $(expand (type)) $(expand (name))\
+.           else
+    $(expand (type)) ( * $(expand (name))_p )\
+.           endif
+.           if defined (argument.index)
+[$(index)]\
+.           endif
+$(!last()??', '?)                       //  $(string.trim (argument.?'Not documented'):left)
+.       else
+void\
+.       endfor
+)
+{
+.       if my.second_pass = 0 & count (argument, type = "...") > 0
+.       if defined (method.return)
+    $(returnt)
+        _rc;
+.       endif
+    va_list
+        $(expand (method->argument (type = '...').name));
+.   for argument where type <> "..."
+.       lastarg = argument.name
+.   endfor
+    va_start ($(expand (method->argument (type = '...').name)), $(expand (lastarg)));
+.           if defined (method.return)
+    _rc = $(base)$(cname)_v (\
+.           else
+    $(base)$(cname)_v (\
+.           endif
+.           for argument
+$(expand (name))$(!last()??','?) \
+.           endfor
+);
+    va_end ($(expand (method->argument (type = '...').name)));
+.       if defined (method.return)
+    return _rc;
+.       endif
+.       else
+.       for argument where defined (prefill)
+#define $(name:c) $(prefill)
+.       endfor
+.
+.--- Output local variable declarations ---------------------------------------
+.
+.       for local
+.           output_code (local)
+.       endfor
+.
+.--- Output <declare> variable declarations -----------------------------------
+.
+.       for declare
+.           my.precond = expand (precond) ?
+.           if my.precond ?<> ""
+#if ($(my.precond))
+.           endif
+    $(expand (type))
+.           if defined (declare.default)
+        $(name) = $(expand (default));\
+                                        //  $(string.trim (declare.?'Not documented'):left)
+.           else
+        $(name);                        //  $(string.trim (declare.?'Not documented'):left)
+.           endif
+.           if my.precond ?<> ""
+#endif
+.           endif
+.       endfor
+
+.
+.--- Output start of method animation code ------------------------------------
+.
+.if animate
+.    if inline & ! private
+#if (defined (BASE_ANIMATE_$(class.name:UPPER,c)) \
+ ||  defined (BASE_ANIMATE_$(class.name:UPPER,c)_$(name:UPPER,c)))
+.    else
+#if (defined (BASE_ANIMATE) \
+ ||  defined (BASE_ANIMATE_$(class.name:UPPER,c)) \
+ ||  defined (BASE_ANIMATE_$(class.name:UPPER,c)_$(name:UPPER,c)))
+.    endif
+    if ($(selfname:c)_animating)
+        icl_console_print ("<$(class.name:c)_$(name:c)_start"
+#if (defined (BASE_THREADSAFE))
+" thread=\\"%pp\\""
+#endif
+.    for argument where defined (format) & animate
+" $(name)=\\"$(format)\\""
+.    endfor
+.    for declare where animate = 1 & defined (format)
+" $(name)=\\"$(format)\\""
+.    endfor
+.    for animate
+" $(name)=\\"$(format)\\""
+.    endfor
+"/>"
+#if (defined (BASE_THREADSAFE))
+, apr_os_thread_current ()
+#endif
+.    for argument where defined (format) & animate
+, $(name:)\
+.    endfor
+.    for declare where animate = 1 & defined (format)
+, $(name:)\
+.    endfor
+.    for animate
+, $(value:)\
+.    endfor
+);
+#endif
+
+.endif
+.
+.--- Output start of method trace code ----------------------------------------
+.
+.if trace <> "0"
+.   if method.inline
+#if (defined (BASE_TRACE_$(class.name:UPPER,c)) \
+  || defined (BASE_TRACE_$(class.name:UPPER,c)_$(expand (name):UPPER,c)))
+.   else
+#if (defined (BASE_TRACE) \
+  || defined (BASE_TRACE_$(class.name:UPPER,c)) \
+  || defined (BASE_TRACE_$(class.name:UPPER,c)_$(expand (name):UPPER,c)))
+.   endif
+    icl_trace_record ($(trace), $(class.name:c)_dump, $(item(method)));
+#endif
+
+.endif
+.
+.--- Output statistics code ---------------------------------------------------
+.
+.if stats
+#if (defined (BASE_STATS) \
+ ||  defined (BASE_STATS_$(class.name:UPPER,c)) \
+ ||  defined (BASE_STATS_$(class.name:UPPER,c)_$(expand (name):UPPER,c)))
+    icl_stats_inc ("$(class.name:c)_$(cname)", &s_$(class.name:c)_$(cname)_stats);
+#endif
+
+.endif
+.
+.--- Output <header> code blocks -----------------------------------------------
+.
+.       for header
+.           output_code (header)
+.       endfor
+.
+.--- Output main code block ---------------------------------------------------
+.
+.       output_code (method)
+.
+.--- Output <footer> code blocks -----------------------------------------------
+.
+.       for footer
+.           output_code (footer)
+.       endfor
+.
+.--- Output end of method trace code ------------------------------------------
+.
+.if trace ? "NULL" <> "0"
+.   if method.inline
+#if (defined (BASE_TRACE_$(class.name:UPPER,c)) \
+  || defined (BASE_TRACE_$(class.name:UPPER,c)_$(expand (name):UPPER,c)))
+.   else
+#if (defined (BASE_TRACE) \
+  || defined (BASE_TRACE_$(class.name:UPPER,c)) \
+  || defined (BASE_TRACE_$(class.name:UPPER,c)_$(expand (name):UPPER,c)))
+.   endif
+    icl_trace_record ($(trace), $(class.name:c)_dump, 0x10000 + $(item(method)));
+#endif
+
+.endif
+.
+.--- Output end of method animation code --------------------------------------
+.
+.if animate
+.    if method.inline
+#if (defined (BASE_ANIMATE_$(class.name:UPPER,c)) \
+  || defined (BASE_ANIMATE_$(class.name:UPPER,c)_$(name:UPPER,c)))
+.    else
+#if (defined (BASE_ANIMATE) \
+  || defined (BASE_ANIMATE_$(class.name:UPPER,c)) \
+  || defined (BASE_ANIMATE_$(class.name:UPPER,c)_$(name:UPPER,c)))
+.    endif
+    if ($(selfname:c)_animating)
+        icl_console_print ("<$(class.name:c)_$(name:c)_finish"
+#if (defined (BASE_THREADSAFE))
+" thread=\\"%pp\\""
+#endif
+.    for argument where defined (format) & animate
+" $(name)=\\"$(format)\\""
+.    endfor
+.    for declare where defined (format)
+" $(name)=\\"$(format)\\""
+.    endfor
+.    for animate
+" $(name)=\\"$(format)\\""
+.    endfor
+"/>"
+#if (defined (BASE_THREADSAFE))
+, apr_os_thread_current ()
+#endif
+.    for argument where defined (format) & animate
+, $(name:)\
+.    endfor
+.    for declare where defined (format)
+, $(name:)\
+.    endfor
+.    for animate
+, $(value:)\
+.    endfor
+);
+#endif
+
+.endif
+.
+.--- Output method return code ------------------------------------------------
+.
+.       if defined (return)
+
+    return ($(return));
+.       endif
+.       endif
+}
+.       for argument where defined (prefill)
+#undef $(name:c)
+.       endfor
+.endmacro
+
+###########################  GENERATE HEADER FILE  ############################
+
+.macro generate_header_file
+.   if !defined (switches.quiet)
+.       echo "Generating $(selfname:c).h..."
+.   endif
+.   output "$(selfname:c).h"
+/*---------------------------------------------------------------------------
+    $(selfname:c).h - $(selfname) component
+
+.   for doc
+.       output_doc (doc)
+.   endfor
+    Generated from $(arg?filename) by $(script) using GSL/4.
+.   if defined (copyright)
+    $(copyright:)
+.   endif
+.   $(set_final_license ())_license (" ")
+
+    These header files use macros to implement a split inclusion in which all
+    safe definitions (those that do not depend on the presence of other
+    definitions) are done first, and all unsafe definitions are done in a
+    second pass through the same headers.
+
+    The first header file included from the main C program defines itself as
+    the "root" and thus controls the inclusion of the safe/unsafe pieces of
+    the other headers.
+ *---------------------------------------------------------------------------*/
+
+#if !defined (ICL_IMPORT_HEADERS) || (ICL_IMPORT_HEADERS == 1)
+# ifndef INCLUDE_$(selfname:upper,c)_SAFE
+#   define INCLUDE_$(selfname:upper,c)_SAFE
+#   define INCLUDE_$(selfname:upper,c)_ACTIVE
+#   if !defined (ICL_IMPORT_HEADERS)
+#       define ICL_IMPORT_$(selfname:upper,c)_ROOT
+#       define ICL_IMPORT_HEADERS 1
+#   endif
+#   ifdef __cplusplus
+extern "C" {
+#   endif
+
+.   if count (context) > 0
+//  Our own class typedef
+
+typedef struct _$(selftype) $(selftype);
+.   endif
+.   for public where name = "header"
+.       output_code (public)
+.   endfor
+#   ifdef __cplusplus
+}
+#   endif
+
+.   for import
+#   include "$(expand (.class):c).h"
+.   endfor
+#   ifdef __cplusplus
+extern "C" {
+#   endif
+.   for public where name = "include"
+.       output_code (public)
+.   endfor
+
+#   ifdef __cplusplus
+}
+#   endif
+#   undef INCLUDE_$(selfname:upper,c)_ACTIVE
+#   if defined (ICL_IMPORT_$(selfname:upper,c)_ROOT)
+#       undef  ICL_IMPORT_HEADERS
+#       define ICL_IMPORT_HEADERS 2
+#   endif
+# endif
+#endif
+
+#if !defined (ICL_IMPORT_HEADERS) || (ICL_IMPORT_HEADERS == 2)
+# ifndef INCLUDE_$(selfname:upper,c)_UNSAFE
+#   define INCLUDE_$(selfname:upper,c)_UNSAFE
+#   define INCLUDE_$(selfname:upper,c)_ACTIVE
+
+.   for import where !defined ([after]) | [after] = "0"
+#   include "$(expand (.class):c).h"
+.   endfor
+
+#   ifdef __cplusplus
+extern "C" {
+#   endif
+.   for public where name = "include"
+.       output_code (public)
+.   endfor
+.
+.--- Output <public name = "types"> -------------------------------------------
+.
+.   for public where name = "types"
+.       output_code (public)
+.   endfor
+.   if count (context) > 0 & class.opaque = 0
+
+//  Structure of the $(selfname) object
+
+struct _$(selftype) {
+.       for context
+.           output_code (context)
+.           for property
+    $(type) $(name:c);                  //  $(string.trim (property.?''):left)
+.           endfor
+.       endfor
+};
+
+.   endif
+#   ifdef __cplusplus
+}
+#   endif
+.
+.--- Output <public name = "structure"> ---------------------------------------
+.
+.   for import where defined ([after]) & [after] = "1"
+#   include "$(expand (.class):c).h"
+.   endfor
+#   ifdef __cplusplus
+extern "C" {
+#   endif
+.   for public where name = "structure"
+.       output_code (public)
+.   endfor
+.   if defined (->method (private = 0))
+//  Method prototypes
+.   endif
+.
+.--- Output <public name = "functions"> ---------------------------------------
+.
+.   for public where name = "functions"
+.       output_code (public)
+.   endfor
+.
+.--- Output method prototypes and macros for precalculated arguments ----------
+.
+.   for method where private = 0
+.       generate_method_prototype (0)
+.       if count (argument, type = "...") > 0
+.           generate_method_prototype (1)
+.       endif
+.   endfor
+
+#   ifdef __cplusplus
+}
+#   endif
+#   undef INCLUDE_$(selfname:upper,c)_ACTIVE
+#   if defined (ICL_IMPORT_$(selfname:upper,c)_ROOT)
+#       undef  ICL_IMPORT_HEADERS
+#       define ICL_IMPORT_HEADERS 3
+#   endif
+# endif
+#endif
+
+#if !defined (ICL_IMPORT_HEADERS) || (ICL_IMPORT_HEADERS == 3)
+# if !defined (INCLUDE_$(selfname:upper,c)_INLINE)
+#   define INCLUDE_$(selfname:upper,c)_INLINE
+#   define INCLUDE_$(selfname:upper,c)_ACTIVE
+
+.   for import
+#   include "$(expand (.class):c).h"
+.   endfor
+
+.--- Output statistics pointers -----------------------------------------------
+.
+.   for method where inline & !private & stats
+#if (defined (BASE_STATS) \
+ ||  defined (BASE_STATS_$(class.name:UPPER,c)) \
+ ||  defined (BASE_STATS_$(class.name:UPPER,c)_$(expand (name):UPPER,c)))
+extern icl_stats_t *s_$(class.name:c)_$(cname)_stats;
+#endif
+.   endfor
+.
+#   ifdef __cplusplus
+extern "C" {
+#   endif
+
+.--- Output prototype for trace dump function ---------------------------------
+.
+.if trace ? "NULL" <> "0"
+#if (defined (BASE_TRACE) \
+  || defined (BASE_TRACE_$(class.name:UPPER,c)) \
+.   for method
+  || defined (BASE_TRACE_$(class.name:UPPER,c)_$(expand (name):UPPER,c)) \
+.   endfor
+)
+void
+    $(class.name:c)_dump (icl_os_thread_t thread, apr_time_t time, qbyte info);
+#endif
+
+.endif
+.
+.--- Output <public name = "inline"> ------------------------------------------
+.
+.   for public where name = "inline"
+.       output_code (public)
+.   endfor
+.
+.---- Output public inline functions ------------------------------------------
+.
+.   for method where inline & !private
+.       generate_method_function (0)
+.       if count (argument, type = "...") > 0
+.           generate_method_function (1)
+.       endif
+.   endfor
+.
+.--- Output <public name = "include"> -----------------------------------------
+.
+.   for public where name = "include"
+.       output_code (public)
+.   endfor
+.
+.--- Output <public name = "footer"> ------------------------------------------
+.
+.   for public where name = "footer"
+.       output_code (public)
+.   endfor
+.
+#   ifdef __cplusplus
+}
+#   endif
+#   undef INCLUDE_$(selfname:upper,c)_ACTIVE
+#   if defined (ICL_IMPORT_$(selfname:upper,c)_ROOT)
+#       undef ICL_IMPORT_HEADERS
+#       undef ICL_IMPORT_$(selfname:upper,c)_ROOT
+#   endif
+# endif
+#endif
+.   close
+.endmacro generate_include_file
+
+
+##############################  GENERATE CODE FILE  ###########################
+
+.macro generate_code_file
+.   if !defined (switches.quiet)
+.       echo "Generating $(selfname:c).c..."
+.   endif
+.   output "$(selfname:c).c"
+/*---------------------------------------------------------------------------
+    $(selfname:c).c - $(selfname) component
+
+.   for doc
+.       output_doc (doc)
+.   endfor
+    Generated from $(arg?filename) by $(script) using GSL/4.
+.   if defined (copyright)
+    $(copyright:)
+.   endif
+.   $(set_final_license ())_license (" ")
+ *---------------------------------------------------------------------------*/
+
+#include "icl.h"                        //  iCL base classes
+.--- Output <private name = "defines"> ----------------------------------------
+.   for private where name = "defines"
+.       output_code (private)
+.   endfor
+#include "$(selfname:c).h"              //  Definitions for our class
+.   if count (context) > 0
+
+//  Shorthand for class type
+
+#define self_t              $(selftype)
+.       if class.opaque
+
+//  Structure of the $(selfname) object
+
+struct _$(selftype) {
+.           for context
+.               output_code (context)
+.               for property
+    $(type) $(name:c);                  //  $(string.trim (property.?''):left)
+.               endfor
+.           endfor
+};
+.       endif
+.   endif
+.   if defined (->method)
+
+//  Shorthands for class methods
+
+.      for method
+#define self_$(cname)\
+                            $(base)$(cname)
+.       endfor
+
+.   endif
+.
+.--- Output statistics pointers -----------------------------------------------
+.
+.   for method where stats
+.
+#if (defined (BASE_STATS) \
+ ||  defined (BASE_STATS_$(class.name:UPPER,c)) \
+ ||  defined (BASE_STATS_$(class.name:UPPER,c)_$(expand (name):UPPER,c)))
+.           if inline & ! private
+       icl_stats_t *s_$(class.name:c)_$(cname)_stats = NULL;
+.           else
+static icl_stats_t *s_$(class.name:c)_$(cname)_stats = NULL;
+.           endif
+#endif
+.
+.   endfor
+.
+.--- Output method prototypes and macros for precalculated arguments ----------
+.
+.   for method where private
+.       generate_method_prototype (0)
+.       if count (argument, type = "...") > 0
+.           generate_method_prototype (1)
+.       endif
+.   endfor
+.
+.--- Output <private name = "header"> -----------------------------------------
+.
+.   for private where name = "header"
+.       output_code (private)
+.   endfor
+.
+.--- Output <private name = "body"> -------------------------------------------
+.
+.   for private where name = "body"
+.       output_code (private)
+.   endfor
+.
+.---- Output method functions except public inline methods --------------------
+.
+.   for method where ! (private = 0 & inline = 1)
+.       generate_method_function (0)
+.       if count (argument, type = "...") > 0
+.           generate_method_function (1)
+.       endif
+.   endfor
+.
+.--- Output trace dump function -----------------------------------------------
+.
+.if trace ? "NULL" <> "0"
+#if (defined (BASE_TRACE) \
+  || defined (BASE_TRACE_$(class.name:UPPER,c)) \
+.   for method
+  || defined (BASE_TRACE_$(class.name:UPPER,c)_$(expand (name):UPPER,c)) \
+.   endfor
+)
+void
+$(class.name:c)_dump (icl_os_thread_t thread, apr_time_t time, qbyte info)
+{
+    dbyte
+        method = info & 0xFFFF;
+    char
+        *method_name = NULL;
+
+    switch (method) {
+.for method
+        case $(item()): method_name = "$(method.name:)"; break;
+.endfor
+    }
+    icl_console_print_thread_time (thread, time,
+                                   "$(selfname) %s%s",
+                                   (info > 0xFFFF) ? "/" : "",
+                                   method_name);
+}
+#endif
+
+.endif
+.
+.--- Output <private name = "footer"> -----------------------------------------
+.
+.   for private where name = "footer"
+.       output_code (private)
+
+.   endfor
+//  Embed the version information in the resulting binary
+
+char *EMBED__$(selfname:c)_version_start  = "VeRsIoNsTaRt:ipc";
+char *EMBED__$(selfname:c)_component      = "$(selfname) ";
+char *EMBED__$(selfname:c)_version        = "$(version) ";
+char *EMBED__$(selfname:c)_copyright      = "Copyright (c) 1996-2009 iMatix Corporation";
+char *EMBED__$(selfname:c)_filename       = "$(filename) ";
+char *EMBED__$(selfname:c)_builddate      = "$(date) ";
+char *EMBED__$(selfname:c)_version_end    = "VeRsIoNeNd:ipc";
+
+.   close
+.endmacro generate_code_file
+
+##############################  GENERATE TEST FILE  ###########################
+
+.macro generate_test_file
+.   if !defined (switches.quiet)
+.       echo "Generating $(selfname:c)_test.c..."
+.   endif
+.   output "$(selfname:c)_test.c"
+/*---------------------------------------------------------------------------
+    $(selfname:c)_test.c - $(selfname) component tester
+
+    Generated from $(arg?filename) by $(script) using GSL/4.
+.   if defined (copyright)
+    $(copyright:)
+.   endif
+.   $(set_final_license ())_license (" ")
+ *---------------------------------------------------------------------------*/
+
+#include "icl.h"                        //  iCL base classes
+#include "$(selfname:c).h"              //  Definitions for our class
+#include "version.h"
+
+int main (int argc, char *argv[])
+{
+    int
+        argn;                           //  Argument number
+    Bool
+        args_ok = TRUE,                 //  Were the arguments okay?
+        quiet_mode = FALSE;             //  -q means suppress messages
+    char
+        **argparm;                      //  Argument parameter to pick-up
+
+    argparm = NULL;                     //  Argument parameter to pick-up
+    for (argn = 1; argn < argc; argn++) {
+        //  If argparm is set, we have to collect an argument parameter
+        if (argparm) {
+            if (*argv [argn] != '-') {  //  Parameter can't start with '-'
+                *argparm = argv [argn];
+                argparm = NULL;
+            }
+            else {
+                args_ok = FALSE;
+                break;
+            }
+        }
+        else
+        if (*argv [argn] == '-') {
+            switch (argv [argn][1]) {
+                case 'q':
+                    quiet_mode = TRUE;
+                    break;
+                case 'v':
+                    printf (PRODUCT "\\n");
+                    printf (COPYRIGHT "\\n");
+                    printf (BUILDMODEL "\\n");
+                    printf ("Built on: " BUILDDATE "\\n");
+                    printf ("Compiler: " CCOPTS "\\n");
+                    exit (EXIT_SUCCESS);
+                case 'h':
+                    printf (PRODUCT "\\n");
+                    printf (COPYRIGHT "\\n");
+                    printf ("Options:\\n");
+                    printf ("  -q  - Quiet mode: no messages\\n");
+                    printf ("  -v  - Show version information\\n");
+                    printf ("  -h  - Show summary of command-line options\\n");
+                    exit (EXIT_SUCCESS);
+                //  Anything else is an error
+                default:
+                    args_ok = FALSE;
+            }
+        }
+        else {
+            args_ok = FALSE;
+            break;
+        }
+    }
+
+    //  Set quiet console mode before initialise so we don't get memory
+    //  allocator message in quiet mode.
+    if (quiet_mode)
+        icl_console_mode (ICL_CONSOLE_QUIET, TRUE);
+
+    //  Initialise global class so we can use the console
+    icl_system_initialise (argc, argv);
+
+    //  If there was a missing parameter or an argument error, quit
+    if (argparm) {
+        icl_console_print ("E: argument missing - use '-h' option for help");
+        exit (EXIT_FAILURE);
+    }
+    else
+    if (!args_ok) {
+        icl_console_print ("E: invalid arguments - use '-h' option for help");
+        exit (EXIT_FAILURE);
+    }
+
+.   for class.method where name = "selftest"
+    $(base)selftest ();
+.   else
+.       echo "W: no 'selftest' method was defined for $(selfname)"
+.   endfor
+
+    icl_console_print ("I: $(selfname:c) OK");
+    icl_system_terminate ();            //  Terminate all classes
+
+    return (EXIT_SUCCESS);
+}
+.   close
+.endmacro generate_test_file
+
+############################  PREPARE TO GENERATE  ############################
+
+.function prepare_to_generate
+    #   Class assertions
+    for class.assert
+        if !defined (have_role_$(assert.role))
+            abort "No '$(assert.role)' class provided for $(selfname), can't continue"
+        endif
+    endfor
+
+    #   Prepare API for methods
+    for method
+        parse_method ()
+    endfor
+.endfunction

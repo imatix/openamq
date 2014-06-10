@@ -1,0 +1,25 @@
+<?xml?>
+<pal script = "demo_pal_gen">
+    This script serves up arbitrary files just like a web server.
+    It is neither a server not does it use HTTP but apart from that
+    and some other minor details it's exactly like Apache or Xitami.
+    We take the file specified in the message-id and we send it to
+    the queue specified by the reply-to field.
+    <session
+        queue    = "file-server"
+        exchange = "test-exchange">
+        <exchange_declare type = "fanout" />
+        <queue_declare />
+        <queue_bind />
+        <repeat>
+            <wait />
+            <basic_get />
+            <basic_arrived>
+                <echo>Serving file $message_id...</echo>
+                <basic_content read = "$message_id" />
+                <basic_publish routing_key = "$reply_to" />
+            </basic_arrived>
+        </repeat>
+    </session>
+</pal>
+

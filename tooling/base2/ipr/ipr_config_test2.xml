@@ -1,0 +1,29 @@
+<config>
+    <general>
+        <security>
+            <profile name = "default"
+                maxusers = "20"
+                timeout = "100" />
+        </security>
+    </general>
+    <queues>
+        <queue
+            maxusers = "10"
+            overflow = "2000"
+            />
+        <template name = "non-persistent"
+            maxusers = "100"
+            overflow = "25000"
+            prefill = "1"
+            maxsize = "4000"
+            blocksize = "1000" />
+    </queues>
+    <profiles config_meta = "discrete">
+        <profile name = "example">
+            <limit value = "1" action = "warn" />
+            <limit value = "10" action = "trim" />
+            <limit value = "100" action = "drop" />
+            <limit value = "1000" action = "kill" />
+        </profile>
+    </profiles>
+</config>

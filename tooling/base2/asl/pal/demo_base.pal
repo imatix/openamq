@@ -1,0 +1,9 @@
+<?xml?>
+<pal abstract = "1">
+    This script demonstrates how to define an abstract script. Abstract
+    scripts do not actually work (yet).
+    <echo>Connected to ${server_product}/${server_version} - ${server_platform}</echo>
+    <assert name = "version_major" value = "9" />
+    <assert name = "version_minor" value = "0" />
+</pal>
+

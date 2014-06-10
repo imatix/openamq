@@ -1,0 +1,1616 @@
+.#  ----------------------------------------------------------------------------
+.#  Copyright (c) 1996-2009 iMatix Corporation
+.#
+.#  This program is free software; you can redistribute it and/or modify
+.#  it under the terms of the GNU General Public License as published by
+.#  the Free Software Foundation; either version 2 of the License, or (at
+.#  your option) any later version.
+.#
+.#  This program is distributed in the hope that it will be useful, but
+.#  WITHOUT ANY WARRANTY; without even the implied warranty of
+.#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.#  General Public License for more details.
+.#
+.#  For information on alternative licensing for OEMs, please contact
+.#  iMatix Corporation.
+.#  ----------------------------------------------------------------------------
+.open_output ("$(protocol.name)_pal_stdc.gsl")
+#  ----------------------------------------------------------------------------
+#   PAL back-end code generator for $(protocol.name) over STDC runtime
+#
+#   Converts a PAL script into ANSI C running over the standard C client API.
+#
+#   *** GENERATED FROM $(arg?filename) BY $(script) USING GSL/4 ***
+#   *** DO NOT MODIFY THIS FILE ***
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+#
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#  ----------------------------------------------------------------------------
+
+#################################   MAIN   #################################
+
+function generate_automation (pal)
+  scope my.pal
+    ignorecase = 0
+\.   template
+\.   open_output ("$\(pal.name).c")
+/*===========================================================================
+    $\(pal.name).c - C version of PAL script
+\.if defined (pal.)
+    $\(pal.?'')
+\.endif
+
+    Generated for $(protocol.name) protocol using iMatix ASL/PAL.
+    Don't modify this by hand unless you know what you're doing; it's
+    written by a robot that is better at writing AMQP clients in C than
+    you probably are.  See $\(pal.name).pal for the instructions that
+    caused the robot to produce this file.
+
+\.  if defined (copyright)
+    $\(copyright:)
+\.  endif
+\.  $\(license:lower)_license (" ")
+ *===========================================================================*/
+
+#include "asl.h"
+#include "$(protocol.name)_client_connection.h"
+#include "$(protocol.name)_client_session.h"
+
+#define NOWARRANTY \\\\
+"This is free software; see the source for copying conditions.  There is NO\\\\n" \\\\
+"warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\\\\n" \\\\
+    "\\\\n"
+#define USAGE1                                                                 \\\\
+    "Syntax: $\(pal.name) [options...]\\\\n"                                   \\\\
+    "Options:\\\\n"                                                            \\\\
+    "  -s server        Server:port to connect to (localhost)\\\\n"            \\\\
+    "  -t level         Set trace level (0)\\\\n"                              \\\\
+    "                   0=none, 1=low, 2=medium, 3=high\\\\n"                  \\\\
+    "  -r count         Repeat script count times, 0=forever (1)\\\\n"         \\\\
+\.  for pal.option
+    "  -$\(switch) value\\
+                        Specify $\(name) variable ($\(value))\\\\n"            \\\\
+\.  endfor
+    "  -c               Clock the script (0)\\\\n"                             \\\\
+    "  -a               Animate: show script commands\\\\n"                    \\\\
+    "  -e               Execute in single-step mode (0)\\\\n"                  \\\\
+    "  -f filename      Load custom settings from file (wireapi.cfg)\\\\n"     \\\\
+    "  -q               Quiet mode: no messages\\\\n"                          \\\\
+    "  -v               Show version information\\\\n"                         \\\\
+    "  -h               Show summary of command-line options\\\\n"             \\\\
+    "  --help           Show detailed configuration help\\\\n"                 \\\\
+    "\\\\n"
+#define USAGE2                                                                 \\\\
+    "\\\\n"                                                                    \\\\
+    "The order of arguments is not important. Switches and filenames\\\\n"     \\\\
+    "are case sensitive. See documentation for detailed information.\\\\n"     \\\\
+    "\\\\n"
+
+//  Local function prototypes
+
+//  Establish or reestablish connection and session
+static int s_establish_session (
+    char *server_name,
+    char *instance_name,
+    int   trace_level,
+    char *virtual_host,
+    int   timeout);
+
+//  Update symbol tables from current connection/session
+static void s_get_connection_symbols (void);
+static void s_get_session_symbols    (void);
+static int  s_connection_alive       (void);
+static int  s_connection_interrupt   (void);
+static int  s_connection_failed      (void);
+static int  s_session_alive          (void);
+
+//  Perform templating using context or session symbol tables
+static char *s_tpl (char *string);
+
+//  Report an error
+static void s_report_error (void);
+
+//  Static source-global variables
+static $(protocol.name)_client_connection_t
+    *s_connection = NULL;               //  Current connection
+static $(protocol.name)_client_session_t
+    *s_session = NULL;                  //  Current session
+static ipr_dict_table_t
+    *s_symbols;                         //  Symbol table
+static size_t
+    s_body_size = 0;                    //  Content body size
+static apr_time_t
+    s_start_time,                       //  Start time, microseconds
+    s_elapsed = 0;                      //  Elapsed time, microseconds
+
+int
+main (int argc, char *argv [])
+{
+    int
+        argn;                           //  Argument number
+    Bool
+        args_ok = TRUE;                 //  Were the arguments okay?
+    char
+        **argparm;                      //  Argument parameter to pick-up
+    char
+        *opt_trace = "0",               //  Trace level argument
+        *opt_repeat = "1",              //  Repeat count argument
+        *opt_config = NULL,             //  -f specifies configuration file
+        *server_name = "localhost",     //  Host to connect to
+        *instance_name = "$\(pal.name)";//  Client instance name
+    Bool
+        opt_animate = FALSE,            //  Animation wanted?
+        opt_clock = FALSE,              //  Clock the script?
+        opt_execute = FALSE;            //  Single-step mode?
+    int
+        trace_level,                    //  Trace level
+        repeat_count;                   //  Repeat count
+    long
+        send_count = 0,                 //  Total messages sent
+        recv_count = 0;                 //  Total messages received
+    int64_t
+        send_bytes = 0,                 //  Total bytes sent
+        recv_bytes = 0;                 //  Total bytes received
+    ipr_stat_t
+        *latencies;                     //  Message latency statistics
+\.  for pal.option
+    char
+        *opt_$\(name:c) = "$\(value)";  //  Default setting for $\(name)
+\.  endfor
+    ipr_process_t
+        *server_process = NULL;         //  Server process
+.   for class where count (field)
+    $(protocol.name)_content_$(class.name)_t
+        *$(class.name)_content = NULL;  //  Last content sent/recieved
+.   endfor
+\.  for pal.variable
+\.      if type = "integer"
+    int
+        $\(name:c) = 0;                 //  Integer variable
+\.      else
+    char
+        *$\(name:c) = NULL;             //  String variable
+\.      endif
+\.  endfor
+    int
+        content_processed = 0;
+    int
+        rc,                             //  Return code from API calls
+        main_rc = 0;                    //  Main return code
+
+    //  Avert grumpy compiler warnings for unused variables & functions
+    content_processed = 0;
+    rc = s_connection_failed ();
+
+    //  Initialise iCL system
+    icl_console_mode (ICL_CONSOLE_QUIET, TRUE);
+    icl_system_initialise (argc, argv);
+    icl_console_mode (ICL_CONSOLE_QUIET, FALSE);
+    s_start_time = apr_time_now ();
+
+    //  Create and initialise symbol table
+    s_symbols = ipr_dict_table_new ();
+    ipr_dict_assume (s_symbols, "script", "$\(pal.name)");
+.for protocol.constant
+    ipr_dict_assume (s_symbols, "$(name:upper,c)", "$(value)");
+.endfor
+
+    randomize ();
+    latencies = ipr_stat_new ();
+
+    argparm = NULL;                     //  Argument parameter to pick-up
+    for (argn = 1; argn < argc; argn++) {
+        //  If argparm is set, we have to collect an argument parameter
+        if (argparm) {
+            if (*argv [argn] != '-') {  //  Parameter can't start with '-'
+                *argparm = argv [argn];
+                argparm = NULL;
+            }
+            else {
+                args_ok = FALSE;
+                break;
+            }
+        }
+        else
+        if (ipr_str_prefixed (argv [argn], "--"))
+            argn++;                     //  Extended argument + value
+        else
+        if (*argv [argn] == '-') {
+            switch (argv [argn][1]) {
+                //  These switches take a parameter
+                case 's':
+                    argparm = &server_name;
+                    break;
+                case 'i':
+                    argparm = &instance_name;
+                    break;
+                case 'f':
+                    argparm = &opt_config;
+                    break;
+                case 't':
+                    argparm = &opt_trace;
+                    break;
+                case 'r':
+                    argparm = &opt_repeat;
+                    break;
+\.  for pal.option
+                case '$\(switch)':
+                    argparm = &opt_$\(name:c);
+                    break;
+\.  endfor
+
+                //  These switches have an immediate effect
+                case 'a':
+                    opt_animate = TRUE;
+                    break;
+                case 'e':
+                    opt_animate = TRUE;
+                    opt_execute = TRUE;
+                    break;
+                case 'c':
+                    opt_clock = TRUE;
+                    break;
+                case 'q':
+                    icl_console_mode (ICL_CONSOLE_QUIET, TRUE);
+                    break;
+                case 'v':
+\.  if defined (copyright)
+                    printf ("$\(copyright)\\\\n");
+\.  endif
+                    printf (NOWARRANTY);
+                    printf ("Compiled with: " CCOPTS "\\\\n");
+                    goto finished;
+                case 'h':
+                    printf ("$\(pal.name)\\\\n");
+\.  if defined (copyright)
+                    printf ("$\(copyright)\\\\n");
+\.  endif
+                    printf (NOWARRANTY);
+                    printf (USAGE1);
+                    $(protocol.name)_client_config_cmdline_help ();
+                    printf (USAGE2);
+                    goto finished;
+
+                //  Anything else is an error
+                default:
+                    args_ok = FALSE;
+            }
+        }
+        else {
+            args_ok = FALSE;
+            break;
+        }
+    }
+    //  If there was a missing parameter or an argument error, quit
+    if (argparm) {
+        icl_console_print ("E: argument missing - use '-h' option for help");
+        goto exit_failure;
+    }
+    else
+    if (!args_ok) {
+        icl_console_print ("E: invalid arguments - use '-h' option for help");
+        goto exit_failure;
+    }
+    trace_level  = atoi (opt_trace);
+    repeat_count = atoi (opt_repeat);
+
+    //  Load configuration data, if any, into the config_table
+    if (!opt_config)
+        opt_config = "wireapi.cfg";
+    $(protocol.name)_client_config = $(protocol.name)_client_config_new ();
+    $(protocol.name)_client_config_load_xmlfile ($(protocol.name)_client_config, "wireapi.cfg", FALSE);
+    $(protocol.name)_client_config_cmdline_parse ($(protocol.name)_client_config, "$\(pal.name)", argc, argv);
+
+    FOREVER {                           //  For command-line repeat requests
+
+\.  codegen_pal (pal)
+
+        if (repeat_count && --repeat_count == 0)
+            break;
+    }
+    goto finished;
+    //  We stopped the script and want to end with a fatal error status code
+    exit_failure:
+        main_rc = EXIT_FAILURE;
+    finished:
+
+    //  Stop the clock, we're not doing any more work
+    s_elapsed += apr_time_now () - s_start_time;
+    s_elapsed /= 1000;                  //  Get into msecs
+    if (opt_clock && s_elapsed) {
+        send_bytes = send_bytes / 1024;
+        recv_bytes = recv_bytes / 1024;
+        icl_console_print ("I: elapsed time:%ld msecs", (long) s_elapsed);
+        icl_console_print ("I: outgoing messages:%ld (%ld Kbytes)", send_count, (long) send_bytes);
+        icl_console_print ("I: incoming messages:%ld (%ld Kbytes)", recv_count, (long) recv_bytes);
+        if (send_count || recv_count)
+            icl_console_print ("I: total messages:%ld (%ld Kbytes) average:%ld/sec (%ld Kbytes/sec)",
+                (long) (send_count + recv_count),
+                (long) (send_bytes + recv_bytes),
+                (long) (((send_count + recv_count) * 1000) / s_elapsed),
+                (long) (((send_bytes + recv_bytes) * 1000) / s_elapsed));
+        if (ipr_stat_count (latencies))
+            icl_console_print ("I: message latency min=%d max=%d mean=%d dev=%d msecs",
+                (int) ipr_stat_min  (latencies),
+                (int) ipr_stat_max  (latencies),
+                (int) ipr_stat_mean (latencies),
+                (int) ipr_stat_dev  (latencies));
+    }
+    //  Shutdown
+    s_tpl (NULL);                       //  Garbage collect templates
+\.  for pal.variable where type = "string"
+    icl_mem_free ($\(name:c));
+\.  endfor
+.   for class where count (field)
+    $(protocol.name)_content_$(class.name)_unlink (&$(class.name)_content);
+.   endfor
+    $(protocol.name)_client_session_destroy (&s_session);
+    $(protocol.name)_client_connection_destroy (&s_connection);
+    $(protocol.name)_client_config_destroy (&$(protocol.name)_client_config);
+
+    ipr_process_destroy    (&server_process);
+    ipr_dict_table_unlink  (&s_symbols);
+    ipr_stat_destroy       (&latencies);
+    icl_system_terminate ();
+
+    return (main_rc);
+}
+
+
+//  Establish connection and session
+//
+static int
+s_establish_session (
+    char *server_name,
+    char *instance_name,
+    int   trace_level,
+    char *virtual_host,
+    int   timeout)
+{
+    icl_longstr_t
+        *auth_data;                     //  Login authorisation
+    ipr_token_list_t
+        *host_list;                     //  List of known hosts
+    ipr_token_t
+        *token;                         //  Next host to try
+    int
+        rc = 0;
+
+    assert (!s_connection && !s_session);
+
+    //  Pause the clock, as we're going to wait for the server
+    //  to start-up and this can interfere with our timings
+    s_elapsed += apr_time_now () - s_start_time;
+    auth_data = $(protocol.name)_client_connection_auth_plain ("guest", "guest");
+    host_list = ipr_token_split (server_name);
+
+    token = ipr_token_list_first (host_list);
+    while (token) {
+        s_connection = $(protocol.name)_client_connection_new (
+            token->value, virtual_host, auth_data, instance_name, trace_level, timeout);
+        if (s_connection) {
+            ipr_token_unlink (&token);
+            break;
+        }
+        token = ipr_token_list_next (&token);
+    }
+    ipr_token_list_destroy (&host_list);
+    icl_longstr_destroy (&auth_data);
+
+    if (s_connection) {
+        s_connection->silent = TRUE;
+        s_get_connection_symbols ();
+        s_session = $(protocol.name)_client_session_new (s_connection);
+        if (s_session)
+            s_start_time = apr_time_now ();     //  Restart the clock
+        else {
+            icl_console_print ("E: could not open session to server");
+            rc = -1;
+        }
+    }
+    else {
+        icl_console_print ("E: could not connect to %s", server_name);
+        rc = -1;
+    }
+    return (rc);
+}
+
+static void
+s_get_connection_symbols (void)
+{
+.for protocol.connection_field by name
+.   if metat = "integer"
+    ipr_dict_assume_fmt (s_symbols, "$(name)", "%ld", (long) s_connection->$(name:c));
+.   elsif metat = "char"
+    ipr_dict_assume_fmt (s_symbols, "$(name)", "%c", s_connection->$(name:c));
+    new_value = value;
+.   elsif metat = "string"
+    ipr_dict_assume     (s_symbols, "$(name)", s_connection->$(name:c));
+.   endif
+.endfor
+}
+
+static void
+s_get_session_symbols (void)
+{
+.for protocol.session_field by name
+.   if metat = "integer"
+    ipr_dict_assume_fmt (s_symbols, "$(name)",  "%ld", (long) s_session->$(name:c));
+.   elsif metat = "char"
+    ipr_dict_assume_fmt (s_symbols, "$(name)", "%c", s_session->$(name:c));
+.   elsif metat = "string"
+    ipr_dict_assume     (s_symbols, "$(name)", s_session->$(name:c));
+.   endif
+.endfor
+}
+
+//  This function does string templating using a symbol table.
+//  In order to make the API very simple, we keep an internal table
+//  of all allocated strings, and we free these strings when the
+//  table overflows, or when the function is called with a null argument.
+//
+
+static char *
+s_tpl (char *string)
+{
+    //  Should be large enough for worst case of number of templates
+    //  we might need at once - probably 2 or 3.
+#   define TEMPLATE_MAX 30
+    static char
+        *allocated [TEMPLATE_MAX];
+    static int
+        head = 0,                       //  Buffer head, always free
+        count = 0;                      //  Number of allocations
+    char
+        *template;                      //  Templated string
+
+    //  Insert/update standard symbols
+    ipr_dict_assume_fmt (s_symbols, "connection", "%d", s_connection_alive ());
+    ipr_dict_assume_fmt (s_symbols, "session", "%d", s_session_alive ());
+    ipr_dict_assume_fmt (s_symbols, "random", "%04x", rand ());
+    ipr_dict_assume_fmt (s_symbols, "body_size", "%ld", s_body_size);
+
+    if (string) {
+        if (strchr (string, '$')) {
+            template = ipr_dict_table_template (s_symbols, string);
+            allocated [head] = template;
+            head++;
+            if (head == TEMPLATE_MAX)
+                head = 0;
+            if (count < TEMPLATE_MAX - 1)
+                count++;
+            else
+                icl_mem_free (allocated [head]);
+            return (template);
+        }
+        else
+            return (string);            //  Nothing to translate
+    }
+    else {
+        //  Free all allocated strings
+        while (count) {
+            if (head == 0)
+                head = TEMPLATE_MAX;
+            head--;
+            count--;
+            icl_mem_free (allocated [head]);
+        }
+        return (NULL);
+    }
+}
+
+static int
+s_connection_alive (void)
+{
+    if (s_connection)
+        return (s_connection->alive);
+    else
+        return (0);
+}
+
+static int
+s_connection_interrupt (void)
+{
+    if (s_connection && s_connection->interrupt)
+        return (1);
+    else
+        return (0);
+}
+
+static int
+s_connection_failed (void)
+{
+    if (s_connection && !s_connection->alive && s_connection->reply_code == 100)
+        return (1);
+    else
+        return (0);
+}
+
+static int
+s_session_alive (void)
+{
+    if (s_session)
+        return (s_session->alive);
+    else
+        return (0);
+}
+
+static void
+s_report_error (void)
+{
+    if (s_session) {
+        if (s_session->reply_code)
+            icl_console_print ("E: %d - %s", s_session->reply_code, s_session->reply_text);
+        else
+            icl_console_print ("E: %s", s_session->error_text);
+    }
+    else
+        icl_console_print ("E: failed");
+}
+\.   endtemplate
+  endscope
+endfunction
+
+
+################################   FUNCTIONS
+
+function open_output (filename)
+    if !defined (switches.quiet)
+        echo "Generating $\(my.filename)..."
+    endif
+    output my.filename
+endfunction
+
+function get_field_realname (name)
+    #   Replace standard variables first
+    if my.name = "script"
+        pal.realname = '"$\(pal.name)"'
+        return "string"
+    elsif my.name = "connection"
+        pal.realname = "s_connection_alive ()"
+        return "integer"
+    elsif my.name = "session"
+        pal.realname = "s_session_alive ()"
+        return "integer"
+    elsif my.name = "random"
+        pal.realname = "rand ()"
+        return "integer"
+    elsif my.name = "body_size"
+        pal.realname = "s_body_size"
+        return "integer"
+    endif
+
+    #   Session properties
+.for protocol.session_field by name
+    if my.name = "$(name)"
+        pal.realname = "s_session->$(name:c)"
+        return "$(metat)"
+    endif
+.endfor
+
+    #   Connection properties
+.for protocol.connection_field by name
+    if my.name = "$(name)"
+        pal.realname = "s_connection->$(name:c)"
+        return "$(metat)"
+    endif
+.endfor
+
+    #   Script variables
+    for pal.variable where name = my.name
+        pal.realname = "$\(my.name:c)"
+        return type
+    endfor
+    echo "'$\(my.name)' is not a connection or session property, or variable"
+    return ""
+endfunction
+
+function strvalue (property)
+    my.property = string.justify (my.property? '', 0)
+    if defined (string.locate (my.property, "$"))
+        return 's_tpl ("' + my.property + '")'
+    else
+        return '"' + my.property + '"'
+    endif
+endfunction
+
+function intvalue (property)
+    #   Translate into variable name if property is $name
+    my.property ?= "0"
+    if string.substr (my.property,0,,1) = '$'
+        my.variable = string.substr (my.property,1)
+        my.metat = get_field_realname (my.variable)
+        if my.metat = "integer" | my.metat = "char"
+            return pal.realname
+        elsif my.metat = "string"
+            return 'atol (' + pal.realname + ')'
+        endif
+    else
+        return my.property
+    endif
+endfunction
+
+
+################################   SERVER
+
+\.macro produce_server ()
+    if (opt_animate)
+        icl_console_print ("<server name = \\\\"%s\\\\"/>", $\(strvalue (name)));
+    if (server_process) {
+        ipr_process_destroy (&server_process);
+        apr_sleep (2000 * 1000);        //  Wait for server to close correctly
+    }
+\.  if defined (.port)
+    server_process = ipr_process_new (
+        $\(strvalue (name + " --port " + port)), NULL, $\(strvalue (stdout)), $\(strvalue (stderr)));
+\.  else
+    server_process = ipr_process_new (
+        $\(strvalue (name)), NULL, $\(strvalue (stdout)), $\(strvalue (stderr)));
+\.  endif
+    ipr_process_start (server_process, $\(strvalue ([where])));
+
+    while (!ipr_net_ping (server_name, "$\(port?'5672')"))
+        apr_sleep (500 * 1000);
+\.endmacro
+
+
+################################   TIMER
+
+\.macro produce_timer ()
+\.  if action = "reset"
+    s_start_time = apr_time_now ();
+    s_elapsed = 0;
+\.  elsif action = "show"
+    icl_console_print ("I: elapsed time:%ld msecs",
+        (long) ((s_elapsed + apr_time_now () - s_start_time) / 1000));
+\.  endif
+\.endmacro
+
+
+################################   SET
+
+\.macro produce_set ()
+\.  using_reserved = 0
+.for protocol.session_field
+\.  if name = "$(name)"
+\.      echo "W: '$(name)' is a session field, you don't want to use it as a variable"
+\.  endif
+.endfor
+.for protocol.connection_field
+\.  if name = "$(name)"
+\.      echo "W: '$(name)' is a connection field, you don't want to use it as a variable"
+\.  endif
+.endfor
+    if (opt_animate)
+        icl_console_print ("<set name = \\\\"$\(name)\\\\"/>");
+\.  if type = "string"
+    icl_mem_free ($\(name:c));
+\.      if defined (cmdline)
+    $\(name:c) = icl_mem_strdup (opt_$\(name:c));
+\.      else
+    $\(name:c) = icl_mem_strdup ($\(strvalue (value)));
+\.      endif
+    ipr_dict_assume (s_symbols, "$\(name)", $\(name:c));
+\.  else
+\.      if defined (cmdline)
+    $\(name:c) = atoi (opt_$\(name:c));
+\.      else
+    $\(name:c) = $\(intvalue (.value));
+\.      endif
+    ipr_dict_assume_fmt (s_symbols, "$\(name)", "%d", $\(name:c));
+\.  endif
+\.endmacro
+
+
+################################   INC
+
+\.macro produce_inc ()
+    if (opt_animate)
+        icl_console_print ("<inc name = \\\\"$\(name)\\\\"/>");
+    $\(name:c)++;
+    ipr_dict_assume_fmt (s_symbols, "$\(name)", "%d", $\(name:c));
+\.endmacro
+
+
+################################   DEC
+
+\.macro produce_dec ()
+    if (opt_animate)
+        icl_console_print ("<dec name = \\\\"$\(name)\\\\"/>");
+    if (--$\(name:c) < 0) {
+        icl_console_print ("E: '$\(name)' went negative - aborting");
+        goto exit_failure;
+    }
+    else
+        ipr_dict_assume_fmt (s_symbols, "$\(name)", "%d", $\(name:c));
+\.endmacro
+
+
+################################   READ
+
+\.macro produce_read ()
+    {
+    if (opt_animate)
+        icl_console_print ("<read name = \\\\"$\(name)\\\\"/>");
+
+\.  if defined (.prompt)
+    fprintf (stdout, "$\(prompt)");
+\.  endif
+    if ($\(name:c))
+        icl_mem_free ($\(name:c));
+    $\(name:c) = icl_mem_alloc (1024);
+    fgets ($\(name:c), 1024, stdin);
+    //  Truncate trailing newline
+    $\(name:c) [strlen ($\(name:c)) - 1] = 0;
+    ipr_dict_assume (s_symbols, "$\(name)", $\(name:c));
+    }
+\.endmacro
+
+
+################################   RANDOM
+
+\.macro produce_random ()
+    if (opt_animate)
+        icl_console_print ("<random name = \\\\"$\(name)\\\\"/>");
+    $\(name:c) = ((rand () % ($\(intvalue (.max)) - $\(intvalue (.min))))) + $\(intvalue (.min));
+    ipr_dict_assume_fmt (s_symbols, "$\(name)", "%d", $\(name:c));
+\.endmacro
+
+
+################################   ECHO
+
+\.macro produce_echo
+    if (opt_animate)
+        icl_console_print ("<echo />");
+\.  if trace
+    if (trace_level >= $\([0].trace))
+        puts ($\(strvalue (.)));
+        fflush (stdout);
+\.  else
+        puts ($\(strvalue (.)));
+        fflush (stdout);
+\.  endif
+\.endmacro
+
+
+################################   ASSERT
+
+function get_condition_expr
+    my.metat = get_field_realname (name)
+
+    #   Provide useful defaults for the test and value
+    if !defined ([0].test)
+        if defined ([0].value)
+            .test = "eq"
+        else
+            .test = "ne"
+            if my.metat = "integer"
+                .value = "0"
+            elsif my.metat = "char"
+                .value = " "
+            else
+                .value = ""
+            endif
+        endif
+    elsif !defined ([0].value)
+        abort "E: conditional block needs a value"
+    endif
+
+    if my.metat = "integer"
+        if    test = "eq"
+            .expr = "$\(realname) == $\(intvalue (.value))"
+        elsif test = "ne"
+            .expr = "$\(realname) != $\(intvalue (.value))"
+        elsif test = "gt"
+            .expr = "$\(realname) > $\(intvalue (.value))"
+        elsif test = "lt"
+            .expr = "$\(realname) < $\(intvalue (.value))"
+        elsif test = "ge"
+            .expr = "$\(realname) >= $\(intvalue (.value))"
+        elsif test = "le"
+            .expr = "$\(realname) <= $\(intvalue (.value))"
+        endif
+
+    elsif my.metat = "char"
+        if    test = "eq"
+            .expr = "$\(realname) == '$\(.value)'"
+        elsif test = "ne"
+            .expr = "$\(realname) != '$\(.value)'"
+        elsif test = "gt"
+            .expr = "$\(realname) > '$\(.value)'"
+        elsif test = "lt"
+            .expr = "$\(realname) < '$\(.value)'"
+        elsif test = "ge"
+            .expr = "$\(realname) >= '$\(.value)'"
+        elsif test = "le"
+            .expr = "$\(realname) <= '$\(.value)'"
+        endif
+
+    elsif my.metat = "string"
+        my.value = "$\(strvalue (.value))"
+        if    test = "eq"
+            .expr = 'streq ($\(realname), $\(my.value))'
+        elsif test = "ne"
+            .expr = 'strneq ($\(realname), $\(my.value))'
+        elsif test = "gt"
+            .expr = 'strcmp ($\(realname), $\(my.value)) > 0'
+        elsif test = "lt"
+            .expr = 'strcmp ($\(realname), $\(my.value)) < 0'
+        elsif test = "ge"
+            .expr = 'strcmp ($\(realname), $\(my.value)) >= 0'
+        elsif test = "le"
+            .expr = 'strcmp ($\(realname), $\(my.value)) <= 0'
+        endif
+    endif
+endfunction
+
+function produce_assert
+    get_condition_expr ()
+    >    if (opt_animate)
+    >        icl_console_print ("<assert />");
+    >    if (!($\(expr))) {
+    if defined ([0].)
+        >         icl_console_print ($\(strvalue (.)));
+    endif
+    >        icl_console_print ("E: assertion '$\(string.replace(expr, '"|\\\\"'))' failed at line number %d", __LINE__);
+    >        goto exit_failure;
+    >    }
+endfunction
+
+
+################################   ABORT
+
+\.macro produce_abort
+    if (opt_animate)
+        icl_console_print ("<echo />");
+    icl_console_print ($\(strvalue (.)));
+    goto exit_failure;
+\.endmacro
+
+
+################################   EXIT
+
+\.macro produce_exit
+    if (opt_animate)
+        icl_console_print ("<exit />");
+    main_rc = $\(status);
+    goto finished;
+\.endmacro
+
+
+################################   REPEAT
+
+function produce_repeat_header
+    >
+    if defined ([0].progress)
+    >    fprintf (stderr, ".");
+    >    fflush  (stderr);
+    endif
+    if defined ([0].times)
+        >    for ($\(counter:c) = 0; $\(counter:c) < $\(intvalue (times)); $\(counter:c)++) {
+    else
+        >    for ($\(counter:c) = 0;; $\(counter:c)++) {
+    endif
+    if defined ([0].progress)
+        >        static int
+        >            progress_indicator = 0;
+    endif
+    >        if (opt_animate)
+    >            icl_console_print ("<repeat>");
+    if show_counter
+        >        ipr_dict_assume_fmt (s_symbols, "$\(counter)", "%d", $\(counter:c));
+    endif
+    >        if (s_connection_interrupt ())
+    >            goto finished;
+    if failover?0
+        >        if (s_session && s_connection_failed ())
+        >            goto exit_failover_$\(pal.session_index);
+    else
+        >        if (s_session && !s_connection_alive ())
+        >            break;
+    endif
+endfunction
+
+function produce_repeat_footer
+    if defined ([0].progress)
+        >        if (++progress_indicator == $\(progress)) {
+        >            progress_indicator = 0;
+        >            fprintf (stderr, ".");
+        >            fflush  (stderr);
+        >        }
+    endif
+    >        if (opt_animate)
+    >            icl_console_print ("</repeat>");
+    >    }
+    if defined ([0].progress)
+    >    fprintf (stderr, "\\\\n");
+    >    fflush  (stderr);
+    endif
+endfunction
+
+
+################################   WHILE
+
+function produce_while_header
+    get_condition_expr ()
+    >
+    if defined ([0].counter)
+    >    $\(.counter:c) = 0;
+    >    ipr_dict_assume_fmt (s_symbols, "$\(counter)", "%d", $\(counter:c));
+    endif
+    if defined ([0].progress)
+    >    fprintf (stderr, ".");
+    >    fflush  (stderr);
+    endif
+    >    while ($\(expr)) {
+    if defined ([0].progress)
+        >        static int
+        >            progress_indicator = 0;
+    endif
+    >        if (opt_animate)
+    >            icl_console_print ("<while>");
+    >        if (s_connection_interrupt ())
+    >            goto finished;
+    if failover?0
+        >        if (s_session && s_connection_failed ())
+        >            goto exit_failover_$\(pal.session_index);
+    else
+        >        if (s_session && !s_connection_alive ())
+        >            break;
+    endif
+    if defined ([0].counter)
+    >        $\(.counter:c)++;
+    >        ipr_dict_assume_fmt (s_symbols, "$\(counter)", "%d", $\(counter:c));
+    endif
+endfunction
+
+function produce_while_footer
+    if defined ([0].progress)
+        >        if (++progress_indicator == $\(progress)) {
+        >            progress_indicator = 0;
+        >            fprintf (stderr, ".");
+        >            fflush  (stderr);
+        >        }
+    endif
+    >        if (opt_animate)
+    >            icl_console_print ("</while>");
+    >    }
+    if defined ([0].progress)
+    >    fprintf (stderr, "\\\\n");
+    >    fflush  (stderr);
+    endif
+endfunction
+
+
+################################   BREAK
+
+function produce_break
+    >        if (opt_animate)
+    >            icl_console_print ("<break/>");
+    >        break;
+endfunction
+
+
+################################   IF
+
+function produce_if_header
+    get_condition_expr ()
+    >
+    >    if ($\(expr)) {
+    >        if (opt_animate)
+    >            icl_console_print ("<if>");
+endfunction
+
+function produce_if_footer
+    >        if (opt_animate)
+    >            icl_console_print ("</if>");
+    >    }
+endfunction
+
+
+################################   ELSE
+
+function produce_else_header
+    >    else {
+    >        if (opt_animate)
+    >            icl_console_print ("<else>");
+endfunction
+
+function produce_else_footer
+    >        if (opt_animate)
+    >            icl_console_print ("</else>");
+    >    }
+endfunction
+
+
+################################   ELSIF
+
+function produce_elsif_header
+    get_condition_expr ()
+    >    else
+    >    if ($\(expr)) {
+    >        if (opt_animate)
+    >            icl_console_print ("<elsif>");
+endfunction
+
+function produce_elsif_footer
+    >        if (opt_animate)
+    >            icl_console_print ("</elsif>");
+    >    }
+endfunction
+
+
+################################   WAIT
+
+function produce_wait
+    >    if (opt_animate)
+    >        icl_console_print ("<wait/>");
+    >    if (s_session)
+    >        rc = $(protocol.name)_client_session_wait (s_session, $\(intvalue (timeout)));
+    >    else
+    >    if (s_connection)
+    >        rc = $(protocol.name)_client_connection_wait (s_connection, $\(intvalue (timeout)));
+    >    else {
+    >        apr_sleep ($\(intvalue (timeout)) * 1000);
+    >        rc = 0;
+    >    }
+    >    if (s_connection_interrupt ())
+    >        goto finished;
+    if failover?0
+        >    if (s_connection_failed ())
+        >        goto exit_failover_$\(pal.session_index);
+        >    else
+    endif
+    >    if (rc) {
+    >        s_report_error ();
+    >        goto exit_failure;
+    >    }
+endfunction
+
+
+################################   SLEEP
+
+function produce_sleep
+    >    if (opt_animate)
+    >        icl_console_print ("<sleep/>");
+    >    apr_sleep ($\(intvalue (timeout)) * 1000);
+    >    if (s_connection_interrupt ())
+    >        goto finished;
+    if failover?0
+        >    if (s_connection_failed ())
+        >        goto exit_failover_$\(pal.session_index);
+    endif
+endfunction
+
+
+################################   SESSION
+
+\.macro produce_session_header
+    //
+    //  Session script
+    FOREVER {                      //  Enclosing session_$\(pal.session_index) scope
+
+    if (opt_animate)
+        icl_console_print ("<session>");
+    if (opt_execute)
+        fgetc (stdin);
+
+\.  if defined (server)
+    rc = s_establish_session ("$\(server)", instance_name, trace_level, "$\(virtual_host)", $\(timeout));
+\.  else
+    rc = s_establish_session (server_name, instance_name, trace_level, "$\(virtual_host)", $\(timeout));
+\.  endif
+    if (rc)
+        goto exit_failure;
+\.  if direct = 1
+    s_connection->direct = TRUE;
+\.  endif
+\.endmacro
+
+\.macro produce_session_footer
+    if (opt_animate)
+        icl_console_print ("</session>");
+
+    break;                         //  By default, run session just once
+\.  if failover?0
+    //  Try once more to connect to all listed servers
+    exit_failover_$\(pal.session_index):
+        icl_console_print ("W: connection to server was lost, failing over");
+        $(protocol.name)_client_session_destroy (&s_session);
+        $(protocol.name)_client_connection_destroy (&s_connection);
+        apr_sleep ($\(failover) * 1000);
+        continue;                  //  Start session once again
+\.  endif
+    }                              //  Enclosing session_$\(pal.session_index) scope
+    //  Clean exit from session block, disconnect from server
+    $(protocol.name)_client_session_destroy (&s_session);
+    $(protocol.name)_client_connection_destroy (&s_connection);
+\.endmacro
+
+
+################################   METHODS
+
+.macro generate_method (nowait)
+\.macro produce_$(class.name)_$(method.name:c)$(my.nowait??'_nowait')
+    //
+    //  $(class.name).$(method.name:c)$(my.nowait??'_nowait')
+    {
+.   for field where type = "table"
+.       if index() = 1
+        asl_field_list_t
+            *field_list = NULL;
+.       endif
+        icl_longstr_t
+            *$(name:c)_table = NULL;
+.   endfor
+
+        if (opt_animate)
+            icl_console_print ("<$(class.name)_$(method.name:c)/>");
+        if (opt_execute)
+            fgetc (stdin);
+
+.   for field where type = "table"
+        //  Build $(name) field as necessary
+        field_list = asl_field_list_new (NULL);
+\.  for $(name)
+\.      for field
+\.          if type = "string"
+        asl_field_new_string (field_list, "$\(name)", $\(strvalue (value)));
+\.          elsif type = "void"
+        asl_field_new_void (field_list, "$\(name)");
+\.          else
+        asl_field_new_integer (field_list, "$\(name)", $\(intvalue (value)));
+\.          endif
+\.      endfor
+\.  endfor
+        $(name:c)_table = asl_field_list_flatten (field_list);
+        asl_field_list_unlink (&field_list);
+
+.   endfor
+.   for method.argument
+.       delete argument
+.   endfor
+.   new argument to method
+.       argument.name = "s_session"
+.       argument.desc = "Session reference"
+.   endnew
+.   if method.content
+.       new argument to method
+.           argument.name = "$(class.name)_content"
+.           argument.desc = "Message content"
+.       endnew
+.   endif
+.   for field where !field.global & name <> "nowait"
+.       new argument to method
+.           if metat = "char"
+.               argument.name = "'$\(.$(name)?' ')'"
+.           elsif metat = "integer"
+.               argument.name = "$\(intvalue (.$(name)))"
+.           elsif metat = "string"
+.               argument.name = "$\(strvalue (.$(name)))"
+.           elsif type = "longstr"
+\.  echo "$(name) ignored for now"
+.           elsif type = "table"
+.               argument.name = "$(name:c)_table"
+.           endif
+.           argument.desc = "$(string.trim(.)?:left)"
+.       endnew
+.   endfor
+        rc = $(protocol.name)_client_session_$(class.name)_$(method.name:c)$(my.nowait??'_nowait') (
+.   for argument
+            $(name)$(last()??');'?',')  //  $(desc)
+.   endfor
+.   if method.content
+        send_count++;                   //  For transfer speed calculations
+        send_bytes += s_body_size;
+.   endif
+        s_get_session_symbols ();
+.   for field where type = "table"
+        icl_longstr_destroy (&$(name:c)_table);
+.   endfor
+    if (s_connection_interrupt ())
+        goto finished;
+\.  if failover?0
+    if (s_connection_failed ())
+        goto exit_failover_$\(pal.session_index);   //  Clean death - failover
+\.  else
+    if (!s_connection_alive ()) {
+        icl_console_print ("E: connection was closed unexpectedly");
+        goto exit_failure;
+    }
+\.  endif
+        if (rc) {
+            s_report_error ();
+            goto exit_failure;
+        }
+    }
+\.endmacro
+.endmacro
+
+.for class where name <> "direct" by index
+.   for method where !method.internal & count (chassis, name <> "client")
+.       generate_method (0)             #   Normal versions
+.       if count (field, name = "nowait")
+.           generate_method (1)         #   Nowait versions where needed
+.       endif
+.   endfor
+.endfor
+
+
+################################   CONTENT
+.for class where count (field)
+
+\.macro produce_$(class.name)_content
+    //
+    //  Create content
+    {
+        ipr_bucket_t
+            *bucket = NULL;             //  Content bucket
+\.      if defined ([0].exec)
+        ipr_process_t
+            *process;                   //  Process that we run
+\.          if headers = 1
+        FILE
+            *file_stream = NULL;        //  Stdout file returned by command
+        size_t
+            last_posn,                  //  Last position in file
+            file_size;                  //  Full size of stdout
+        icl_shortstr_t
+            header;                     //  Header line
+        ipr_regexp_t
+            *regexp;                    //  Compiled regexp
+        char
+            *name = NULL,               //  Field name
+            *value = NULL;              //  Field value
+\.          endif
+\.      endif
+.   for field where type = "table"
+.       if name = "headers"
+        icl_shortstr_t
+            timestamp;                  //  Formatted timestamp value
+.       endif
+        asl_field_list_t
+            *$(name:c)_list = NULL;
+        icl_longstr_t
+            *$(name:c)_table = NULL;
+.   endfor
+
+        if (opt_animate)
+            icl_console_print ("<$(class.name)_content/>");
+\.      if defined ([0].exec)
+        //  Save content body to stdin file
+        if ($(class.name)_content)
+            $(protocol.name)_content_$(class.name)_save_body ($(class.name)_content, "$\(pal.name).in");
+        else
+            ipr_file_truncate ("$\(pal.name).in");
+
+\.      endif
+        //  Create new content object
+        $(protocol.name)_content_$(class.name)_unlink (&$(class.name)_content);
+        $(class.name)_content = $(protocol.name)_content_$(class.name)_new ();
+
+        //  Set content properties
+.   for field
+.       if metat = "char"
+\.  if defined (.$(name))
+        $(protocol.name)_content_$(class.name)_set_$(name:c) ($(class.name)_content, '$\(.$(name))');
+\.  endif
+.       elsif metat = "integer"
+\.  if defined (.$(name))
+        $(protocol.name)_content_$(class.name)_set_$(name:c) ($(class.name)_content, $\(intvalue (.$(name))));
+\.  endif
+.       elsif metat = "string"
+\.  if defined (.$(name))
+        $(protocol.name)_content_$(class.name)_set_$(name:c) ($(class.name)_content, $\(strvalue (.$(name))));
+\.  endif
+.       elsif type = "longstr"
+\.          echo "$(name) ignored for now"
+.       elsif type = "table"
+        $(name:c)_list = asl_field_list_new (NULL);
+\.  for $(name)
+\.      for field
+\.          if field.type = "string"
+        asl_field_new_string ($(name:c)_list, "$\(name)", $\(strvalue (value)));
+\.          elsif field.type = "integer"
+        asl_field_new_integer ($(name:c)_list, "$\(name)", $\(value));
+\.          elsif field.type = "void"
+        asl_field_new_void ($(name:c)_list, "$\(name)");
+\.          endif
+\.      endfor
+\.  endfor
+.       endif
+.   endfor
+\.
+\.      if defined ([0].exec)
+        //  Get content body by running the command '$\(exec)'
+        process = ipr_process_new ($\(strvalue (exec)), "$\(pal.name).in", "$\(pal.name).out", NULL);
+        ipr_process_start (process, ".");
+        ipr_process_wait  (process, TRUE);
+        rc = ipr_process_exitcode (process);
+        ipr_process_destroy (&process);
+        if (rc == -1) {
+            icl_console_print ("E: '%s' not found", $\(strvalue (exec)));
+            goto exit_failure;
+        }
+        else
+        if (rc) {
+            icl_console_print ("E: '%s' exited with status value %d", $\(strvalue (exec)), rc);
+            goto exit_failure;
+        }
+\.          if headers = 0
+        bucket = ipr_file_slurp ("$\(pal.name).out");
+\.          else
+        //  Parse headers and then body, ended by a blank line
+        file_stream = fopen ("$\(pal.name).out", "rb");
+        assert (file_stream);
+        last_posn = 0;                  //  Start of next line in file
+
+        //  Read until blank line or end of file
+        regexp = ipr_regexp_new ("^([^:]+):`s*(.*)");
+        while (icl_shortstr_read (header, file_stream)) {
+            if (ipr_regexp_match (regexp, header, &name, &value) == 2) {
+                last_posn = ftell (file_stream);
+                ipr_str_lower (name);
+                ipr_str_clean (name, '-', '_');
+.   for field
+.       if metat = "char"
+                if (streq (name, "$(name)"))
+                    $(protocol.name)_content_$(class.name)_set_$(name:c) ($(class.name)_content, *value);
+                else
+.       elsif metat = "integer"
+                if (streq (name, "$(name)"))
+                    $(protocol.name)_content_$(class.name)_set_$(name:c) ($(class.name)_content, ($(ctype)) atoi (value));
+                else
+.       elsif metat = "string"
+                if (streq (name, "$(name)"))
+                    $(protocol.name)_content_$(class.name)_set_$(name:c) ($(class.name)_content, value);
+                else
+.       elsif type = "table"
+.           my.length = string.length (name) + 2
+                if (strlen (name) > $(my.length)
+                &&  memcmp (name, "x_$(name)", $(my.length)) == 0)
+                    asl_field_new_string ($(name:c)_list, name + $(my.length), value);
+                else
+.       endif
+.   endfor
+                    icl_console_print ("Invalid message property '%s' - discarded", name);
+            }
+            else
+            if (last_posn == 0) {
+                //  If first line does not match regexp, we don't have headers
+                fseek (file_stream, 0, SEEK_SET);
+                break;
+            }
+        }
+        ipr_regexp_destroy (&regexp);
+        icl_mem_free (name);
+        icl_mem_free (value);
+
+        file_size = (size_t) (ipr_file_size ("$\(pal.name).out") - last_posn);
+        if (file_size > IPR_BUCKET_MAX_SIZE)
+            file_size = IPR_BUCKET_MAX_SIZE;
+
+        bucket = ipr_bucket_new (file_size);
+        bucket->cur_size = file_size;
+        if (fread (bucket->data, file_size, 1, file_stream) != 1)
+            ipr_bucket_unlink (&bucket);
+        if (bucket) {
+            $(protocol.name)_content_$(class.name)_record_body ($(class.name)_content, bucket);
+            ipr_bucket_unlink (&bucket);
+        }
+\.          endif
+        ipr_file_delete ("$\(pal.name).in");
+        ipr_file_delete ("$\(pal.name).out");
+\.
+\.      elsif defined ([0].read)
+        //  Set content body by reading the file '$\(read)'
+        bucket = ipr_file_slurp ($\(strvalue (read)));
+        if (!bucket) {
+            icl_console_print ("E: cannot read content body from '%s'", $\(strvalue (read)));
+            goto exit_failure;
+        }
+        if (bucket) {
+            $(protocol.name)_content_$(class.name)_record_body ($(class.name)_content, bucket);
+            ipr_bucket_unlink (&bucket);
+        }
+\.
+\.      else
+        //  Set content as specified, or repeat to required size
+        {
+\.          if defined ([0].)
+        char
+            *content_string = NULL;     //  String content, if any
+\.          endif
+        size_t
+            content_size,               //  Total/remaining content size
+            bucket_size;                //  Size of current bucket
+
+\.          if defined ([0].)
+        content_string = $\(strvalue (.));
+        content_size = $\(size??intvalue (.size)?'strlen (content_string)');
+\.          else
+        content_size = $\(intvalue (.size?1024));
+\.          endif
+        for (;
+             (bucket_size = (content_size > IPR_BUCKET_MAX_SIZE) ?
+                 IPR_BUCKET_MAX_SIZE : content_size);
+             content_size -= bucket_size) {
+\.          if defined ([0].)
+            //  Set content body from a string
+            bucket = ipr_bucket_new (bucket_size);
+            ipr_bucket_fill_repeat (bucket,
+                (byte *) content_string, strlen (content_string), bucket_size);
+            //  Text is printable string, so null-terminate it
+            bucket->data [bucket->cur_size] = 0;
+\.
+\.          elsif [0].fill = "random"
+            //  Set content body from a bucket of randomized data
+            bucket = ipr_bucket_new (bucket_size);
+            ipr_bucket_fill_random (bucket, bucket_size);
+\.
+\.          elsif [0].fill = "null" | [0].fill = "repeat"
+            //  Set content body from a bucket of null data
+            bucket = ipr_bucket_new (bucket_size);
+            ipr_bucket_fill_null (bucket, bucket_size);
+\.
+\.          endif
+            assert (bucket);
+            $(protocol.name)_content_$(class.name)_record_body ($(class.name)_content, bucket);
+            ipr_bucket_unlink (&bucket);
+        }
+        }
+\.
+\.      endif
+
+        s_body_size = (size_t) $(class.name)_content->body_size;
+.   for field where type = "table"
+.       if name = "headers"
+        //  Insert timestamps
+        icl_shortstr_fmt (timestamp, "%ld", (long) (s_start_time / 1000000));
+        asl_field_new_string ($(name:c)_list, "X-Timestamp-Base", timestamp);
+        icl_shortstr_fmt (timestamp, "%ld", (long) ((apr_time_now () - s_start_time) / 1000));
+        asl_field_new_string ($(name:c)_list, "X-Timestamp-Delta", timestamp);
+.       endif
+        //  Save $(name) field table
+        $(name:c)_table = asl_field_list_flatten ($(name:c)_list);
+        asl_field_list_unlink (&$(name:c)_list);
+        $(protocol.name)_content_$(class.name)_set_$(name:c) ($(class.name)_content, $(name:c)_table);
+        icl_longstr_destroy (&$(name:c)_table);
+.   endfor
+    }
+\.endmacro
+.endfor
+
+################################   ARRIVED / RETURNED
+.for class where count (field)
+
+\.macro get_$(class.name)_content_properties
+        //  Standard content fields
+        s_body_size = (size_t) $(class.name)_content->body_size;
+        s_get_session_symbols ();
+
+        //  Get content properties
+.   for field
+.       if type = "bit"
+        ipr_dict_assume_fmt (s_symbols, "$(name)", "%d", $(class.name)_content->$(name:c));
+.       elsif type = "char"
+        ipr_dict_assume_fmt (s_symbols, "$(name)", "%c", $(class.name)_content->$(name:c));
+.       elsif type = "octet" | type = "short" | type = "long"
+        ipr_dict_assume_fmt (s_symbols, "$(name)", "%d", $(class.name)_content->$(name:c));
+.       elsif type = "longlong" | type = "timestamp"
+        ipr_dict_assume_fmt (s_symbols, "$(name)", "%ld", (long) $(class.name)_content->$(name:c));
+.       elsif type = "shortstr"
+        ipr_dict_assume     (s_symbols, "$(name)", $(class.name)_content->$(name:c));
+.       elsif type = "longstr"
+\.          echo "$(name) ignored for now"
+.       elsif type = "table"
+
+        field_list = asl_field_list_new ($(class.name)_content->$(name:c));
+        field = asl_field_list_first (field_list);
+        while (field) {
+            icl_shortstr_fmt (field_name, "$(name)-%s", field->name);
+            ipr_dict_assume (s_symbols, field_name, asl_field_string (field));
+.           if name = "headers"
+            if (streq (field->name, "X-Timestamp-Base"))
+                time_base = atol (asl_field_string (field));
+            else
+            if (streq (field->name, "X-Timestamp-Delta")
+            &&  time_base == (long) (s_start_time / 1000000)) {
+                latency = (long) ((apr_time_now () - s_start_time) / 1000) - atol (asl_field_string (field));
+                ipr_stat_record (latencies, (double) latency);
+            }
+.           endif
+            field = asl_field_list_next (&field);
+        }
+        asl_field_list_unlink (&field_list);
+.       endif
+.   endfor
+\.endmacro
+
+\.macro produce_$(class.name)_arrived_header (which)
+    content_processed = 0;
+.   if defined ([0].counter)
+    $\(.counter:c) = 0;
+    ipr_dict_assume_fmt (s_symbols, "$\(counter)", "%d", $\(counter:c));
+.   endif
+    while ($(protocol.name)_client_session_get_$(class.name)_$\(my.which)_count (s_session)) {
+.   if count (field, type = "table")
+        asl_field_list_t
+            *field_list;                //  Field table from content
+        asl_field_t
+            *field;                     //  One field from field table
+        icl_shortstr_t
+            field_name;                 //  Name of field in table
+        long
+            time_base = 0,              //  When script was started
+            latency;                    //  Message latency, msecs
+.   endif
+        asl_reader_t
+            reader;                     //  Body reader
+        ipr_bucket_t
+            *bucket;                    //  Body bucket
+        char
+            *body_text;                 //  Content body text
+
+        if (opt_animate)
+            icl_console_print ("<$(class.name)_$\(my.which)>");
+
+        $(protocol.name)_content_$(class.name)_unlink (&$(class.name)_content);
+        $(class.name)_content = $(protocol.name)_client_session_$(class.name)_$\(my.which) (s_session);
+        assert ($(class.name)_content);
+.       if defined ([0].counter)
+        $\(.counter:c)++;
+        ipr_dict_assume_fmt (s_symbols, "$\(counter)", "%d", $\(counter:c));
+.       endif
+\.  get_$(class.name)_content_properties ()
+        recv_count++;                   //  For transfer speed calculations
+        recv_bytes += s_body_size;
+        content_processed++;
+
+        //  Create body_text symbol from body of message
+        $(protocol.name)_content_$(class.name)_set_reader ($(class.name)_content, &reader, 65535);
+        bucket = $(protocol.name)_content_$(class.name)_replay_body ($(class.name)_content, &reader);
+        if (bucket) {
+            body_text = icl_mem_alloc (bucket->cur_size + 1);
+            memcpy (body_text, bucket->data, bucket->cur_size);
+            body_text [bucket->cur_size] = 0;
+            ipr_dict_assume (s_symbols, "body_text", ipr_str_filter (body_text));
+            icl_mem_free (body_text);
+        }
+        else
+            ipr_dict_assume (s_symbols, "body_text", "(empty)");
+        ipr_bucket_unlink (&bucket);
+\.endmacro
+
+function produce_$(class.name)_arrived_footer (which)
+    >    if (opt_animate)
+    >        icl_console_print ("</$(class.name)_$\(my.which)>");
+    >    }
+endfunction
+
+################################   EMPTY
+
+function produce_empty_header
+    >    if (content_processed == 0) {
+    >        if (opt_animate)
+    >            icl_console_print ("<empty>");
+endfunction
+
+function produce_empty_footer
+    >        if (opt_animate)
+    >            icl_console_print ("</empty>");
+    >    }
+endfunction
+.endfor

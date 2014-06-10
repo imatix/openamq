@@ -1,0 +1,27 @@
+.---------------------------------------------------------------------
+.-  macros.def  Various macro definitions
+.-
+.-  Written:  97/06/02  Pieter Hintjens <ph@imatix.com>
+.-  Revised:  98/12/10  Jonathan Schultz
+.---------------------------------------------------------------------
+
+.-  Macros for common HTML tags and constructions
+
+.macro TITLE  <TITLE>$*</TITLE>
+.macro H1     <H1>$*</H1>
+.macro H2     <H2>$*</H2>
+.macro H3     <H3>$*</H3>
+.macro H4     <H4>$*</H4>
+.macro H5     <H5>$*</H5>
+.macro H6     <H6>$*</H6>
+.macro HREF   <A HREF="$1">$+</A>
+
+.macro THEAD  <TABLE> -
+              <TR ALIGN=LEFT> -
+                  {<TH>$n</TH>} -
+              </TR>
+.macro TBODY  <TR ALIGN=LEFT>{<TD>$n</TD>}</TR>
+.macro TFOOT  </TABLE>
+
+.macro IMAGE  <IMG SRC="$1" WIDTH="&image_width("$1")" -
+              HEIGHT="&image_height("$1")" ALT="$+">

@@ -1,0 +1,51 @@
+
+* direct_max
+    default 4, max 256
+    optimise lookup, cache last ptr
+
+
+* define DMP extensible envelopes
+    - envelope type is string
+    - based on exchange type
+        - fanout
+        - system
+        - direct
+        - topic
+        - headers
+
+DMP/0.2 proposal
+
+C:AMQP%d10.1.0.1                Class = 10, instance = 1, version = 0.1
+S:OCTET 200 OK                  200 OK DMP/0.1
+
+C:OCTET LEASE leasename         specifies name of lease
+S:OCTET 200 OK                  200 OK Lease valid
+
+C:OCTET ENVELOPE envelopename   specifies message envelope
+S:OCTET 200 OK                  200 OK Envelope supported
+
+C:OCTET READY                   specifies client is ready
+S:OCTET 200 OK                  200 OK Ready
+
+Envelope names
+    full
+    tiny
+
+Full envelope (12 bytes + header properties + exchange + routing key)
+[nnnn]                          size of following message data, in network order
+[n][exchange]                   exchange name (AMQP short string), only on feed
+[n][routing key]                routing key (AMQP short string)
+[ff][property...]               header flags + properties (AMQP format)
+[n]                             options octet (Basic.Publish flags)
+[nnn][body]                     content body (length + data)
+
+Tiny envelope (3 bytes + routing key)
+[n][routing key]                routing key (AMQP short string)
+[nn][body]                      content body (length + data)
+
+WireAPI/2
+
+- end-to-end reliability
+    - different models
+- security, ssl + encryption
+- message delivery to function

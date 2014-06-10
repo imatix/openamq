@@ -1,0 +1,8 @@
+<?xml?>
+<pal script = "demo_pal_gen">
+    This script demonstrates how to set variables from the command line.
+    <set name = "number" value = "1234" cmdline = "N" />
+    <set name = "string" value = "abcd" cmdline = "S" />
+    <echo>Number=$number, string=$string</echo>
+</pal>
+

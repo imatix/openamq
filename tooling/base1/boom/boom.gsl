@@ -1,0 +1,124 @@
+#
+#   boom.gsl - Boom GSL script
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+include "mod_pwl.gsl"
+include "mod_pdl.gsl"
+include "pwl_lib.gsl"
+include "makefile.gsl"
+include "license.gsl"
+
+#   This file is missing when we're building Boom from CVS
+if file.locate ("boom_ver.gsl") = ""
+    root.VERSION   = "2.x"
+    root.PRODUCT   = "Boom/" + VERSION
+    root.COPYRIGHT = "Copyright (c) 1996-2009 iMatix Corporation"
+else
+    include "boom_ver.gsl"
+endif
+
+function configure_project (root, product)
+    #   Configure project
+    if my.product = 1
+        >boom I: ------------------------------------------
+        >boom I: configuring $(pdl.name:)/$(pdl.version)...
+    else
+        >boom I: configuring $(pdl.name:)/$(pdl.version)...
+    endif
+    pwl_load (my.root, pdl.workflow)
+    walk_project ("", "configure", "configure")
+    for $(my.root).pwl
+        #   These files are produced incidentally by boomake
+        assert_dependency ("stamp_generate", "generated")
+
+        for target
+            if ! macro ("$(target.name)_main")
+                include script
+            endif
+        endfor
+
+        #   Generate for all targets, or just for specified targets
+        for target where count (pdl.target) = 0 | count (pdl.target, count.name = target.name, count) = 1
+            if my.product = 1
+                generate_product_makefiles ()
+            else
+                generate_project_makefiles ()
+            endif
+            if defined (target.output)
+                assert_dependency (output, "private resource")
+            endif
+        endfor
+
+        for target where count (pdl.target) = 0 | count (pdl.target, count.name = target.name, count) = 1
+            if defined (target.output)
+                stream_output (output)
+            endif
+            invoke_rule ("main")
+            if defined (target.output)
+                stream_pop ()
+            endif
+        endfor
+    endfor
+endfunction
+
+function configure (path)
+    for configure
+        for . where defined (name ()) as entity
+            if name () = "execute" & defined (script)
+                include script
+            endif
+        endfor
+    endfor
+endfunction
+
+global.ignorecase = 0
+if defined (switches.showver)
+    >boom I: $(PRODUCT) - $(COPYRIGHT)
+else
+    #   Load and check project definition (.pdl extension is added)
+    pdlfile = (switches.pdl?"project") + ".pdl"
+    pdl_load ("root", pdlfile)
+
+    if (switches.autodoc ?= 1)
+        pdl_documentation ()
+        pwl_documentation ()
+    else
+        #
+        #   Configure the main project, generate boomake scripts
+        #   For now we do not allow recursion, only two levels (product/project)
+        #   We could alternatively make configure_project recursive.
+        #
+        root.have_children = 0
+        for root.pdl
+            #   First do any child projects if we're packaging a product
+            for project
+                for pdl
+                    pdl.rootdir = project.directory + "/"
+                    dir.setcwd (project.directory)
+                    configure_project ("project", 0)
+                    dir.setcwd ("..")
+                    root.have_children = 1
+                endfor
+            endfor
+
+            #   Now do top-level project
+            pdl.rootdir = ""
+            configure_project ("root", root.have_children)
+        endfor
+    endif
+endif

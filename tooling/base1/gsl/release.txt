@@ -1,0 +1,8 @@
+3.1c2 - 2005/06/07
+
+ - 64-bit clean
+
+3.1c1 - 2005/05/27
+
+ - Added caching of RESULT_NODE objects to improve performance (Jonathan)
+

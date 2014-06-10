@@ -1,0 +1,90 @@
+.#  ----------------------------------------------------------------------------
+.#   Copyright (c) 1996-2009 iMatix Corporation
+.#
+.#   This program is free software; you can redistribute it and/or modify
+.#   it under the terms of the GNU General Public License as published by
+.#   the Free Software Foundation; either version 2 of the License, or (at
+.#   your option) any later version.
+.#
+.#   This program is distributed in the hope that it will be useful, but
+.#   WITHOUT ANY WARRANTY; without even the implied warranty of
+.#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.#   General Public License for more details.
+.#
+.#   For information on alternative licensing for OEMs, please contact
+.#   iMatix Corporation.
+.#  ----------------------------------------------------------------------------
+
+.#   Generate a container "xxx_array.icl" for an array item "xxx.icl"
+.#
+.#   We generate a container class file only if the class does not
+.#   exist.
+.#
+.#   In the following code, selfname/type is the array item class,
+.#   while my.selfname/type is the container class.
+
+.macro generate_container (container)
+.my.selfname = my.container
+.my.selftype = my.container + "_t"
+<?xml?>
+<class
+    name      = "$(my.selfname)"
+    comment   = "Implements the array container for $(selfname)"
+    version   = "1.0"
+    script    = "icl_gen"
+.if defined (class.animate)
+    animate   = "$(class.animate)"
+.endif
+    >
+<doc>
+    This class implements the array container for $(selfname)
+</doc>
+
+<inherit class = "icl_array_head" >
+    <option name = "links"      value = "$(inherit.links?icl.links?0)" />
+    <option name = "prefix"     value = "$(prefix)"/>
+    <option name = "childname"  value = "$(selfname)" />
+    <option name = "childtype"  value = "$(selftype)" />
+    <option name = "count"      value = "$(count?1)" />
+    <option name = "link_to_child" value = "$(inherit.link_to_child?icl.links?0)"/>
+</inherit>
+<option name = "rwlock" value = "$(rwlock?1)" />
+<option name = "alloc"  value = "$(alloc?'cache')" />
+
+<import class = "$(selfname)" />
+
+<context>
+    <!-- add properties for the container -->
+</context>
+
+<method name = "new">
+    <!-- any initialisation code you need -->
+</method>
+
+<method name = "destroy">
+    <!-- any destruction code you need -->
+</method>
+
+<method name = "selftest">
+    <!-- Add your selftest code -->
+    <local>
+    </local>
+</method>
+</class>
+.endmacro
+
+my.container = selfname + "_$(prefix)"
+new import to class
+    import.class = my.container
+endnew
+
+#   We don't regenerate if the class already exists.
+#   To rebuild, the developer has to clean the project.
+my.output = my.container + ".icl"
+if !file.exists (my.output)
+    if (global.top_class.abstract?0) = 0
+        output my.output
+        generate_container (my.container)
+        close
+    endif
+endif

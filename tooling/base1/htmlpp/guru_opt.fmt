@@ -1,0 +1,31 @@
+#
+#   This file defines layout options for Guru mode.
+#
+#   If you want to use this file, rename it to 'guru.fmt', so that
+#   htmlpp will find it and so that you won't be inconvenienced by
+#   future updates.  Check this file in future releases for changes.
+#
+$guru_toc           = "Table of Contents";  #  If empty, no TOC
+$guru_ul            = "<UL>";
+$guru_ol            = "<OL>";
+$guru_li            = "<LI>";
+$guru_hr            = "<HR>";
+$guru_beg_fig       = "<P><B><I>Figure ";
+$guru_end_fig       = "</I></B><BR>";
+$guru_beg_fig_block = "<P><TABLE BORDER=0><TR><TD ALIGN=LEFT>";
+$guru_end_fig_block = "</TD></TR></TABLE></CENTER>";
+$guru_beg_table     = "<P><CENTER><TABLE BORDER=1 WIDTH=90%>";
+$guru_end_table     = "</TABLE></CENTER>";
+$guru_beg_dt        = "<DT><B>";
+$guru_end_dt        = "</B>";
+$guru_dl            = "<DL>";
+$guru_dd            = "<DD>";
+$guru_p             = "<P>";
+$guru_pre           = "<PRE>";
+$guru_tr            = "<TR>";
+$guru_th1           = "<TH ALIGN=LEFT VALIGN=TOP WIDTH=30%>";
+$guru_th2           = "<TH ALIGN=LEFT>";
+$guru_td1           = "<TD VALIGN=TOP WIDTH=30%>";
+$guru_td2           = "<TD>";
+
+

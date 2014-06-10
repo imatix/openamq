@@ -1,0 +1,372 @@
+2.5d1 - 2009/11/24
+
+ - BASE-63 (Handle nested directories correctly)
+
+2.5c0 - 2007/09/04
+
+ - BASE-60 (Quote <set> values in pwl_unix)
+
+2.5b6 - 2007/03/12
+ 
+ - Fixes to license generation
+
+2.5b5 - 2007/02/27
+
+ - Changed default build model to mt,release for Solaris and Linux (BASE-55)
+
+2.5b4 - 2006/09/26
+
+ - Fixed license generation
+
+2.5b3 - 2006/08/28
+
+ - Fixed pdl.install / pdl.deploy (ph)
+ - Fixed license generation
+
+2.5b2 - 2006/06/05
+
+ - License generator update
+
+2.5b1 - 2006/05/05
+
+ - Split off 'c' into foreign pacakge (BASE-52)
+
+2.5b0 - 2006/04/19
+
+ - Added 'lockfree' build model (experimental)
+ - Bug fixes
+
+2.5a4 - 2006/04/03
+
+ - Added 'noopt' and 'gprof' build models
+
+2.5a3 - 2006/02/20
+
+ - Bug fixes
+
+2.5a2 - 2006/01/23
+
+ - Bug fixes
+ - Documentation updates
+
+2.5a1 - 2006/01/20
+
+ - Support for new BOOM_MODEL handling (BASE-22)
+
+2.4d18 - 2005/12/13
+
+ - Removed -Wconversion for gcc, it produces more noise than signal
+
+2.4d17 - 2005/11/28
+
+ - Use -O for gcc debug builds, thus making -Wuninitalized work
+ - Fix some more of the default compiler settings (Solaris, icc, *BSD)
+
+2.4d16 - 2005/11/25
+
+ - Add support for Intel C/C++ on Linux
+ - Enable additional warnings for gcc (-Wuninitialized, -Wconversion)
+
+2.4d15 - 2005/11/17
+
+ - Standardise source/include/object file names for C++ (BASE-25)
+ - C++ related fixes to c/c.bat
+
+2.4d14 - 2005/11/09
+
+ - Rename C++ classes to be consistent with C classes
+
+2.4d13 - 2005/11/09
+
+ - Added <link as="c++"/> and some more C++ classes
+
+2.4d12 - 2005/10/12
+
+ - added distrev option for standard and scripted workflows
+
+2.4d11 - 2005/10/12
+
+ - Changed processing of subdirectories within project, to do these after
+   files in main directory rather than before.  This makes more sense in
+   cases where there are dependencies between the two.
+
+2.4d10 - 2005/10/06
+
+ - distrev option at product level builds package using SVN revision number.
+
+2.4d9 - 2005/10/03
+
+ - Installs into IBASE/bin etc. even if files are in subdirectories.  To create
+   mapped tree, use deploy option.
+
+2.4d8 - 2005/09/16
+
+ - Boom now defines SVN_REVISION macro at compile time.  This is the latest
+   svn revision checked out, or the svn revision from which the sources were
+   built, whichever is more recent.
+ - The BUILDDATE macro in version.h has been deprecated to create more 
+   stable sources (i.e. which don't change each time 'boom configure' is
+   used).
+
+2.4d7 - 2005/09/06
+
+ - Some commands were not echoed in verbose mode - fixed to echo all.
+ - Minor fix to pwl_unix to report exact command if failed
+
+2.4d6 - 2005/09/05
+
+ - Added regression tests - boom test, invoked by boom all
+
+2.4d5 - 2005/08/30
+
+ - Remove duplication in CCOPTS macro
+ - Verbose build (boom -v build) now traces build commands
+ - Further fixes to issues with previous changes
+
+2.4d4 - 2005/08/29
+
+ - Fix use of temporary install tree, cleaned up pwl_unix and pwl_win32.
+
+2.4d3 - 2005/08/26
+
+ - Fix INCDIR/LIBDIR fix in 2.4d0
+ - Only show first 10 lines of error output from compiler
+
+2.4d2 - 2005/08/26
+
+ - Back out support for CFLAGS, the semantics are different
+
+2.4d1 - 2005/08/26
+
+ - Added CCOPTS macro for programs to report compiler syntax.
+ - c scripts now support CFLAGS variable for Unix compatability
+
+2.4d0 - 2005/08/25
+
+ - Removed need to set INCDIR/LIBDIR in environment, and c script
+   now complains if these are set and conflict with IBASE.
+
+2.4c15 - 2005/08/19
+
+ - Disabled tagging in 'version' until SVN is formalised
+
+2.4c14 - 2005/08/19
+
+ - Changed version.h generation to allow version.h to be included
+   in many places in project.  If you want to embed the constants
+   into your code, define VERSION_EMBED before including version.h.
+
+2.4c13 - 2005/08/03
+
+ - Fixed path generation for Unix boomake scripts.
+ - boom -v|-s command now enables/disables tracing immediately
+ - added -s|--silent to disable tracing
+ 
+2.4c12 - 2005/08/03
+
+ - Fixed boom.bat script for SVN
+
+2.4c11 - 2005/07/21
+
+ - Fixed boom script for SVN
+ - Fixed version script for SVN, tagging disabled for now
+ - Added 'compile' command to standard and scripted workflows
+
+2.4c10 - 2005/07/13
+
+ - Fixed makefiles for SVN 
+
+2.4c9 - 2005/06/17
+
+ - syntax error meant INCDIR and LIBDIR were not being set.
+ - source packaging was broken under win32 - fixed.
+ - product-level build was broken under win32 - fixed.
+ 
+2.4c8 - 2005/06/17
+
+ - suppress copy/chmod messages when tracing the build process.
+ 
+2.4c7 - 2005/06/15
+
+ - added SVN support
+
+2.4c6 - 2005/06/07
+
+ - minor bug fixes (version, pwl, pdl)
+
+2.4c5 - 2005/06/02
+
+ - remove non-portable use of 'z' modifier to tar when packaging u
+   (pkg_tgz, pwl_unix.gsl)
+ - set INCDIR and LIBDIR to '.' if not defined (c)
+
+2.4c4 - 2005/05/27
+
+ - minor bug fixes (makefile.gsl, pwl_unix.gsl, pwl_win32.gsl) (Pieter)
+ - re-add proper support for Sun C into c script (Mato)
+ - enhancement to the version script to do cvs tag/commit (Pieter, Mato)
+
+2.4c3 - 2005/04/29
+
+ - added -d option as short cut for --enable-debug, in configure and boom
+
+2.4c2 - 2005/04/25
+
+ - fix 'c' script to work with SunOS 5.8/gcc
+
+2.4c1 - 2005/04/09
+ - "boom all" works correctly in non-CVS environment
+ - project library defaults to "liblocal"
+ - project workflow defaults to "standard.pwl"
+ - project copyright defaults to "Copyright (c) the Author"
+
+2.4c0 - 2005/03/25
+ - "directory" tag now accepts multi-level path names
+ 
+2.4b11 - 2005/03/23
+ - fixed some unix scripting errors
+
+2.4b10 - 2005/03/23
+ - fixed some win32 scripting errors
+
+2.4b9 - 2005/03/23
+ - "boom all" now does clean before building
+
+2.4b8 - 2005/03/22
+ - fixed some Unix scripting errors
+
+2.4b7 - 2005/03/22
+ - fixed display of valid boomake actions on error (win32)
+ - fixed some win32 scripting errors
+
+2.4b6 - 2005/03/22
+ - IBASE consistency check failed on win32
+ - configure at product level showed too many messages (Linux)
+
+2.4b5 - 2005/03/22
+ - fixed warning if IBASE was not set
+ - did not correctly set debug/release mode, fixed
+
+2.4b4 - 2005/03/22
+ - added --verbose/-v switch to boom/configure
+
+2.4b3 - 2005/03/20
+ - distsrc macros now execute in project directory
+ 
+2.4b2 - 2005/03/20
+ - added 'version' tool
+
+2.4b1 - 2005/03/18
+Pieter
+
+  - packages now use hyphens in names instead of underlines.
+  - boom generated product makefiles when used at project level - fixed.
+  - GSL generation and compilation made silent (to reduce verbosity of
+    build process)
+  - added 'boom version' command, prints the project acronym-version
+
+2.4b - 2005/03/17
+Pieter
+
+  - improved output of boom (added --quiet option to boom and configure).
+  - C compilations gave errors on Win32 - fixed.
+  - boom no longer generates build.bat & build.sh for product source kits
+    since these have been made redundant by configure/make.
+  - makefiles were incorrectly generated at product level - fixed.
+  - product source kit did not include makefiles/configure - fixed.
+  - if no IBASE has been configured, configure issues a warning.
+  - dots are no longer replaced by '_' in the archive name.  So we now
+    get archives like "rbase_1.2_src.zip".
+
+2.4a1 - 2005/03/17
+Pieter
+
+  - fixed various syntax errors and warnings in the generated boomake
+    files.
+  - changed "boom clean" to not delete the boomconf configuration file.
+  - defines C preprocessor macro BOOM_MODEL that replaces the hard-coded
+    version BUILDMODEL macros.  BOOM_MODEL is derived from the current
+    setting in boomconf so can be changed by reconfiguration.
+  - did not generate correct configure files at the product level - fixed.
+  - makefiles now use correct BOOM_MODEL setting (done by making c/c.bat
+    use the boomconf file - boomake no longer passes debug switch to c).
+  - all user messages from boom, boom.gsl, boomake and configure now start
+    with 'boom I:', 'boom W:', 'boom E:' as appropriate.
+  - stamp_generate now produced/cleaned by boomake (not makefiles) and
+    included with project source packages.
+  - 'boom distrib' now regenerates project sources (scripted, standard
+    workflows).
+
+2.4a0 - 2005/03/16
+Pieter
+
+  - the install base (IBASE) can now be set at configure time using the
+    --with-ibase option.  If this is not specified the value is taken from
+    the environment variable IBASE and if that is not specified, it takes a
+    system-dependent default.
+  - the BOOM_MODEL environment variable, if defined, provides a default
+    value for the boom build model.  Can be 'debug' or 'release'.
+  - BUILDMODEL environment variable in boomake scripts has been removed in
+    favour of BOOM_MODEL.  (base2/foreign patched OK).
+  - the default build model has been changed to 'release' (was 'debug') for
+    compatibility with the configure command.
+  - the configure command now accepts a small range of options such as
+    --help, -h, --version, -V.
+  - 'configure --enable-debug' now configures the project for a debug
+    build. Alternatively, 'boom --enable-debug configure'.
+  - configure scripts and makefiles are now packaged with the product
+    source and binary packages.
+  - Unix boomake now builds Win32 zip files, with correct line endings
+    (using the zip -l option).  Win32 boomake does not build tar.gz files
+    because we don't assume tar is available.
+  - at both product and project level, source kits now follow the Linux
+    convention of containing a root directory named after the project and
+    version.
+  - "boom clean" removes source packages, when used in a CVS environment.
+    (Not when building from a source package, which would be silly.)
+  - "boom" without arguments now shows a page of help.  To reconfigure,
+    you must run "boom configure".
+  - added -h, --help, -V, --version options to the boom command.
+  - added --enable-debug, --disable-debug, and --with-ibase options to the
+    "boom configure" command.
+  - improved output of "boom help" command (shows all allowed commands for
+    project).
+  - improved reaction of boomake to invalid commands (shows same output as
+    "boom help").
+  - at configure time, IBASE must be provided either via the environment,
+    or via the --with-ibase option.
+  - 'configure' no longer calls boom if it can't find its input makefiles;
+    it now shows a message and exits.
+
+2.3c1 - 2005/03/13
+ Mato
+    - fixed to c.bat to use correct libraries depending on
+      win32 build model
+    - fixes to c.bat to make builds with Visual Studio 7.1 work
+    - added convert71.js script for converting DSP projects to
+      Visual Studio 7.1 format
+    - 'generated module' should derive 'generated header'
+
+2.3c0 - 2005/02/25
+ Pieter
+    - use setlocal to create local environments when necessary
+    - remove _install tree in product-level clean
+    - handle errors passed from project to product builds
+    - use better MSVC debug compile/links
+
+2.3b2 - 2005/02/16
+ Pieter
+    - did not handle local INCDIR/LIBDIR when building in subdirectories
+    - added 'degen' step for cleaning generated sources
+
+2.3b1 - 2005/01/26
+ Pieter
+    - changed default root on Windows to c:\home (from c:\imatix)
+
+2.3b0 - 2004/12/27
+
+ Pieter
+   - product building now resolves both principle IBASE directories
+     and local _install directories (which get preference).
+   - added 'temporary' class
+

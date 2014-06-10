@@ -1,0 +1,493 @@
++ Xitami/5 server documentation
+
+Xitami/5 is the latest generation web server from iMatix Corporation.  The Xitami product line stretches back to 1996.  Version 5 is principally designed to be embedded in other application, like OpenAMQ and Zyre.  Xitami/5 is built using iMatix's current Base2 technology for multithreading applications.  This means it can run on single and multicore systems, with its own green threading model for concurrent processing.  On a single core machine, Xitami/5 is slower than previous versions of the product.  On multicore machines, it is much more scalable.
+
+If you are reading this, most likely you are configuring the HTTP component of one of the applications that uses it, such as Zyre.  If you're running Zyre, just replace all instances of 'xitami' with 'zyre' in all examples.
+
+++ Summary of features and options
+
+Xitami/5 is a simple web server which focuses on security and ease of use.  These are the key features explained in this document:
+
+* Basic and Digest authentication mechanisms using Apache-compatible password files;
+* Standard (NSCA, W3C) and customisable access logs;
+* Scriptable access control using easy-to-write policy language;
+* Predefined access policies: apply blacklist, block hotlinking, private web area;
+* Allow/deny access depending on: client IP address, request headers, user group;
+* Auto-ban for script & form injections, path climbing, proxy probes, over-sized requests.
+
+The on-line help ('xitami --help') explains how to configure further aspects of the server through a set of command-line options:
+
+[[code]]
+  --server_name      Announced server name
+  --port             Server port for HTTP requests
+  --public_port      Public port for HTTP requests
+  --trace            Trace network traffic?
+  --animate          Animate HTTP agent?
+  --verbose          Verbose output?
+  --listen           Address (local network interface) to listen on
+  --webroot          Path to web root directory
+  --index            Index file name
+  --default_types    Default document types
+  --monitor          Monitor interval, seconds
+  --record_stats     Record performance statistics
+  --log_path         Active log file directory
+  --keep_logs        Keep log files
+  --archive_path     Archive log file directory
+  --archive_cmd      Archive log file command
+  --alert_log        Error log file name
+  --access_log       Access log file name
+  --access_log_format  Access log file format
+  --debug_log        Debug log file name
+  --basic_auth       Basic authentication filename
+  --digest_auth      Digest authentication filename
+  --blacklist        Blacklist filename
+  --policy_trace     Debug policy execution?
+  --nervosity        Security nervosity, seconds
+  --header_max       Max size of HTTP header
+  --bucket_max       Max size of content bucket
+  --read_timeout     Network read timeout, seconds
+  --write_timeout    Network write timeout, seconds
+  --tcp_nodelay      TCP/IP NODELAY option
+  --tcp_rcvbuf       TCP/IP receive buffer, in bytes
+  --tcp_sndbuf       TCP/IP send buffer, in bytes
+  --polling_threads  Number of polling OS threads
+  --working_threads  Number of working OS threads
+[[/code]]
+
+++ Access control
+
+A web server is only as good as its security.
+
++++ Overview
+
+Xitami controls access to resources by applying //access control policies// that you define, as system administrator.  In general terms, Xitami works through the list of all defined policies until it either gets a firm "deny" or "allow" for the current request.
+
+The general order of things after an incoming request has been validated, is to:
+
+# First, reject any known bad IP addresses (that is, spammers and hackers).
+# Second, reject certain types of access, such as image hotlinking.
+
+Policies can do various things:
+
+# Deny an address based on a blacklist.
+# Deny or allow the current request based on IP address or the value of certain HTTP headers.
+# Request that the current user be authenticated via Basic or Digest authentication.
+# Allow or deny authenticated users according to group.
+# Automatically ban the current IP address based on the request URI.
+
++++ Predefined policies
+
+Policies are named.  Xitami provides a set of default policies.  You can redefine these in the xitami.cfg file.  These are the default policies:
+
+[[code]]
+<config>
+    <access config_meta = "discrete">
+        <!-- Apply blacklist -->
+        <policy name = "blacklist">
+            <from value = "127.0.0.1">
+                <skip />
+            </from>
+            <blacklist>
+                <deny code = "503" text = "Server overloaded" />
+            </blacklist>
+        </policy>
+
+        <!-- Detect hostile requests, auto-ban offending IP addresses -->
+        <policy name = "auto-ban">
+            <!-- Attempt to smash the server with long requests -->
+            <detect limit = "255"       comment = "long request line" />
+            <!-- Attempts at injections via the URI -->
+            <detect value = "%3Cscript" comment = "script injection" />
+            <detect value = "%3Cform"   comment = "form injection" />
+            <detect value = "%20or"     comment = "SQL injection" />
+            <detect value = "%20and"    comment = "SQL injection" />
+            <detect value = "%20select" comment = "SQL injection" />
+            <detect value = "%20drop"   comment = "SQL injection" />
+            <!-- Attempts to navigate outside the web root -->
+            <detect value = ".."        comment = "path climbing" />
+            <detect value = "%5c"       comment = "Win32 paths" />
+            <detect value = "~"         comment = "Unix paths" />
+            <!-- Probe to see if we're a proxy server -->
+            <detect value = "http://"   comment = "proxy probe" />
+            <default>
+                <echo>W: hostile request from $from ($comment), blacklisting</echo>
+                <echo>W: request='$request'</echo>
+                <ban />
+                <deny code = "503" text = "Server overloaded" />
+            </default>
+        </policy>
+
+        <!-- Deny hotlinking to /local URIs  -->
+        <policy name = "coldlink" uri = "/local">
+            <!-- Not proof against referrer fraud but good for most cases -->
+            <local>
+                <allow />
+            </local>
+            <always>
+                <deny />
+            </always>
+        </policy>
+
+        <!-- Secure the /private area -->
+        <policy name = "private" uri = "/private">
+            <always>
+                <authenticate mechanism = "basic" realm = "Private" />
+            </always>
+            <group value = "users">
+                <allow />
+            </group>
+        </policy>
+
+        <!--  By default other resources are public -->
+        <policy name = "default">
+            <always>
+                <allow />
+            </always>
+        </policy>
+    </access>
+</config>
+[[/code]]
+
++++ Policy language
+
+The access module excecutes all defined policies, except the policy named "default", in order, stopping either when it has executed all policies, or has a 'deny' or 'allow' action.  It will execute the default policy if no other policy provides a 'deny' or 'allow' action.  If there are no policies which return a 'deny' or 'allow', the built in default action is 'deny'.
+
+The policy item can take these options:
+
+* **uri** - if specified, the policy applies only if the requested URI starts with this value.  By default the policy applies all URIs.
+
+Each policy consists of a series of //rules// which contain //actions//.  The access module processes the rules in struct order in a //single pass//.  Rules are tests, which can pass or fail.  If the rule passes, the access module executes the actions.  A 'deny', 'allow', 'ban', or 'redirect' action ends processing of the actions, rules, and policies.
+
+The rules are somewhat like 'if' statements in a scripting language.  The goal of this design is to make policy writing easier than the multi-pass design used by some web servers.
+
+The allowed rules are:
+
+* <blacklist> - check if the IP address of the client application is blacklisted.
+* <from value = "pattern">...</from> - check the IP address of the client application.
+* <header name = "name" value = "pattern">...</header> - check the value of a specific request header.
+* <local>...</local> - check if the referrer is the current host.
+* <detect value = "string" limit = "length">...</detect> - check if the request contains the specified value, or is longer than the specified size.
+* <group value = "pattern">...</group> - check if the user is authenticated and in some group.
+* <always>...</always> - always execute the actions.
+* <default>...</default> - executes the actions for any successful rule that has //no// actions.
+
+The detect value is case insensitive.  The detect rule allows a 'comment' attribute that is available for <echo> statements as $comment.  The from and group patterns use the Unix wildcard syntax, where '*' matches zero or more instances of any character and '?' matches one instance of any character.  The from pattern can also be a [http://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing CIDR] specification, e.g:
+
+[[code]
+<from value = "64.182.*" />
+<from value = "64.182.0.0/16" />
+[[/code]]
+
+The allowed actions are:
+
+* <deny code = "reply-code" text = "reply-text" /> - deny access to the resource.  Default reply code is 403 - FORBIDDEN.  Ends policy processing.
+* <allow /> - allow access to the resource.  Ends policy processing.
+* <authenticate mechanism = "basic|digest" [ realm = "realmname" ] /> - attempts to authenticate the user using the Authorization credentials provided by the browser. If successful, continues policy processing.  If not, returns a 401 UNAUTHORIZED response to the browers.  The default mechanism is "basic", and the default realm is the host name.
+* <redirect uri = "uri" /> - redirects the browser to another URI, on the same or a different server, with a reply code 302 FOUND.  The default uri is "/".  Ends policy processing.
+* <ban /> - adds the browser's IP address to the blacklist.  Ends policy processing.
+* <skip /> - ends processing of this policy and continues with the next.
+* <echo>Message text</echo> - echoes a message to the console and log files.  The message can contain substitution variables as defined below for access logs.
+
++++ Blacklisting
+
+Xitami maintains a single //blacklist// file that is applied to all incoming requests, as an in-built policy.  The blacklist file (by default, "blacklist.txt") consists of IP addresses, one per line.  Whitespace, and any portion of lines starting with '#' are ignored.
+
+The //ban// rule adds an IP address to the blacklist file.  If you want to track bans, use the <echo> action with text that is easy to find using a tool like grep.  Echoed text goes into the alert log file (logs/alert_nnnn.log).
+
+To identify and block specific IP addresses, you should use the <blacklist> rule, which is very fast, rather than the <from> rule.  The <from> rule is suitable for blocking groups of IP addresses (specified by wildcard).  Note that the built-in blacklist policy always allows 127.0.0.1 (the local machine) to pass, even if that address has been blacklisted.
+
+Xitami automatically reloads modified blacklist files, and you can safely edit, delete, or replace the blacklist file at any time while the server is running.  For example, here we start Xitami, then delete the blacklist.txt file, then re-create it with two banned addresses.  This shows Xitami's console output:
+
+[[code]]
+2009-01-01 15:26:15: I: loaded configuration from ./http_base.cfg
+2009-01-01 15:26:15: I: merged configuration from ./xitami.cfg
+2009-01-01 15:26:15: I: blacklist file 'blacklist.txt' loaded (Thu, 01 Jan 2009 14:21:53 UTC, 1 entries)
+2009-01-01 15:26:15: I: hostname is nb200802 (127.0.1.1)
+2009-01-01 15:26:15: I: listening on port 8080, all network interfaces
+2009-01-01 15:26:15: I: initializing HTTP/file plugin on '/'
+2009-01-01 15:26:15: I:  - serving files from 'webpages' directory
+2009-01-01 15:26:16: I: ready for incoming HTTP requests
+2009-01-01 15:26:35: W: blacklist file 'blacklist.txt' not found, or unreadable
+2009-01-01 15:27:12: I: blacklist file 'blacklist.txt' loaded (Thu, 01 Jan 2009 14:27:11 UTC, 2 entries)
+[[/code]]
+
+Since reloading a very large blacklist file may take some resources, Xitami does this at most every 5 seconds.  You can tune this time (called the "nervosity") using the '--nervosity' command line option:
+
+[[code]]
+./xitami --nervosity 1  -X "run a very nervous server"
+[[/code]]
+
++++ The auto-ban policy
+
+The auto-ban policy detects the most frequent attempts to subvert your web server by sending it unfriendly requests.  Xitami likes to shoot first and ask questions later, so any IP address (except 127.0.0.1, which is "you") trying these requests gets immediately blacklisted.  Here is a Perl program that tries them all:
+
+[[code]]
+#!/usr/bin/perl
+#   Perl script to test various hostile requests
+use LWP::UserAgent;
+my $ua = new LWP::UserAgent;
+$ua->agent ('HTTP/Tests');
+
+hostile ("index.html?" . sprintf ("%80s", "*"));
+hostile ("index.html?<script>");
+hostile ("index.html?<form>");
+hostile ("index.html? or");
+hostile ("index.html? and");
+hostile ("index.html? select");
+hostile ("index.html? drop");
+hostile ("../index.html");
+hostile ("c:\\win32\\system");
+hostile ("~/bin/sh");
+#   Probe server to see if we can use it as a proxy
+$ua->proxy('http', 'http://localhost:8080/');
+hostile ("/");
+
+sub hostile {
+    my ($uri) = @_;
+    $request = HTTP::Request->new (GET => "http://localhost:8080/$uri");
+    $response = $ua->request ($request);
+    $response->code == 503 || die;
+}
+[[/code]]
+
+This what Xitami reports:
+
+[[code]]
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (long request line), blacklisting
+2009-01-02 13:28:01: W: request='GET /index.html?%20%20%20%20...20%20%20%20%20* HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (script injection), blacklisting
+2009-01-02 13:28:01: W: request='GET /index.html?%3Cscript%3E HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (form injection), blacklisting
+2009-01-02 13:28:01: W: request='GET /index.html?%3Cform%3E HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (SQL injection), blacklisting
+2009-01-02 13:28:01: W: request='GET /index.html?%20or HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (SQL injection), blacklisting
+2009-01-02 13:28:01: W: request='GET /index.html?%20and HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (SQL injection), blacklisting
+2009-01-02 13:28:01: W: request='GET /index.html?%20select HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (SQL injection), blacklisting
+2009-01-02 13:28:01: W: request='GET /index.html?%20drop HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (path climbing), blacklisting
+2009-01-02 13:28:01: W: request='GET /../index.html HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (Win32 paths), blacklisting
+2009-01-02 13:28:01: W: request='GET /c:%5Cwin32%5Csystem HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (Unix paths), blacklisting
+2009-01-02 13:28:01: W: request='GET /~/bin/sh HTTP/1.1'
+2009-01-02 13:28:01: W: hostile request from 127.0.0.1 (proxy probe), blacklisting
+2009-01-02 13:28:01: W: request='GET http://localhost:8080// HTTP/1.1'
+[[/code]]
+
+Note that the limit on requests is 255 chars, which is very strict.  However, passing over-long requests is a favourite way to break into a web server.  Properly written web applications pass long data via the content body (POST data), not the request line.
+
+After all this fun, the blacklist.txt file contains:
+
+[[code]]
+127.0.0.1
+[[/code]]
+
+Which the server loads but patiently ignores, as defined by the blacklist policy.  Which you can change, as we explain next.
+
++++ Custom policies
+
+You write custom policies in xitami.cfg (the usual configuration file).  There are two things you can do:
+
+# Write new policies that are executed after the built-in ones.
+# Replace the built-in policies with your own versions.
+
+Write your custom policies using the policy syntax explained above, as <policy> items within an <access> item.  The general format for any custom policies is:
+
+[[code]]
+xitami.cfg:
+<?xml?>
+<config>
+    <access>
+        <policy name = "policy-name">
+            rules
+        </policy>
+    </access>
+</config>
+[[/code]]
+
+Where there are usually other config items before and/or after the <access> item, and there will usually be multiple policies.  Here are some examples of custom policies (assuming the general format we just explained:
+
+To change the default policy to deny access to any unauthenticated users:
+
+[[code]]
+<policy name = "default">
+    <always>
+        <allow />
+    </always>
+</policy>
+[[/code]]
+
+To change the authentication mechanism on /private from Basic to Digest:
+
+[[code]]
+<!-- Secure the /private area -->
+<policy name = "private" uri = "/private">
+    <always>
+        <authenticate mechanism = "digest" realm = "Private" />
+    </always>
+    <group value = "users">
+        <allow />
+    </group>
+</policy>
+[[/code]]
+
+To rewrite the blacklist policy:
+
+[[code]]
+<policy name = "blacklist">
+    <blacklist>
+        <echo>Denied access to $from (blacklisted address)</echo>
+        <deny code = "503" text = "Server overloaded" />
+    </blacklist>
+</policy>
+[[/code]]
+
+Note that to change a built-in policy you need to rewrite it completely, there is no sensible way to merge custom and existing policies.
+
++++ Authentication
+
+Xitami uses the Apache //htpasswd// and //htdigest// file formats.  To create password files in these formats, install those tools from Apache.  On Debian Linux, do:
+
+[[code]]
+$ sudo apt-get install apache2-utils
+[[/code]]
+
+If you cannot or do not want to use the Apache tools, you can create a plain (unencrypted) htpasswd file by specifying each user name and password on a new line, separated by a colon, e.g.:
+
+[[code]]
+Kossi:secrets-are-better-shared
+Affi:lets-hope-it-works-this-time
+Admin:super-password
+[[/code]]
+
+Plain text passwords are not secure, but Basic authentication is not secure either: it sends the password in a readable format, which is trivial to sniff off the network.  So if you care at all about security, use the htdigest format and Digest authentication.  You can create password files in various languages, useful if you want to export passwords from another system.  For details on the format of the htpasswd and htdigest files and examples of how to create these in PHP, Java, Ruby and C/C++, see [http://httpd.apache.org/docs/2.2/misc/password_encryptions.html the Apache documentation].
+
++++ Password guard policies
+
+A common way to crack passwords on a system - which works with Basic or Digest authentication - is to use a fast or slow dictionary attack.  A fast attack is the normal approach, in which the bad guy throws the dictionary at the server, trying lots of combinations for a known, or potential user names.  A slow attack uses a distributed botnet to try passwords, slowly (e.g. a few per hour) and from many different addresses.
+
+Xitami lets you guard against this by setting password policies, which are applied on top of the password files made using the Apache htpasswd and htdigest tools.
+
+To expire passwords after a certain time, use this command line option:
+
+[[code]]
+./xitami --password_ttl nnnn
+[[/code]]
+
+Where 'nnnn' is a number of seconds.  For example, to expire passwords after 4 weeks, nnn would be 4*7*24*60*60 which is 2419200.  The default is zero (meaning no expiration).
+
+To expire passwords after a number of failed attempts, use this command line option:
+
+[[code]]
+./xitami --miss_quota nnnn
+[[/code]]
+
+Where 'nnn' is a low number.  Setting this to zero means hackers can try unlimited numbers of wrong passwords.  The default is 5.
+
+You can also expire passwords after a number of //successful// requests.  Use the "--hit_quota" option for that.  The --help option explains all these options in more detail.
+
+Xitami saves password properties to the password files you specified with --basic_auth and --digest_auth.
+
++++ User groups
+
+Currently, user groups are not implemented and Xitami hard-defines the group "users".
+
++++ Debugging policies
+
+Since policies are somewhat like a (very simple) security scripting language, Xitami gives you a way to debug them.  Start the server with the "--policy_trace 1" command line option, and then run your specific test cases.  Here is a typical test case, written in Perl:
+
+[[code]]
+#!/usr/bin/perl
+#   Simple Perl script to test script injection attack
+use LWP::UserAgent;
+my $ua = new LWP::UserAgent;
+$ua->agent ('HTTP/Tests');
+$request = HTTP::Request->new (GET => "http://localhost:8080/index.html?<script>");
+$response = $ua->request ($request);
+print $response->status_line . "\n";
+[[/code]]
+
+And this is what the server reports, when run with '--policy_trace 1' (some output removed for clarity):
+
+[[code]]
+ph@nb200802:~/work/trunk/base2/http$ ./xitami --policy_trace 1
+Xitami/5.0
+Copyright (c) 1996-2009 iMatix Corporation
+2009-01-02 12:19:22: I: loaded configuration from ./http_base.cfg
+2009-01-02 12:19:22: I: merged configuration from ./xitami.cfg
+2009-01-02 12:19:22: I: listening on port 8080, all network interfaces
+2009-01-02 12:19:23: I: ready for incoming HTTP requests
+2009-01-02 12:19:26: P: starting policy check on request 'GET /index.html?%3Cscript%3E HTTP/1.1'
+2009-01-02 12:19:26: P: executing 'blacklist' policy
+2009-01-02 12:19:26: P: executing rule 'blacklist'
+2009-01-02 12:19:26: P: executing 'auto-ban' policy
+2009-01-02 12:19:26: P: executing rule 'detect'
+2009-01-02 12:19:26: P: rule match: request contains '%3Cscript'
+2009-01-02 12:19:26: P: execute action 'echo'
+2009-01-02 12:19:26: W: hostile request from 127.0.0.1 (script injection), blacklisting
+2009-01-02 12:19:26: P: execute action 'echo'
+2009-01-02 12:19:26: W: request='GET /index.html? %Cscript3.614564E-313 HTTP/1.1'
+2009-01-02 12:19:26: P: execute action 'ban'
+2009-01-02 12:19:27: I: blacklist file 'blacklist.txt' loaded (Fri, 02 Jan 2009 11:19:26 UTC, 1 entries)
+[[/code]]
+
+++ Access logs
+
++++ Log formats
+
+Xitami/5 generates access logs in a variety of formats:
+
+* CLF - NCSA/httpd common logging format.
+* CLFX - W3C logging format as used by Apache.  This is the default.
+* Custom defined log format.
+
+Xitami uses templating to produce the log files.  The templates for the above predefined formats are:
+
+* CLF - '$from - $user [$datetime] "$request" $status $sent'
+* CLFX - '$from - $user [$datetime] "$request" $status $sent "$referer" "$agent"'
+
+The log file format is specified by --access_log_format or /config/logging/access_log_format.  If it is not one of the above three values, it is used as a template.  The full list of template variables is:
+
+* $agent - User-Agent header value
+* $arguments - requested URI arguments
+* $datetime - date/time in NCSA format
+* $day - day as two digits
+* $file - filename to which request was translated
+* $from - client address, as dotted number
+* $hh - hour, using 24-hour clock
+* $method - HTTP method
+* $mm - minutes as two digits
+* $mon - month as two digits
+* $path - requested URI path
+* $query - query string, if any
+* $recd - request size, in bytes
+* $referer - Referer header
+* $request - complete request line
+* $sent - response size, in bytes
+* $ss - seconds as two digits
+* $status - response code, 3 digits
+* $user - user name, if authenticated, else -
+* $year - year as four digits
+* $yy - year as two digits
+* $VAR - environment variable VAR
+
++++ Log file management
+
+- where they are
+- names
+- cycling
+- advanced options
+
+Error screens
+    to add text to error messages, create error_nnn.html
+    errors can be customised using /http.css (from http_base.css)
+
+Directory listings
+    .httpdir must be in directory
+    contents of .httpdir are inserted above entry listings
+    listing can be customised using /http.css (from http_base.css)
+
+

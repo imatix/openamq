@@ -1,0 +1,420 @@
+Using command-line options
+==========================
+
+You can set these options from the command-line; they affect only
+the specific instance of the running server:
+
+    --server_name X5               Announced server name
+    --port 80                      Server port for HTTP requests
+    --public_port value            Public port for HTTP requests
+    --trace 0                      Trace network traffic?
+    --animate 0                    Animate HTTP agent?
+    --verbose 0                    Verbose output?
+    --listen *                     Address (local network interface) to listen on
+    --webroot webpages             Path to web root directory
+    --defaults index.html default.html  Default file names
+    --default_types .pdf .html     Default document types
+    --monitor 0                    Monitor interval, seconds
+    --record_stats 0               Record performance statistics
+    --log_path /var/log/xitami     Active log file directory
+    --keep_logs 1                  Keep log files
+    --archive_cmd value            Archive log file command
+    --alert_log alert.log          Error log file name
+    --access_log access.log        Access log file name
+    --access_log_format CLFX       Access log file format
+    --debug_log debug.log          Debug log file name
+    --syslog 0                     Use syslog logging protocol
+    --user value                   User to run server as
+    --group value                  Group to run server as
+    --blacklist blacklist.txt      Blacklist filename
+    --basic_auth passwd            Basic authentication filename
+    --digest_auth digest           Digest authentication filename
+    --password_ttl 0               Password time-to-live, in seconds
+    --hit_quota 0                  Password hit quota in pages
+    --miss_quota 5                 Password miss quota in requests
+    --password_guard 10            Password guard timer, in seconds.
+    --policy_trace 0               Debug policy execution?
+    --nervosity 5                  Security nervosity, seconds
+    --nonce_ttl 60                 Nonce time-to-live, seconds
+    --nonce_quota 25               Nonce quota in requests
+    --refresh_by value             Shell command for password refresh
+    --refresh_log password_refresh.log  Stdout for password refresh
+    --address_quota 5              Maximum open connections per address
+    --abort_delay 5                Pause time for hostile connections
+    --coremark_cycles 250000       Duration of CoreMark test
+    --header_max 32000             Max size of HTTP header
+    --bucket_max 128000            Max size of content bucket
+    --read_timeout 60              Network read timeout, seconds
+    --write_timeout 60             Network write timeout, seconds
+    --accept_retry_timeout 60      Timeout before retrying accept calls, seconds
+    --tcp_nodelay 1                TCP/IP NODELAY option
+    --tcp_rcvbuf 0                 TCP/IP receive buffer, in bytes
+    --tcp_sndbuf 0                 TCP/IP send buffer, in bytes
+    --polling_threads 4            Number of polling OS threads
+    --working_threads 4            Number of working OS threads
+    --etag fixed                   ETag header for files
+
+Creating a configuration file
+=============================
+
+You can also set the above options in an XML text file, to affect
+all future instances of the running server. To create a new XML
+configuration file, copy the following block to an editor session,
+and then:
+
+ 1. Delete all options you want to leave as default.
+ 2. Delete this comment and update your name and the date.
+ 3. Save file as new xitami.cfg or merge with existing copy.
+ 4. Restart the server.
+
+    <?xml version="1.0"?>
+    <!--
+        Revised: yyyy/mm/dd by yourname
+     -->
+    
+    <config>
+        <server
+            name = "X5"
+            port = "80"
+            public_port = "value"
+            trace = "0"
+            animate = "0"
+            verbose = "0"
+            listen = "*"
+        />
+        <host
+            webroot = "webpages"
+            defaults = "index.html default.html"
+            default_types = ".pdf .html"
+        />
+        <resources
+            monitor = "0"
+            record_stats = "0"
+        />
+        <logging
+            log_path = "/var/log/xitami"
+            keep_logs = "1"
+            archive_cmd = "value"
+            alert_log = "alert.log"
+            access_log = "access.log"
+            access_log_format = "CLFX"
+            debug_log = "debug.log"
+            syslog = "0"
+        />
+        <security
+            user = "value"
+            group = "value"
+            blacklist = "blacklist.txt"
+            basic_auth = "passwd"
+            digest_auth = "digest"
+            password_ttl = "0"
+            hit_quota = "0"
+            miss_quota = "5"
+            password_guard = "10"
+            policy_trace = "0"
+            nervosity = "5"
+            nonce_ttl = "60"
+            nonce_quota = "25"
+            refresh_by = "value"
+            refresh_log = "password_refresh.log"
+            address_quota = "5"
+            abort_delay = "5"
+        />
+        <tuning
+            coremark_cycles = "250000"
+            header_max = "32000"
+            bucket_max = "128000"
+            read_timeout = "60"
+            write_timeout = "60"
+            accept_retry_timeout = "60"
+            tcp_nodelay = "1"
+            tcp_rcvbuf = "0"
+            tcp_sndbuf = "0"
+            polling_threads = "4"
+            working_threads = "4"
+        />
+        <cache
+            etag = "fixed"
+        />
+    </config>
+
+Setting server options
+===========================
+
+name = "X5":
+    Specifies the Server: header field name for HTTP responses. Default
+    value is X5.                                                       
+port = "80":
+    Specifies the port that the server opens for HTTP requests. The       
+    standard port for HTTP is 80. If you want to run the server in        
+    parallel with other HTTP servers on the same server, choose a server  
+    port of 4096 or higher. If you are serving Internet clients, your     
+    network may map a public port to the server port number. In that case,
+    you may need to specify the public port number separately. Default    
+    value is 80.                                                          
+public_port = "value":
+    Specifies the public port for client requests, if not the standard  
+    port number for HTTP (80). The server needs to know this value in   
+    order to format accurate redirection responses. Default value is not
+    defined.                                                            
+trace = "0":
+    If set, the HTTP agent displays all socket i/o, which can be useful if
+    you need to verify what exactly web clients are sending and getting   
+    back from the server. Do not enable this with high loads because you  
+    will get enormous amounts of output. Default value is 0.              
+animate = "0":
+    If set, the HTTP agent displays its activity, which can be useful if
+    you need to verify how HTTP requests are being processed. Do not    
+    enable this with high loads because you will get enormous amounts of
+    output. Default value is 0.                                         
+verbose = "0":
+    If set, the HTTP agent displays all input and output headers, which  
+    can be useful for debugging configuration issues. Default value is 0.
+listen = "*":
+    Specifies the network interface on which the server should listen for
+    connections. By default this is *, meaning all interfaces. You would 
+    choose to set an address when you use this application on a box with 
+    multiple network interfaces, e.g. routing between two networks.      
+    Default value is *.                                                  
+
+Setting host options
+===========================
+
+webroot = "webpages":
+    Specifies the web root directory. Normally this is used to hold static
+    resources - HTML, images, etc. The web root maps to the / URI. Default
+    value is webpages.                                                    
+defaults = "index.html default.html":
+    Specifies a space-delimited list of file names to use as defaults on  
+    an empty URI path (the URI refers to a directory name). If none of the
+    defaults are present, Xitami will look for a file called .httpdir and 
+    if that is present, it will format a directory listing. Default value 
+    is index.html default.html.                                           
+default_types = ".pdf .html":
+    Specifies a list of default document types. The server implements a   
+    feature called 'default typing' in which you can specify URIs without 
+    file extensions. The default types are specified in order. You can use
+    this to publish a URI that specifies an HTML document, for example,   
+    and later replace it with a PDF without breaking the published URI.   
+    Default value is .pdf .html.                                          
+
+Setting resources options
+===========================
+
+monitor = "0":
+    Specifies the interval in seconds at which the server will report its
+    request/response rates. If zero, no monitoring is shown. The         
+    recommended value is 1, if monitoring is desired. Default value is 0.
+record_stats = "0":
+    Specifies whether or not the server records performance statistics in 
+    a format suitable for importing into a spreadsheet. If set, the server
+    creates a file called 'http_stats_(portnumber).del' which contains    
+    performance statistics in a comma-delimited format. For this setting  
+    to take effect, the monitor option must also be set. Default value is 
+    0.                                                                    
+
+Setting logging options
+===========================
+
+log_path = "/var/log/xitami":
+    Specifies the directory into which active log files are placed. To get
+    the old behaviour, set this option to 'logs'. Default value is        
+    /var/log/xitami.                                                      
+keep_logs = "1":
+    Specifies whether or not the server should keep logs. If zero, the   
+    server will not keep logs. If 1, it will keep an alert log, an access
+    log, and a debug log as specified. Default value is 1.               
+archive_cmd = "value":
+    If specified, this command is run on all archived log files. You can 
+    use this option to compress archived log files, or clean up old and  
+    unwanted files. When the command is run, the name of the archived log
+    file is provided to it as a single argument. Default value is not    
+    defined.                                                             
+alert_log = "alert.log":
+    The name of the alert log file, which records all errors and warnings 
+    issued by the server. Note that the server port number is always added
+    to the name of the log file. Default value is alert.log.              
+access_log = "access.log":
+    The name of the access log file, which records all HTTP requests in   
+    the specified access log format. Note that the server port number is  
+    always added to the name of the log file. Default value is access.log.
+access_log_format = "CLFX":
+    The format of the access log file, which can be one of: CLF -     
+    NCSA/httpd common logging format (basic); CLFX - Apache format; or
+    other - custom log file format. Default value is CLFX.            
+debug_log = "debug.log":
+    The name of the debug log file, which records all normal activity,   
+    errors, and debug trace information. Note that the server port number
+    is always added to the name of the log file. Default value is        
+    debug.log.                                                           
+syslog = "0":
+    Specifies whether or not to use the syslog protocol for logging. By   
+    default log files are written directly to disk. If this option is set 
+    to 1, uses the syslog protocol for all log files. Uses a priority     
+    depending on the type of log message (LOG_ERROR, LOG_INFO, LOG_DEBUG).
+    Uses the LOG_DAEMON facility. Has no effect on Windows. Overrides the 
+    keep_logs option. Default value is 0.                                 
+
+Setting security options
+===========================
+
+user = "value":
+    If you specify a user and group, the server will switch to that user
+    and group after opening its port, thus dropping any privileges it   
+    previously had. Default value is not defined.                       
+group = "value":
+    If you specify a user and group, the server will switch to that user
+    and group after opening its port, thus dropping any privileges it   
+    previously had. Default value is not defined.                       
+blacklist = "blacklist.txt":
+    Specifies a text file to use for the blacklist. The blacklist is an   
+    easy way to blacklist IP addresses of spammers without modifying the  
+    main server configuration files. This file contains one IP address per
+    line. To disable blacklisting, set the option to a non-existent file  
+    or "". Default value is blacklist.txt.                                
+basic_auth = "passwd":
+    Specifies the file to use for Basic authentication. The file uses the
+    Apache htpasswd format, see                                          
+    http://httpd.apache.org/docs/2.2/misc/password_encryptions.html. The 
+    plain text format of each line in this file, if you don't have the   
+    htpasswd tool, is '{username}:{password}'. You can mix digest and    
+    passwd password entries in a single file. Default value is passwd.   
+digest_auth = "digest":
+    Specifies the file to use for Digest authentication. The file uses the
+    Apache htdigest format, see                                           
+    http://httpd.apache.org/docs/2.2/misc/password_encryptions.html.      
+    Default value is digest.                                              
+password_ttl = "0":
+    If set to a non-zero value, passwords will expire this many seconds  
+    after they are first loaded into Xitami. You can reset an expired    
+    password by editing the password file or setting a new password using
+    the Apache htpasswd / htdigest tools. Default value is 0.            
+hit_quota = "0":
+    If greater than zero, specifies the number of requests that a browser
+    can make using the same user id (+ realm, for Digest authentication).
+    When this quota is exhausted, the id password expires. You can reset 
+    an expired password by editing the password file or setting a new    
+    password using the Apache htpasswd / htdigest tools. Default value is
+    0.                                                                   
+miss_quota = "5":
+    If greater than zero, specifies the number of failed requests that a
+    browser can make using the same user id (+ realm, for Digest        
+    authentication). When this quota is exhausted, the id password      
+    expires. You can reset an expired password by editing the password  
+    file or setting a new password using the Apache htpasswd / htdigest 
+    tools. Default value is 5.                                          
+password_guard = "10":
+    If greater than zero, specifies the frequency with which Xitami saves 
+    password guard data. The password guard ensures that the hit and miss 
+    quotas are properly written to disk so that if Xitami is restarted    
+    this data is not lost. If set to zero, Xitami will never save password
+    guard data. Default value is 10.                                      
+policy_trace = "0":
+    Specifies whether policy execution is logged or not. Set this option 
+    to get a visual trace of policy execution, especially when you write 
+    your own policies. Do not use on production servers, it will generate
+    vast amounts of output and slow things down. Default value is 0. This
+    option can be changed at runtime.                                    
+nervosity = "5":
+    Specifies the interval in seconds at which the server will reload    
+    externally modified security files (blacklist, password, and digest).
+    You can reduce this to one second but this will cause latency spikes 
+    due to CPU burn and memory churn if you have very large blacklist    
+    files. Default value is 5. Minimum value is 1.                       
+nonce_ttl = "60":
+    This specifies the validity for Digest authentication nonces. Reducing
+    this will increase chatter, as browsers need to request new nonces    
+    more often, but reduces the opportunity for replay attacks. Default   
+    value is 60. Minimum value is 1.                                      
+nonce_quota = "25":
+    This specifies the number of requests that a browser can make using 
+    the same Digest authentication nonce. When this quota is exhausted, 
+    the nonce expires. If set to 1, browsers must ask for a new nonce at
+    each request. Default value is 25. Minimum value is 1.              
+refresh_by = "value":
+    If specified, the http_access_refresh module runs this command to   
+    refresh expired or unknown passwords. You may use this to tie Xitami
+    authentication to external or system authentication systems. See    
+    documentation for details. Default value is not defined.            
+refresh_log = "password_refresh.log":
+    Specifies the log file for the refresh command. All messages produced
+    by the refresh command (stdout and stderr) will be appended to this  
+    file. Default value is password_refresh.log.                         
+address_quota = "5":
+    If greater than zero, specifies the number of open connections a    
+    client can have. Setting this value to zero allows unlimited        
+    connections per address. This setting is used by the DoS module to  
+    detect and handle simple attempts to crash the server by overloading
+    it with lots of connections. Default value is 5.                    
+abort_delay = "5":
+    This specifies the number of seconds that the server will wait, when
+    shutting a connection due to detected hostile activity. The delay   
+    wastes browser time, making attacks less efficient. Default value is
+    5.                                                                  
+
+Setting tuning options
+===========================
+
+coremark_cycles = "250000":
+    Defines the duration of the automatic CoreMark performance test, in  
+    event cycles. If 0, no test will be done. Setting this too high will 
+    cause the server to burn CPU at startup. A good value is between 100k
+    and 1M. Default value is 250000.                                     
+header_max = "32000":
+    Defines the limit for HTTP headers; the server will accept up to this
+    much data. You can increase the limit if you have applications that  
+    pass excessive amounts of data as URI arguments, but usually it is   
+    recommended to pass large web forms as POST body data. Default value 
+    is 32000. Minimum value is 2048. Maximum value is 2097152.           
+bucket_max = "128000":
+    Defines the limit for content managed as a memory bucket. The HTTP   
+    server can handle contents of any size, but if they exceed the bucket
+    max they will be spooled to disk, which can be slow. Default value is
+    128000. Maximum value is 2097152.                                    
+read_timeout = "60":
+    Defines the timeout for network reads. If a client does not send data 
+    within this time, it is considered dead. If you get unexpected timeout
+    errors in the logs, you may want to increase this value. Default value
+    is 60.                                                                
+write_timeout = "60":
+    Defines the timeout for network writes. If a client does not accept
+    data within this time, it is considered dead. If you get unexpected
+    timeout errors in the logs, you may want to increase this value.   
+    Default value is 60.                                               
+accept_retry_timeout = "60":
+    Defines the amount of time the server will wait before retrying an    
+    accept call if the call failed due to running out of file descriptors.
+    Default value is 60. Minimum value is 1.                              
+tcp_nodelay = "1":
+    If this value is 1, socket data is written immediately, which is     
+    usually good for latency. If this value is 0, data is buffered until 
+    there is a full packet, which is usually good for throughput. Default
+    value is 1.                                                          
+tcp_rcvbuf = "0":
+    If this value is greater than zero, all client connections will use  
+    the specified value. Note: setting this value is delicate, do not use
+    this option unless you know what you are doing. Default value is 0.  
+tcp_sndbuf = "0":
+    If this value is greater than zero, all client connections will use  
+    the specified value. Note: setting this value is delicate, do not use
+    this option unless you know what you are doing. Default value is 0.  
+polling_threads = "4":
+    On multithreaded builds, defines the number of OS threads dedicated to
+    socket polling. Default value is 4.                                   
+working_threads = "4":
+    On multithreaded builds, defines the number of OS threads dedicated to
+    processing, that is, tasks other than socket polling. Default value is
+    4.                                                                    
+
+Setting cache options
+===========================
+
+etag = "fixed":
+    Defines the ETag header value to use for files. If 'fixed', the ETag  
+    consists of the file's modified time, size, and inode. If the etag    
+    option is 'float', the ETag consists of the file's modified time and  
+    size only. This is useful for large deployments where files are served
+    from multiple file systems. If the ETag option is set to any other    
+    value, no ETag headers will be produced. Default value is fixed.      
+
+

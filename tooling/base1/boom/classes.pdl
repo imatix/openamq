@@ -1,0 +1,364 @@
+<?xml?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<pdl name = "Standard PDL Classes">
+    <class name = "private resource">
+    Any text resource used to build the project.  This is a base class
+    used for most other classes.
+        <distrib as = "source"  />
+    </class>
+
+    <class name = "public resource" inherit = "private resource" >
+    Any text resource that will be installed with the application.
+        <distrib as = "binary"  />
+        <install as = "resource"/>
+    </class>
+
+    <class name = "generated resource" generated = "1" >
+    Generated public resource.
+        <distrib as = "source"  />
+        <distrib as = "binary"  />
+        <install as = "resource"/>
+    </class>
+
+    <class name = "public script" inherit = "private resource" >
+    Script in GSL or another language that will be installed with the
+    application.
+        <distrib as = "binary"  />
+        <install as = "script"  />
+    </class>
+
+    <class name = "generated script" generated = "1" >
+    Generated public script.
+        <distrib as = "source"  />
+        <distrib as = "binary"  />
+        <install as = "script"  />
+    </class>
+
+    <class name = "command script" inherit = "private resource">
+    Script in Perl or another language that will be installed with the
+    application and will be marked 'executable' on systems that support
+    the #! convention.
+        <distrib as = "binary"  />
+        <install as = "command" />
+    </class>
+
+    <class name = "private binary">
+    Any binary resource used to build the project.
+        <distrib as = "source"  />
+    </class>
+
+    <class name = "public binary" inherit = "private binary">
+    Binary resource that is installed with the application.
+        <distrib as = "binary"  />
+        <install as = "resource"/>
+    </class>
+
+    <class name = "main program" inherit = "private resource">
+    ANSI C main program, compiled and linked from command line
+        <build>
+            <compile as = "c" />
+            <link/>
+        </build>
+        <derive class = "private object"  />
+        <derive class = "private command" />
+    </class>
+
+    <class name = "generated main" inherit = "main program" generated = "1">
+    Generated main program.
+    </class>
+    
+    <class name = "sub program" inherit = "private resource">
+    ANSI C sub program, compiled and replaced into library
+        <build>
+            <compile as = "c"/>
+            <replace/>
+        </build>
+        <derive class = "private object" />
+    </class>
+
+    <class name = "generated program" inherit = "sub program" generated = "1">
+    ANSI C sub program, compiled and replaced into library, generated during
+    packaging.
+    </class>
+
+    <class name = "library module" inherit = "sub program">
+    ANSI C sub program, compiled and replaced into library, with header file.
+        <derive class = "private resource" extension = ".h" />
+    </class>
+
+    <class name = "dialog module" inherit = "library module">
+    Library program based on a Libero dialog.
+        <derive class = "c dialog" extension = ".l" />
+    </class>
+
+    <class name = "test program" inherit = "main program">
+    ANSI C test program
+        <test>
+            <run/>
+        </test>
+    </class>
+
+    <class name = "generated test" inherit = "test program" generated = "1">
+    ANSI C test program, generated
+    </class>
+
+    <class name = "generated module" inherit = "generated program">
+    ANSI C sub program, compiled and replaced into library, generated during
+    packaging, with derived header file.
+        <derive class = "generated header" extension = ".h" />
+    </class>
+
+    <class name = "public header" inherit = "private resource">
+    Public header file, used for compilation and installed with application.
+        <distrib as = "binary"  />
+        <install as = "include" />
+    </class>
+
+    <class name = "generated header" generated = "1">
+    Generated header file, used for compilation and installed with application.
+        <distrib as = "source"  />
+        <distrib as = "binary"  />
+        <install as = "include" />
+    </class>
+
+    <class name = "dialog" inherit = "private resource">
+    Libero dialog file.  The schema must be specified in the dialog file.
+        <generate>
+            <execute command = "lr -quiet" />
+        </generate>
+    </class>
+
+    <class name = "c dialog" inherit = "dialog">
+    Libero dialog made for a C program.
+        <derive extension = ".i"   class = "generated" />
+        <derive extension = ".d"   class = "generated" />
+    </class>
+
+    <class name = "perl dialog" inherit = "dialog">
+    Libero dialog made for a Perl program.
+        <derive extension = ".d"   class = "generated resource" />
+    </class>
+
+    <class name = "c/libero" inherit = "sub program">
+    C program that includes a Libero dialog and all associated files.
+        <derive extension = ".l"   class = "c dialog" />
+    </class>
+
+    <class name = "c/libero main" inherit = "main program">
+    C program that includes a Libero dialog and all associated files.
+        <derive extension = ".l"   class = "c dialog" />
+    </class>
+
+    <class name = "perl/libero" inherit = "command script">
+    Perl script that includes a Libero dialog and all associated files.
+        <derive extension = ".l"   class = "perl dialog"  />
+        <derive extension = ".bat" class = "dos wrapper"  />
+    </class>
+
+    <class name = "dos wrapper" inherit = "public script" target = "win32">
+    Windows command batch file.
+    </class>
+
+    <class name = "gsl data" inherit = "private resource">
+    GSL XML data file, used to generate code.  The associated script must be
+    specified in the XML file.
+        <generate>
+            <execute command = "gsl -q -quiet:1" />
+        </generate>
+    </class>
+
+    <class name = "gsl public data" inherit = "public resource">
+    GSL XML data file, used to generate code.  The associated script must be
+    specified in the XML file.  Installed as a public resource.
+        <generate>
+            <execute command = "gsl -q -quiet:1" />
+        </generate>
+    </class>
+
+    <class name = "gsl3 data" inherit = "private resource">
+    GSL XML data file, used to generate code.  The associated script must be
+    specified in the XML file.
+        <generate>
+            <execute command = "gsl3 -q" />
+        </generate>
+    </class>
+
+    <class name = "fat test" inherit = "gsl data" >
+    GSL XML file that generates a main test program.
+        <derive extension = ".c" class = "generated test" />
+    </class>
+
+    <class name = "fat module" inherit = "gsl data">
+    GSL XML data file that generates an eponymous library module and header.
+        <derive extension = ".c"  class = "generated module" />
+        <derive extension = ".h"  class = "generated"        />
+    </class>
+
+    <class name = "fat main" inherit = "gsl data">
+    GSL XML data file that generates a main program (and a header).
+        <derive extension = ".c"  class = "generated main" />
+        <derive extension = ".h"  class = "generated"      />
+    </class>
+
+    <class name = "readme" inherit = "private resource">
+    Project readme file, may be shown during installation.
+        <distrib as = "binary"  />
+        <install as = "readme"  />
+    </class>
+
+    <class name = "license" inherit = "private resource" shared = "1">
+    Project license file, may be shown during installation.
+        <distrib as = "binary"  />
+        <install as = "license" />
+    </class>
+
+    <class name = "shared resource" inherit = "private resource" shared = "1">
+    Shared resources are packaged directly from the binary directory if they are
+    not already present in the project directory.
+        <distrib as = "binary"   />
+        <install as = "resource" />
+    </class>
+
+    <class name = "htmlpp document" inherit = "private resource">
+    Htmlpp source document.
+        <generate>
+            <execute command = "htmlpp -quiet"/>
+        </generate>
+    </class>
+
+    <class name = "generated" generated = "1">
+    Any other generated file that is distributed as source but not installed.
+        <distrib as = "source" />
+    </class>
+
+    <class name = "temporary" generated = "1">
+    Any other generated file that is not distributed at all.
+    </class>
+
+    <class name = "documentation" inherit = "private resource">
+    Hand-written project documentation in any text form.
+        <distrib as = "binary"   />
+        <install as = "document" />
+    </class>
+
+    <class name = "htmlpp output" generated = "1">
+    Htmlpp generated file.
+        <distrib as = "source"   />
+        <distrib as = "binary"   />
+        <install as = "document" />
+    </class>
+
+    <class name = "gurudoc text" inherit = "documentation">
+    Gurudoc input file, will be converted into default web output.
+        <derive extension = ".gdl"   class = "temporary"      />
+        <derive extension = "*.html" class = "gurudoc output" />
+        <generate>
+            <execute command = "gurudoc"/>
+        </generate>
+    </class>
+
+    <class name = "gurudoc output" generated = "1">
+    Gurudoc generated file.
+        <distrib as = "source"   />
+        <distrib as = "binary"   />
+        <install as = "document" />
+    </class>
+
+    <class name = "web resource">
+    Image file required for HTML documentation.
+        <distrib as = "source"  format = "raw" />
+        <distrib as = "binary"  format = "raw" />
+        <install as = "document" />
+    </class>
+
+    <class name = "bootstrap image">
+    Executable file used to bootstrap a project: this will be included
+    in any source distribution, and must be specified in the project with
+    a native extension (.exe for Windows).
+        <distrib as = "source"  format = "raw" />
+        <distrib as = "binary"  format = "raw" />
+        <install as = "command" />
+    </class>
+
+    <class name = "bootstrap library">
+    Library file used to bootstrap a project: this will be included in
+    any source distribution and must be specified in the project with a
+    native extension (.lib for Windows or .a for Unix).
+        <distrib as = "source"  format = "raw" />
+        <distrib as = "binary"  format = "raw" />
+        <install as = "library" />
+    </class>
+
+    <class name = "private object" generated = "1" filetype = "object">
+    Compiled program object file.
+    </class>
+
+    <class name = "public object" generated = "1" filetype = "object">
+    Compiled program object file installed with the application.
+        <distrib as = "binary" format = "raw" />
+        <install as = "command" />
+    </class>
+
+    <class name = "private command" generated = "1" filetype = "command">
+    Executable program for test purposes.
+    </class>
+
+    <class name = "public command" generated = "1" filetype = "command">
+    Executable program, installed with the application.
+        <distrib as = "binary" format = "raw" />
+        <install as = "command" />
+    </class>
+
+    <class name = "private library" generated = "1" filetype = "library">
+    Object library used for build process only.
+    </class>
+
+    <class name = "public library" generated = "1" filetype = "library">
+    Object library, installed with the application.
+        <distrib as = "binary" format = "raw" />
+        <install as = "library" />
+    </class>
+
+    <class name = "shared library" generated = "1">
+    Non-portable shared link library, installed with the application.
+        <distrib as = "binary" format = "raw" />
+        <install as = "library" />
+    </class>
+
+    <class name = "c version" inherit = "private resource">
+    Generated version header for C projects.
+        <configure>
+            <execute script = "version.gsl" as = "c" />
+        </configure>
+    </class>
+
+    <class name = "gsl version" inherit = "public script">
+    Generated version header for GSL projects.
+        <configure>
+            <execute script = "version.gsl" as = "gsl" />
+        </configure>
+    </class>
+
+    <class name = "perl version" inherit = "public script">
+    Generated version header for Perl projects.
+        <configure>
+            <execute script = "version.gsl" as = "perl" />
+        </configure>
+    </class>
+</pdl>

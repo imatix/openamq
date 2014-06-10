@@ -1,0 +1,372 @@
+#  ----------------------------------------------------------------------------
+#   ASL documentation target
+#   Generates a gurudoc document from the ASL specifications.
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+#
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+#   All output spacing (blank line) is done at the start of the output block.
+#
+#   TODO
+#       - xnf is not providing a default name for <doc> items
+#
+#  ----------------------------------------------------------------------------
+
+function output_title (title, linetype)
+    >
+    >$(my.title:neat)
+    >$((my.linetype + "") * string.length (my.title))
+endfunction
+
+function output_doc (name, header, reformat)
+    my.reformat ?= 1
+    for doc where name = my.name?""
+        if defined (my.header) & index () = 1
+            >
+            >$(my.header):
+        endif
+        >
+        if my.reformat
+            >$(string.trim (doc.?''):justify                                         )
+        else
+            >$(string.trim (doc.?''))
+        endif
+    endfor
+endfunction
+
+function output_rules (force)
+    if count (doc, name = "rule") | my.force ?= 1
+        >
+        >Guidelines for implementors:
+    endif
+    for doc where doc.name = "rule"
+        >
+        >$("-":block) \
+        >$(doc.?'':justify,block                                             )
+    endfor
+endfunction
+
+function output_chassis (chassis)
+    >
+    >The $(my.chassis) accepts the following methods:
+    for method where count (chassis, name = my.chassis)
+        my.text = fullname + " - " + string.justify (method.?'', 9999)
+        my.text += " (ID = $(method.index)) ($(method_text ()))"
+        >
+        >$("-":block) \
+        >$(my.text:justify,block                                             )
+    endfor
+endfunction
+
+function method_text
+    if method.synchronous
+        if count (response)
+            my.text = "sync request"
+        else
+            my.text = "sync reply for"
+            for class.method as caller
+                for response where response.name = method.name
+                    my.text += " $(caller.name:neat)"
+                endfor
+            endfor
+        endif
+    else
+        my.text = "async"
+    endif
+    if method.content
+        my.text += ", carries content"
+    endif
+    return (my.text)
+endfunction
+
+
+##############################################################################
+
+function full_reference
+    output "$(protocol.name)_full.txt"
+    for class by index
+        output_title   ("The $(class.name) Class", "-")
+        output_doc     ()
+        >The ID of the $(class.name:neat) class is $(class.index).
+        output_doc     ("grammar", "This is the formal grammar for the class", 0)
+
+        if count (field)
+            >
+            >These are the properties defined for $(class.name) content:
+            for field
+                >
+                >- $(name:c) ($(type)) - $(string.justify (field., 255)).
+            endfor
+        endif
+        output_chassis ("server")
+        output_chassis ("client")
+        output_rules   (1)
+        for chassis
+            >
+            >- The $(name) $(implement) implement this class. Each method may
+            >  have specific guidelines.
+        endfor
+        >
+        >- Any assertion failures in the $(class.name:neat) methods MUST BE treated
+        >  as $(handler) exceptions - i.e. the peer that detects the error MUST
+        >  respond with $(handler:neat).Close.
+
+        for method
+            output_title ("The $(fullname) Method", ".")
+            output_doc ()
+            for field where !field.global
+                if index () = 1
+                    >
+                    >The $(fullname) method has the following specific fields:
+                endif
+                text = "$(name:c) ($(type)) - $(string.justify (field., 255)). "
+                for doc where name <> "rule"
+                    text += .
+                else
+                    echo "No description for $(class.name).$(method.name)/$(name)"
+                endfor
+                >
+                >$("-":block) \
+                >$(text:justify,block                                                )
+            else
+                >This method has no fields apart from the standard method header.
+            endfor
+
+            >
+            >This is the $(fullname) pseudo-structure:
+            >
+            >    define $(fullname) {
+            for field
+                if !defined (field.)
+                    echo "No comment for field '$(field.name)' in $(fullname)"
+                    field. = "no comment"
+                endif
+                >        $(name:c)          $(type)     #  $(string.justify (field., 255))
+            endfor
+                >    }
+        
+            output_rules (1)
+            for chassis
+                >
+                >- The $(name) $(implement) implement this method.
+            endfor
+            if method.synchronous
+                if count (response)
+                    >
+                    >- This method is a synchronous request that expects one of:
+                    for response
+                        >  $(class.name:neat).$(name:neat)
+                    endfor
+                    >  unless there is an exception.
+                else
+                    >
+                    >- This method is a synchronous response. The sender MUST NOT
+                    >  expect a specific method in return, except as defined by the
+                    >  class grammar.
+                endif
+            else
+                >
+                >- This method is asynchronous. The recipient MUST handle it
+                >  at any point as defined by the class grammar. The sender
+                >  MUST not expect any specific reply unless the SYNCHREQ flag
+                >  is set (which will solicit a Channel.Synch reply).
+            endif
+            for field
+                for assert where defined (assert.text)
+                    my.text = "The '$(field.name:c)' field $(assert.text)."
+                    >
+                    >$("-":block) \
+                    >$(my.text:justify,block                                             )
+                endfor
+                for doc where name = "rule"
+                    >
+                    >$("-":block) \
+                    >$(doc.?'':justify,block                                             )
+                endfor
+            endfor
+        endfor
+    endfor
+endfunction
+
+
+##############################################################################
+
+function short_summary
+    output "$(protocol.name)_short.txt"
+    >Protocol Classes
+    >................
+    >
+    >AMQP/Fast defines these protocol classes:
+    >
+    for class by index
+        >- $(name:neat): $(string.justify (class.?'', 9999)) (ID = $(class.index)).
+    endfor
+    
+    for class by index
+        output_title ("The $(class.name) Class", "-")
+        output_doc     ()
+        output_doc     ("grammar", "This is the formal grammar for the class", 0)
+        output_chassis ("server")
+        output_chassis ("client")
+        
+        for method 
+            >
+            >$(fullname):
+            for doc where name <> "rule"
+            >  $(doc.?'':justify,block                                               )
+            endfor
+            for field where !field.global
+                if index () = 1
+                    >
+                endif
+                >    $(name:c)          $(type)     #  $(string.justify (field., 255))
+            else
+                >  This method has no fields apart from the standard method header.
+            endfor
+        endfor
+    endfor
+endfunction
+
+##############################################################################
+
+function quick_reference
+    output "$(protocol.name)_quick.txt"
+    >
+    >Overall Grammar
+    >---------------
+    for class by index
+        for doc where name = "grammar"
+            >
+            >$(string.trim (doc.?''))
+        endfor
+    endfor
+    for class by index
+        output_title ("$(class.name) Class - $(string.justify (class., 255))", "-")
+        for method
+            my.text = ""
+            if count (chassis, name = "server")
+                my.text = "ID=$(class.index)/$(method.index) - server, "
+            endif
+            if count (chassis, name = "client")
+                my.text = "ID=$(class.index)/$(method.index) - client, "
+            endif
+            my.text += "$(method_text ()), $(string.trim (method.?'no desc'))."
+            >
+            >$(fullname):
+            >  $(my.text:justify,block                                         )
+
+            for field where !field.global
+                if index () = 1
+                    >
+                endif
+                >    $(name:c)          $(type)     #  $(string.justify (field., 255))
+            else
+                >  No specific fields.
+            endfor
+        endfor
+    endfor
+endfunction
+
+##############################################################################
+
+function reply_codes
+    output "$(protocol.name)_replies.txt"
+
+    >Channel Exception Reply Codes
+    >-----------------------------
+    >
+    >When the server raises a channel exception it may use one of the
+    >following reply codes.  These are all associated with failures that
+    >affect the current channel but not other channels in the same
+    >connection:
+    >
+    for protocol.constant where .class = "soft error"
+        >
+        >$(value)=$(name:c,upper):
+        >   $(.:justify,block                                                )
+    endfor
+    >
+    >Connection Exception Reply Codes
+    >--------------------------------
+    >
+    >When the server raises a connection exception it may use one of the
+    >following reply codes.  These are all associated with failures that
+    >preclude any futher activity on the connection:
+    >
+    for protocol.constant where .class = "hard error"
+        >
+        >$(value)=$(name:c,upper):
+        >   $(.:justify,block                                                )
+    endfor
+endfunction
+
+##############################################################################
+
+function class_method_ids
+    output "$(protocol.name)_ids.txt"
+    >
+    >Class and Method Ids
+    >--------------------
+    >
+    >These are the AMQP class and method ids.  Note that these may change
+    >in new versions of AMQP and implementors are strongly recommended to
+    >use the AMQP class specifications as a source for the class and method
+    >ids rather than hard-coding these values.
+    >
+    >These are the ID values for each class:
+    >
+    for class by index
+        >    $(class.name:neat)         $(class.index)
+    endfor
+    for class by index
+        >
+        >These are the ID values for the $(class.name:neat) methods:
+        >
+        for method by index
+            >    $(class.name:neat).$(method.name:c,neat)\
+            >                               $(method.index)
+        endfor
+    endfor
+endfunction
+
+
+#################################   MAIN   #################################
+
+.function generate_protocol (protocol)
+ scope my.protocol
+    if !defined (switches.quiet)
+        echo "Generating $(protocol.name) documentation..."
+    endif
+
+    #   Patch default name issue on doc items
+    for class
+        for doc
+            doc.name ?= ""
+        endfor
+        for field
+            for doc
+                doc.name ?= ""
+            endfor
+        endfor
+    endfor
+
+    full_reference   ()
+ #  short_summary    ()
+    quick_reference  ()
+    reply_codes      ()
+    class_method_ids ()
+ endscope
+.endfunction
+

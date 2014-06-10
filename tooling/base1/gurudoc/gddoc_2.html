@@ -1,0 +1,248 @@
+<html>
+<head>
+<title>body</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="gdstyle.css" type="text/css">
+</head>
+<body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0">
+<table width="100%" height="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr valign="top">
+    <td width="5" bgcolor="#DDDDDDD">&nbsp;</td>
+    <td>
+      <a name="TOC2"><h1>Gurudoc</h1></a>
+      <p>To use Gurudoc, use this command in a DOS box to build the GDL document from the plain text file: </p>
+<pre>
+mkgdl gddoc
+</pre>
+<p>Then use the 'html_simple' (default) skin to get some output files with these commands: </p>
+<pre>
+gsl -gdl:gddoc gurudoc
+start gddoc.htm
+</pre>
+<p>and you can also use the framed skin : </p>
+<pre>
+gsl -tpl:html_frame -gdl:gddoc gurudoc
+start gddoc.htm
+</pre>
+<p>GDL is define in the 'gdl.xnf' file. </p>
+<p>Then, you can use 'skins' and 'templates' with Gurudoc processor to get some final outputs. </p>
+<h2><a name="TOC3">Standard Gurudoc Definitions</a></h2>
+<p>Gurudoc always check if the file start with 'gdl'. This block of informations end with a line starting with 'end gdl'. You can add informations to tune the results of Gurudoc. </p>
+<h2><a name="TOC4">Chapter and Section Headers</a></h2>
+<p>Gurudoc handles four levels of headers. In the text these look like this: </p>
+<pre>
+Chapter Header
+**************
+Section Header
+==============
+Subsection Header
+-----------------
+Subsubsection Header
+....................
+</pre>
+<p>The line following the header text must start with 3 or more asterisks '*', equals '=', hyphens '-' or dots '.'. There is no way to specify H5 or other headers. I recommend that you start the document with a chapter header. </p>
+<p>The header text line must come after a blank line, or at the start of the document. </p>
+<p>You can also request a horizontal rule by putting four or more underscore '_', plus '+', hash '#', or tilde '~' characters on a line by themselves: </p>
+<pre>
+++++
+</pre>
+<hr>
+<h2><a name="TOC5">Paragraphs</a></h2>
+<p>A paragraph is anything following a blank line that does not look like something else. Basically, any plain text following a blank line is given a <paragraph> tag. Note however the exceptions that follow... </p>
+<h2><a name="TOC6">Preformatted Text</a></h2>
+<p>If a line is indented by 4 or more spaces, or a tab, Gurudoc treats the line as 'preformatted' text and inserts a <example> tag. You can mix blank lines with preformatted text. </p>
+<h2><a name="TOC7">Bulleted and Numbered Lists</a></h2>
+<h3>Bulleted Lists</h3>
+<p>A paragraph starting with a hyphen '-', a plus '+' or a asterisk '*' followed by a space is considered to be a bulleted list item. </p>
+<h3>Numbered Lists</h3>
+<p>A paragraph starting with a digit [0-9] followed by a dash '-', a dot '.' or a right parenthesis ')' and followed by a space is considered to be a numbered list item. </p>
+<h3>Lists usage</h3>
+<p>You can put blank lines between list items, but it's not necessary. Cosmetically, when list items are short, blank lines are disturbing. But when list items are several lines, blank lines make the text more readable. Either way, Gurudoc is happy. </p>
+<p>For example: </p>
+<pre>
+- you can do unnumbered lists
++ as many
+* as you like
+1- You can also do numbered lists
+2. With numbers at the beginning of the line
+3) As many as you like.
+   We should be able to span this one over
+   more lines than just one.
+</pre>
+<ul>
+<li><p>you can do unnumbered lists</li>
+<li><p>as many</li>
+<li><p>as you like</li>
+</ul>
+<ol>
+<li><p>You can also do numbered lists</li>
+<li><p>With numbers at the beginning of the line</li>
+<li><p>As many as you like. We should be able to span this one over more lines than just one.</li>
+</ol>
+<h2><a name="TOC11">Definition Lists</a></h2>
+<p>A definition list is a line ending with a colon ':' and followed by some lines indented by one or more spaces. </p>
+<p>For example: </p>
+<pre>
+Indention of text:
+    Explanation one.
+Second indention:
+    Explanation two.
+    We should be able to span this one over
+    more lines than just one.
+</pre>
+<dl>
+<dt><b>Indention of text</b></dt>
+<dd>Explanation one. </dd>
+<dt><b>Second indention</b></dt>
+<dd>Explanation two. We should be able to span this one over more lines than just one. </dd>
+</dl>
+<p>You can put blank lines between definition items, but again, it's a matter of cosmetics. There should be a blank line before the first definition item, however. </p>
+<h2><a name="TOC12">Quoted Text</a></h2>
+<p>Quoted text is marked by indentation and a leading ", as follows: </p>
+<blockquote> "Life is a stage and we are all but actors in a play" -- William Shakespear  </blockquote>
+<h2><a name="TOC13">Tables</a></h2>
+<p>Gurudoc tries to solve the most common case; a rectangular table consisting of a N columns and M rows. </p>
+<p>A table can start with a header, which is a line like this: </p>
+<pre>
+Some column:  Followed by some explanation:
+</pre>
+<p><center><table border="1" width="90%"><tr>
+<th>Some column</th>
+<th> Followed by some explanation</th>
+</tr>
+</table></center></p><p>Here, the colons (':') are important. Gurudoc also wants one or more spaces after the first colon. The table header is optional; you can start immediately with table items. Either way, Gurudoc needs a blank line before the table. A table item looks like this: </p>
+<pre>
+Column: Explanation:
+Table_item_with_some_spaces: Here is what is all means
+    We should be able to span this one over
+    more lines than just one.
+Another_table_item: More things follow in this table.
+</pre>
+<p>Column: Explanation Table_item_with_some_spaces: Here is what is all means </p>
+<pre>
+We should be able to span this one over
+more lines than just one.
+</pre>
+<p>A bigger one: </p>
+<pre>
+Col 1: Col 2: Col 3: Col 4:
+a11: a12: a13: a14
+a21: a22: a23: a24
+a31: a32: a33: a34
+a41: a42: a43: a44
+</pre>
+<p><center><table border="1" width="90%"><tr>
+<th>Col 1</th>
+<th>Col 2</th>
+<th>Col 3</th>
+<th>Col 4</th>
+</tr>
+<tr>
+<td>a11</td>
+<td>a12</td>
+<td>a13</td>
+<td>a14</td>
+</tr>
+<tr>
+<td>a21</td>
+<td>a22</td>
+<td>a23</td>
+<td>a24</td>
+</tr>
+<tr>
+<td>a31</td>
+<td>a32</td>
+<td>a33</td>
+<td>a34</td>
+</tr>
+<tr>
+<td>a41</td>
+<td>a42</td>
+<td>a43</td>
+<td>a44</td>
+</tr>
+</table></center></p><p>The first column must be a single word - if you want several words, use underlines. Gurudoc replaces these by spaces. The explanation can come on several lines, which MUST be indented by one or more spaces. </p>
+<h2><a name="TOC14">Figures and Images</a></h2>
+<p>To insert a figure, use one of these conventions: </p>
+<pre>
+[Figure filename: caption]
+[Figure "filename": caption]
+</pre>
+<p>For example: </p>
+<pre>
+[Figure mainlogo.jpg: The iMatix logo]
+[Figure "mainlogo.jpg": The iMatix logo]
+</pre>
+<p>Gurudoc inserts a figure caption, numbering the figures in a document from 1 upwards. The caption is followed by an <image> tag to display the file. You can use a URI (a path) as the filename, or an URL (with a host name specifier); you must put an URL in quotes. My preference is to put image files locally with the GDL files, and use a simple filename without a path. This is just easier to manage and lets you put the GDL files plus images in any directory. If Gurudoc can find the image you specify, and it's a .GIF or .JPG file, it will insert the WIDTH= and HEIGHT= tags automatically. </p>
+<p>To insert a plain image, omit the 'Figure' keyword. For example: </p>
+<pre>
+[Figure mainlogo.jpg: The iMatix logo]
+[mainlogo.jpg: The iMatix logo]
+[Figure mainlogo.jpg]
+[mainlogo.jpg]
+</pre>
+<h2><a name="TOC15">Hyperlinks</a></h2>
+<p>If you use <name@address>, this is converted into a mailto: URL hyperlink. If you use <http://address/document> -- or any other URL -- this is converted into a hyperlink as well. You can follow the URL by ':description' if you like, e.g. <http://www.imatix.com:iMatix_Corporation's_Site>. </p>
+<p>Gurudoc does not presently allow links within the document or to other documents. </p>
+<h2><a name="TOC16">Multi-file Documents</a></h2>
+<p>To include text from another file, use this convention: </p>
+<pre>
+[See filename]
+</pre>
+<p>This takes the text from the specified filename and inserts it in place of the line containing the [See] instruction. </p>
+<h2><a name="TOC17">Special Characters</a></h2>
+<p>Since you're not typing XML, Gurudoc replaces <, > and & by XML metacharacters. < and > are used to indicate hyperlinks. </p>
+<h2><a name="TOC18">Limitations</a></h2>
+<h3>Lists and Examples</h3>
+<p>You can add example only at the end of a item. </p>
+<p>For example: </p>
+<pre>
+Here is a list of commands:
+1. directory content
+    ls [Enter]
+
+2. get current directory
+    cd [Enter]
+</pre>
+<p>Here is a list of commands: </p>
+<ol>
+<li><p>directory content</li>
+</ol>
+<pre>
+ls [Enter]
+
+</pre>
+<ol>
+<li><p>get current directory</li>
+</ol>
+<pre>
+cd [Enter]
+</pre>
+<p>But you reset the counter of the list. </p>
+<p>Moreover, if you add a new indented paragraph in it like this: </p>
+<pre>
+Here is a list of commands:
+1. directory content
+    ls [Enter]
+   and for more detail
+    ls -l [Enter]
+</pre>
+<p>Here is a list of commands: </p>
+<ol>
+<li><p>directory content</li>
+</ol>
+<pre>
+ls [Enter]
+
+ls -l [Enter]
+</pre>
+<p>You can see that we lose the paragraph "and for more detail". </p>
+
+      <p>
+    </td>
+  </tr height="40">
+    <td width="5" bgcolor="#DDDDDDD">&nbsp;</td>
+    <td valign="bottom" class="footer">iMatix Corporation <tools@imatix.com> - Copyright (c) 1006-2009 iMatix Corporation</td>
+  </tr>
+</body>
+</html>

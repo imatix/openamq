@@ -1,0 +1,192 @@
+.template 0
+#  ----------------------------------------------------------------------------
+#   Object type template
+#
+#   Written: 2004-09-17  Pieter Hintjens@imatix.com
+#
+#   Generates an object manager for an arbitrary structure.  The object manager
+#   is designed to reduce memory allocation/deallocation and to provide a place
+#   for a simple OO construction.  Objects are always held in linked-lists.
+#
+#   <object
+#        name   = "xyz"             -- the name of the object type
+#        script = "objtype.gsl"     -- the name of this script
+#        source = "filename"        -- C, H added automatically
+#      >
+#      <inherit filename = "xx"/>   -- inherit from this file
+#      <private>
+#        definitions, code          -- included in generated C
+#      </private>...
+#      <public>
+#        definitions                -- included in generated H
+#      </public>...
+#      <properties>
+#       defintions                  -- your structure variables.
+#      </properties>
+#      <new>
+#       code                        -- allocator for new objects
+#      </new>
+#      <destroy>
+#       code                        -- destructor for objects
+#      </destroy>
+#      <method name = "xxx">
+#       code                        -- object methods
+#      </method>...
+#    </object>
+#
+#   Copyright (c) 1991-2009 iMatix Corporation
+#  ----------------------------------------------------------------------------
+
+.macro generate_code ()
+.echo "Generating mem_$(name).h..."
+.output "mem_$(name).h"
+/*---------------------------------------------------------------------------
+ *  $(source).h - memory management for $(name) objects.
+ *
+ *  Generated from $(arg?filename) by $(script) using GSL/4.
+ *  DO NOT MODIFY THIS FILE.
+ *
+ *  For documentation and updates see http://www.imatix.com.
+ *  Copyright (c) 1991-2009 iMatix Corporation
+ *---------------------------------------------------------------------------*/
+
+#ifndef INCLUDE_$(SOURCE)
+#define INCLUDE_$(SOURCE)
+.for public
+$(public.?:)
+.endfor
+
+/*  Method function                                                          */
+typedef int (*$(name)_f) ($(name)_t *object);
+
+.for properties
+typedef struct {
+    void *next, *prev;                  /*  A doubly-linked list             */
+$(struct.:)
+.endfor
+    $(object.name)_f destroy;
+.for methods
+    $(object.name)_f $(method.name);
+.endfor
+} $(name)_t;
+
+void obj_$(name)_init (void);
+void obj_$(name)_term (void);
+$(name)_t *obj_$(name)_new ($(name)_t *attachto);
+
+.endfor
+#endif
+.close
+.echo "Generating mem_$(name).c..."
+.output "mem_$(name).c"
+/*---------------------------------------------------------------------------
+ *  mem_$(name).c - memory management for $(name) objects.
+ *
+ *  Generated from $(arg?filename) by $(script) using GSL/4.
+ *  DO NOT MODIFY THIS FILE.
+ *
+ *  For documentation and updates see http://www.imatix.com.
+ *  Copyright (c) 1991-2009 iMatix Corporation
+ *---------------------------------------------------------------------------*/
+
+#include "sfl.h"
+.for private
+$(private.?:)
+.endfor
+#include "mem_$(name).h"
+
+.for struct
+static LIST
+    *$(name)_pool = NULL;
+
+/*  -------------------------------------------------------------------------
+    mem_$(name)_init
+
+    Initialises memory handling for $(name) objects.  You should call this
+    before doing any mem_$(name)_new() calls, and you should call
+    mem_$(name)_term before ending the application.
+ */
+
+void mem_$(name)_init (void)
+{
+    $(name)_pool = mem_alloc (sizeof (LIST));
+    list_reset ($(name)_pool);
+}
+
+
+/*  -------------------------------------------------------------------------
+    mem_$(name)_new
+
+    Allocates a new $(name) either from heap memory or from the free pool.
+    Initializes the $(name) with binary zeroes and attaches it to the list
+    specified.
+ */
+
+$(NAME) *mem_$(name)_new (void *list)
+{
+    $(NAME)
+        *node;
+
+    if (list_empty ($(name)_pool)) {
+        node = mem_alloc (sizeof ($(NAME)));
+        list_reset (node);
+    }
+    else {
+        node = $(name)_pool-> next;
+        list_unlink (node);
+    }
+    if (list)
+        list_relink_after (node, list);
+
+    memset (node + sizeof (LIST), 0, sizeof ($(NAME)) - sizeof (LIST));
+    return (node);
+}
+
+
+/*  -------------------------------------------------------------------------
+    mem_$(name)_free
+
+    Unlinks the $(name) object from any list it is in and moves it to
+    the free pool.  The node is invalidated so that any further access to
+    it will cause an abort.
+ */
+
+void mem_$(name)_free ($(NAME) *node)
+{
+    list_unlink (node);
+    memset (node + sizeof (LIST), 0xFF, sizeof ($(NAME)) - sizeof (LIST));
+    list_relink_after (node, $(name)_pool);
+}
+
+
+/*  -------------------------------------------------------------------------
+    mem_$(name)_term
+
+ */
+
+void mem_$(name)_term (void)
+{
+    list_destroy ($(name)_pool);
+    mem_free     ($(name)_pool);
+}
+
+.endfor
+.close
+.endmacro
+
+#  ------------------------------   Main code  --------------------------------
+
+if scope (mempool)
+    generate_code ()
+else
+    argn = 1
+    while argn <= gsl.argc
+        arg = gsl.arg$(argn)
+        echo "Processing " + arg + "..."
+        frames = xml.load_file (arg) ? abort_xml_error ()
+        generate_code ()
+        argn += 1
+    endwhile
+endif
+
+.endtemplate

@@ -1,0 +1,525 @@
+<?xml?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<opf
+    name    = "http_config"
+    comment = "Server configuration properties"
+    script  = "opf_gen"
+    root    = "config"
+    config  = "xitami.cfg"
+    >
+
+<public>
+extern $\(selftype)
+    *http_config;                   //  Server properties object
+</public>
+
+<private>
+$\(selftype)
+    *http_config = NULL;            //  Server properties
+</private>
+
+<path name = "server">
+    <property name = "name" type = "char *" default = "X5" prefix = "server">
+    Announced server name
+    <doc>
+    Specifies the Server: header field name for HTTP responses.
+    </doc>
+    </property>
+
+    <property name = "port" type = "char *" default = "80">
+    Server port for HTTP requests
+    <doc>
+    Specifies the port that the server opens for HTTP requests.  The standard
+    port for HTTP is 80.  If you want to run the server in parallel with other
+    HTTP servers on the same server, choose a server port of 4096 or higher.
+    If you are serving Internet clients, your network may map a public port
+    to the server port number.  In that case, you may need to specify the
+    public port number separately.
+    </doc>
+    </property>
+
+    <property name = "public port" type = "char *">
+    Public port for HTTP requests
+    <doc>
+    Specifies the public port for client requests, if not the standard port
+    number for HTTP (80).  The server needs to know this value in order to
+    format accurate redirection responses.
+    </doc>
+    </property>
+
+    <property name = "trace" type = "Bool" default = "0">
+    Trace network traffic?
+    <doc>
+    If set, the HTTP agent displays all socket i/o, which can be useful
+    if you need to verify what exactly web clients are sending and getting
+    back from the server.  Do not enable this with high loads because you
+    will get enormous amounts of output.
+    </doc>
+    </property>
+
+    <property name = "animate" type = "Bool" default = "0">
+    Animate HTTP agent?
+    <doc>
+    If set, the HTTP agent displays its activity, which can be useful
+    if you need to verify how HTTP requests are being processed.  Do
+    not enable this with high loads because you will get enormous
+    amounts of output.
+    </doc>
+    </property>
+
+    <property name = "verbose" type = "Bool" default = "0">
+    Verbose output?
+    <doc>
+    If set, the HTTP agent displays all input and output headers,
+    which can be useful for debugging configuration issues.
+    </doc>
+    </property>
+
+    <property name = "listen" type = "char *" default = "*">
+    Address (local network interface) to listen on
+    <doc>
+    Specifies the network interface on which the server should listen for
+    connections.  By default this is *, meaning all interfaces.  You would
+    choose to set an address when you use this application on a box with
+    multiple network interfaces, e.g. routing between two networks.
+    </doc>
+    </property>
+</path>
+
+<path name = "host">
+    <property name = "webroot" type = "char *" default = "webpages">
+    Path to web root directory
+    <doc>
+    Specifies the web root directory.  Normally this is used to hold
+    static resources - HTML, images, etc.  The web root maps to the /
+    URI.
+    </doc>
+    </property>
+
+    <property name = "defaults" type = "char *" default = "index.html default.html">
+    Default file names
+    <doc>
+    Specifies a space-delimited list of file names to use as defaults
+    on an empty URI path (the URI refers to a directory name). If none
+    of the defaults are present, Xitami will look for a file called
+    .httpdir and if that is present, it will format a directory listing.
+    </doc>
+    </property>
+
+    <property name = "default types" type = "char *" default = ".pdf .html">
+    Default document types
+    <doc>
+    Specifies a list of default document types. The server implements a
+    feature called 'default typing' in which you can specify URIs without
+    file extensions.  The default types are specified in order. You can
+    use this to publish a URI that specifies an HTML document, for example,
+    and later replace it with a PDF without breaking the published URI.
+    </doc>
+    </property>
+</path>
+
+<path name = "resources">
+    <property name = "monitor" type = "int" default = "0">
+    Monitor interval, seconds
+    <doc>
+    Specifies the interval in seconds at which the server will report
+    its request/response rates.  If zero, no monitoring is shown. The
+    recommended value is 1, if monitoring is desired.
+    </doc>
+    </property>
+
+    <property name = "record stats" type = "Bool" default = "0">
+    Record performance statistics
+    <doc>
+    Specifies whether or not the server records performance statistics
+    in a format suitable for importing into a spreadsheet.  If set, the
+    server creates a file called 'http_stats_(portnumber).del' which
+    contains performance statistics in a comma-delimited format.  For this
+    setting to take effect, the monitor option must also be set.
+    </doc>
+    </property>
+</path>
+
+<path name = "logging">
+    <property name = "log_path" type = "char *" default = "/var/log/xitami">
+    Active log file directory
+    <doc>
+    Specifies the directory into which active log files are placed.  To get
+    the old behaviour, set this option to 'logs'.
+    </doc>
+    </property>
+
+    <property name = "keep logs" type = "Bool" default = "1">
+    Keep log files
+    <doc>
+    Specifies whether or not the server should keep logs.  If zero,
+    the server will not keep logs.  If 1, it will keep an alert log,
+    an access log, and a debug log as specified.
+    </doc>
+    </property>
+
+    <property name = "archive cmd" type = "char *">
+    Archive log file command
+    <doc>
+    If specified, this command is run on all archived log files. You can
+    use this option to compress archived log files, or clean up old and
+    unwanted files.  When the command is run, the name of the archived
+    log file is provided to it as a single argument.
+    </doc>
+    </property>
+
+    <property name = "alert log" type = "char *" default = "alert.log">
+    Error log file name
+    <doc>
+    The name of the alert log file, which records all errors and warnings
+    issued by the server.  Note that the server port number is always added
+    to the name of the log file.
+    </doc>
+    </property>
+
+    <property name = "access log" type = "char *" default = "access.log">
+    Access log file name
+    <doc>
+    The name of the access log file, which records all HTTP requests in
+    the specified access log format. Note that the server port number is
+    always added to the name of the log file.
+    </doc>
+    </property>
+
+    <property name = "access log format" type = "char *" default = "CLFX">
+    Access log file format
+    <doc>
+    The format of the access log file, which can be one of: CLF -
+    NCSA/httpd common logging format (basic); CLFX - Apache format;
+    or other - custom log file format.
+    </doc>
+    </property>
+
+    <property name = "debug log" type = "char *" default = "debug.log">
+    Debug log file name
+    <doc>
+    The name of the debug log file, which records all normal activity,
+    errors, and debug trace information. Note that the server port number
+    is always added to the name of the log file.
+    </doc>
+    </property>
+
+    <property name = "syslog" type = "int" default = "0">
+    Use syslog logging protocol
+    <doc>
+    Specifies whether or not to use the syslog protocol for logging.
+    By default log files are written directly to disk.  If this option
+    is set to 1, uses the syslog protocol for all log files.  Uses a
+    priority depending on the type of log message (LOG_ERROR, LOG_INFO,
+    LOG_DEBUG). Uses the LOG_DAEMON facility.  Has no effect on Windows.
+    Overrides the keep_logs option.
+    </doc>
+    </property>
+</path>
+
+<path name = "security">
+    <property name = "user" type = "char *">
+    User to run server as
+    <doc>
+    If you specify a user and group, the server will switch to that user
+    and group after opening its port, thus dropping any privileges it
+    previously had.
+    </doc>
+    </property>
+
+    <property name = "group" type = "char *">
+    Group to run server as
+    <doc>
+    If you specify a user and group, the server will switch to that user
+    and group after opening its port, thus dropping any privileges it
+    previously had.
+    </doc>
+    </property>
+
+    <property name = "blacklist" type = "char *" default = "blacklist.txt">
+    Blacklist filename
+    <doc>
+    Specifies a text file to use for the blacklist.  The blacklist is an
+    easy way to blacklist IP addresses of spammers without modifying the
+    main server configuration files.  This file contains one IP address
+    per line.  To disable blacklisting, set the option to a non-existent
+    file or "".
+    </doc>
+    </property>
+
+    <property name = "basic auth" type = "char *" default = "passwd">
+    Basic authentication filename
+    <doc>
+    Specifies the file to use for Basic authentication.  The file uses
+    the Apache htpasswd format, see
+    http://httpd.apache.org/docs/2.2/misc/password_encryptions.html.
+    The plain text format of each line in this file, if you don't have
+    the htpasswd tool, is '{username}:{password}'. You can mix digest
+    and passwd password entries in a single file.
+    </doc>
+    </property>
+
+    <property name = "digest auth" type = "char *" default = "digest">
+    Digest authentication filename
+    <doc>
+    Specifies the file to use for Digest authentication.  The file uses
+    the Apache htdigest format, see
+    http://httpd.apache.org/docs/2.2/misc/password_encryptions.html.
+    </doc>
+    </property>
+
+    <property name = "password ttl" type = "int" default = "0">
+    Password time-to-live, in seconds
+    <doc>
+    If set to a non-zero value, passwords will expire this many seconds
+    after they are first loaded into Xitami.  You can reset an expired
+    password by editing the password file or setting a new password using
+    the Apache htpasswd / htdigest tools.
+    </doc>
+    </property>
+
+    <property name = "hit quota" type = "int" default = "0">
+    Password hit quota in pages
+    <doc>
+    If greater than zero, specifies the number of requests that a browser can
+    make using the same user id (+ realm, for Digest authentication).  When
+    this quota is exhausted, the id password expires.  You can reset an
+    expired password by editing the password file or setting a new password
+    using the Apache htpasswd / htdigest tools.
+    </doc>
+    </property>
+
+    <property name = "miss quota" type = "int" default = "5">
+    Password miss quota in requests
+    <doc>
+    If greater than zero, specifies the number of failed requests that a
+    browser can make using the same user id (+ realm, for Digest
+    authentication).  When this quota is exhausted, the id password expires.
+    You can reset an expired password by editing the password file or
+    setting a new password using the Apache htpasswd / htdigest tools.
+    </doc>
+    </property>
+
+    <property name = "password guard" type = "int" default = "10">
+    Password guard timer, in seconds.
+    <doc>
+    If greater than zero, specifies the frequency with which Xitami saves
+    password guard data.  The password guard ensures that the hit and
+    miss quotas are properly written to disk so that if Xitami is restarted
+    this data is not lost.  If set to zero, Xitami will never save password
+    guard data.
+    </doc>
+    </property>
+
+    <property name = "policy trace" type = "Bool" default = "0" dynamic = "1">
+    Debug policy execution?
+    <doc>
+    Specifies whether policy execution is logged or not.  Set this option
+    to get a visual trace of policy execution, especially when you write
+    your own policies.  Do not use on production servers, it will generate
+    vast amounts of output and slow things down.
+    </doc>
+    </property>
+
+    <property name = "nervosity" type = "int" default = "5" min = "1">
+    Security nervosity, seconds
+    <doc>
+    Specifies the interval in seconds at which the server will reload
+    externally modified security files (blacklist, password, and digest).
+    You can reduce this to one second but this will cause latency spikes due
+    to CPU burn and memory churn if you have very large blacklist files.
+    </doc>
+    </property>
+
+    <property name = "nonce ttl" type = "int" default = "60" min = "1">
+    Nonce time-to-live, seconds
+    <doc>
+    This specifies the validity for Digest authentication nonces.  Reducing
+    this will increase chatter, as browsers need to request new nonces more
+    often, but reduces the opportunity for replay attacks.
+    </doc>
+    </property>
+
+    <property name = "nonce quota" type = "int" default = "25" min = "1">
+    Nonce quota in requests
+    <doc>
+    This specifies the number of requests that a browser can make using the
+    same Digest authentication nonce.  When this quota is exhausted, the
+    nonce expires.  If set to 1, browsers must ask for a new nonce at each
+    request.
+    </doc>
+    </property>
+
+    <property name = "refresh by" type = "char *">
+    Shell command for password refresh
+    <doc>
+    If specified, the http_access_refresh module runs this command to refresh
+    expired or unknown passwords.  You may use this to tie Xitami authentication
+    to external or system authentication systems.  See documentation for details.
+    </doc>
+    </property>
+
+    <property name = "refresh log" type = "char *" default = "password_refresh.log">
+    Stdout for password refresh
+    <doc>
+    Specifies the log file for the refresh command.  All messages produced by
+    the refresh command (stdout and stderr) will be appended to this file.
+    </doc>
+    </property>
+
+    <property name = "address quota" type = "int" default = "5">
+    Maximum open connections per address
+    <doc>
+    If greater than zero, specifies the number of open connections a client
+    can have.  Setting this value to zero allows unlimited connections per
+    address.  This setting is used by the DoS module to detect and handle
+    simple attempts to crash the server by overloading it with lots of
+    connections.
+    </doc>
+    </property>
+
+    <property name = "abort delay" type = "int" default = "5">
+    Pause time for hostile connections
+    <doc>
+    This specifies the number of seconds that the server will wait, when
+    shutting a connection due to detected hostile activity.  The delay
+    wastes browser time, making attacks less efficient.
+    </doc>
+    </property>
+</path>
+
+<path name = "tuning">
+    <property name = "coremark cycles" type = "int" default = "250000">
+    Duration of CoreMark test
+    <doc>
+    Defines the duration of the automatic CoreMark performance test, in event
+    cycles.  If 0, no test will be done.  Setting this too high will cause the
+    server to burn CPU at startup.  A good value is between 100k and 1M.
+    </doc>
+    </property>
+
+    <property name = "header max" type = "int" min = "2048" max = "2097152" default = "32000">
+    Max size of HTTP header
+    <doc>
+    Defines the limit for HTTP headers; the server will accept up to
+    this much data.  You can increase the limit if you have applications
+    that pass excessive amounts of data as URI arguments, but usually it
+    is recommended to pass large web forms as POST body data.
+    </doc>
+    </property>
+
+    <property name = "bucket max" type = "int" max = "2097152" default = "128000">
+    Max size of content bucket
+    <doc>
+    Defines the limit for content managed as a memory bucket.  The HTTP
+    server can handle contents of any size, but if they exceed the bucket
+    max they will be spooled to disk, which can be slow.
+    </doc>
+    </property>
+
+    <property name = "read timeout" type = "int" default = "60">
+    Network read timeout, seconds
+    <doc>
+    Defines the timeout for network reads.  If a client does not send
+    data within this time, it is considered dead. If you get unexpected
+    timeout errors in the logs, you may want to increase this value.
+    </doc>
+    </property>
+
+    <property name = "write timeout" type = "int" default = "60">
+    Network write timeout, seconds
+    <doc>
+    Defines the timeout for network writes.  If a client does not
+    accept data within this time, it is considered dead. If you get
+    unexpected timeout errors in the logs, you may want to increase
+    this value.
+    </doc>
+    </property>
+
+    <property name = "accept retry timeout" type = "int" default = "60" min = "1">
+    Timeout before retrying accept calls, seconds
+    <doc>
+    Defines the amount of time the server will wait before retrying
+    an accept call if the call failed due to running out of file
+    descriptors.
+    </doc>
+    </property>
+
+    <property name = "tcp nodelay" type = "Bool" default = "1">
+    TCP/IP NODELAY option
+    <doc>
+    If this value is 1, socket data is written immediately, which is
+    usually good for latency.  If this value is 0, data is buffered
+    until there is a full packet, which is usually good for throughput.
+    </doc>
+    </property>
+
+    <property name = "tcp rcvbuf" type = "int" default = "0">
+    TCP/IP receive buffer, in bytes
+    <doc>
+    If this value is greater than zero, all client connections will use
+    the specified value.  Note: setting this value is delicate, do not
+    use this option unless you know what you are doing.
+    </doc>
+    </property>
+
+    <property name = "tcp sndbuf" type = "int" default = "0">
+    TCP/IP send buffer, in bytes
+    <doc>
+    If this value is greater than zero, all client connections will use
+    the specified value.  Note: setting this value is delicate, do not
+    use this option unless you know what you are doing.
+    </doc>
+    </property>
+
+    <property name = "polling threads" type = "int" default = "4">
+    Number of polling OS threads
+    <doc>
+    On multithreaded builds, defines the number of OS threads dedicated
+    to socket polling.
+    </doc>
+    </property>
+
+    <property name = "working threads" type = "int" default = "4">
+    Number of working OS threads
+    <doc>
+    On multithreaded builds, defines the number of OS threads dedicated to
+    processing, that is, tasks other than socket polling.
+    </doc>
+    </property>
+</path>
+
+<path name = "cache">
+    <property name = "etag" type = "char *" default = "fixed">
+    ETag header for files
+    <doc>
+    Defines the ETag header value to use for files.  If 'fixed', the ETag
+    consists of the file's modified time, size, and inode.  If the etag
+    option is 'float', the ETag consists of the file's modified time and
+    size only.  This is useful for large deployments where files are served
+    from multiple file systems.  If the ETag option is set to any other
+    value, no ETag headers will be produced.
+    </doc>
+    </property>
+</path>
+
+<!-- These sections are allowed but ignored -->
+<path name = "access" />
+<path name = "content" />
+
+</opf>

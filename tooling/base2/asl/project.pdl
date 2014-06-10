@@ -1,0 +1,220 @@
+<?xml?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<pdl
+    name      = "ASL"
+    version   = "1.2c0"
+    workflow  = "standard.pwl"
+    library   = "libasl"
+    copyright = "Copyright (c) 1996-2009 iMatix Corporation"
+    >
+
+<include filename = "prelude.pdl" />
+<inherit filename = "../icl/icl_classes.pdl" />
+<inherit filename = "../ipr/ipr_classes.pdl" />
+<inherit filename = "../smt/smt_classes.pdl" />
+<inherit filename = "../opf/opf_classes.pdl" />
+<file name = "version.h" class = "c version">Project version file</file>
+
+<file name = "libasl"                 class = "public library"    >Object library</file>
+
+<!-- ASL toolkit -->
+<file name = "asl.h"                  class = "public header"     >ASL definitions</file>
+<file name = "asl.xnf"                class = "gsl data"          >ASL grammar</file>
+<file name = "asl_gen.gsl"            class = "generated resource">ASL code wrapper</file>
+<file name = "asl_preproc.gsl"        class = "generated resource">ASL preprocessor</file>
+<file name = "asl_inherit.gsl"        class = "generated resource">ASL inheritor</file>
+<file name = "asl_parse.gsl"          class = "generated resource">ASL parser</file>
+<file name = "asl_doc.txt"            class = "generated"         >ASL documentation</file>
+
+<!-- ASL code generators -->
+<file name = "asl_stdc.gsl"           class = "public resource"   >ASL generator for C</file>
+<file name = "asl_java.gsl"           class = "public resource"   >ASL generator for Java</file>
+<file name = "asl_csharp.gsl"         class = "public resource"   >ASL generator for C sharp</file>
+<file name = "asl_doc.gsl"            class = "public resource"   >ASL generator for documentation</file>
+<file name = "asl_constants.gsl"      class = "public resource"   >ASL generator for constants</file>
+<file name = "asl_method_class.gsl"   class = "public resource"   >ASL generator for method class</file>
+<file name = "asl_content_class.gsl"  class = "public resource"   >ASL generator for content classes</file>
+<file name = "asl_client_connection.gsl"
+                                      class = "public resource"   >ASL generator for client connection</file>
+<file name = "asl_client_session.gsl"
+                                      class = "public resource"   >ASL generator for client session</file>
+<file name = "asl_client_agent.gsl"   class = "public resource"   >ASL generator for client agent</file>
+<file name = "asl_server_agent.gsl"   class = "public resource"   >ASL generator for server agent</file>
+<file name = "asl_agent_common.gsl"   class = "public resource"   >ASL common code</file>
+
+<!-- ASL shared and abstract base classes -->
+<file name = "asl_channel.icl"        class = "icl abstract class">Abstract channel class</file>
+<file name = "asl_server_connection.icl"
+                                      class = "icl abstract class">Abstract server connection class</file>
+<file name = "asl_server_channel.icl" class = "icl abstract class">Abstract server channel class</file>
+<file name = "asl_client_channel.icl" class = "icl abstract class">Abstract client channel class</file>
+<file name = "asl_broker.icl"         class = "icl abstract class">Abstract broker class</file>
+<file name = "asl_field.icl"          class = "icl public class"  >Field class</file>
+<file name = "asl_field_list.icl"     class = "icl public class"  >Field table class</file>
+
+<!-- ASL base protocol specification -->
+<file name = "asl_base.asl"           class = "public resource"   >ASL protocol base</file>
+<file name = "asl_constants.asl"      class = "public resource"   >ASL protocol constants</file>
+<file name = "asl_connection.asl"     class = "public resource"   >ASL connection protocol class</file>
+<file name = "asl_channel.asl"        class = "public resource"   >ASL channel protocol class</file>
+<file name = "asl_client.asl"         class = "public resource"   >ASL client actions</file>
+<file name = "asl_server.asl"         class = "public resource"   >ASL server actions</file>
+<file name = "asl_direct.asl"         class = "public resource"   >ASL direct protocol class</file>
+
+<!-- Demo protocol specification -->
+<file name = "demo.asl"               class = "gsl public data"   >Demo protocol definition</file>
+<file name = "demo_exchange.asl"      class = "public resource"   >Demo exchange management</file>
+<file name = "demo_queue.asl"         class = "public resource"   >Demo queue management</file>
+<file name = "demo_basic.asl"         class = "public resource"   >Demo basic content</file>
+
+<!-- Demo client implementation -->
+<file name = "demo_cli.c"             class = "main program"      >Demo client main</file>
+<file name = "demo_client_proto.asl"  class = "gsl data"          >Demo client definition</file>
+<file name = "demo_client_method.icl" class = "icl public class"
+                                      generated = "1"             >Client method class</file>
+<file name = "demo_client_agent.smt"  class = "smt public module"
+                                      generated = "1"             >Client protocol agent</file>
+<file name = "demo_client_config.opf" class = "opf metadata"      >Client configuration</file>
+<file name = "demo_client_classes.icl"
+                                      class = "icl public data"   >Demo client classes</file>
+<file name = "demo_client_connection.icl"
+                                      class = "icl public class"
+                                      generated = "1"             >Client API connection class</file>
+<file name = "demo_client_session.icl"
+                                      class = "icl public class"
+                                      generated = "1"             >Client API session class</file>
+<file name = "demo_client_channel.icl"
+                                      class = "icl private class" >Client channel class</file>
+<file name = "demo_client_channel_table.icl"
+                                      class = "icl private cont"  >Client channel table</file>
+
+<!-- Demo server implementation -->
+<file name = "demo_srv.c"             class = "main program"      >Demo server main</file>
+<file name = "demo_server_proto.asl"  class = "gsl data"          >Demo server definition</file>
+<file name = "demo_server_main.inc"   class = "private resource"  >Demo server main </file>
+<file name = "demo_server_config.opf" class = "opf metadata"      >Server configuration</file>
+<file name = "demo_server_method.icl" class = "icl private class"
+                                      generated = "1"             >Demo server method class</file>
+<file name = "demo_server_agent.smt"  class = "smt public module"
+                                      generated = "1"             >Demo server protocol agent</file>
+<file name = "demo_server_classes.icl"
+                                      class = "icl private data"  >Demo server classes</file>
+<file name = "demo_server_connection.icl"
+                                      class = "icl private class" >Server connection class</file>
+<file name = "demo_server_connection_table.icl"
+                                      class = "icl private cont"  >Server connection table</file>
+<file name = "demo_server_connection_list.icl"
+                                      class = "icl private cont"  >Server connection list</file>
+<file name = "demo_server_channel.icl"
+                                      class = "icl private class" >Server channel class</file>
+<file name = "demo_server_channel_agent.smt"
+                                      class = "smt public module"
+                                      generated = "1"             >Agent for server channel class</file>
+<file name = "demo_server_channel_table.icl"
+                                      class = "icl private cont"  >Server channel table</file>
+<file name = "demo_broker.icl"        class = "icl private class" >Server broker class</file>
+<file name = "demo_broker_agent.smt"  class = "smt public module"
+                                      generated = "1"             >Server broker agent</file>
+<file name = "demo_exchange.icl"      class = "icl private class" >Server exchange class</file>
+<file name = "demo_exchange_table.icl"
+                                      class = "icl private cont"  >Server exchange table</file>
+<file name = "demo_exchange_agent.smt"
+                                      class = "smt public module"
+                                      generated = "1"             >Agent for server exchange class</file>
+<file name = "demo_queue.icl"         class = "icl private class" >Server queue class</file>
+<file name = "demo_queue_table.icl"   class = "icl private cont"  >Server queue container</file>
+<file name = "demo_queue_list.icl"    class = "icl private class" >List of queues</file>
+<file name = "demo_queue_agent.smt"   class = "smt public module"
+                                      generated = "1"             >Agent for server queue class</file>
+<file name = "demo_lease.icl"         class = "icl private class" >Server direct lease class</file>
+<file name = "demo_lease_table.icl"   class = "icl private cont"
+                                      generated = "1"             >Server lease container</file>
+
+<!-- Shared classes -->
+<file name = "demo_content_basic.icl" class = "icl public cont"   >Basic content class</file>
+<file name = "demo_content_basic_list.icl"
+                                      class = "icl public cont"   >List of content_basic objects</file>
+<file name = "demo_constants.icl"     class = "icl public data"
+                                      generated = "1"             >Constants class</file>
+
+<!-- Deliverables -->
+<file name = "demo_srv"               class = "private command"   >Demo server</file>
+<file name = "demo_cli"               class = "private command"   >Demo client</file>
+<file name = "demo_srv_resource.rc"   class = "ipr rc file"       >Binary resources</file>
+<file name = "demo_srv_base.cfg"      class = "private resource"  >Server config file</file>
+
+<!-- Documentation -->
+<file name = "icl_make_doc.ignore"    class = "private resource" >List of classes not to document</file>
+
+<!-- PAL toolkit -->
+
+<directory name = "pal">
+  <file name = "asl_pal.gsl"           class = "public resource" />
+  <file name = "asl_pal_stdc.gsl"      class = "public resource" />
+  <file name = "asl_pal_xnf.gsl"       class = "public resource" />
+  <file name = "asl_pal_txt.gsl"       class = "public resource" />
+  <file name = "palguide.txt"          class = "gurudoc text"/>
+  <file name = "pal"                   class = "command script" target = "unix" />
+  <file name = "pal.bat"               class = "command script" target = "win32"/>
+
+  <!-- PAL/demo code generator -->
+  <file name = "demo_pal.xnf"          class = "generated" />
+  <file name = "demo_pal_stdc.gsl"     class = "generated resource" />
+  <file name = "demo_pal_codegen.gsl"  class = "generated resource" />
+  <file name = "demo_pal_gen.gsl"      class = "generated resource" />
+  <file name = "demo_pal_inherit.gsl"  class = "generated resource" />
+  <file name = "demo_pal_parse.gsl"    class = "generated resource" />
+  <file name = "demo_pal_preproc.gsl"  class = "generated resource" />
+
+  <!-- PAL/demo examples -->
+  <file name = "hello.pal"             class = "private resource" />
+  <file name = "loop1.pal"             class = "private resource" />
+  <file name = "loop2.pal"             class = "private resource" />
+  <file name = "content.pal"           class = "private resource" />
+  <file name = "macros.pal"            class = "private resource" />
+  <file name = "session.pal"           class = "private resource" />
+  <file name = "single.pal"            class = "private resource" />
+  <file name = "single2.pal"           class = "private resource" />
+  <file name = "symbols.pal"           class = "private resource" />
+  <file name = "waiting.pal"           class = "private resource" />
+  <file name = "content_file.pal"      class = "private resource" />
+  <file name = "content_exec.pal"      class = "private resource" />
+  <file name = "content_body.pal"      class = "private resource" />
+  <file name = "cmdline.pal"           class = "private resource" />
+  <file name = "webserver.pal"         class = "private resource" />
+  <file name = "stress.pal"            class = "private resource" />
+  <file name = "im_read.pal"           class = "private resource" />
+  <file name = "im_send.pal"           class = "private resource" />
+
+  <actions>
+    <generate>
+      <execute target = "unix">
+        PATH=..:$PATH; export PATH
+        gsl -q -quiet:1 -target:pal demo.asl
+        gsl -q -quiet:1 demo_pal.xnf
+      </execute>
+      <execute target = "win32">
+        set PATH=..;%PATH%
+        gsl -q -quiet:1 -target:pal demo.asl
+        gsl -q -quiet:1 demo_pal.xnf
+      </execute>
+    </generate>
+  </actions>
+</directory>
+
+</pdl>

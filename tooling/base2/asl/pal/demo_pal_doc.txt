@@ -1,0 +1,2139 @@
+This is the protocol automation language grammar for the demo protocol. 
+The PAL grammar is generated automatically from the client-side protocol
+specifications.                                                         
+
+Summary of language
+===================
+
+This summary shows the hierarchy of elements you can use, with the
+required and optional attributes for each element.  The XML entity and
+attribute names are case-sensitive and we use only lower-case names.
+
+    <pal [abstract] [role] [before] [after] [copyright] [license] [name] [comment] [target]
+         [export]>
+       <option name value/>
+       <inherit name [phase] [condition]>
+          <option .../>
+       </inherit>
+       <doc/>
+       <macro name>
+          <session [virtual_host] [server] [timeout] [failover] [direct]>
+             <session [virtual_host] [server] [timeout] [failover] [direct]>
+             </session>
+             <invoke macro>
+                <session .../>
+                <invoke macro>
+                </invoke>
+                <server name [port] [stdout] [stderr] [where]>
+                   <session .../>
+                   <invoke .../>
+                   <server name [port] [stdout] [stderr] [where]>
+                   </server>
+                   <timer [action]/>
+                   <set name [value] [type] [cmdline]/>
+                   <inc name/>
+                   <dec name/>
+                   <read name [prompt]/>
+                   <random name max [min]/>
+                   <echo [trace]/>
+                   <assert name [condition] [test] [value]/>
+                   <repeat [counter] [times] [progress]>
+                      <session .../>
+                      <invoke .../>
+                      <server .../>
+                      <timer .../>
+                      <set .../>
+                      <inc .../>
+                      <dec .../>
+                      <read .../>
+                      <random .../>
+                      <echo .../>
+                      <assert .../>
+                      <repeat [counter] [times] [progress]>
+                      </repeat>
+                      <while name [condition] [test] [value] [counter] [progress]>
+                         <session .../>
+                         <invoke .../>
+                         <server .../>
+                         <timer .../>
+                         <set .../>
+                         <inc .../>
+                         <dec .../>
+                         <read .../>
+                         <random .../>
+                         <echo .../>
+                         <assert .../>
+                         <repeat .../>
+                         <while name [condition] [test] [value] [counter] [progress]>
+                         </while>
+                         <break/>
+                         <if name [condition] [test] [value]>
+                            <session .../>
+                            <invoke .../>
+                            <server .../>
+                            <timer .../>
+                            <set .../>
+                            <inc .../>
+                            <dec .../>
+                            <read .../>
+                            <random .../>
+                            <echo .../>
+                            <assert .../>
+                            <repeat .../>
+                            <while .../>
+                            <break .../>
+                            <if name [condition] [test] [value]>
+                            </if>
+                            <else>
+                               <session .../>
+                               <invoke .../>
+                               <server .../>
+                               <timer .../>
+                               <set .../>
+                               <inc .../>
+                               <dec .../>
+                               <read .../>
+                               <random .../>
+                               <echo .../>
+                               <assert .../>
+                               <repeat .../>
+                               <while .../>
+                               <break .../>
+                               <if .../>
+                               <else>
+                               </else>
+                               <elsif name [condition] [test] [value]>
+                                  <session .../>
+                                  <invoke .../>
+                                  <server .../>
+                                  <timer .../>
+                                  <set .../>
+                                  <inc .../>
+                                  <dec .../>
+                                  <read .../>
+                                  <random .../>
+                                  <echo .../>
+                                  <assert .../>
+                                  <repeat .../>
+                                  <while .../>
+                                  <break .../>
+                                  <if .../>
+                                  <else .../>
+                                  <elsif name [condition] [test] [value]>
+                                  </elsif>
+                                  <wait [timeout]/>
+                                  <sleep timeout/>
+                                  <abort/>
+                                  <exit [status]/>
+                                  <channel_flow [active]/>
+                                  <channel_flow_ok [active]/>
+                                  <exchange_declare [exchange] [type] [passive] [durable] [auto_delete]/>
+                                  <exchange_delete [exchange] [if_unused]/>
+                                  <queue_declare [queue] [passive] [durable] [exclusive] [auto_delete]/>
+                                  <queue_bind [queue] [exchange]>
+                                     <arguments>
+                                        <field name [value] [type]/>
+                                     </arguments>
+                                  </queue_bind>
+                                  <queue_purge [queue]/>
+                                  <queue_delete [queue] [if_unused] [if_empty]/>
+                                  <basic_consume [queue]/>
+                                  <basic_cancel [consumer_tag]/>
+                                  <basic_publish [content] [exchange] [routing_key]/>
+                                  <basic_get [queue]/>
+                                  <basic_content [name] [size] [fill] [exec] [headers] [read] [content_type] [content_encoding]
+                                       [reply_to] [message_id] [correlation_id]>
+                                     <headers>
+                                        <field .../>
+                                     </headers>
+                                  </basic_content>
+                                  <basic_arrived [counter]>
+                                     <session .../>
+                                     <invoke .../>
+                                     <server .../>
+                                     <timer .../>
+                                     <set .../>
+                                     <inc .../>
+                                     <dec .../>
+                                     <read .../>
+                                     <random .../>
+                                     <echo .../>
+                                     <assert .../>
+                                     <repeat .../>
+                                     <while .../>
+                                     <break .../>
+                                     <if .../>
+                                     <else .../>
+                                     <elsif .../>
+                                     <wait .../>
+                                     <sleep .../>
+                                     <abort .../>
+                                     <exit .../>
+                                     <channel_flow .../>
+                                     <channel_flow_ok .../>
+                                     <exchange_declare .../>
+                                     <exchange_delete .../>
+                                     <queue_declare .../>
+                                     <queue_bind .../>
+                                     <queue_purge .../>
+                                     <queue_delete .../>
+                                     <basic_consume .../>
+                                     <basic_cancel .../>
+                                     <basic_publish .../>
+                                     <basic_get .../>
+                                     <basic_content .../>
+                                     <basic_arrived [counter]>
+                                     </basic_arrived>
+                                     <basic_returned [counter]>
+                                        <session .../>
+                                        <invoke .../>
+                                        <server .../>
+                                        <timer .../>
+                                        <set .../>
+                                        <inc .../>
+                                        <dec .../>
+                                        <read .../>
+                                        <random .../>
+                                        <echo .../>
+                                        <assert .../>
+                                        <repeat .../>
+                                        <while .../>
+                                        <break .../>
+                                        <if .../>
+                                        <else .../>
+                                        <elsif .../>
+                                        <wait .../>
+                                        <sleep .../>
+                                        <abort .../>
+                                        <exit .../>
+                                        <channel_flow .../>
+                                        <channel_flow_ok .../>
+                                        <exchange_declare .../>
+                                        <exchange_delete .../>
+                                        <queue_declare .../>
+                                        <queue_bind .../>
+                                        <queue_purge .../>
+                                        <queue_delete .../>
+                                        <basic_consume .../>
+                                        <basic_cancel .../>
+                                        <basic_publish .../>
+                                        <basic_get .../>
+                                        <basic_content .../>
+                                        <basic_arrived .../>
+                                        <basic_returned [counter]>
+                                        </basic_returned>
+                                        <empty>
+                                           <session .../>
+                                           <invoke .../>
+                                           <server .../>
+                                           <timer .../>
+                                           <set .../>
+                                           <inc .../>
+                                           <dec .../>
+                                           <read .../>
+                                           <random .../>
+                                           <echo .../>
+                                           <assert .../>
+                                           <repeat .../>
+                                           <while .../>
+                                           <break .../>
+                                           <if .../>
+                                           <else .../>
+                                           <elsif .../>
+                                           <wait .../>
+                                           <sleep .../>
+                                           <abort .../>
+                                           <exit .../>
+                                           <channel_flow .../>
+                                           <channel_flow_ok .../>
+                                           <exchange_declare .../>
+                                           <exchange_delete .../>
+                                           <queue_declare .../>
+                                           <queue_bind .../>
+                                           <queue_purge .../>
+                                           <queue_delete .../>
+                                           <basic_consume .../>
+                                           <basic_cancel .../>
+                                           <basic_publish .../>
+                                           <basic_get .../>
+                                           <basic_content .../>
+                                           <basic_arrived .../>
+                                           <basic_returned .../>
+                                           <empty>
+                                           </empty>
+                                     <empty .../>
+                                  <basic_returned .../>
+                                  <empty .../>
+                               <wait .../>
+                               <sleep .../>
+                               <abort .../>
+                               <exit .../>
+                               <channel_flow .../>
+                               <channel_flow_ok .../>
+                               <exchange_declare .../>
+                               <exchange_delete .../>
+                               <queue_declare .../>
+                               <queue_bind .../>
+                               <queue_purge .../>
+                               <queue_delete .../>
+                               <basic_consume .../>
+                               <basic_cancel .../>
+                               <basic_publish .../>
+                               <basic_get .../>
+                               <basic_content .../>
+                               <basic_arrived .../>
+                               <basic_returned .../>
+                               <empty .../>
+                            <elsif .../>
+                            <wait .../>
+                            <sleep .../>
+                            <abort .../>
+                            <exit .../>
+                            <channel_flow .../>
+                            <channel_flow_ok .../>
+                            <exchange_declare .../>
+                            <exchange_delete .../>
+                            <queue_declare .../>
+                            <queue_bind .../>
+                            <queue_purge .../>
+                            <queue_delete .../>
+                            <basic_consume .../>
+                            <basic_cancel .../>
+                            <basic_publish .../>
+                            <basic_get .../>
+                            <basic_content .../>
+                            <basic_arrived .../>
+                            <basic_returned .../>
+                            <empty .../>
+                         <else .../>
+                         <elsif .../>
+                         <wait .../>
+                         <sleep .../>
+                         <abort .../>
+                         <exit .../>
+                         <channel_flow .../>
+                         <channel_flow_ok .../>
+                         <exchange_declare .../>
+                         <exchange_delete .../>
+                         <queue_declare .../>
+                         <queue_bind .../>
+                         <queue_purge .../>
+                         <queue_delete .../>
+                         <basic_consume .../>
+                         <basic_cancel .../>
+                         <basic_publish .../>
+                         <basic_get .../>
+                         <basic_content .../>
+                         <basic_arrived .../>
+                         <basic_returned .../>
+                         <empty .../>
+                      <break .../>
+                      <if .../>
+                      <else .../>
+                      <elsif .../>
+                      <wait .../>
+                      <sleep .../>
+                      <abort .../>
+                      <exit .../>
+                      <channel_flow .../>
+                      <channel_flow_ok .../>
+                      <exchange_declare .../>
+                      <exchange_delete .../>
+                      <queue_declare .../>
+                      <queue_bind .../>
+                      <queue_purge .../>
+                      <queue_delete .../>
+                      <basic_consume .../>
+                      <basic_cancel .../>
+                      <basic_publish .../>
+                      <basic_get .../>
+                      <basic_content .../>
+                      <basic_arrived .../>
+                      <basic_returned .../>
+                      <empty .../>
+                   <while .../>
+                   <break .../>
+                   <if .../>
+                   <else .../>
+                   <elsif .../>
+                   <wait .../>
+                   <sleep .../>
+                   <abort .../>
+                   <exit .../>
+                   <channel_flow .../>
+                   <channel_flow_ok .../>
+                   <exchange_declare .../>
+                   <exchange_delete .../>
+                   <queue_declare .../>
+                   <queue_bind .../>
+                   <queue_purge .../>
+                   <queue_delete .../>
+                   <basic_consume .../>
+                   <basic_cancel .../>
+                   <basic_publish .../>
+                   <basic_get .../>
+                   <basic_content .../>
+                   <basic_arrived .../>
+                   <basic_returned .../>
+                   <empty .../>
+                <timer .../>
+                <set .../>
+                <inc .../>
+                <dec .../>
+                <read .../>
+                <random .../>
+                <echo .../>
+                <assert .../>
+                <repeat .../>
+                <while .../>
+                <break .../>
+                <if .../>
+                <else .../>
+                <elsif .../>
+                <wait .../>
+                <sleep .../>
+                <abort .../>
+                <exit .../>
+                <channel_flow .../>
+                <channel_flow_ok .../>
+                <exchange_declare .../>
+                <exchange_delete .../>
+                <queue_declare .../>
+                <queue_bind .../>
+                <queue_purge .../>
+                <queue_delete .../>
+                <basic_consume .../>
+                <basic_cancel .../>
+                <basic_publish .../>
+                <basic_get .../>
+                <basic_content .../>
+                <basic_arrived .../>
+                <basic_returned .../>
+                <empty .../>
+             <server .../>
+             <timer .../>
+             <set .../>
+             <inc .../>
+             <dec .../>
+             <read .../>
+             <random .../>
+             <echo .../>
+             <assert .../>
+             <repeat .../>
+             <while .../>
+             <break .../>
+             <if .../>
+             <else .../>
+             <elsif .../>
+             <wait .../>
+             <sleep .../>
+             <abort .../>
+             <exit .../>
+             <channel_flow .../>
+             <channel_flow_ok .../>
+             <exchange_declare .../>
+             <exchange_delete .../>
+             <queue_declare .../>
+             <queue_bind .../>
+             <queue_purge .../>
+             <queue_delete .../>
+             <basic_consume .../>
+             <basic_cancel .../>
+             <basic_publish .../>
+             <basic_get .../>
+             <basic_content .../>
+             <basic_arrived .../>
+             <basic_returned .../>
+             <empty .../>
+          <invoke .../>
+          <server .../>
+          <timer .../>
+          <set .../>
+          <inc .../>
+          <dec .../>
+          <read .../>
+          <random .../>
+          <echo .../>
+          <assert .../>
+          <repeat .../>
+          <while .../>
+          <break .../>
+          <if .../>
+          <else .../>
+          <elsif .../>
+          <wait .../>
+          <sleep .../>
+          <abort .../>
+          <exit .../>
+          <channel_flow .../>
+          <channel_flow_ok .../>
+          <exchange_declare .../>
+          <exchange_delete .../>
+          <queue_declare .../>
+          <queue_bind .../>
+          <queue_purge .../>
+          <queue_delete .../>
+          <basic_consume .../>
+          <basic_cancel .../>
+          <basic_publish .../>
+          <basic_get .../>
+          <basic_content .../>
+          <basic_arrived .../>
+          <basic_returned .../>
+          <empty .../>
+       </macro>
+       <include filename/>
+       <session .../>
+       <invoke .../>
+       <server .../>
+       <timer .../>
+       <set .../>
+       <inc .../>
+       <dec .../>
+       <read .../>
+       <random .../>
+       <echo .../>
+       <assert .../>
+       <repeat .../>
+       <while .../>
+       <break .../>
+       <if .../>
+       <else .../>
+       <elsif .../>
+       <wait .../>
+       <sleep .../>
+       <abort .../>
+       <exit .../>
+       <channel_flow .../>
+       <channel_flow_ok .../>
+       <exchange_declare .../>
+       <exchange_delete .../>
+       <queue_declare .../>
+       <queue_bind .../>
+       <queue_purge .../>
+       <queue_delete .../>
+       <basic_consume .../>
+       <basic_cancel .../>
+       <basic_publish .../>
+       <basic_get .../>
+       <basic_content .../>
+       <basic_arrived .../>
+       <basic_returned .../>
+       <empty .../>
+    </pal>
+
+Detailed specifications
+=======================
+
+All child entities are optional and can occur zero or more times without
+any specific limits unless otherwise specified.  The same tag may occur
+at different levels with different meanings, and in such cases will be
+detailed more than once here.
+
+The 'pal' item
+--------------
+
+Defines the automation language.
+
+    <pal
+      [ abstract = "0 | 1"  ("0") ]
+      [ role = "..." ]
+      [ before = "..." ]
+      [ after = "..." ]
+      [ copyright = "..." ]
+      [ license = "bsd | gpl"  ("gpl") ]
+      [ name = "..." ]
+      [ comment = "..." ]
+      [ target = "..."  ("stdc") ]
+      [ export = "none | default | before | after"  ("default") ]
+        >
+        <option>
+        <inherit>
+        <doc>
+        <macro>
+        <include>
+        <session>
+        <invoke>
+        <server>
+        <timer>
+        <set>
+        <inc>
+        <dec>
+        <read>
+        <random>
+        <echo>
+        <assert>
+        <repeat>
+        <while>
+        <break>
+        <if>
+        <else>
+        <elsif>
+        <wait>
+        <sleep>
+        <abort>
+        <exit>
+        <channel_flow>
+        <channel_flow_ok>
+        <exchange_declare>
+        <exchange_delete>
+        <queue_declare>
+        <queue_bind>
+        <queue_purge>
+        <queue_delete>
+        <basic_consume>
+        <basic_cancel>
+        <basic_publish>
+        <basic_get>
+        <basic_content>
+        <basic_arrived>
+        <basic_returned>
+        <empty>
+    </pal>
+
+The pal item can have these attributes:
+
+abstract:
+    If set, the entity only exists in order to be inherited - no code is    
+    generated. The abstract attribute is optional. Its default value is "0".
+    It can take one of the following values:                                
+
+Value: Meaning:
+0: normal entity
+1: abstract entity
+
+role:
+    A file may fulfill a role. This serves two purposes: asserting that      
+    essential roles are fulfilled and helping to define the inheritence order
+    using the 'before' and 'after' attributes. The role attribute is         
+    optional.                                                                
+
+before:
+    Specifies a role before which this file should should be inherited. The
+    before attribute is optional.                                          
+
+after:
+    Specifies a role before which this file should should be inherited. The
+    after attribute is optional.                                           
+
+copyright:
+    This specifies the copyright string for the model. This string is stamped
+    into the generated sources, if specified. The copyright attribute is     
+    optional.                                                                
+
+license:
+    Specifies the license of the model. This license is applied to all models
+    inherited or built from the current model. The license attribute is      
+    optional. Its default value is "gpl". It can take one of the following   
+    values:                                                                  
+
+Value: Meaning:
+bsd: generates a BSD license header
+gpl: generates a GPL license header
+
+name:
+    Specifies the name of the script. This name will used as the filename for
+    generated code. The name attribute is optional.                          
+
+comment:
+    An optional one-line comment that describes the script. The comment
+    attribute is optional.                                             
+
+target:
+    Specifies the name of the target environment; the target is implemented
+    by a PAL back-end script in GSL that generates code for a specific     
+    language environment. The target can be inherited from a parent script.
+    The target attribute is optional. Its default value is "stdc".         
+
+export:
+    Specifies how this item may be inherited. The export attribute is
+    optional. Its default value is "default". It can take one of the 
+    following values:                                                
+
+Value: Meaning:
+none: may not be inherited
+default: inherited in the default manner
+before: inherited before existing items
+after: inherited after existing items
+
+
+The 'option' item
+-----------------
+
+Passes an option to an inherited class. Options can be used in the template
+code generation logic, or in method handlers.                              
+
+    <option
+        name = "..."
+        value = "..."
+        />
+
+The option item can have these attributes:
+
+name:
+    The name of the option. The name attribute is required.
+
+value:
+    The value for the option. The value attribute is required.
+
+
+The 'inherit' item
+------------------
+
+
+
+    <inherit
+        name = "..."
+      [ phase = "preproc | parse" ]
+      [ condition = "..." ]
+        >
+        <option>
+    </inherit>
+
+The inherit item can have these attributes:
+
+name:
+    Name of entity to inherit from. The name attribute is required.
+
+phase:
+    The processing phase during which this inheritence is performed. The 
+    phase attribute is optional. It can take one of the following values:
+
+Value: Meaning:
+preproc: inherited in preprocessor
+parse: inherited in parser
+
+condition:
+    Specifies a condition which must be TRUE for the inheritence to occur.
+    The condition attribute is optional.                                  
+
+
+The 'doc' item
+--------------
+
+Documentation for the test script. Should be in iMatix gurudoc format.
+
+    <doc>
+
+
+
+The 'macro' item
+----------------
+
+Defines a macros, a block of scripting code that can defined once and then
+used many times.                                                          
+
+    <macro
+        name = "..."
+        >
+        <session>
+        <invoke>
+        <server>
+        <timer>
+        <set>
+        <inc>
+        <dec>
+        <read>
+        <random>
+        <echo>
+        <assert>
+        <repeat>
+        <while>
+        <break>
+        <if>
+        <else>
+        <elsif>
+        <wait>
+        <sleep>
+        <abort>
+        <exit>
+        <channel_flow>
+        <channel_flow_ok>
+        <exchange_declare>
+        <exchange_delete>
+        <queue_declare>
+        <queue_bind>
+        <queue_purge>
+        <queue_delete>
+        <basic_consume>
+        <basic_cancel>
+        <basic_publish>
+        <basic_get>
+        <basic_content>
+        <basic_arrived>
+        <basic_returned>
+        <empty>
+    </macro>
+
+The macro item has this single attribute:
+
+name:
+    The name attribute is required.
+
+
+The 'session' item
+------------------
+
+Defines a new session within the main connection.
+
+    <session
+      [ virtual_host = "..."  ("/") ]
+      [ server = "..." ]
+      [ timeout = "..."  ("30000") ]
+      [ failover = "..." ]
+      [ direct = "..."  ("0") ]
+        >
+        <session>
+        <invoke>
+        <server>
+        <timer>
+        <set>
+        <inc>
+        <dec>
+        <read>
+        <random>
+        <echo>
+        <assert>
+        <repeat>
+        <while>
+        <break>
+        <if>
+        <else>
+        <elsif>
+        <wait>
+        <sleep>
+        <abort>
+        <exit>
+        <channel_flow>
+        <channel_flow_ok>
+        <exchange_declare>
+        <exchange_delete>
+        <queue_declare>
+        <queue_bind>
+        <queue_purge>
+        <queue_delete>
+        <basic_consume>
+        <basic_cancel>
+        <basic_publish>
+        <basic_get>
+        <basic_content>
+        <basic_arrived>
+        <basic_returned>
+        <empty>
+    </session>
+
+The session item can have these attributes:
+
+virtual_host:
+    The virtual_host attribute is optional. Its default value is "/".
+
+server:
+    If specified, forces the session to connect to this server address.   
+    Otherwise the address is supplied by default or specified by the user.
+    The server attribute is optional.                                     
+
+timeout:
+    Specifies the connection timeout for synchronous commands, in       
+    milliseconds. If the server does not respond within this timeout the
+    script will end with a failure. Defaults to 30 seconds. The timeout 
+    attribute is optional. Its default value is "30000".                
+
+failover:
+    If an integer greater than zero, on a broken connection the script will  
+    pause for the specified number of seconds, and then try to reconnect to  
+    the same or alternate server. To use alternate servers, specify multiple 
+    server names in the 'server' attribute, seperated by spaces. The failover
+    attribute is optional.                                                   
+
+direct:
+    If not zero, the script will use Direct Mode to publish and receive      
+    messages. This is a fast out-of-band protocol documented on              
+    http://wiki.amqp.org. The direct attribute is optional. Its default value
+    is "0".                                                                  
+
+
+The 'invoke' item
+-----------------
+
+Invokes a macro. The macro is inserted after the contents of the invoke
+block, if any.                                                         
+
+    <invoke
+        macro = "..."
+        >
+        <session>
+        <invoke>
+        <server>
+        <timer>
+        <set>
+        <inc>
+        <dec>
+        <read>
+        <random>
+        <echo>
+        <assert>
+        <repeat>
+        <while>
+        <break>
+        <if>
+        <else>
+        <elsif>
+        <wait>
+        <sleep>
+        <abort>
+        <exit>
+        <channel_flow>
+        <channel_flow_ok>
+        <exchange_declare>
+        <exchange_delete>
+        <queue_declare>
+        <queue_bind>
+        <queue_purge>
+        <queue_delete>
+        <basic_consume>
+        <basic_cancel>
+        <basic_publish>
+        <basic_get>
+        <basic_content>
+        <basic_arrived>
+        <basic_returned>
+        <empty>
+    </invoke>
+
+The invoke item has this single attribute:
+
+macro:
+    The macro attribute is required.
+
+
+The 'server' item
+-----------------
+
+Starts or restarts a protocol server. If the server was already running 
+(from the test script), stops and then restarts it. The server is always
+killed when the script ends. The script can optionally redirect the     
+server's stderr and stdout output.                                      
+
+    <server
+        name = "..."
+      [ port = "..." ]
+      [ stdout = "..." ]
+      [ stderr = "..." ]
+      [ where = "..."  (".") ]
+        >
+        <session>
+        <invoke>
+        <server>
+        <timer>
+        <set>
+        <inc>
+        <dec>
+        <read>
+        <random>
+        <echo>
+        <assert>
+        <repeat>
+        <while>
+        <break>
+        <if>
+        <else>
+        <elsif>
+        <wait>
+        <sleep>
+        <abort>
+        <exit>
+        <channel_flow>
+        <channel_flow_ok>
+        <exchange_declare>
+        <exchange_delete>
+        <queue_declare>
+        <queue_bind>
+        <queue_purge>
+        <queue_delete>
+        <basic_consume>
+        <basic_cancel>
+        <basic_publish>
+        <basic_get>
+        <basic_content>
+        <basic_arrived>
+        <basic_returned>
+        <empty>
+    </server>
+
+The server item can have these attributes:
+
+name:
+    The name attribute is required.
+
+port:
+    The port attribute is optional.
+
+stdout:
+    The stdout attribute is optional. Its default value is "".
+
+stderr:
+    The stderr attribute is optional. Its default value is "".
+
+where:
+    The where attribute is optional. Its default value is ".".
+
+
+The 'timer' item
+----------------
+
+Restarts the script timer.
+
+    <timer
+      [ action = "reset | show"  ("reset") ]
+        />
+
+The timer item has this single attribute:
+
+action:
+    The action attribute is optional. Its default value is "reset". It can
+    take one of the following values:                                     
+
+Value: Meaning:
+reset: reset timer
+show: show timer
+
+
+The 'set' item
+--------------
+
+Define a variable. Variables can be strings or integers. You can use    
+variables in repeat, while, and if blocks, and as symbols for templating
+arguments and strings. Untyped variables are typed according to their   
+value.                                                                  
+
+    <set
+        name = "..."
+      [ value = "..." ]
+      [ type = "string | integer" ]
+      [ cmdline = "..." ]
+        />
+
+The set item can have these attributes:
+
+name:
+    The name attribute is required.
+
+value:
+    The value attribute is optional. Its default value is "".
+
+type:
+    The type attribute is optional. It can take one of the following values:
+
+Value: Meaning:
+string: string variable
+integer: integer variable
+
+cmdline:
+    The cmdline attribute is optional.
+
+
+The 'inc' item
+--------------
+
+Increments an integer variable.
+
+    <inc
+        name = "..."
+        />
+
+The inc item has this single attribute:
+
+name:
+    The name attribute is required.
+
+
+The 'dec' item
+--------------
+
+Decrements an integer variable. Decrementing a variable below zero is
+illegal and raises a fatal error.                                    
+
+    <dec
+        name = "..."
+        />
+
+The dec item has this single attribute:
+
+name:
+    The name attribute is required.
+
+
+The 'read' item
+---------------
+
+Read a line of input from the console and assign it to a string variable.
+
+    <read
+        name = "..."
+      [ prompt = "..." ]
+        />
+
+The read item can have these attributes:
+
+name:
+    The name attribute is required.
+
+prompt:
+    The prompt attribute is optional.
+
+
+The 'random' item
+-----------------
+
+Define an integer variable, set to a random value within the specified
+interval.                                                             
+
+    <random
+        name = "..."
+        max = "..."
+      [ min = "..."  ("0") ]
+        />
+
+The random item can have these attributes:
+
+name:
+    The name attribute is required.
+
+min:
+    The min attribute is optional. Its default value is "0".
+
+max:
+    The max attribute is required.
+
+
+The 'echo' item
+---------------
+
+Echoes a line of text, which can include connection or session properties
+as symbols specified by $name, e.g. $version_major.                      
+
+    <echo
+      [ trace = "..."  ("0") ]
+        />
+
+The echo item has this single attribute:
+
+trace:
+    If 0, the echo is printed all the time. If 1 to 3, is printed only at the
+    corresponding trace level. The trace attribute is optional. Its default  
+    value is "0".                                                            
+
+
+The 'assert' item
+-----------------
+
+The conditional variable can be any connection or session property, or a   
+variable. The value can be a literal string or number, with templating of  
+properties and variables done using the $name syntax. The default test if a
+test and value is not specified is "not empty" for strings and "not zero"  
+for numbers. If a value is specified, the default test is "eq". Define an  
+assertion that tests a condition and aborts the script if the condition is 
+false. If the assert tag contains a message, will first print the message. 
+
+    <assert
+        name = "..."
+      [ condition = "..." ]
+      [ test = "eq | ne | gt | lt | ge | le" ]
+      [ value = "..." ]
+        />
+
+The assert item can have these attributes:
+
+condition:
+    Specifies a condition which must be TRUE for the entity to be created.
+    The condition attribute is optional.                                  
+
+name:
+    The name attribute is required.
+
+test:
+    The test attribute is optional. It can take one of the following values:
+
+Value: Meaning:
+eq: test equals, as strings
+ne: test not equals, as stringsd
+gt: test greater than, numeric
+lt: test less than, numeric
+ge: test greater, numeric
+le: test less or equal to, numeric
+
+value:
+    The value attribute is optional.
+
+
+The 'repeat' item
+-----------------
+
+Defines an iterative loop, which can run forever or for a specified number 
+of times. The counter is global to the session (do not use the same counter
+for two nested loops). To access the counter within the repeat loop, use   
+the $name syntax.                                                          
+
+    <repeat
+      [ counter = "..." ]
+      [ times = "..." ]
+      [ progress = "..." ]
+        >
+        <session>
+        <invoke>
+        <server>
+        <timer>
+        <set>
+        <inc>
+        <dec>
+        <read>
+        <random>
+        <echo>
+        <assert>
+        <repeat>
+        <while>
+        <break>
+        <if>
+        <else>
+        <elsif>
+        <wait>
+        <sleep>
+        <abort>
+        <exit>
+        <channel_flow>
+        <channel_flow_ok>
+        <exchange_declare>
+        <exchange_delete>
+        <queue_declare>
+        <queue_bind>
+        <queue_purge>
+        <queue_delete>
+        <basic_consume>
+        <basic_cancel>
+        <basic_publish>
+        <basic_get>
+        <basic_content>
+        <basic_arrived>
+        <basic_returned>
+        <empty>
+    </repeat>
+
+The repeat item can have these attributes:
+
+counter:
+    The counter attribute is optional.
+
+times:
+    The times attribute is optional.
+
+progress:
+    The progress attribute is optional.
+
+
+The 'while' item
+----------------
+
+The conditional variable can be any connection or session property, or a   
+variable. The value can be a literal string or number, with templating of  
+properties and variables done using the $name syntax. The default test if a
+test and value is not specified is "not empty" for strings and "not zero"  
+for numbers. If a value is specified, the default test is "eq". Defines a  
+conditional loop, which runs so long as a specified condition is true. The 
+conditional variable can be any connection or session property, or a       
+variable. The value can be a literal string or number, with templating of  
+properties and variables done using the $name syntax. The default test if a
+test and value is not specified is "not empty" for strings and "not zero"  
+for numbers. If a value is specified, the default test is "eq". The counter
+is global to the session (do not use the same counter for two nested       
+loops). To access the counter within the while loop, use the $name syntax. 
+
+    <while
+        name = "..."
+      [ condition = "..." ]
+      [ test = "eq | ne | gt | lt | ge | le" ]
+      [ value = "..." ]
+      [ counter = "..." ]
+      [ progress = "..." ]
+        >
+        <session>
+        <invoke>
+        <server>
+        <timer>
+        <set>
+        <inc>
+        <dec>
+        <read>
+        <random>
+        <echo>
+        <assert>
+        <repeat>
+        <while>
+        <break>
+        <if>
+        <else>
+        <elsif>
+        <wait>
+        <sleep>
+        <abort>
+        <exit>
+        <channel_flow>
+        <channel_flow_ok>
+        <exchange_declare>
+        <exchange_delete>
+        <queue_declare>
+        <queue_bind>
+        <queue_purge>
+        <queue_delete>
+        <basic_consume>
+        <basic_cancel>
+        <basic_publish>
+        <basic_get>
+        <basic_content>
+        <basic_arrived>
+        <basic_returned>
+        <empty>
+    </while>
+
+The while item can have these attributes:
+
+condition:
+    Specifies a condition which must be TRUE for the entity to be created.
+    The condition attribute is optional.                                  
+
+name:
+    The name attribute is required.
+
+test:
+    The test attribute is optional. It can take one of the following values:
+
+Value: Meaning:
+eq: test equals, as strings
+ne: test not equals, as stringsd
+gt: test greater than, numeric
+lt: test less than, numeric
+ge: test greater, numeric
+le: test less or equal to, numeric
+
+value:
+    The value attribute is optional.
+
+counter:
+    The counter attribute is optional.
+
+progress:
+    The progress attribute is optional.
+
+
+The 'break' item
+----------------
+
+Exits the parent repeat or while loop.
+
+    <break>
+
+
+
+The 'if' item
+-------------
+
+The conditional variable can be any connection or session property, or a   
+variable. The value can be a literal string or number, with templating of  
+properties and variables done using the $name syntax. The default test if a
+test and value is not specified is "not empty" for strings and "not zero"  
+for numbers. If a value is specified, the default test is "eq". Defines a  
+conditional block.                                                         
+
+    <if
+        name = "..."
+      [ condition = "..." ]
+      [ test = "eq | ne | gt | lt | ge | le" ]
+      [ value = "..." ]
+        >
+        <session>
+        <invoke>
+        <server>
+        <timer>
+        <set>
+        <inc>
+        <dec>
+        <read>
+        <random>
+        <echo>
+        <assert>
+        <repeat>
+        <while>
+        <break>
+        <if>
+        <else>
+        <elsif>
+        <wait>
+        <sleep>
+        <abort>
+        <exit>
+        <channel_flow>
+        <channel_flow_ok>
+        <exchange_declare>
+        <exchange_delete>
+        <queue_declare>
+        <queue_bind>
+        <queue_purge>
+        <queue_delete>
+        <basic_consume>
+        <basic_cancel>
+        <basic_publish>
+        <basic_get>
+        <basic_content>
+        <basic_arrived>
+        <basic_returned>
+        <empty>
+    </if>
+
+The if item can have these attributes:
+
+condition:
+    Specifies a condition which must be TRUE for the entity to be created.
+    The condition attribute is optional.                                  
+
+name:
+    The name attribute is required.
+
+test:
+    The test attribute is optional. It can take one of the following values:
+
+Value: Meaning:
+eq: test equals, as strings
+ne: test not equals, as stringsd
+gt: test greater than, numeric
+lt: test less than, numeric
+ge: test greater, numeric
+le: test less or equal to, numeric
+
+value:
+    The value attribute is optional.
+
+
+The 'else' item
+---------------
+
+Defines an else block, used after an if block.
+
+    <else>
+        <session>
+        <invoke>
+        <server>
+        <timer>
+        <set>
+        <inc>
+        <dec>
+        <read>
+        <random>
+        <echo>
+        <assert>
+        <repeat>
+        <while>
+        <break>
+        <if>
+        <else>
+        <elsif>
+        <wait>
+        <sleep>
+        <abort>
+        <exit>
+        <channel_flow>
+        <channel_flow_ok>
+        <exchange_declare>
+        <exchange_delete>
+        <queue_declare>
+        <queue_bind>
+        <queue_purge>
+        <queue_delete>
+        <basic_consume>
+        <basic_cancel>
+        <basic_publish>
+        <basic_get>
+        <basic_content>
+        <basic_arrived>
+        <basic_returned>
+        <empty>
+    </else>
+
+
+
+The 'elsif' item
+----------------
+
+The conditional variable can be any connection or session property, or a   
+variable. The value can be a literal string or number, with templating of  
+properties and variables done using the $name syntax. The default test if a
+test and value is not specified is "not empty" for strings and "not zero"  
+for numbers. If a value is specified, the default test is "eq". Defines a  
+conditional else block, used after an if block.                            
+
+    <elsif
+        name = "..."
+      [ condition = "..." ]
+      [ test = "eq | ne | gt | lt | ge | le" ]
+      [ value = "..." ]
+        >
+        <session>
+        <invoke>
+        <server>
+        <timer>
+        <set>
+        <inc>
+        <dec>
+        <read>
+        <random>
+        <echo>
+        <assert>
+        <repeat>
+        <while>
+        <break>
+        <if>
+        <else>
+        <elsif>
+        <wait>
+        <sleep>
+        <abort>
+        <exit>
+        <channel_flow>
+        <channel_flow_ok>
+        <exchange_declare>
+        <exchange_delete>
+        <queue_declare>
+        <queue_bind>
+        <queue_purge>
+        <queue_delete>
+        <basic_consume>
+        <basic_cancel>
+        <basic_publish>
+        <basic_get>
+        <basic_content>
+        <basic_arrived>
+        <basic_returned>
+        <empty>
+    </elsif>
+
+The elsif item can have these attributes:
+
+condition:
+    Specifies a condition which must be TRUE for the entity to be created.
+    The condition attribute is optional.                                  
+
+name:
+    The name attribute is required.
+
+test:
+    The test attribute is optional. It can take one of the following values:
+
+Value: Meaning:
+eq: test equals, as strings
+ne: test not equals, as stringsd
+gt: test greater than, numeric
+lt: test less than, numeric
+ge: test greater, numeric
+le: test less or equal to, numeric
+
+value:
+    The value attribute is optional.
+
+
+The 'wait' item
+---------------
+
+Pauses the script for up to timeout milliseconds, or until content is
+received from the server, whichever is sooner.                       
+
+    <wait
+      [ timeout = "..."  ("0") ]
+        />
+
+The wait item has this single attribute:
+
+timeout:
+    The timeout attribute is optional. Its default value is "0".
+
+
+The 'sleep' item
+----------------
+
+Pauses the script for timeout milliseconds. Unlike the <wait> command, the
+sleep time is not affected by any traffic on the session.                 
+
+    <sleep
+        timeout = "..."
+        />
+
+The sleep item has this single attribute:
+
+timeout:
+    The timeout attribute is required.
+
+
+The 'abort' item
+----------------
+
+Echoes a line of text and halts the script.
+
+    <abort>
+
+
+
+The 'exit' item
+---------------
+
+Halts the script, optionally with a return status.
+
+    <exit
+      [ status = "..."  ("0") ]
+        />
+
+The exit item has this single attribute:
+
+status:
+    The status attribute is optional. Its default value is "0".
+
+
+The 'channel_flow' item
+-----------------------
+
+
+
+    <channel_flow
+      [ active = "..." ]
+        />
+
+The channel_flow item has this single attribute:
+
+active:
+    The active attribute is optional.
+
+
+The 'channel_flow_ok' item
+--------------------------
+
+
+
+    <channel_flow_ok
+      [ active = "..." ]
+        />
+
+The channel_flow_ok item has this single attribute:
+
+active:
+    The active attribute is optional.
+
+
+The 'exchange_declare' item
+---------------------------
+
+
+
+    <exchange_declare
+      [ exchange = "..." ]
+      [ type = "..." ]
+      [ passive = "..." ]
+      [ durable = "..." ]
+      [ auto_delete = "..." ]
+        />
+
+The exchange_declare item can have these attributes:
+
+exchange:
+    The exchange attribute is optional.
+
+type:
+    The type attribute is optional.
+
+passive:
+    The passive attribute is optional.
+
+durable:
+    The durable attribute is optional.
+
+auto_delete:
+    The auto_delete attribute is optional.
+
+
+The 'exchange_delete' item
+--------------------------
+
+
+
+    <exchange_delete
+      [ exchange = "..." ]
+      [ if_unused = "..." ]
+        />
+
+The exchange_delete item can have these attributes:
+
+exchange:
+    The exchange attribute is optional.
+
+if_unused:
+    The if_unused attribute is optional.
+
+
+The 'queue_declare' item
+------------------------
+
+
+
+    <queue_declare
+      [ queue = "..." ]
+      [ passive = "..." ]
+      [ durable = "..." ]
+      [ exclusive = "..." ]
+      [ auto_delete = "..." ]
+        />
+
+The queue_declare item can have these attributes:
+
+queue:
+    The queue attribute is optional.
+
+passive:
+    The passive attribute is optional.
+
+durable:
+    The durable attribute is optional.
+
+exclusive:
+    The exclusive attribute is optional.
+
+auto_delete:
+    The auto_delete attribute is optional.
+
+
+The 'queue_bind' item
+---------------------
+
+
+
+    <queue_bind
+      [ queue = "..." ]
+      [ exchange = "..." ]
+        >
+        <arguments>, optional
+    </queue_bind>
+
+The queue_bind item can have these attributes:
+
+queue:
+    The queue attribute is optional.
+
+exchange:
+    The exchange attribute is optional.
+
+
+The 'queue_bind_arguments' item
+-------------------------------
+
+Defines a arguments field table.
+
+    <arguments>
+        <field>
+    </arguments>
+
+
+
+The 'table field' item
+----------------------
+
+
+
+    <field
+        name = "..."
+      [ value = "..." ]
+      [ type = "string | integer | void"  ("string") ]
+        />
+
+The table field item can have these attributes:
+
+name:
+    The name attribute is required.
+
+value:
+    The value attribute is optional.
+
+type:
+    The type attribute is optional. Its default value is "string". It can
+    take one of the following values:                                    
+
+Value: Meaning:
+string: string field
+integer: integer field
+void: void field
+
+
+The 'queue_purge' item
+----------------------
+
+
+
+    <queue_purge
+      [ queue = "..." ]
+        />
+
+The queue_purge item has this single attribute:
+
+queue:
+    The queue attribute is optional.
+
+
+The 'queue_delete' item
+-----------------------
+
+
+
+    <queue_delete
+      [ queue = "..." ]
+      [ if_unused = "..." ]
+      [ if_empty = "..." ]
+        />
+
+The queue_delete item can have these attributes:
+
+queue:
+    The queue attribute is optional.
+
+if_unused:
+    The if_unused attribute is optional.
+
+if_empty:
+    The if_empty attribute is optional.
+
+
+The 'basic_consume' item
+------------------------
+
+
+
+    <basic_consume
+      [ queue = "..." ]
+        />
+
+The basic_consume item has this single attribute:
+
+queue:
+    The queue attribute is optional.
+
+
+The 'basic_cancel' item
+-----------------------
+
+
+
+    <basic_cancel
+      [ consumer_tag = "..." ]
+        />
+
+The basic_cancel item has this single attribute:
+
+consumer_tag:
+    The consumer_tag attribute is optional.
+
+
+The 'basic_publish' item
+------------------------
+
+
+
+    <basic_publish
+      [ content = "..." ]
+      [ exchange = "..." ]
+      [ routing_key = "..." ]
+        />
+
+The basic_publish item can have these attributes:
+
+content:
+    The content attribute is optional.
+
+exchange:
+    The exchange attribute is optional.
+
+routing_key:
+    The routing_key attribute is optional.
+
+
+The 'basic_get' item
+--------------------
+
+
+
+    <basic_get
+      [ queue = "..." ]
+        />
+
+The basic_get item has this single attribute:
+
+queue:
+    The queue attribute is optional.
+
+
+The 'basic_content' item
+------------------------
+
+Creates a content buffer for use by the script. Content buffers are  
+automatically destroyed when the script ends. The body of the content
+provides the body unless the random fill is used.                    
+
+    <basic_content
+      [ name = "..." ]
+      [ size = "..." ]
+      [ fill = "random | null | repeat"  ("random") ]
+      [ exec = "..." ]
+      [ headers = "..."  ("1") ]
+      [ read = "..." ]
+      [ content_type = "..." ]
+      [ content_encoding = "..." ]
+      [ reply_to = "..." ]
+      [ message_id = "..." ]
+      [ correlation_id = "..." ]
+        >
+        <headers>, optional
+    </basic_content>
+
+The basic_content item can have these attributes:
+
+name:
+    Specifies the name of the content buffer. The name attribute is optional.
+
+size:
+    Specifies the size in octets of the content buffer. If not specified    
+    takes the size of the content where supplied, otherwise defaults to 1024
+    bytes. The size attribute is optional.                                  
+
+fill:
+    Specifies the fill mode. If the basic_content entity has a non-blank    
+    body, that is used for the content body and the fill mode is ignored    
+    unless it is "repeat". The fill attribute is optional. Its default value
+    is "random". It can take one of the following values:                   
+
+Value: Meaning:
+random: random values
+null: binary zeroes
+repeat: repeat the entity body
+
+exec:
+    Specifies the name of a command to run, and get content from. The        
+    command's standard output is used as the content body. The size attribute
+    is ignored, and the content body is always the size of the command's     
+    stdout. The current content body, if any, is sent to the command's stdin.
+    The exec attribute is optional.                                          
+
+headers:
+    Used only in combination with exec. If zero, the output of the executed  
+    program is not reparsed. If one, the output is reparsed to collect       
+    message properties and headers as follows: each line specifies a header  
+    field name, followed by ":", followed by a space and a value. Field names
+    starting with "x-table-" are stored as-is (minus the x-table- prefix) in 
+    a field table with that name. Other fields must match known content      
+    properties. Hyphens are allowed in field names. The headers are ended    
+    with a blank line. Parsed headers create a CGI-like interface for calling
+    programs. The headers attribute is optional. Its default value is "1".   
+
+read:
+    Specifies the name of a file to read the content body from. The size  
+    attribute is ignored, and the content body is always the size of the  
+    file. Do not define 'read' if 'exec' is defined. Note: the name of the
+    file can be specified using variables, allowing a PAL script to "serve
+    up" arbitrary files. The read attribute is optional.                  
+
+content_type:
+    The content_type attribute is optional.
+
+content_encoding:
+    The content_encoding attribute is optional.
+
+reply_to:
+    The reply_to attribute is optional.
+
+message_id:
+    The message_id attribute is optional.
+
+correlation_id:
+    The correlation_id attribute is optional.
+
+
+The 'basic_content_headers' item
+--------------------------------
+
+Defines a headers field table.
+
+    <headers>
+        <field>
+    </headers>
+
+
+
+The 'basic_arrived' item
+------------------------
+
+Repeat script block for each arrived content.
+
+    <basic_arrived
+      [ counter = "..." ]
+        >
+        <session>
+        <invoke>
+        <server>
+        <timer>
+        <set>
+        <inc>
+        <dec>
+        <read>
+        <random>
+        <echo>
+        <assert>
+        <repeat>
+        <while>
+        <break>
+        <if>
+        <else>
+        <elsif>
+        <wait>
+        <sleep>
+        <abort>
+        <exit>
+        <channel_flow>
+        <channel_flow_ok>
+        <exchange_declare>
+        <exchange_delete>
+        <queue_declare>
+        <queue_bind>
+        <queue_purge>
+        <queue_delete>
+        <basic_consume>
+        <basic_cancel>
+        <basic_publish>
+        <basic_get>
+        <basic_content>
+        <basic_arrived>
+        <basic_returned>
+        <empty>
+    </basic_arrived>
+
+The basic_arrived item has this single attribute:
+
+counter:
+    The counter attribute is optional.
+
+
+The 'basic_returned' item
+-------------------------
+
+Repeat script block for each returned content.
+
+    <basic_returned
+      [ counter = "..." ]
+        >
+        <session>
+        <invoke>
+        <server>
+        <timer>
+        <set>
+        <inc>
+        <dec>
+        <read>
+        <random>
+        <echo>
+        <assert>
+        <repeat>
+        <while>
+        <break>
+        <if>
+        <else>
+        <elsif>
+        <wait>
+        <sleep>
+        <abort>
+        <exit>
+        <channel_flow>
+        <channel_flow_ok>
+        <exchange_declare>
+        <exchange_delete>
+        <queue_declare>
+        <queue_bind>
+        <queue_purge>
+        <queue_delete>
+        <basic_consume>
+        <basic_cancel>
+        <basic_publish>
+        <basic_get>
+        <basic_content>
+        <basic_arrived>
+        <basic_returned>
+        <empty>
+    </basic_returned>
+
+The basic_returned item has this single attribute:
+
+counter:
+    The counter attribute is optional.
+
+
+The 'empty' item
+----------------
+
+Conditional block executed if previous arrived or returned block did not
+process any content.                                                    
+
+    <empty>
+        <session>
+        <invoke>
+        <server>
+        <timer>
+        <set>
+        <inc>
+        <dec>
+        <read>
+        <random>
+        <echo>
+        <assert>
+        <repeat>
+        <while>
+        <break>
+        <if>
+        <else>
+        <elsif>
+        <wait>
+        <sleep>
+        <abort>
+        <exit>
+        <channel_flow>
+        <channel_flow_ok>
+        <exchange_declare>
+        <exchange_delete>
+        <queue_declare>
+        <queue_bind>
+        <queue_purge>
+        <queue_delete>
+        <basic_consume>
+        <basic_cancel>
+        <basic_publish>
+        <basic_get>
+        <basic_content>
+        <basic_arrived>
+        <basic_returned>
+        <empty>
+    </empty>
+
+
+
+The 'include' item
+------------------
+
+The 'include' element permits textual-inclusion from another file.
+
+    <include
+        filename = "..."
+        />
+
+The include item has this single attribute:
+
+filename:
+    The name of the XML-format file to be included in place of the 'include'
+    element. The filename attribute is required.                            
+

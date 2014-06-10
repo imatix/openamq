@@ -1,0 +1,157 @@
+#   Synchronous portal generator
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+#
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+
+#################################   PORTAL   ################################
+#
+
+#   Resolve requests and responses that are templated by other ones and
+#   delete abstract requests and responses
+#   <request name = "some template" abstract = "1"> ...
+#   <request name = "my request" template = "some template"> ...
+
+function resolve_templates (name)
+    for global.top->data.$(my.name) as method
+        if defined (method.template)
+            for global.top->data.$(my.name) where name = method.template
+                for . as entity
+                    copy entity to method
+                endfor
+            endfor
+        endif
+    endfor
+    for global.top->data.$(my.name) as method where defined (method.abstract)
+        method.delete ()
+    endfor
+endfunction
+
+#   Define portal methods into portal class currently being generated
+
+function construct_methods (name)
+    methods = ""
+    context = ""
+    for global.top->data.$(my.name)
+        methods += '<method name = "$(my.name) $([0].name)" return = "rc">'
+        methods += '<argument name = "self" type = "$\(selftype) *" />'
+        for field
+            field.name = "$(field.name:c)"
+            methods += '<argument name = "$(field.name)" type = "$(field.type)" />'
+        endfor
+        methods += '<declare name = "rc" type = "int" default = "0">Return code</declare>'
+        methods += '    if (!self->bound)\n'
+        methods += '        icl_console_print ("E: portal was not properly bound to client");\n'
+        methods += '    assert (self->bound);\n'
+        if my.name = "request"
+            methods += "    rc = (self->$(my.name)_$([0].name:c)) (self->server_object, self"
+        elsif my.name = "response"
+            methods += "    rc = (self->$(my.name)_$([0].name:c)) (self->client_object, self"
+        endif
+        for field
+            methods += ", $(field.name:c)"
+        endfor
+        methods += ");"
+        methods += "</method>"
+
+        context += "<context>"
+        context += "    int (*$(my.name)_$([0].name:c))\n"
+        if my.name = "request"
+            context += "        (void *_server, $(selftype) *portal"
+        elsif my.name = "response"
+            context += "        (void *_client, $(selftype) *portal"
+        endif
+        for field
+            context += ", $(field.type) $(field.name:c)"
+        endfor
+        context += ");"
+        context += "</context>"
+    endfor
+    #   Load calculated blocks into class
+    if methods <> ""
+        class.load_string (methods, errorstr)
+        if defined (errorstr)
+            abort errorstr
+        endif
+    endif
+    if context <> ""
+        class.load_string (context, errorstr)
+        if defined (errorstr)
+            abort errorstr
+        endif
+    endif
+endfunction
+
+#   Build factory method by copying and extending constructor
+.factory = '
+<context>
+    $(selftype) *(*server_new)
+        (void *_server'
+.for class.method where name = "new"
+.   for argument
+.       factory += ", $(argument.type) $(argument.name:c)"
+.   endfor
+.endfor
+.factory += ');
+</context>
+
+<method name = "factory" return = "portal">
+    <doc>
+    Asks portal factory to create new portal with implicit server object. The
+    server object is owned only by its portal; when you stop the owning portal
+    the implicit server object is also stopped.
+    </doc>
+    <argument name = "self" type = "$\(selftype) *">Portal factory</argument>
+'
+.   for class.method where name = "new"
+.       for argument
+.           factory += '    <argument name = "$(argument.name)" type = "$(argument.type)" />
+'
+.       endfor
+.   endfor
+.   factory +='    <declare name = "portal" type = "$(selftype) *">New portal object</declare>
+    //
+    //  Check this is a valid factory
+    if (self->server_object)
+        icl_console_print ("E: factory method is only allowed on portal factories");
+    assert (!self->server_object);
+    assert (self->server_new);
+    //
+    portal = (self->server_new) (NULL'
+.   for class.method where name = "new"
+.       for argument
+.           factory += ", $(argument.name:c)"
+.       endfor
+.   endfor
+.   factory += ');
+</method>
+'
+class.load_string (factory, errorstr)
+if defined (errorstr)
+    abort errorstr
+endif
+
+front_end ?= "sync"
+back_end ?= "sync"
+
+resolve_templates ("request")
+resolve_templates ("response")
+construct_methods ("request")
+construct_methods ("response")
+
+include "ipr_portal_$(front_end).gsl"
+generate_front_end_$(front_end) ()
+
+include "ipr_portal_$(back_end).gsl"
+generate_back_end_$(back_end) ()

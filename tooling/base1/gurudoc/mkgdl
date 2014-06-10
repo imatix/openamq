@@ -1,0 +1,647 @@
+#! /usr/bin/perl
+#=============================================================================
+#
+#   mkgdl - Plain text file to GDL file.
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+require 'guruver.pl';                   #   Version information
+require 'findfile.pl';                  #   Find file on path
+
+
+##############################   TEXT_TO_GDL   ##############################
+
+sub text_to_gdl
+{
+    local ($output_file);               #   Output file
+    local ($had_blank);                 #   Last line was blank?
+    local ($width, $height);            #   Image width, height
+    local ($captext);                   #   Image caption text
+
+    $output_file = &basename ($main_document) . ".gdl";
+    if ($output_file eq $main_document) {
+        &error ("$me E: document may not have '.gdl' extension");
+    }
+    elsif (!open (OUTPUT, ">$output_file")) {
+        &error ("$me E: can't create $output_file: $!");
+    }
+    open_the_document ($main_document);
+
+    $lines        = 0;                  #   Line numbering
+    $guru_block   = "";                 #   Not in any block
+    $guru_level   = 0;                  #   No header element read
+    $had_blank    = 1;                  #   Last line was blank, initially
+
+    &declare_gdl_tags;
+    &process_gdl_header;
+    &print_gdl_header;
+
+    while (get_plain_line ()) {
+        #   Numbered list consists of line starting with a number, that
+        #   number must be followed by a '-', '.' or ')' character, and
+        #   followed by a whitespace.
+        if (s/^\s{0,2}[0-9]+[\.\-\)]\s+//) {
+            &guru_want_block ($guru_enumerate);
+            print OUTPUT "<$guru_item>";
+            do {
+                s/^\s+/ /;
+                print OUTPUT "$_";
+                get_plain_line ();
+            } while (/^\s{1,2}[^\.\-\)]/ & !/^\s{0,2}[0-9]+[\.\-\)]\s+/);
+            print OUTPUT "</$guru_item>\n";
+            redo;
+        }
+        #   Bulleted list consists of line starting with '- ', '+',
+        #   '*', and followed by a whitespace.
+        elsif (s/^\s{0,2}[\-\*\+]\s+//) {
+            &guru_want_block ($guru_itemize);
+            print OUTPUT "<$guru_item>";
+            do {
+                s/^\s+/ /;
+                print OUTPUT "$_";
+                get_plain_line ();
+            } while (/^\s{1,2}[^\.\-\)]/);
+            print OUTPUT "</$guru_item>\n";
+            redo;
+        }
+        #   Horizontal rule is 4 or more underscore '_', plus '+',
+        #   hash '#', or tilde '~' characters.
+        #
+        elsif (/^\_\_\_\_/
+        ||     /^\+\+\+\+/
+        ||     /^\#\#\#\#/
+        ||     /^\~\~\~\~/) {
+            &guru_want_block ("");          #   Close any previous block
+            $_ = '<' . $guru_ruler . '/>';  #   Replace by <ruler/>
+        }
+        #   Figure is defined by [Figure filename: caption] where the
+        #   'figure' keyword and caption are optional, and the filename
+        #   may be enclosed in quotes.
+        #   Figures are numbered only if 'Figure' keyword is used
+        #
+        elsif (/^\[(Figure\s+)?"([^"\s]+)"\s*(:\s*([^]]*))?]/i
+        ||     /^\[(Figure\s+)?([^:\s]+)\s*(:\s*([^]]*))?]/i) {
+            &guru_want_block ("");          #   Close any previous block
+            #   Get the figure label
+            if ($1 && $3) {
+                $captext = $3;
+                $captext =~ s/^\s*:\s*//g;
+                $captext = " caption = \"$captext\"";
+            }
+            else {
+                $captext = "";
+            }
+            #   Get image width and height if possible
+            $width   = &image_width  ($2);
+            $height  = &image_height ($2);
+
+            print OUTPUT $1? "<figure": "<image";
+            print OUTPUT " filename = \"$2\"";
+            print OUTPUT " width = \"$width\"" if $width;
+            print OUTPUT " height = \"$height\"" if $height;
+            print OUTPUT $captext;
+            print OUTPUT "/>\n";
+            next;
+        }
+        #   Include file is defined by [See filename] where the filename
+        #   may be enclosed in quotes.
+        #
+        elsif (/^\[See\s+"([^"\s]+)"]/i || /^\[See\s+([^\s]+)]/i) {
+            &guru_want_block ("");          #   Close any previous block
+            open_the_document ($1);         #   Switch to new file
+            next;
+        }
+        #   Handle start of block of text after blank line
+        elsif (/^\S/ && $had_blank) {
+            local ($first) = $_;
+            get_plain_line ();
+
+            #   Header 1: line followed by '*****' line
+            #   Header 2: line followed by '=====' line
+            #   Header 3: line followed by '-----' line
+            #   Header 4: line followed by '.....' line
+            #
+            if (/^\*\*\*/) {
+                $new_level = 1;         #   H1
+                &guru_want_block ("");  #   Close any previous block
+                &guru_close_header ($new_level);
+                $_ = "<$guru_header>$first";
+                $guru_level = $new_level;
+                $had_blank = 1;
+                print OUTPUT "$_\n\n";
+                next;
+            }
+            elsif (/^\=\=\=/) {
+                $new_level = 2;         #   H2
+                &guru_want_block ("");  #   Close any previous block
+                &guru_close_header ($new_level);
+                $_ = "<$guru_header>$first";
+                $guru_level = $new_level;
+                $had_blank = 1;
+                print OUTPUT "$_\n\n";
+                next;
+            }
+            elsif (/^\-\-\-/) {
+                $new_level = 3;         #   H3
+                &guru_want_block ("");  #   Close any previous block
+                &guru_close_header ($new_level);
+                $_ = "<$guru_header>$first";
+                $guru_level = $new_level;
+                $had_blank = 1;
+                print OUTPUT "$_\n\n";
+                next;
+            }
+            elsif (/^\.\.\./) {
+                $new_level = 4;         #   H4
+                &guru_want_block ("");  #   Close any previous block
+                &guru_close_header ($new_level);
+                $_ = "<$guru_header>$first";
+                $guru_level = $new_level;
+                $had_blank = 1;
+                print OUTPUT "$_\n\n";
+                next;
+            }
+            #   Tables are triggered by either a header line in the form
+            #   'This field:  Has this meaning:', or by a table line in
+            #   the form 'One_word: Explanation...', where both the word
+            #   and the text start in a letter or a digit.
+            #
+            elsif ($first =~ /^[A-Za-z0-9].*(:\s+[A-Za-z].*)+:/
+            || ($table_row && $first =~ /^[A-Za-z0-9]\w*(:\s+\S+)+/)) {
+                &guru_want_block ("");  #   Close any previous block
+                print OUTPUT "<$guru_table>\n";
+                while ($first =~ /:\s/) {
+                    #   $_ holds next line
+                    if (/^\s/) {        #   Continuation is indented
+                        s/^\s+//;
+                        $first .= "\n" . $_;
+                    }
+                    else {
+                        &guru_table_row ($first);
+                        $first = $_;    #   Look at next line
+                    }
+                    get_plain_line ();
+                }
+                print OUTPUT "</$guru_table>\n";
+                redo;                   #   Next line is in $_
+            }
+            #   Definition lists are triggered by a line ending in ':'
+            #   followed by indented text.  Each definition item ends in
+            #   a blank line or a non-indented line.
+            #
+            elsif (/^\s/ && $first =~ /^(.*):$/) {
+                &guru_want_block ($guru_definition);
+                print OUTPUT "<$guru_term>";
+                print OUTPUT $1;
+                print OUTPUT "</$guru_term>\n";
+                print OUTPUT "<$guru_value>";
+                while (/^\s/) {
+                    s/^\s+//;
+                    print OUTPUT "$_\n";
+                    get_plain_line ();
+                }
+                print OUTPUT "</$guru_value>\n";
+                redo;                   #   Next line is in $_
+            }
+            else {                      #   Start new paragraph
+                &guru_want_block ("");  #   Close any previous block
+                $guru_block = $guru_paragraph;
+                print OUTPUT "<$guru_paragraph>";
+                print OUTPUT "$first\n";
+                $had_blank = 0;
+                redo;                   #   Next line is in $_
+            }
+        }
+        #   Quote is text indented by 4+ spaces and starting with "
+        #   We pick-up the quoted text up to the blank line.
+        #
+        elsif (/^(    |\t)"/) {
+            &guru_want_block ("");      #   Close any previous block
+            print OUTPUT "<$guru_quote>\n";
+            while (/^\s/) {
+                s/^\s+//;
+                print OUTPUT "$_\n";
+                get_plain_line ();
+            }
+            print OUTPUT "</$guru_quote>\n";
+            redo;                       #   Next line is in $_
+        }
+        #   Preformatted text consists of text indented by 4+ spaces
+        #   or a single tab character.  We strip off 4 spaces or a tab;
+        #   final indentation will be handled by the GDL processor.
+        #
+        elsif (s/^(    |\t)//) {
+            $_  = "<$guru_example_line>"
+                . $_
+                . "</$guru_example_line>";
+            &guru_want_block ($guru_example);
+        }
+        if (/^\s*$/) {
+            $had_blank = 1;
+        }
+        else {
+            print OUTPUT "$_\n";
+            $had_blank = 0;
+        }
+    }
+    &guru_want_block ("");              #   Close any current block
+    &guru_close_header ("");
+    print OUTPUT "</gdl>\n";
+    close (PLAIN);
+    close (OUTPUT);
+    $main_document = $output_file;
+}
+
+
+###########################   PROCESS_GDL_HEADER   ##########################
+
+sub process_gdl_header {
+    #   Process GDL header (if one).
+    #
+    get_plain_line ();
+    if (/^gdl/i) {
+        #   A GDL header is found, read it.
+        while (get_plain_line ()) {
+            $values {author}    = $1 if (/^\s*author\s*=\s*(.+)$/i);
+            $values {copyright} = $1 if (/^\s*copyright\s*=\s*(.+)$/i);
+            $values {customer}  = $1 if (/^\s*customer\s*=\s*(.+)$/i);
+            $values {date}      = $1 if (/^\s*date\s*=\s*(.+)$/i);
+            $values {name}      = $1 if (/^\s*name\s*=\s*(.+)$/i);
+            $values {product}   = $1 if (/^\s*product\s*=\s*(.+)$/i);
+            $values {reference} = $1 if (/^\s*reference\s*=\s*(.+)$/i);
+            $values {subtitle}  = $1 if (/^\s*subtitle\s*=\s*(.+)$/i);
+            $values {title}     = $1 if /^\s*title\s*=\s*(.+)$/i;
+            $values {version}   = $1 if /^\s*version\s*=\s*(.+)$/i;
+            last if /^end\s*gdl/i;
+        }
+    }
+    else {
+        #   No GDL header, return to the start of the file.
+        seek (PLAIN, 0, 0);
+        $lines = 0;                     #   Reset line numbering
+    }
+    #   Use default values for information variables.
+    #
+    $values {author}    = 'Gurudoc'         unless exists $values {author};
+    $values {copyright} = $values {author}  unless exists $values {copyright};
+    $values {customer}  = ''                unless exists $values {customer};
+    $values {date}      = $date             unless exists $values {date};
+    $values {name}      = &basename ($main_document)
+                                            unless exists $values {name};
+    $values {product}   = ''                unless exists $values {product};
+    $values {reference} = ''                unless exists $values {reference};
+    $values {title}     = &basename ($main_document)
+                                            unless exists $values {title};
+    $values {subtitle}  = ''                unless exists $values {subtitle};
+    $values {version}   = '1.0'             unless exists $values {version};
+}
+
+
+############################   PRINT_GDL_HEADER   ###########################
+
+sub print_gdl_header {
+    #   Write GDL header
+    #
+    print OUTPUT "<?xml version=\"1.0\"?>\n";
+    print OUTPUT "<gdl\n";
+    print OUTPUT "    name      = \"" . $values {name}      . "\"\n";
+    print OUTPUT "    author    = \"" . $values {author}    . "\"\n";
+    print OUTPUT "    copyright = \"" . $values {copyright} . "\"\n";
+    print OUTPUT "    customer  = \"" . $values {customer}  . "\"\n";
+    print OUTPUT "    product   = \"" . $values {product}   . "\"\n";
+    print OUTPUT "    reference = \"" . $values {reference} . "\"\n";
+    print OUTPUT "    subtitle  = \"" . $values {subtitle}  . "\"\n";
+    print OUTPUT "    title     = \"" . $values {title}     . "\"\n";
+    print OUTPUT "    version   = \"" . $values {version}   . "\"\n";
+    print OUTPUT "    written   = \"" . $values {date}      . "\"\n";
+    print OUTPUT ">\n";
+}
+
+
+############################   DECLARE_GDL_TAGS   ###########################
+
+sub declare_gdl_tags
+{
+    #   Tags for GDL formatting.
+    #
+    $guru_header       = 'header';
+    $guru_itemize      = 'itemize';
+    $guru_enumerate    = 'enumerate';
+    $guru_item         = 'item';
+    $guru_definition   = 'definition';
+    $guru_term         = 'def_term';
+    $guru_value        = 'def_value';
+    $guru_ruler        = 'ruler';
+    $guru_paragraph    = 'paragraph';
+    $guru_quote        = 'quote';
+    $guru_example      = 'example';
+    $guru_example_line = 'line';
+    $guru_table        = 'table';
+    $guru_table_row    = 'table_row';
+    $guru_table_data   = 'table_data';
+}
+
+
+###############################   BASENAME   ################################
+
+#   Return filename, without extension
+#
+sub basename {
+    local ($name) = @_;                 #   Get argument
+    $name =~ s/\..*//;                  #   Remove extension, if any
+    return ($name);
+}
+
+
+#################################   ERROR   #################################
+
+#   Subroutine prints an error message to the console and the ERROR file
+#
+sub error {
+    ($_) = @_;                          #   Get argument
+    print STDERR "$_\n";
+    print ERRORS "$_\n";
+    exit;
+}
+
+
+############################   GET_PLAIN_LINE   #############################
+
+#   Subroutine returns normalised line of text from <$document>
+#
+sub get_plain_line {
+    if ($_ = <$document>) {
+        unless (/^(    |\t)$/) {         #   if not in an example block...
+            chop while (/\s$/);          #   Drop trailing white space
+        } else {
+            chop
+        }
+        $lines++;
+        unless (/^(    |\t)/) {         #   if not in an example block...
+            while (s/\\\s*$//) {        #   ...handle continuation line symbol '\'
+                $_ .= <$document>;
+                chop while (/\s$/);     #   Drop trailing white space
+                $lines++;
+            }
+        }
+        #   Escape special characters
+        while (/(.*?)([\200-\377])(?=(.*))/) {
+            $_ = $1 . "\\" . ord ($2) . $3;
+        }
+        s/</&lt;/g;                     #   Replace < by &lt;
+        s/>/&gt;/g;                     #   Replace > by &gt;
+        return (1);
+    }
+    else {
+        close_the_document ();
+        if ($file_is_open {$document}) {
+            return (get_plain_line ());
+        }
+        else {
+            return (0);
+        }
+    }
+}
+
+
+###########################   OPEN THE DOCUMENT   ###########################
+
+sub open_the_document {
+    local ($new_document) = @_;
+    local ($filepath);
+
+    if ($file_is_open {$new_document}) {
+        &error ("$me E: $new_document is already open\n");
+    }
+    if ($file_is_open {$document}) {
+        #   Save current document name and switch to new document
+        push (@document_stack, $document);
+    }
+    $document = $new_document;
+    $filepath = &findfile ($document, "PATH");
+    if ($filepath && open ($document, $filepath)) {
+        $file_is_open {$document} = 1;  #   Keep track of open documents
+    }
+    else {
+        print "$me E: can't open $document: $!\n";
+        close_the_document ();
+    }
+}
+
+
+###########################   CLOSE THE DOCUMENT   ##########################
+
+sub close_the_document {
+    close ($document);
+    undef $file_is_open {$document};
+    if (@document_stack > 0) {
+        $document = pop (@document_stack);
+    }
+}
+
+
+############################   GURU_WANT_BLOCK   ############################
+
+sub guru_want_block {
+    local ($new_block) = @_;      #   Get subroutine arguments
+
+    if ($guru_block ne $new_block) {
+        print OUTPUT "</$guru_block>\n" if ( $guru_block );
+        print OUTPUT "<$new_block>\n" if ( $new_block );
+        $guru_block = $new_block;
+        print OUTPUT "\n" unless $new_block eq "pre";
+    }
+}
+
+
+###########################   GURU_CLOSE_HEADER   ###########################
+
+sub guru_close_header {
+    local ($new_level) = @_;            #   Get subroutine arguments
+    local ($max);
+
+    $max = ($new_level eq "")? 1: $new_level;
+    #   Level headers must grow continously
+    for ($i = $guru_level + 1; $i < $max; $i++) {
+        print OUTPUT "<$guru_header>\n";
+    }
+    #   Header must be closed
+    for ($i = $guru_level; $i >= $max; $i--) {
+        print OUTPUT "</$guru_header>\n";
+    }
+}
+
+
+############################   GURU_TABLE_ROW   #############################
+
+sub guru_table_row {
+    local ($_) = @_;                    #   Get arguments
+
+    s/_/ /g;                            #   Underlines -> spaces
+    print OUTPUT "<$guru_table_row>\n";
+    @fields = ();
+    @fields = split (/: /, $_);
+    foreach $field (@fields) {
+        $field =~ s/:$//g;
+        print OUTPUT "<$guru_table_data>";
+        print OUTPUT $field;
+        print OUTPUT "</$guru_table_data>\n";
+    }
+    print OUTPUT "</$guru_table_row>\n";
+}
+
+
+#############################   FINDJFIFFRAME   #############################
+
+#   First we identify whether the file is indeed a JFIF file, then we
+#   need to skip through the segments in the file until we find a JPEG
+#   frame, identified by the marker bytes 0xffc0. Each segment contains
+#   a pair of marker bytes, followed by 2 byte length (hilo). The length
+#   includes itself, but not the marker bytes, so the total number of bytes
+#   in each segment is length+2.
+#
+sub findJfifFrame {
+    local ($image) = @_;
+    local ($buffer, $offset, $len, $id);
+    local ($hi, $lo);
+
+    open (IFILE, $image) || die "Can't read $image: $!";
+
+    #   Verify JFIF file
+    #   first 4 bytes are 0xffd8ffe0, followed by 2 bytes of length,
+    #   followed by string "JFIF\x00".
+
+    read (IFILE, $buffer, 4);
+    read (IFILE, $hi, 1);
+    read (IFILE, $lo, 1);
+    $len = ord ($hi) * 256 + ord ($lo);
+    read (IFILE, $id, 5);
+
+    if ($buffer ne "\xff\xd8\xff\xe0" || $id ne "JFIF\x00") {
+        die "$image doesn't appear to be a JFIF file";
+    }
+    $offset = 2;
+    $buffer = "\xff\xff";
+
+    while ($buffer ne "\xff\xc0" && $buffer ne "\xff\xc2") {
+        $offset += $len + 2;
+        seek (IFILE, $offset, 0);
+        read (IFILE, $buffer, 2) || die "read: possible corrupt file";
+        read (IFILE, $hi, 1)     || die "read: possible corrupt file";
+        read (IFILE, $lo, 1)     || die "read: possible corrupt file";
+        $len = ord ($hi) * 256 + ord ($lo);
+    }
+    close (IFILE);
+    return $offset;
+}
+
+
+##############################   IMAGE_WIDTH   ##############################
+
+#   Subroutine returns width of GIF or JPG image, if found, else 0
+#
+sub image_width {
+    local ($_) = @_;                    #   Get arguments
+    local ($hi, $lo);
+
+    if (-e && (/\.gif$/i || /(\.jpg|\.jpeg|\.jfif)$/i)) {
+        open (IMAGE, $_) || die "Can't read $_: $!";
+        if (/\.gif$/i) {
+            #   width is at bytes 6 and 7 (lohi)
+            seek (IMAGE, 6, 0);
+            read (IMAGE, $lo, 1);
+            read (IMAGE, $hi, 1);
+        }
+        elsif (/(\.jpg|\.jpeg|\.jfif)$/i) {
+            #   width is at bytes 7 and 8 of JFIF frame
+            seek (IMAGE, &findJfifFrame ($_) + 7, 0);
+            read (IMAGE, $hi, 1);
+            read (IMAGE, $lo, 1);
+        }
+        close (IMAGE);
+        return (ord ($hi) * 256 + ord ($lo));
+    }
+    else {
+        return (0);
+    }
+}
+
+#############################   IMAGE_HEIGHT   ##############################
+
+#   Subroutine returns height of GIF or JPG image, if found, else 0
+#
+sub image_height {
+    local ($_) = @_;                    #   Get arguments
+    local ($hi, $lo);
+
+    if (-e && (/\.gif$/i || /(\.jpg|\.jpeg|\.jfif)$/i)) {
+        open (IMAGE, $_) || die "Can't read $_: $!";
+        if (/\.gif$/i) {
+            #   height is at 8 and 9 (lohi)
+            seek (IMAGE, 8, 0);
+            read (IMAGE, $lo, 1);
+            read (IMAGE, $hi, 1);
+        }
+        elsif (/(\.jpg|\.jpeg|\.jfif)$/i) {
+            #   width is at bytes 6 and 7 of JFIF frame
+            seek (IMAGE, &findJfifFrame ($_)+5, 0);
+            read (IMAGE, $hi, 1);
+            read (IMAGE, $lo, 1);
+        }
+        close (IMAGE);
+        return (ord ($hi) * 256 + ord ($lo));
+    }
+    else {
+        return (0);
+    }
+}
+
+
+#################################   MAIN   ##################################
+
+$me      = "mkgdl";                     #   For error messages
+$ext     = ".txt";                      #   Default argument file extension
+
+if (@ARGV != 1) {                       #   1 argument in @ARGV?
+    print "syntax: $me <filename>...\n";
+    exit;
+}
+else {
+    $_ = $ARGV [0];
+    $_ .= $ext if !/\./;                #   Add extension if missing
+    $main_document = $_;
+}
+
+#   We log all errors to $errors.lst
+unless (open (ERRORS, ">errors.lst")) {
+    print "$me E: can't create errors.lst: $!";
+    exit;
+}
+
+#   Prepare date and time variables
+#
+($sec, $min, $hour, $day, $month, $year) = localtime;
+$date = sprintf ("%02d/%02d/%02d", $year, $month + 1, $day);
+$time = sprintf ("%2d:%02d:%02d", $hour, $min, $sec);
+
+&text_to_gdl;
+
+close (ERRORS);
+unlink ("errors.lst")
+    unless ($have_errors == 1);
+exit;
+

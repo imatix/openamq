@@ -1,0 +1,77 @@
+.#
+.#   Copyright (c) 1996-2009 iMatix Corporation
+.#
+.#   This program is free software; you can redistribute it and/or modify
+.#   it under the terms of the GNU General Public License as published by
+.#   the Free Software Foundation; either version 2 of the License, or (at
+.#   your option) any later version.
+.#
+.#   This program is distributed in the hope that it will be useful, but
+.#   WITHOUT ANY WARRANTY; without even the implied warranty of
+.#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.#   General Public License for more details.
+.#
+.#   For information on alternative licensing for OEMs, please contact
+.#   iMatix Corporation.
+.#
+.output "$(opf.name).txt"
+Using command-line options
+==========================
+
+You can set these options from the command-line; they affect only
+the specific instance of the running server:
+
+.for property
+    --$(name) $(default?'value')   $(string.trim (property.?''):left)
+.endfor
+
+Creating a configuration file
+=============================
+
+You can also set the above options in an XML text file, to affect
+all future instances of the running server. To create a new XML
+configuration file, copy the following block to an editor session,
+and then:
+
+ 1. Delete all options you want to leave as default.
+ 2. Delete this comment and update your name and the date.
+ 3. Save file as new $(opf.config) or merge with existing copy.
+ 4. Restart the server.
+
+    <?xml version="1.0"?>
+    <!--
+        Revised: yyyy/mm/dd by yourname
+     -->
+    
+    <config>
+.for path where count (property)
+        <$(path.name)
+.   for property
+            $(src) = "$(default?'value')"
+.   endfor
+        />
+.endfor
+    </config>
+
+.for path where count (property)
+Setting $(path.name) options
+===========================
+
+.   for property
+$(src) = "$(default?'value')":
+.       text = "$(->doc?'')"
+.       text += " Default value is $(default?'not defined')."
+.       if defined (min)
+.           text += " Minimum value is $(min)."
+.       endif
+.       if defined (max)
+.           text += " Maximum value is $(max)."
+.       endif
+.       if dynamic ?= 1
+.           text += " This option can be changed at runtime."
+.       endif
+    $(text:justify,block                                                 )
+.   endfor
+
+.endfor
+

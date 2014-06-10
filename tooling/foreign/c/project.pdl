@@ -1,0 +1,39 @@
+<?xml?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<pdl
+    name     = "C compile scripts"
+    acronym  = "c"
+    version  = "1.0d0"
+    workflow = "standard.pwl"
+    >
+
+<include filename = "prelude.pdl" />
+
+<file name = "c"             class = "command script"  target = "unix" >Compile ANSI C program</file>
+<file name = "c.bat"         class = "command script"  target = "win32">Compile ANSI C program</file>
+<file name = "c.cmd"         class = "command script"  target = "os2"  >Compile ANSI C program</file>
+<file name = "gcccat"        class = "command script"  target = "unix" >Compile listing sanitizer</file>
+<file name = "gcccat.bat"    class = "command script"  target = "win32">Compile listing sanitizer</file>
+<file name = "boomvs.bat"    class = "command script"  target = "win32">VS6/7 build script</file>
+<file name = "convert71.js"  class = "public resource" target = "win32"
+                                                       >VS7 DSP conversion script</file>
+<file name = "convert80.js"  class = "public resource" target = "win32"
+                                                       >VS8 DSP conversion script</file>
+
+</pdl>

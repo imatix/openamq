@@ -1,0 +1,766 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<xnf name = "pdl">
+PDL is the Boom Project Definition Language, used to describe a Boom
+project or product.  For most purposes, you should define a single PDL
+file per directory and this file should be called "project.pdl".  To
+compile a PDL file, simply run the "boom" command.
+
+<entity name = "pdl" tag = "pdl" >
+    A project description has exactly one pdl item. It defines the files
+    that make up a project, and the production process for each class of
+    file. Note that you make PDL descriptions for projects and also for
+    products consisting of multiple projects - the PDL grammer supports
+    both projects and products.
+    
+    <allow entity = "include"   />
+    <allow entity = "inherit"   />
+    <allow entity = "file"      />
+    <allow entity = "class"     />
+    <allow entity = "target"    />
+    <allow entity = "actions"   />
+    <allow entity = "directory" />
+    <allow entity = "use"       />
+    <allow entity = "set"       />
+    <allow entity = "distrib"   />
+    
+    <attr name = "name"      required = "1" short = "Project name" >
+    Specifies the full name of the project.
+    </attr>
+    <attr name = "acronym"   short = "Acronym for project" >
+    Specifies a short acronym for the project.  This text is used when building
+    scripts and packages.  It should be globally unique.  Defaults to project
+    name.
+    </attr>
+    <attr name = "install"   default = "" short = "Installation root" >
+    This provides the name of the directory tree into which the project will
+    be installed.  This is always prefixed by a root directory defined by the
+    IBASE environment variable, or a default provided by Boom.  You should only
+    define the install property when you need to keep the project separate from
+    others installed into the IBASE.  If defined, the project will not share
+    any resources installed in IBASE.
+    </attr>
+    <attr name = "deploy"    default = "" short = "Project deployment directory" >
+    By default, project files are installed into separate directories (bin, lib,
+    include, doc) under the installation root.  If you specify a deploy directory,
+    the project files are installed into that directory, which itself is placed
+    under the installation root.  Define this for projects where you want to
+    deliver a single set of files, e.g. to provide a runtime environment.
+    </attr>
+    <attr name = "version"   required = "1" short = "Version number" >
+    Specifies the version of the project.  This text can take any format but we
+    recommend this standard format: '2.4b1' which is major version 2, minor version
+    4, release b, update 1.  The version string is used when building packages.
+    </attr>
+    <attr name = "copyright" default = "Copyright (c) The Author" short = "Copyright string" >
+    This specifies the copyright string for the project.  This string may be stamped
+    into the project sources during packaging.
+    </attr>
+    <attr name = "workflow"  default = "standard.pwl" short = "Project workflow" >
+    This specifies the workflow (PWL) that governs the project build process.
+    The process is defined as a PWL file.  The normal workflow is 'standard'.
+    </attr>
+    <attr name = "library"   default = "liblocal" short = "Project library" >
+    Defines the default project library for compiled programs.  Can be
+    overridden at the directory level.
+    </attr>
+
+    <rule name = "parse" when = "before">
+    pdl.acronym ?= name
+    pdl.acronym = "$(pdl.acronym:c)"
+    pdl.product ?= acronym
+    for pdl.class
+        resolve_class_inheritence ()
+    endfor
+    </rule>
+
+    <rule name = "parse" when = "after">
+    #   Resolve all file derivations
+    if library &lt;&gt; ""
+        assert_dependency (library, "private library")
+    endif
+    walk_project ("",,"resolve_file_derivations")
+    walk_project ("","resolve_dir_copies", "resolve_file_copies")
+
+    #   Load child projects for product-level distributions
+    for distrib
+        >boom I: loading definitions for $(distrib.name)...
+        for project
+            if count (pdl.project, count.directory = project.directory, count) = 0
+                if dir.setcwd (project.directory) = 0
+                    new pdl.project as new_project
+                        new_project.directory = project.directory
+                        new_project.pdlfile   = project.pdlfile
+                        pdl_load ("new_project", pdlfile + ".pdl")
+                    endnew
+                    dir.setcwd ("..")
+                else
+                    echo "boom E: no such directory - $(project.directory)"
+                endif
+            endif
+        endfor
+    endfor
+    </rule>
+</entity>
+
+<function when = "parse" >
+function resolve_class_inheritence ()
+    if !defined (class.resolved)
+        class.resolved = 1
+        if defined (class.inherit)
+            class_inherit = class.inherit
+            for pdl.class where name = class_inherit
+                resolve_class_inheritence ()
+            endfor
+            for pdl.class as inheritclass where name = class.inherit
+                class.generated ?= inheritclass.generated?0
+                class.shared    ?= inheritclass.shared?0
+                class.filetype  ?= inheritclass.filetype?""
+                class.model     ?= inheritclass.model?
+                for . as child
+                    copy child to class
+                endfor
+            endfor
+        endif
+    endif
+endfunction
+
+function resolve_file_derivations (path)
+    file.location = my.path        #   Relative location for file
+    for file.derive
+        assert_dependency ((derive.filename? file.basename + (extension?"")), class, file., derive.model?file.model, derive.generated)
+    endfor
+endfunction
+
+function resolve_dir_copies (path)
+    for . as step
+        for copy
+            if defined (directory.name)
+                parent = "directory"
+            else
+                parent = "pdl"
+            endif
+            for $(parent).file where name = filename
+                file.generated = 1
+            endfor
+            if count ($(parent).file, count.name = filename, count) = 0
+                abort "Destination '$(filename)' for copy is missing from project"
+            endif
+        endfor
+    endfor
+endfunction
+
+function resolve_file_copies (path)
+    for . as step
+        for copy
+            file.generated = 1
+            if defined (copy.filename)
+                echo "To copy files, use the copy command at the project/directory level"
+            endif
+        endfor
+    endfor
+    if defined (string.locate (file.name, "?")) | defined (string.locate (file.name, "*"))
+        file.wildcard = 1
+    else
+        file.wildcard = 0
+    endif
+endfunction
+</function>
+
+<entity name = "include" tag = "include" >
+    The 'include' element permits textual-inclusion from another file. The
+    specified file (in XML format) is loaded and inserted into the XML tree
+    in place of the 'include' element. The specified file may contain a
+    "forest" of XML trees, such that there is more than one top level
+    element in the XML file. All of the XML trees in the specified file will
+    be loaded and placed into the current XML tree in place of the 'include'
+    element. The 'include' element makes it possible to split the PDL
+    definitions across multiple text files for easier editing, and also to
+    allow reuse of common definitions. However because a straight
+    textual-inclusion is performed, care must be taken to ensure that the
+    result of the inclusion will still give a valid PDL file; if more
+    selective inclusion is required the 'inherit' element may be more
+    appropriate to inherit classes from another file.
+
+    <attr name = "filename" required = "1" >
+    The name of the XML-format file to be included in place of the
+    'include' element.
+    </attr>
+    <attr name = "required" default = "1">
+        <restrict value = "0" >File is not required</restrict>
+        <restrict value = "1" >File is required</restrict>
+    If set to zero, the include file is ignored if it is missing.
+    </attr>
+</entity>
+
+<entity name = "inherit" tag = "inherit" >
+    The 'inherit' element permits reference to a base set of classes which
+    should be used if the classes are not already defined in the PDL file.
+    The specified file (in PDL format, as a single XML tree with a 'PDL'
+    element at the top level) is processed looking for classes which are in
+    the specfified file but not already in PDL being processed. When a new
+    class is found, it is copied from the specified PDL into the tree of
+    PDL file being processed. classes that already exist in the PDL file
+    being processed are skipped. The 'inherit' element is used for building
+    on common PDL definitions. Unlike the 'include' element only 'class' elements
+    will be copied from the specified file, and the specified file must be a
+    full PDL file.
+
+    <attr name = "filename" required = "1" >
+    The name of the PDL-format file to read additional classes from.
+    </attr>
+</entity>
+
+<entity name = "file" tag = "file" cdata = "1" >
+    Defines a file in the project.  If the file specifies one or more target
+    children, the file will only be installed on those targets.
+    <allow entity = "configure"    />
+    <allow entity = "generate"     />
+    <allow entity = "build"        />
+    <allow entity = "test"         />
+    <allow entity = "distrib file" />
+    <allow entity = "install file" />
+    <allow entity = "clean"        />
+    <allow entity = "degen"        />
+    <allow entity = "derive"       />
+
+    <attr name = "name"     required = "1" short = "Name of file">
+    File names are case-sensitive, and should always be in lower case and not
+    contain spaces for portability.
+    </attr>
+    <attr name = "class"    short = "File class" >
+    The file class defines how the file is handled.  It can be inherited from
+    the parent directory if the file is defined inside a directory.
+    </attr>
+    <attr name = "shared"   short = "File is shared">
+    Specifies that the file is shared among projects or products.  If the file
+    does not exist locally, Boom will look for it in the directory where
+    binary files would normally be installed (and where the file will have
+    been installed from a previous project installation).
+    </attr>
+    <attr name = "generated" short = "File is generated">
+    Specifies that the file is generated and can be deleted during a cleanup
+    step.
+    </attr>
+    <attr name = "filetype" short = "Abstract file type">
+    Specifies that the file has a non-portable extension.  This is inherited
+    from the class if necessary.
+        <restrict value = "command" >Executable binary command</restrict>
+        <restrict value = "object"  >Compiled program object file</restrict>
+        <restrict value = "library" >Compiled object library file</restrict>
+    </attr>
+    <attr name = "library"  short = "Object library" >
+    If specified, defines the library for compiled programs.  If not specified,
+    compiled programs are inserted into the directory library or the project
+    library.
+    </attr>
+    <attr name = "target" short = "Target, if not portable">
+    If specified, the file is processed on this target only.
+    </attr>
+    <attr name = "model" short = "Build model">
+    If specified, the file is processed for this build model only.
+    </attr>
+
+    <rule name = "parse">
+    if !defined (file.class)
+        file.class = class?
+        if !defined (file.class)
+            abort ("File '$(name)' does not have a class definition")
+        endif
+    endif
+    if count ([-1].file, count.name = file.name & (count.filetype?"") = (file.filetype?""), count) &gt; 1
+        abort ("File '$(name)' defined more than once in project")
+    endif
+    if count (pdl.class, count.name ?= class, count) = 0
+        abort ("Class '$(class:)' is not defined")
+    else
+        inherit_file_class ()
+    endif
+    </rule>
+</entity>
+
+<entity name = "configure" tag = "configure" >
+    Specifies the steps that are required to configure the project before it can
+    be used in a source package.
+    <body entity = "configure step" />
+</entity>
+
+<entity name = "configure step" >
+    <allow entity = "execute" />
+</entity>
+
+<entity name = "execute" tag = "execute" >
+    Execute an operating system command.  You can specify a command or place the
+    operating system commands in the body of the item.  The command, if specified,
+    takes the name of the file being processed.  If you specify an item body, the
+    symbol $\(filename) is replaced with the name of the file.
+
+    <attr name = "command" short = "Command to execute">
+    This is the name of the command to execute.
+    </attr>
+    <attr name = "target" short = "System-specific command">
+    If the target is specified, this command is only included in the output code for
+    the target.  This lets you include non-portable commands in the generated script
+    for any of the processing phases.
+    </attr>
+</entity>
+
+<entity name = "generate" tag = "generate" >
+    Specifies the steps that are required to produce generated code from the file.
+    <attr name = "model" short = "Build model">
+    If specified, the file is processed for this build model only.
+    </attr>
+    <body entity = "generate step" />
+</entity>
+
+<entity name = "generate step" >
+    <allow entity = "execute" />
+    <allow entity = "collect" />
+    <allow entity = "copy"    />
+</entity>
+
+<entity name = "copy" tag = "copy" >
+    Copy the file from another directory in the project.  Copied files are
+    always marked as 'generated' and will be deleted in any cleanup phase.
+    Copying happens before any other action in the processing block.
+
+    <attr name = "from" required = "1" short = "Source directory">
+    Directory containing the original file, must be a path relative from the
+    project root directory.
+    </attr>
+    <attr name = "filename" short = "Name of file to copy">
+    Name of file to copy.  This attribute is required if the copy statement
+    is used in a project or directory-level action.
+    </attr>
+</entity>
+
+<entity name = "collect" tag = "collect" >
+    Collects a set of files of into a single output file.  The files are
+    concatenated in the order that they are defined in the collect file
+    list.
+    <allow entity = "collect file" />
+    <attr name = "into" short = "Name of output file">
+    Output file created.
+    </attr>
+    <attr name = "class" short = "Class of output file">
+    Class for generated file.
+    </attr>
+    <attr name = "model" short = "Build model">
+    If specified, the file is processed for this build model only.
+    </attr>
+
+    <rule name = "parse">
+    if !defined (into)
+        if defined (file.name)
+            collect.into  = file.name
+            collect.class = file.class
+        else
+            pdl_parse_error ("Required attribute 'acronym' not defined in pdl")
+        endif
+    endif
+    assert_dependency (into, class)
+    #   Force file to be generated
+    for pdl.file where name = into
+        file.generated  = 1
+        file.model     ?= collect.model?
+    endfor
+    </rule>
+</entity>
+
+<entity name = "collect file" tag = "file" >
+    Specifies each file to be collected.
+    <attr name = "name" required = "1" short = "Name of file to collect">
+    Name of the file to collect.  The collected files must all be in the same
+    directory, no path expansion is provided on these filenames.
+    </attr>
+</entity>
+
+<entity name = "build" tag = "build" >
+    Specifies the steps that are required to build the file into a (usually)
+    binary result.
+    <body entity = "build step" />
+</entity>
+
+<entity name = "build step" >
+    <allow entity = "execute" />
+    <allow entity = "compile" />
+    <allow entity = "replace" />
+    <allow entity = "link"    />
+    <allow entity = "copy"    />
+</entity>
+
+<entity name = "compile" tag = "compile" >
+    Compiles a source file into an object.  By default, assumes that the source
+    is of an ANSI C program, but you can specify other types using the 'as'
+    attribute.
+
+    <attr name = "as" default = "c" short = "Source program type">
+    Type of source code.  The 'as' value must correspond to a type understood by
+    the platform-specific packaging scripts you are using.
+        <restrict value = "c"  >ANSI C programs</restrict>
+        <restrict value = "c++">ANSI C++ programs</restrict>
+    </attr>
+</entity>
+
+<entity name = "replace" tag = "replace" >
+    Inserts a compiled object file into a library.  The library step
+    may only be done after a compilation.  The name of the library must be
+    specified at the file, class, or project level.
+
+    <attr name = "as" default = "c" short = "Object file type">
+    Type of object file.  The 'as' value must correspond to a type understood
+    by the platform-specific packaging scripts you are using.
+        <restrict value = "c"  >ANSI C object file</restrict>
+        <restrict value = "c++">ANSI C++ object file</restrict>
+    </attr>
+</entity>
+
+<entity name = "link" tag = "link" >
+    Link the program into an executable, using any libraries present in the
+    current working directory.
+
+    <attr name = "as" default = "c" short = "Program type">
+    Type of program.  The 'as' value must correspond to a type understood
+    by the platform-specific packaging scripts you are using.
+        <restrict value = "c"  >ANSI C program</restrict>
+        <restrict value = "c++">ANSI C++ program</restrict>
+    </attr>
+</entity>
+
+<entity name = "test" tag = "test">
+    Specifies the steps that are required to test the project before it can
+    be installed.
+    <allow entity = "execute" />
+    <allow entity = "run" />
+</entity>
+
+<entity name = "run" tag = "run">
+    Run the file as a program.
+</entity>
+
+<entity name = "distrib file" tag = "distrib" >
+    Specifies how to distribute a specific file, or class of files.
+
+    <attr name = "as" required = "1" short = "Distribute as">
+    The distrib as option tells the builder how to package this file.
+        <restrict value = "source" >Include in source distributions</restrict>
+        <restrict value = "binary" >Include in binary distributions</restrict>
+    </attr>
+    <attr name = "format" short = "Packaging format">
+    If specified, provides additional information to the packaging script on how
+    to process the file.
+        <restrict value = "raw" >Non-text file</restrict>
+    </attr>
+</entity>
+
+<entity name = "install file" tag = "install" >
+    Specifies how to install a specific file, or class of files.
+
+    <body entity = "install step" />
+    <attr name = "as" required = "1" short = "Install as">
+    The install type tells the builder how to install this file.
+        <restrict value = "include" >Include file</restrict>
+        <restrict value = "library" >Library of object programs</restrict>
+        <restrict value = "command" >Executable command</restrict>
+        <restrict value = "resource">Resource used by executable command</restrict>
+        <restrict value = "script"  >Executable script</restrict>
+        <restrict value = "license" >License packaged with executable commands</restrict>
+        <restrict value = "readme"  >Readme file placed with documentation</restrict>
+        <restrict value = "document">Documentation file</restrict>
+    </attr>
+    <attr name = "rename" short = "Rename destination">
+    If specified, file is installed with this name instead of the name used in
+    the project.
+    </attr>
+</entity>
+
+<entity name = "install" tag = "install" >
+    <body entity = "install step" />
+</entity>
+
+<entity name = "install step" >
+    <allow entity = "execute" />
+</entity>
+
+<entity name = "clean" tag = "clean" >
+    Specifies the steps that are required to remove temporary files created
+    during building (i.e. compilation and linking).  To remove generated files
+    use the 'degen' action.
+    <body entity = "clean step" />
+</entity>
+
+<entity name = "clean step" >
+    <allow entity = "execute" />
+</entity>
+
+<entity name = "degen" tag = "degen" >
+    Specifies the steps that are required to remove temporary files created
+    during code generation (the regen step).
+    <body entity = "degen step" />
+</entity>
+
+<entity name = "degen step" >
+    <allow entity = "execute" />
+</entity>
+
+<entity name = "target" tag = "target" >
+    If one or more targets are defined, this defines the subset of targets for
+    which we want to generate code.  The full set of targets comes from the
+    project workflow definition (PWL file).
+
+    <attr name = "name" required = "1" short = "Platform name">
+    The abbreviated name of the platform.
+    </attr>
+</entity>
+
+<entity name = "derive" tag = "derive">
+    Specify a derived file.  The file is derived by adding the extension to the
+    basename of all files in the class.  A class can have multiple derived files.
+    Class derived files can be explicitly defined in the project with a different
+    class than the one specified here, in which case the derivation does not
+    apply, and the manually-specified file takes precedence.
+
+    <attr name = "filename"  short = "Derived filename">
+    If specified, gives the full filename for the derived file.  If not specified,
+    the derived filename is constructed from the basename of the parent file plus
+    the derived extension.
+    </attr>
+    <attr name = "extension" default = "" short = "Derivation extension">
+    The extension to add to the file basename.
+    </attr>
+    <attr name = "class" required = "1" short = "Derivation class">
+    The class for the derived file.  Derived files can be based on classes that
+    themselves derive files, ad nauseam.
+    </attr>
+    <attr name = "model" short = "Build model">
+    If specified, the dervied file is processed for this build model only.
+    Overrides any model that may be set on the derived class.
+    </attr>
+</entity>
+
+<entity name = "class" tag = "class">
+    Defines a file class. The file class defines the processing applied to
+    all files of that class and contains arbitrary steps of work that are
+    copied to all files in the class (without inheritance).
+    <allow entity = "configure"    />
+    <allow entity = "generate"     />
+    <allow entity = "build"        />
+    <allow entity = "test"         />
+    <allow entity = "distrib file" />
+    <allow entity = "install file" />
+    <allow entity = "clean"        />
+    <allow entity = "degen"        />
+    <allow entity = "derive"       />
+    
+    <attr name = "name"       required = "1" short = "Name of class">
+    Specifies the name of the class, which must be unique in the PDL.
+    </attr>
+    <attr name = "generated"  default = "0"  short = "Files are generated">
+    Specifies that the files in the class are generated and can be deleted
+    during a cleanup step.  This can be overridden by the generated attribute
+    at the file level.
+    </attr>
+    <attr name = "shared"   default = "0" short = "Files are shared">
+    Specifies that the file is shared among projects or products.  If the file
+    does not exist locally, Boom will look for it in the binary directory.
+    </attr>
+    <attr name = "filetype" default = "" short = "Abstract file type">
+    Specifies that the file has a non-portable extension.  This can be overridden
+    by the filetype attribute at the file level.
+        <restrict value = ""        >Not specified</restrict>
+        <restrict value = "command" >Executable binary command</restrict>
+        <restrict value = "object"  >Compiled program object file</restrict>
+        <restrict value = "library" >Compiled object library file</restrict>
+    </attr>
+    <attr name = "inherit"  short = "Inherit class">
+    If specified, the class takes all attributes and children from the inherit
+    class, unless already specified.
+    </attr>
+    <attr name = "target" short = "Target, if not portable">
+    If specified, all files in the class are processed on this target only.
+    </attr>
+    <attr name = "model" short = "Build model">
+    If specified, all files in the class are built for this build model only.
+    </attr>
+</entity>
+
+<entity name = "actions" tag = "actions">
+    Specifies processing actions to take place at particular points in the
+    generated script.
+    <allow entity = "configure" />
+    <allow entity = "generate"  />
+    <allow entity = "build"     />
+    <allow entity = "install"   />
+    <allow entity = "distsrc"   />
+    <allow entity = "clean"     />
+    <allow entity = "degen"      />
+    <attr name = "when" default = "before" short = "When to generate actions">
+    The 'when' attribute can be 'before', in which case the actions are included
+    before the files are processed, or 'after', in which case they are included
+    afterwards.
+        <restrict value = "before" >Generate actions before files</restrict>
+        <restrict value = "after"  >Generate actions after files</restrict>
+    </attr>
+</entity>
+
+<entity name = "distsrc" tag = "distsrc" >
+    Specifies processing actions to take place before building a source
+    distribution package.  Can be used to include non-boom trees in the
+    source package.
+    <allow entity = "execute" />
+</entity>
+
+<entity name = "directory" tag = "directory">
+    Defines sub-directory within project.  Boom allows an unlimited depth of
+    nesting within the project.  The directory structure defined is copied
+    as-is to the project packages.  The directory can contain files and
+    define actions that are executed in that directory during the packaging
+    process.
+    <allow entity = "directory" />
+    <allow entity = "file"      />
+    <allow entity = "actions"   />
+
+    <attr name = "name" required = "1" short = "Directory name">
+    The name of the directory.
+    </attr>
+    <attr name = "keep_paths" default = "1" short = "Maintain directory paths">
+        <restrict value = "0" >Paths are dropped</restrict>
+        <restrict value = "1" >Paths are maintained</restrict>
+    If 0, the file is installed in the main directory corresponding to its
+    'as' attribute.  If 1, the file is installed in a subdirectory following
+    the original project directory structure.
+    </attr>
+    <attr name = "class" short = "Default class for files" >
+    If specified, this provides a default class for all files in the directory
+    and child directories.
+    </attr>
+    <attr name = "library" short = "Directory library" >
+    If specified, defines the default library for compiled programs.
+    </attr>
+    <attr name = "target" short = "Target, if not portable">
+    If specified, all files in the directory are processed on this target only.
+    </attr>
+    <rule name = "parse" when = "after" >
+    if library &lt;&gt; ""
+        assert_dependency (library, "private library")
+    endif
+    </rule>
+</entity>
+
+<entity name = "use" tag = "use">
+    Defines a project dependency.  The code generation scripts can interpret
+    dependencies as they need to.  Currently we allow the definition of external
+    libraries.
+    <allow entity = "library" />
+</entity>
+
+<entity name = "library" tag = "library">
+    Defines an external library on which the project depends.
+    <attr name = "name" required = "1" short = "Library name">
+    The name of the library.
+    </attr>
+</entity>
+
+<entity name = "set" tag = "set">
+    Define an environment variable required for building the project.  The
+    variable is set before any action.
+
+    <attr name = "name" required = "1" short = "Variable name">
+    The name of the environment variable, which is case-significant.
+    </attr>
+    <attr name = "value" required = "1" short = "Variable value">
+    The value of the environment variable.
+    </attr>
+    <attr name = "target" short = "Target, if not portable">
+    The target that this setting applies to, if it does not apply to all
+    targets.
+    </attr>
+</entity>
+
+<entity name = "distrib" tag = "distrib">
+    Used for product distribution: a product is defined in terms of one or
+    more distributions, each based on a set of projects.
+    <allow entity = "project"  />
+    <allow entity = "packager" />
+    <allow entity = "prune"    />
+    <allow entity = "argument" />
+
+    <attr name = "name" required = "1" short = "Distribution name">
+    Specifies the full name of the distribution.
+    </attr>
+    <attr name = "type" required = "1" short = "Package type">
+        <restrict value = "boot"   >Defines a bootstrap package</restrict>
+        <restrict value = "source" >Defines a source package</restrict>
+        <restrict value = "install">Defines an install package</restrict>
+    Source packages are based on the source files contained in each project,
+    while install packages are based on the install tree produced by installing
+    the specified projects.  Bootstrap packages are used when preparing the
+    development environment from a CVS checkout of the project.
+    </attr>
+</entity>
+
+<entity name = "project" tag = "project">
+    Defines a project used to create a product distribution.  The projects 
+    used in a product should be specified in the correct order required to 
+    build from source.
+    
+    <attr name = "directory" required = "1" short = "Directory name">
+    The location of the project, a subdirectory of the main product directory.
+    </attr>
+    <attr name = "pdlfile" default = "project" short = "Project definition file">
+    Specifies the name of the project definition file (PDL).
+    </attr>
+</entity>
+
+<entity name = "packager" tag = "packager">
+    Specifies one or more packager scripts to be run for the distribution.
+    The packager scripts may be target-specific.
+    
+    <attr name = "name" required = "1" short = "Packager name">
+    Specifies the name of the packaging script, which must be an external
+    command that is present on the path when the product is packaged.
+    </attr>
+    <attr name = "target" short = "Optional target">
+    If specified, the packager is invoked only on the specified target.
+    </attr>
+</entity>
+
+<entity name = "prune" tag = "prune">
+    In a distribution, specifies files or directories to remove from the
+    install tree before calling the packaging script(s).
+
+    <attr name = "filename" required = "1" short = "File or directory">
+    Specifies the name of a file or directory, relative to the install root.
+    </attr>
+</entity>
+
+<entity name = "argument" tag = "argument">
+    Specifies an argument that will be passed to the packaging script(s).
+    The arguments are placed into an XML file that may be parsed and used
+    by the packaging script.
+
+    <attr name = "name" required = "1" short = "Argument name">
+    The name of the argument.
+    </attr>
+    <attr name = "value" required = "1" short = "Argument value">
+    The argument's value.
+    </attr>
+</entity>
+
+</xnf>

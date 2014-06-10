@@ -1,0 +1,368 @@
+<?xml?>
+<!--
+    GSL/file - File manipulation object
+
+    Copyright (c) 1991-2009 iMatix Corporation
+
+    ------------------ GPL Licensed Source Code ------------------
+    iMatix makes this software available under the GNU General
+    Public License (GPL) license for open source projects.  For
+    details of the GPL license please see www.gnu.org or read the
+    file license.gpl provided in this package.
+
+    This program is free software; you can redistribute it and/or             
+    modify it under the terms of the GNU General Public License as            
+    published by the Free Software Foundation; either version 2 of            
+    the License, or (at your option) any later version.                       
+                                                                              
+    This program is distributed in the hope that it will be useful,           
+    but WITHOUT ANY WARRANTY; without even the implied warranty of            
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             
+    GNU General Public License for more details.                               
+                                                                               
+    You should have received a copy of the GNU General Public                  
+    License along with this program in the file 'license.gpl'; if             
+    not, write to the Free Software Foundation, Inc., 59 Temple               
+    Place - Suite 330, Boston, MA 02111-1307, USA.                            
+                                                                              
+    You can also license this software under iMatix's General Terms           
+    of Business (GTB) for commercial projects.  If you have not               
+    explicitly licensed this software under the iMatix GTB you may            
+    only use it under the terms of the GNU General Public License.            
+                                                                              
+    For more information, send an email to info@imatix.com.                   
+    --------------------------------------------------------------            
+ -->
+
+<gxl script = "ggobjt.gsl" filename = "ggfile" title = "GSL/file package" >
+
+<extra>
+#define MAX_FILES 1024 
+static FILE 
+    *file_ptr [MAX_FILES];
+
+static int
+    fileerrno;
+
+static char
+    line_buffer [LINE_MAX + 1];
+</extra>
+
+<object name = "file" title = "File Functions" >
+<initialise>
+  {
+    int i;
+
+    for (i = 0; i &lt; MAX_FILES; i++)
+        file_ptr [i] = NULL;
+    fileerrno  = 0;
+  }
+</initialise>
+
+<!-------------------------------------------------------------------------->
+<function name = "exists" >
+    <parameter name = "filename" pass = "value" compulsory = "1" />
+<body>
+{
+    result-> value. type = TYPE_NUMBER;
+    result-> value. n    = file_exists (string_value (&filename-> value));
+    if (result-> value. n == -1)
+        fileerrno = errno;
+}
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "timestamp" >
+    <parameter name = "filename" pass = "value" compulsory = "1" />
+<body>
+  {
+    time_t
+        timer = get_file_time (string_value (&filename-> value));
+    if (timer)
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n = (double) timer_to_date (timer) * 1000000
+                          + (double) timer_to_time (timer);
+      }
+    else
+        fileerrno = errno;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "rename" >
+    <parameter name = "oldname" pass = "value" compulsory = "1" />
+    <parameter name = "newname" pass = "value" compulsory = "1" />
+<body>
+{
+    result-> value. type = TYPE_NUMBER;
+    result-> value. n    = file_rename (string_value (&oldname-> value), 
+                                        string_value (&newname-> value));
+    if (result-> value. n == -1)
+        fileerrno = errno;
+}
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "delete" >
+    <parameter name = "filename" pass = "value" compulsory = "1" />
+<body>
+{
+    result-> value. type = TYPE_NUMBER;
+    result-> value. n    = file_delete (string_value (&filename-> value));
+    if (result-> value. n == -1)
+        fileerrno = errno;
+}
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "error" >
+<body>
+{
+    result-> value. type = TYPE_STRING;
+    result-> value. s    = mem_strdup (strerror (fileerrno));
+}
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "locate" >
+    <parameter name = "filename" pass = "value" compulsory = "1" />
+    <parameter name = "path"     pass = "value" />
+<body>
+  {
+    char
+        *found;
+
+    found = file_where ('r',
+            path? string_value (&path-> value): "PATH",
+            string_value (&filename-> value), NULL);
+    
+    result-> value. type = TYPE_STRING;
+    result-> value. s    = mem_strdup (found? found: "");
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "open" >
+    <parameter name = "filename" pass = "value" compulsory = "1" />
+    <parameter name = "mode"     pass = "value" />
+<body>
+  {
+    FILE
+        *file;
+    int
+        handle;
+    char
+        mode_char;
+
+    /*  Find a free handle.  */
+    for (handle = 0; handle &lt; MAX_FILES; handle++)
+        if (file_ptr [handle] == NULL)
+            break;
+
+    if (handle >= MAX_FILES)
+      {
+        fileerrno = EMFILE;             /*  Too many open files.             */
+        return 0;                       /*  GSL function returns undefined.  */
+      }
+    if (mode)
+        mode_char = *string_value (&mode-> value);
+    else
+        mode_char = 'r';                /*  If mode unspecified, use 'r'     */
+    file = file_open (string_value (&filename-> value), mode_char);
+    if (file)
+      {
+        file_ptr [handle]    = file;
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = handle;
+      }
+    else
+        fileerrno = errno;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "read" >
+    <parameter name = "handle" pass = "value" compulsory = "1" />
+<body>
+  {
+    int
+        handle_n;
+    Bool
+        rc;
+    handle_n = (int) number_value (&handle-> value);
+    if ((handle_n &lt; 0 || handle_n > MAX_FILES)
+    ||  (! file_ptr [handle_n]))
+      {
+        fileerrno = EBADF;              /*  Bad file descriptor.             */
+        return 0;
+      }
+    rc = file_read (file_ptr [handle_n], line_buffer);
+    if (rc)
+      {
+        result-> value. type = TYPE_STRING;
+        result-> value. s    = mem_strdup (line_buffer);
+      }
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "write" >
+    <parameter name = "handle" pass = "value" compulsory = "1" />
+    <parameter name = "string" pass = "value" compulsory = "1" />
+<body>
+  {
+    int
+        handle_n;
+    char
+        *rc;
+    handle_n = (int) number_value (&handle-> value);
+    if ((handle_n &lt; 0 || handle_n > MAX_FILES)
+    ||  (! file_ptr [handle_n]))
+      {
+        fileerrno = EBADF;              /*  Bad file descriptor.             */
+        return 0;
+      }
+    rc = file_write (file_ptr [handle_n], string_value (&string-> value));
+    result-> value. type = TYPE_NUMBER;
+    if (rc)
+        result-> value. n = 0;
+    else
+      {
+        result-> value. n = -1;
+        fileerrno = errno;
+      }
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "tell" >
+    <parameter name = "handle" pass = "value" compulsory = "1" />
+<body>
+  {
+    int
+        handle_n;
+    handle_n = (int) number_value (&handle-> value);
+    if ((handle_n &lt; 0 || handle_n > MAX_FILES)
+    ||  (! file_ptr [handle_n]))
+      {
+        fileerrno = EBADF;              /*  Bad file descriptor.             */
+        return 0;
+      }
+    result-> value. type = TYPE_NUMBER;
+    result-> value. n    = ftell (file_ptr [handle_n]);
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "seek" >
+    <parameter name = "handle" pass = "value" compulsory = "1" />
+    <parameter name = "offset" pass = "value" />
+<body>
+  {
+    int
+        handle_n;
+    long
+        offset_n;
+        
+    handle_n = (int)   number_value (&handle-> value);
+    if ((handle_n &lt; 0 || handle_n > MAX_FILES)
+    ||  (! file_ptr [handle_n]))
+      {
+        fileerrno = EBADF;              /*  Bad file descriptor.             */
+        return 0;
+      }
+    if (offset)
+        offset_n = (qbyte) number_value (&offset-> value);
+    else
+        offset_n = 0;
+
+    if (offset_n == -1)
+        fseek (file_ptr [handle_n], 0, SEEK_END);
+    else
+        fseek (file_ptr [handle_n], offset_n, SEEK_SET);
+        
+    result-> value. type = TYPE_NUMBER;
+    result-> value. n    = 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "close" >
+    <parameter name = "handle" pass = "value" compulsory = "1" />
+<body>
+  {
+    int
+        handle_n;
+    handle_n = (int) number_value (&handle-> value);
+    if ((handle_n &lt; 0 || handle_n > MAX_FILES)
+    ||  (! file_ptr [handle_n]))
+        return 0;
+    result-> value. type = TYPE_NUMBER;
+    result-> value. n    = file_close (file_ptr [handle_n]);
+    file_ptr [handle_n]  = NULL;
+
+    if (result-> value. n == -1)
+        fileerrno = errno;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "copy" >
+    <parameter name = "src"  pass = "value" compulsory = "1" />
+    <parameter name = "dest" pass = "value" compulsory = "1" />
+    <parameter name = "mode" pass = "value" compulsory = "0" />
+<body>
+  {
+    result-> value. type = TYPE_NUMBER;
+    result-> value. n    = (double) file_copy (
+        string_value (&dest-> value), 
+        string_value (&src -> value),
+        (char) (mode? *string_value (&mode-> value): 'b')
+    );
+    if (result-> value. n == -1)
+        fileerrno = errno;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "basename" >
+    <parameter name = "filename" pass = "value" compulsory = "1" />
+<body>
+  {
+    char
+        *strptr = strip_extension (string_value (&filename-> value));
+    result-> value. s    = mem_strdup (strptr);
+    result-> value. type = TYPE_STRING;
+  }
+</body>
+</function>
+
+</object>
+</gxl>

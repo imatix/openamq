@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<pwl name = "simple">
+This is the Boom workflow for projects with no code generation and
+no compile/link phase; in other words, the deliverables are fully
+hand-made.
+
+<include filename = "targets.pwl" />
+
+<state name = "initial">
+  <event name = "ok" internal = "1" nextstate = "initial check" >
+    <action name = "check operating context" />
+  </event>
+</state>
+
+<state name = "initial check">
+  <event name = "repository" internal = "1" nextstate = "repository" />
+  <event name = "source"     internal = "1" nextstate = "source" />
+  <event name = "stripped"   internal = "1" nextstate = "stripped" />
+</state>
+
+<state name = "repository" inherit = "default">
+  <event name = "distrib">
+  Creates a source distribution for the project.
+    <action name = "check source files exist"  />
+    <action name = "build source packages"     />
+  </event>
+  <event name = "distsrc">
+  Equivalent to distrib, provided for compatibility.
+    <action name = "check source files exist"  />
+    <action name = "build source packages"     />
+  </event>
+  <event name = "distrev">
+  Creates a source distribution for the project.  Builds distribution
+  packages based on source control version number.
+    <action name = "check source files exist"  />
+    <action name = "use source control revision" />
+    <action name = "build source packages"     />
+  </event>
+</state>
+
+<state name = "source" inherit = "default">
+</state>
+
+<state name = "stripped" inherit = "default">
+</state>
+
+<state name = "default" >
+  <event name = "build">
+  Has no effect, provided for consistency with other workflows.
+  </event>
+  <event name = "clean">
+  Has no effect, provided for consistency with other workflows.
+  </event>
+  <event name = "regen">
+  Has no effect, provided for consistency with other workflows.
+  </event>
+  <event name = "allgen">
+  Has no effect, provided for consistency with other workflows.
+  </event>
+  <event name = "install">
+  Installs deliverables into the final or temporary install tree.
+    <action name = "check project files exist" />
+    <action name = "install deliverables"      />
+  </event>
+  <event name = "test">
+  Runs regression tests for the project.
+    <action name = "check source files exist"  />
+    <action name = "run regression tests"      />
+  </event>
+  <event name = "help">
+  Shows a list of the commands allowed on the project.
+    <action name = "report help information"   />
+  </event>
+  <event name = "version">
+  Show project version.
+    <action name = "report project version"    />
+  </event>
+  <event name = "empty"  internal = "1" >
+    <action name = "report help information"   />
+  </event>
+</state>
+
+</pwl>

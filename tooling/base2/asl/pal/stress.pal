@@ -1,0 +1,25 @@
+<?xml?>
+<pal script = "demo_pal_gen">
+    This script sends a large number of messages to a queue and then
+    reads them back.  The number of messages can be specified on the
+    command-line.
+
+    <session exchange = "myexchange" queue = "myqueue" >
+        <set name = "number-of-messages" cmdline = "N" value = "1000" />
+        <set name = "message-size" cmdline = "S" value = "1000" />
+        <exchange_declare type = "fanout" />
+        <queue_declare />
+        <queue_bind />
+        <repeat times = "$number-of-messages" counter = "index" progress = "100">
+            <basic_content size = "$message-size" message_id = "id-$index" />
+            <basic_publish routing_key = "myqueue" />
+        </repeat>
+        <while name = "arrived" test = "lt" value = "$number-of-messages" progress = "100">
+            <basic_get />
+            <basic_arrived>
+                <inc name = "arrived" />
+            </basic_arrived>
+        </while>
+    </session>
+</pal>
+

@@ -1,0 +1,649 @@
+#! /usr/bin/perl
+#=============================================================================
+#
+#   srcdoc - Srcdoc Perl script
+#                               
+#   Copyright (c) 1991-2009 iMatix Corporation
+#
+#   ------------------ GPL Licensed Source Code ------------------
+#   iMatix makes this software available under the GNU General
+#   Public License (GPL) license for open source projects.  For
+#   details of the GPL license please see www.gnu.org or read the
+#   file license.gpl provided in this package.
+#   
+#   This program is free software; you can redistribute it and/or
+#   modify it under the terms of the GNU General Public License as
+#   published by the Free Software Foundation; either version 2 of
+#   the License, or (at your option) any later version.
+#   
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#   
+#   You should have received a copy of the GNU General Public
+#   License along with this program in the file 'license.gpl'; if
+#   not, write to the Free Software Foundation, Inc., 59 Temple
+#   Place - Suite 330, Boston, MA 02111-1307, USA.
+#   
+#   You can also license this software under iMatix's General Terms
+#   of Business (GTB) for commercial projects.  If you have not
+#   explicitly licensed this software under the iMatix GTB you may
+#   only use it under the terms of the GNU General Public License.
+#   
+#   For more information, send an email to info@imatix.com.
+#   --------------------------------------------------------------
+#=============================================================================
+
+require 'srcdoc.fmt';                   #   Include HTML formats
+require 'srcdoc.d';                     #   Include dialog interpreter
+
+
+##########################   INITIALISE THE PROGRAM   #########################
+
+sub initialise_the_program
+{
+    print "srcdoc - part of the iMatix RealiBase Gaggle\n";
+
+    if ($#ARGV == 0) {                  #   Exactly 1 argument in $ARGV [0]?
+        $source_list    = $ARGV [0];
+        $the_next_event = $ok_event;
+    }
+    else {
+        print "syntax: srcdoc <filename>\n";
+        $the_next_event = $error_event;
+    }
+}
+
+
+#########################   INITIALISE PROGRAM DATA   #########################
+
+sub initialise_program_data
+{
+    #   Open output files
+    unless (open (OUTPUT, ">html.out")) {
+        print "srcdoc E: can't create file html.out: $!";
+        &raise_exception ($exception_event);
+    }
+    unless (open (ERRORS, ">html.err")) {
+        print "srcdoc E: can't create file html.err: $!";
+        &raise_exception ($exception_event);
+    }
+}
+
+
+#########################   LOAD ANCHOR DEFINITIONS   #########################
+
+sub load_anchor_definitions
+{
+    undef %anchors;                     #   Clear assoc. array in any case
+    if (open (ANCHOR, "anchor.def")) {
+        while (<ANCHOR>) {
+            next if /^#/;               #   Skip comments
+            chop;
+            /(\S+)\s+(\S+)/;            #   Break $_ into name and value
+            $anchors {$1} = $2;         #     and load into assoc. array
+        }
+        close (ANCHOR);
+    }
+}
+
+
+###########################   PARSE COVERPAGE FILE   ##########################
+
+sub parse_coverpage_file
+{
+    local ($block);                     #   What block are we parsing?
+    undef @file_list;                   #   Clear list of source files
+    undef %fct_header;                  #   These tables are specific to
+    undef %fct_type;                    #     the current coverpage file
+    undef %fct_args;                    #     so we have to clear them
+    $have_code = 0;                     #   Have not read a code file
+
+    if (open (COVER, $source_list)) {
+        while (<COVER>) {
+            if (/<<files>>/i) {
+                $block = "files";
+            }
+            elsif (/<<header>>/i) {
+                $block = "header";
+            }
+            elsif (defined ($block)) {
+                next if /^#/;           #   Skip comments
+                $block eq "files"  && push (@file_list, split);
+                $block eq "header" && print OUTPUT $_;
+            }
+        }
+        close (COVER);
+    }
+    else {
+        &error ("srcdoc E: can't open file $source_list: $!");
+        &raise_exception ($exception_event);
+    }
+}
+
+#   Subroutine prints an error message to the console and the ERROR file
+#
+sub error {
+    ($_) = @_;                          #   Get argument
+    print $_;
+    print ERRORS $_;
+    $have_errors = 1;
+}
+
+
+###########################   GET NEXT SOURCE FILE   ##########################
+
+sub get_next_source_file
+{
+    if (@file_list == 0) {
+        $the_next_event = $no_more_event;
+    }
+    else {
+        $curfile = shift (@file_list);
+        if ($curfile =~ /([^\.]+)\.h/i) {
+            $the_next_event = $include_event;
+        }
+        elsif ($curfile =~ /([^\.]+)\.c/i) {
+            $the_next_event = $code_event;
+        }
+        elsif ($curfile eq "") {
+            $the_next_event = $empty_event;
+        }
+        else {
+            &error ("srcdoc E: $curfile is neither a .c or .h file\n");
+            &raise_exception ($exception_event);
+        }
+    }
+}
+
+
+##########################   PREPARE TO PARSE FILE   ##########################
+
+sub prepare_to_parse_file
+{
+    undef %defines;                     #   List of #define's in .h file
+    undef %typedefs;                    #   List of #typedef's in .h file
+    undef @functions;                   #   List of prototypes in .h file
+
+    if (open (INPUT, $curfile)) {
+        print "$curfile...\n";
+    }
+    else {
+        &error ("srcdoc E: can't open file $curfile: $!");
+        &raise_exception ($exception_event);
+    }
+}
+
+
+########################   LOOK FOR INTERESTING LINE   ########################
+
+sub look_for_interesting_line
+{
+    for (;;) {
+        unless ($_ = <INPUT>) {         #   Read input until finished
+            $the_next_event = $no_more_event;
+            last;
+        }
+        chop;                           #   Remove newline
+        /<prolog>/i     && do { $the_next_event = $prolog_event;  last; };
+        /\[<\]/         && do { $the_next_event = $header_event;  last; };
+        /^#\s*define/   && do { $the_next_event = $define_event;  last; };
+        /^#/            && next;          #   Ignore any other #commands
+        /^\s*typedef/   && do { $the_next_event = $typedef_event; last; };
+        /^\s*([\w\*]+\s+){2,}\(/
+                        && do { $the_next_event = $proto_event;   last; };
+    }
+}
+
+
+############################   PARSE PROLOG BLOCK   ###########################
+
+sub parse_prolog_block
+{
+    local ($start) = $.;
+    local ($field);                     #   Points to %prolog field
+
+    $table_mode = 0;                    #   Reset tables and lists
+    $list_mode  = 0;
+
+    undef %prolog;
+    $prolog {"Name"}      = "";         #   Clear all prolog fields
+    $prolog {"Title"}     = "";
+    $prolog {"Package"}   = "";
+    $prolog {"Written"}   = "";
+    $prolog {"Revised"}   = "";
+    $prolog {"Version"}   = "";
+    $prolog {"Synopsis"}  = "";
+    $prolog {"Copyright"} = "";
+    $prolog {"Authors"}   = "";
+    $prolog {"Notes"}     = "";
+    $prolog {"License"}   = "-";        #   We ignore this field
+
+    for (;;) {
+        unless ($_ = <INPUT>) {         #   Read input unless finished
+            &error ("srcdoc E ($curfile $start): </prolog> missing\n");
+            &raise_exception ($exception_event);
+            last;
+        }
+        chop;                           #   Remove newline
+        last if /<\/prolog>/i;          #   Ended with </prolog>
+        #   Handle Somefield:
+        if (/^\s*([A-Z][a-z]*):(\s+.*)?/) {
+            if (defined ($prolog {$1})) {
+                $field = $1;
+                $prolog {$field} .= &normalise_line ($2) unless $2 eq "";
+            }
+            else {
+                &error ("srcdoc W ($curfile $.): unknown prolog field '$1'\n");
+            }
+        }
+        else {
+            if (defined ($field)) {
+                if ($field eq "Notes") {
+                    s/</&lt;/g;         #   Replace < by &lt;
+                    s/>/&gt;/g;         #   Replace > by &gt;
+                    $_ .= "\n";         #     and add newline back on
+                }
+                else {
+                    $_ = &normalise_line ($_);
+                    $_ = " $_" unless $_ eq "";
+                }
+                $prolog {$field} .= $_ unless $prolog {$field} eq "-";
+            }
+            else {
+                &error ("srcdoc W ($curfile $.): prolog text ignored\n");
+            }
+        }
+    }
+    #   Format output HTML from srcdoc.fmt
+    #
+    if ($prolog {"Name"} ne "") {
+        #   Output complete prolog block
+        &format_output (OUTPUT, "PROLOG_OPEN");
+        &format_output (OUTPUT, "WRITTEN")   if ($_ = $prolog {"Written"});
+        &format_output (OUTPUT, "REVISED")   if ($_ = $prolog {"Revised"});
+        &format_output (OUTPUT, "COPYRIGHT") if ($_ = $prolog {"Copyright"});
+        &format_output (OUTPUT, "AUTHORS")   if ($_ = $prolog {"Authors"});
+        &format_output (OUTPUT, "VERSION")   if ($_ = $prolog {"Version"});
+        &format_output (OUTPUT, "PROLOG_CLOSE");
+        &format_output (OUTPUT, "SYNOPSIS")  if ($_ = $prolog {"Synopsis"});
+        &format_output (OUTPUT, "NOTES")     if ($_ = $prolog {"Notes"});
+    }
+    else {
+        #   Output section break block
+        &format_output (OUTPUT, "SECTION")   if ($_ = $prolog {"Synopsis"});
+    }
+
+    #   If table or list not correctly closed, issue a warning message
+    &error ("srcdoc W ($curfile $.): </TABLE> missing\n")
+        if $table_mode;
+    &error ("srcdoc W ($curfile $.): </LIST> missing\n")
+        if $list_mode;
+}
+
+#   Subroutine returns normalised line of text:
+#   - multiple whitespace squashed to single space
+#   - space at start/end of line removed
+#   - & replaced by &amp;
+#   - $( replaced by $\(
+#   - < replaced by &lt;
+#   - > replaced by &gt;
+#   - &lt;a@b.c&gt; formatted as <A HREF="mailto:a@b.c">a@b.c</A>
+#   - x://a.b formatted as <A HREF="x://a.b">x://a.b</A>
+#   - fct_name \() formatted as $(*fct_name) (), if known anchor
+#   <TABLE>  by itself starts table mode
+#   </TABLE> by itself ends table mode
+#   <LIST>   by itself starts list mode
+#   </LIST>  by itself ends list mode
+#       -- table and lists are built using formats in srcdoc.fmt
+#
+sub normalise_line {
+    ($_) = @_;                          #   Get argument
+
+    s/\s+/ /g;                          #   Squash multiple whitespace
+    s/^ | $//g;                         #   Remove space at start & end
+
+    /^<TABLE>/i   && do { $table_mode = 1; return $table_head; };
+    /^<\/TABLE>/i && do { $table_mode = 0; return $table_foot; };
+    /^<LIST>/i    && do { $list_mode  = 1; return $list_head;  };
+    /^<\/LIST>/i  && do { $list_mode  = 0; return $list_foot;  };
+
+    s/&/&amp;/g;                        #   Replace & by &amp;
+    s/</&lt;/g;                         #   Replace < by &lt;
+    s/>/&gt;/g;                         #   Replace > by &gt;
+    s/\$\(/\$\\\(/g;                    #   Replace $( by $\(
+
+    if ($table_mode) {
+        local ($name, $explanation) = /(\S+)\s+(.*)/;
+        $name =~ s/\\_/\001/g;          #   Save escaped underlines \_
+        $name =~ s/_/ /g;               #   Replace underlines by spaces
+        $name =~ s/\001/_/g;            #     and restore escaped underlines
+        return sprintf ($table_row, $name, $explanation);
+    }
+    elsif ($list_mode) {
+        return sprintf ($list_row, $_);
+    }
+    else {
+        #   Format <a@b.c>
+        s/&lt;(.+@[^.]+\..+)&gt;/<A HREF=mailto:"$1">$1<\/A>/g;
+        #   Format <x://a.b>
+        s/&lt;(\w+:\/\/[^.]+\..+)&gt;/<A HREF="$1">$1<\/A>/g;
+        #   Format function names if anchors
+        return &find_links ($_);
+    }
+}
+
+
+#   Subroutine looks for links to other functions in the current line
+#
+sub find_links {
+    local ($line) = @_;                 #   Remainder of line to parse
+    $_ = "";                            #   What we have parsed so far
+
+    while ($line =~ /(\w+)(\s*)\(/) {
+        $_ .= $`;                       #   Take text before match
+        $_ .= defined ($anchors {$1})? "\$(*$1)": "$1";
+        $_ .= "$2(";                    #     and copy space + (
+        $line = $';                     #   Bump to text after match
+    }
+    $_ .= $line;
+    return ($_);
+}
+
+
+#   Subroutine prepares output format and writes it to the specified
+#   output stream.
+#
+sub format_output {
+    local ($stream, $format) = @_;      #  Get subroutine arguments
+
+    select ($stream);
+    $~ = "$format";
+    eval 'write';
+    select (STDOUT);
+    if ($@) {
+        &error ("srcdoc E ($curfile $start): can't write $format\n");
+    }
+}
+
+
+###########################   PARSE DEFINE COMMAND   ##########################
+
+sub parse_define_command
+{
+    #   The symbol and arguments must be glued together, eg: ftc(a,b)
+    #
+    local ($name);
+    if (/#\s*define\s+(\S+)\s*(.*)/) {
+        $name = $1;
+        if (defined ($defines {$name})) {
+            $_ = "(various)";
+        }
+        else {
+            $_ = $2 eq ""? "TRUE": $2;
+            s/</&lt;/g;                 #   Replace < by &lt;
+            s/>/&gt;/g;                 #   Replace > by &gt;
+            s/\s+/ /g;                  #   Squash whitespace to 1 space
+        }
+        $defines {$name} = $_;
+    }
+}
+
+
+##########################   PARSE TYPEDEF COMMAND   ##########################
+
+sub parse_typedef_command
+{
+    local ($name);                      #   Defined type name
+
+    if (/typedef\s+(.*)\s+(\w+);/) {
+        #   typedef unsigned int Bool;
+        $name = $2;
+        $_    = $1;
+        s/\s$//g;                       #   Strip-off trailing whitespace
+        s/\s+/ /g;                      #   Squash whitespace to 1 space
+    }
+    elsif (/typedef\s+(.*)\s+\((\W*)(\w+)\)\s*(.+);/) {
+        #   typedef void (*function) (int index);
+        $name = $3;
+        $_ = "$1 ($2) $4";
+    }
+    $typedefs {$name} = defined ($typedefs {$name})? "(various)": $_
+        if $name;
+}
+
+
+#########################   PARSE FUNCTION PROTOTYPE   ########################
+
+sub parse_function_prototype
+{
+    #   Function prototypes end in );
+
+    local ($type, $name, $args);
+    local ($line);
+
+    #   Collect input until we have ) in the line somewhere
+    while (!/\)/) {
+        $line = <INPUT> || return;      #   Read next line, end if no more
+        chop ($line);
+        $_ .= $line;
+    }
+    return if /IGNORE/;                 #   Ignore if IGNORE in comments
+    s/\s+/ /g;                          #   Squash multiple spaces
+    while (/\/\*[^\*]*\*\//) {
+        $_ = $`.$';                     #   Kill comments, if any
+    }
+    #   Parse function arguments
+    /\(([^)]+)(\);?)/;
+    $args = $1;
+    return if $2 eq ")";                #   If ends in ) not );, not prototype
+
+    #   Parse function definition
+    $_ = $`;
+    split;                              #   Split on whitespace
+    $name = pop;
+    $type = "@_";
+    if ($name =~ /^(\*)+/) {            #   Move '*' from name to type
+        $name = $';
+        $type = "$type $1";
+    }
+
+    return if $name eq "";
+    return if $type eq "";
+    return if $args eq "";
+
+    &error ("srcdoc W ($curfile $.): $name is redefined\n")
+        if (defined ($fct_header {$name}));
+
+    $fct_header {$name} = $curfile;     #   Header file for function
+    $fct_type   {$name} = $type;        #   Function return type
+    $fct_args   {$name} = $args;        #   Function argument list
+    push (@functions, $name);           #   Keep list for this header file
+}
+
+
+#######################   BUILD TABLES OF DEFINITIONS   #######################
+
+sub build_tables_of_definitions
+{
+    local ($type, $name, $args);
+
+    if (@functions) {
+        &format_output (OUTPUT, "FCT_LIST_OPEN");
+        foreach $name (@functions) {
+            $type = $fct_type {$name};
+            $args = "(".$fct_args {$name}.");";
+            &format_output (OUTPUT, "FCT_LIST_ENTRY");
+        }
+        &format_output (OUTPUT, "FCT_LIST_CLOSE");
+    }
+    if (defined (%defines)) {
+        &format_output (OUTPUT, "DEF_LIST_OPEN");
+        foreach $name (sort (keys %defines)) {
+            $_ = $defines {$name};
+            &format_output (OUTPUT, "DEF_LIST_ENTRY");
+        }
+        &format_output (OUTPUT, "DEF_LIST_CLOSE");
+    }
+    if (defined (%typedefs)) {
+        &format_output (OUTPUT, "TYPE_LIST_OPEN");
+        foreach $name (sort (keys %typedefs)) {
+            $_ = $typedefs {$name};
+            &format_output (OUTPUT, "TYPE_LIST_ENTRY");
+        }
+        &format_output (OUTPUT, "TYPE_LIST_CLOSE");
+    }
+}
+
+
+##########################   PARSE FUNCTION HEADER   ##########################
+
+sub parse_function_header
+{
+    local ($start) = $.;
+    local ($field);                     #   Points to %prolog field
+
+    undef %prolog;
+    $prolog {"Function"} = "";          #   Clear all prolog fields
+    $prolog {"Synopsis"} = "";
+    $prolog {"Examples"} = "";
+    $prolog {"Notes"}    = "";
+
+    for (;;) {
+        unless ($_ = <INPUT>) {         #   Read input unless finished
+            &error ("srcdoc E ($curfile $start): [<] missing\n");
+            &raise_exception ($exception_event);
+            last;
+        }
+        chop;                           #   Remove newline
+        last if /\[\>\]/;               #   Ended with [>]
+        #   Handle Somefield:
+        if (/^\s*([A-Z][a-z]*):(\s+.*)?/) {
+            if (defined ($prolog {$1})) {
+                $field = $1;
+                $prolog {$field} .= &normalise_line ($2);
+            }
+            else {
+                &error ("srcdoc W ($curfile $.): unknown prolog field '$1'\n");
+            }
+        }
+        else {
+            #   If escaped "word:", remove escape character "\"
+            /^\s*\\.*:/ && s/\\//;
+            if (defined ($field)) {
+                if ($field eq "Examples" || $field eq "Notes") {
+                    s/</&lt;/g;         #   Replace < by &lt;
+                    s/>/&gt;/g;         #   Replace > by &gt;
+                    $_ .= "\n";         #     and add newline back on
+                }
+                else {
+                    $_ = &normalise_line ($_);
+                    $_ = " $_" unless $_ eq "";
+                }
+                $prolog {$field} .= $_ unless $prolog {$field} eq "-";
+            }
+            else {
+                &error ("srcdoc W ($curfile $.): prolog text ignored\n");
+            }
+        }
+    }
+    #   If table or list not correctly closed, issue a warning message
+    &error ("srcdoc W ($curfile $.): </TABLE> missing\n")
+        if $table_mode;
+    &error ("srcdoc W ($curfile $.): </LIST> missing\n")
+        if $list_mode;
+}
+
+
+###########################   PARSE FUNCTION BODY   ###########################
+
+sub parse_function_body
+{
+    #   Skip blank lines, then collect function $proto until we hit
+    #   { in column 1.  The collect function $body until we hit a {
+    #   in column 1.
+
+    $proto = "";
+    for (;;) {
+        last unless ($_ = <INPUT>);     #   Read input unless finished
+        next if /^\s*$/;                #   Ignore blank lines
+        last if /^{/;                   #   End when we hit { on a line
+        $proto .= $_;                   #   Else add-on to $proto
+    }
+    $body = $_;
+    for (;;) {
+        last unless ($_ = <INPUT>);     #   Read input unless finished
+        s/&\(/&\\\(/g;                  #   Replace &( by &\(
+        s/&/&amp;/g;                    #   Replace & by &amp;
+        s/</&lt;/g;                     #   Replace < by &lt;
+        s/>/&gt;/g;                     #   Replace > by &gt;
+        s/\$\(/\$\\\(/g;                #   Replace $( by $\(
+        $body .= &find_links ($_);      #     and append to body
+        last if /^}/;                   #   End when we hit } on a line
+    }
+}
+
+########################   BUILD FUNCTION DEFINITION   ########################
+
+sub build_function_definition
+{
+    $_ = $prolog {"Function"};
+    if (defined ($fct_header {$_})) {
+        $header = $fct_header {$_};
+    }
+    else {
+        &error ("srcdoc W ($curfile $.): function $_ not known\n");
+        $header = "(unknown)";
+    }
+    &format_output (OUTPUT, "FCT_HEADER");
+    &format_output (OUTPUT, "FCT_SYNOPSIS") if ($_ = $prolog {"Synopsis"});
+    &format_output (OUTPUT, "FCT_EXAMPLES") if ($_ = $prolog {"Examples"});
+    &format_output (OUTPUT, "FCT_NOTES")    if ($_ = $prolog {"Notes"});
+    &format_output (OUTPUT, "FCT_BODY");
+}
+
+
+##########################   IGNORE FUNCTION HEADER   #########################
+
+sub ignore_function_header
+{
+    &error ("srcdoc W ($curfile $.): function header ignored\n");
+}
+
+
+#######################   MAY HAVE FIRST INCLUDE FILE   #######################
+
+sub may_have_first_include_file
+{
+    #   Not used for anything
+}
+
+
+#########################   MAY HAVE FIRST CODE FILE   ########################
+
+sub may_have_first_code_file
+{
+    #   Output START_CODE block if it is necessary
+    if ($have_code == 0) {
+        &format_output (OUTPUT, "START_CODE");
+        $have_code++;
+    }
+}
+
+
+############################   GET EXTERNAL EVENT   ###########################
+
+sub get_external_event
+{
+}
+
+
+##########################   TERMINATE THE PROGRAM    #########################
+
+sub terminate_the_program
+{
+    $the_next_event = $terminate_event;
+    close (ERRORS);
+    unlink ("html.err") unless ($have_errors == 1);
+}

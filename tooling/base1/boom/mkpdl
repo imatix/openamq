@@ -1,0 +1,142 @@
+#! /usr/bin/perl
+#
+#   mkpdl - Generate default PDL
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+if (-f "project.pdl") {
+    print "project.pdl already exists - aborting";
+    exit;
+}
+open (OUTPUT, ">project.pdl");
+print_header ();
+process_dir  (".");
+print_footer ();
+
+
+
+################################   FUNCTIONS   ################################
+
+sub print_header {
+    print OUTPUT<<".";
+<?xml version="1.0"?>
+<pdl
+    name      = "Kewl Project"
+    acronym   = "kewl"
+    version   = "1.0"
+    copyright = "Copyright (c) 1991-2009 iMatix Corporation"
+    workflow  = "standard.pwl"
+    library   = "libxxx" >
+
+<include filename = "prelude.pdl" />
+.
+}
+
+sub print_footer {
+    print OUTPUT<<".";
+<!-- Deliverables -->
+<file name = "libxxx"       class = "public library"  >Some runtime library</file>
+<use>
+    <library name = "libsfl" />
+</use>
+</pdl>
+.
+}
+
+
+#   Process each file in the directory except "." and ".."
+
+sub process_dir {
+    local ($dirname) = @_;
+    local (%script, %dialog, %source, %header, %batch, %data, %other, %dir);
+
+    opendir (DIR, $dirname);
+    foreach (readdir (DIR)) {
+        if (/\.bak/ || /^\./ || /project.pdl/ || /make/ || /\.obj/ || /\.o/ || /\.exe/ || /\.lib/ || /\.a/) {
+            #   Ignore
+        }
+        elsif (/\.l$/) {
+            $dialog {$`} = "dialog";
+        }
+        elsif (/\.c$/) {
+            $source {$`} = "sub program";
+        }
+        elsif (/\.h$/) {
+            $header {$`} = "private resource";
+        }
+        elsif (/\.bat$/) {
+            $batch {$`} = "dos wrapper";
+        }
+        elsif (/\.xml/) {
+            $data {$`} = "gsl data";
+        }
+        elsif (-d "$dirname/$_") {
+            $dir {$_} = 1 unless $_ eq "CVS";
+        }
+        elsif (!/\./) {
+            $script {$_} = "command script";
+        }
+        else {
+            $other {$_} = "private resource";
+        }
+    }
+    closedir (DIR);
+
+    foreach (sort (keys (%source))) {
+        if ($header {$_}) {
+            undef ($header {$_});
+            $source {$_} = "library module";
+        }
+        elsif ($dialog {$_}) {
+            undef ($dialog {$_});
+            $source {$_} = "c/libero";
+        }
+    }
+    foreach (sort (keys (%source)))  { output ("$_.c",   $source {$_}); }
+    foreach (sort (keys (%header)))  { output ("$_.h",   $header {$_}); }
+    foreach (sort (keys (%dialog)))  { output ("$_.l",   $dialog {$_}); }
+    foreach (sort (keys (%batch)))   { output ("$_.bat", $batch  {$_}); }
+    foreach (sort (keys (%data)))    { output ("$_.xml", $data   {$_}); }
+    foreach (sort (keys (%script)))  { output ("$_",     $script {$_}); }
+    foreach (sort (keys (%other)))   { output ("$_",     $other  {$_}); }
+
+    foreach (sort (keys (%dir))) {
+        print OUTPUT "\n";
+        print OUTPUT " " x ($nesting * 4) . "<directory name = \"$_\" >\n";
+        $nesting++;
+        process_dir ("$dirname/$_");
+        $nesting--;
+        print OUTPUT " " x ($nesting * 4) . "</directory>\n";
+    }
+}
+
+
+sub output {
+    local ($name, $class) = @_;
+
+    if ($class) {
+        $name = "\"$name\"";
+        $name = $name . " " x (14 - length ($name));
+
+        $class = "\"$class\"";
+        $class = $class . " " x (18 - length ($class));
+
+        print OUTPUT " " x ($nesting * 4) . "<file name = $name class = $class></file>\n";
+    }
+}
+
+

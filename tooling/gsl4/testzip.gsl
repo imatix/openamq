@@ -1,0 +1,36 @@
+.------------------------------------------------------------------------------
+.-                                                                            
+.-  testzip.gsl - Test zip compression GSL functions
+.-                                                                            
+.------------------------------------------------------------------------------
+
+zip1 = "dummy1.zip"
+zip2 = "dummy2.zip"
+
+file.delete (zip1)
+file.delete (zip2)
+
+#   Create a dummy zip file
+#
+dir.load (,,1)
+zip.create (, zip1)
+
+#   Check zip manipulations functions
+#   zip.new()
+#
+hz = zip.new (zip2)
+for file where !file.directory & name <> "boomake.bat"
+    if path = "."
+        filename = name
+    else
+        filename = path + name
+    endif
+    zip.add (hz, filename)
+endfor
+zip.close (hz)
+
+#   zip.open()  ==>  don't work!!!
+#
+#hz = zip.open (zip2)
+#zip.close (hz)
+

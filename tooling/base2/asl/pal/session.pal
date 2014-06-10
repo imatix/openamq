@@ -1,0 +1,19 @@
+<?xml?>
+<pal script = "demo_pal_gen">
+    This script demonstrates how to report the server version and other
+    connection properties.
+    <session>
+        <echo>version_major=$version_major</echo>
+        <echo>version_minor=$version_minor</echo>
+        <echo>channel_max=$channel_max</echo>
+        <echo>frame_max=$frame_max</echo>
+        <echo>heartbeat=$heartbeat</echo>
+        <echo>context_key=$context_key</echo>
+        <echo>server_product=$server_product</echo>
+        <echo>server_version=$server_version</echo>
+        <echo>server_platform=$server_platform</echo>
+        <echo>server_copyright=$server_copyright</echo>
+        <echo>server_information=$server_information</echo>
+    </session>
+</pal>
+

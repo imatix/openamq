@@ -1,0 +1,12 @@
+if test -f $1.icl; then
+    for a in $1*.icl; do
+        gsl -q $a;
+    done
+    for a in $1*.c; do
+        c $a
+        test $? -ne 0 && exit
+        c -r libipr $a.o
+    done
+    c -r libipr $1*.o
+    for a in $1*_test.c; do c -l $a; done
+fi

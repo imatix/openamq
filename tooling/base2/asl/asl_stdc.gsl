@@ -1,0 +1,127 @@
+#  ----------------------------------------------------------------------------
+#   ASL target for stdc
+#
+#   Generates server or client chassis from the ASL specifications.
+#   Client ASL should set 'syncapi' option to generate a fully
+#   synchronous C API, otherwise it gets an asynchronous agent only.
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+#
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#  ----------------------------------------------------------------------------
+
+#################################   MAIN   #################################
+
+.macro generate_protocol (protocol)
+.  scope my.protocol
+.   ignorecase = 1
+.   target_protocol_for_stdc ()
+.   if chassis ?= "server"
+.       include "asl_method_class.gsl"
+.       include "asl_server_agent.gsl"
+.   elsif chassis ?= "client"
+.       include "asl_method_class.gsl"
+.       include "asl_client_agent.gsl"
+.       if defined (syncapi)
+.           include "asl_client_connection.gsl"
+.           include "asl_client_session.gsl"
+.       endif
+.   else
+.       include "asl_constants.gsl"
+.       include "asl_content_class.gsl"
+.   endif
+.  endscope
+.endmacro
+
+#   ctype is C type for variable definition
+#   cargt is C type for variable as argument
+function target_protocol_for_stdc
+    max_method = 0
+    for class by index
+        if max_method < count (method)
+            max_method = count (method)
+        endif
+        #   Prepare content type fields, if any
+        set_field_types_for_stdc ()
+        for method
+            method.selfname = "$(basename)_$(class.name)_$(method.name:c)"
+            #   Prepare method fields
+            set_field_types_for_stdc ()
+            for response
+                for class.method as class_method where name = response.name
+                    if defined (class_method.predecessor)
+                        echo "Duplicate route to $(class_method.name)"
+                    endif
+                    class_method.predecessor = method.index
+                endfor
+            endfor
+        endfor
+    endfor
+endfunction
+
+function produce_get_property (name, type)
+    >
+    ><method name = "get $(my.name)" return = "$(my.name)">
+    >    <argument name = "self" type = "$\(selftype) *">Object reference</argument>
+    >    <declare name = "$(my.name:)" type = "$(my.type:)" />
+    >    //
+    >    $(my.name:c) = self->$(my.name:c);
+    ></method>
+endfunction
+
+function set_field_types_for_stdc
+    for field
+        field.name = "$(field.name:c)"
+        if type = "bit"
+            field.ctype = "Bool"
+            field.cargt = "Bool"
+            field.metat = "boolean"
+        elsif type = "char"
+            field.ctype = "char"
+            field.cargt = "char"
+            field.metat = "integer"
+            field.width = 1
+        elsif type = "octet"
+            field.ctype = "byte"
+            field.cargt = "int"
+            field.metat = "integer"
+            field.width = 1
+        elsif type = "short"
+            field.ctype = "dbyte"
+            field.cargt = "int"
+            field.metat = "integer"
+            field.width = 2
+        elsif type = "long"
+            field.ctype = "qbyte"
+            field.cargt = "qbyte"
+            field.metat = "integer"
+            field.width = 4
+        elsif type = "longlong" | type = "timestamp"
+            field.ctype = "int64_t"
+            field.cargt = "int64_t"
+            field.metat = "integer"
+            field.width = 8
+        elsif type = "shortstr"
+            field.ctype = "icl_shortstr_t"
+            field.cargt = "char *"
+            field.metat = "string"
+        elsif type = "longstr" | type = "table"
+            field.ctype = "icl_longstr_t *"
+            field.cargt = "icl_longstr_t *"
+            field.metat = "longstring"
+        else
+            abort "Unknown field type: $(type)"
+        endif
+    endfor
+endfunction

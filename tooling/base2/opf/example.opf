@@ -1,0 +1,227 @@
+<?xml?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<opf
+    name    = "example"
+    comment = "Example properties"
+    script  = "opf_gen"
+    root    = "config"
+    config  = "example.cfg"
+    >
+
+<public>
+extern $\(selftype)
+    *example_config;                    //  Global properties object
+</public>
+
+<private>
+$\(selftype)
+    *example_config = NULL;             //  Global properties
+</private>
+
+<path name = "server">
+    <property name = "port" type = "char *" default = "7654">
+    Server port for client connections
+    <doc>
+    Specifies the port on which the server should open its connections.
+    </doc>
+    </property>
+</path>
+
+<path name = "resources">
+    <property name = "monitor" type = "int" default = "1">
+    Monitor interval, seconds
+    <doc>
+    Specifies the interval in seconds at which the server will report
+    its message rates.  If zero, no monitoring is shown. The recommended
+    value is 1, if monitoring is desired.
+    </doc>
+    </property>
+
+    <property name = "max memory mb" type = "size_t">
+    Maximum allowed memory, MBytes
+    <doc>
+    Specifies the maximum memory allowed for the server, in MB.
+    When the server reaches this limit, it will attempt to free
+    resources and refuse new connections until memory has been
+    made available.  If zero, no limit is used.
+    </doc>
+    </property>
+
+    <property name = "record stats" type = "Bool" default = "0" dynamic = "1">
+    Record performance statistics
+    <doc>
+    Specifies whether or not the server records performance statistics
+    in a format suitable for importing into a spreadsheet.  If set, the
+    server creates a file called 'amq_server_stats_(portnumber).del' which
+    contains performance statistics in a comma-delimited format.  For this
+    setting to take effect, the monitor option must also be set.
+    </doc>
+    </property>
+</path>
+
+<path name = "tuning">
+    <property name = "packio" type = "int" default = "1">
+    Pack network data before writing
+    <doc>
+    If set, data is packed into larger buffers before writing. This
+    can improve performance significantly on some systems, especially
+    Windows and Linux with 2.4 kernels. If you disable this setting,
+    you should test the performance using a bulk message transfer
+    test.
+    </doc>
+    </property>
+
+    <property name = "heartbeat" type = "int" default = "2">
+    Heartbeat from client to server, seconds
+    <doc>
+    Defines the timeout for connection heartbeating.
+    </doc>
+    </property>
+
+    <property name = "read timeout" type = "int" default = "30">
+    Timeout on network reads, seconds
+    <doc>
+    Defines the timeout for network reads.  If a peer does not respond
+    within this time, it is considered dead.  If you get unexpected
+    timeout errors in the logs, you may want to increase this value.
+    </doc>
+    </property>
+
+    <property name = "write timeout" type = "int" default = "30">
+    Timeout on network writes, seconds
+    <doc>
+    Defines the timeout for network writes.  If a peer does not accept
+    data within this time, it is considered dead.  If you get
+    unexpected timeout errors in the logs, you may want to increase
+    this value.
+    </doc>
+    </property>
+
+    <property name = "tcp nodelay" type = "Bool" default = "1">
+    TCP/IP NDELAY option
+    <doc>
+    If this value is 1, socket data is written immediately, which is
+    usually good for latency.  If this value is 0, data is buffered 
+    until there is a full packet, which is usually good for throughput.
+    </doc>
+    </property>
+
+    <property name = "tcp rcvbuf" type = "int">
+    TCP/IP receive buffer, in bytes
+    <doc>
+    If this value is greater than zero, all client connections will use
+    the specified value.  Note: setting this value is delicate, do not
+    use this option unless you know what you are doing.
+    </doc>
+    </property>
+
+    <property name = "tcp sndbuf" type = "int">
+    TCP/IP send buffer, in bytes
+    <doc>
+    If this value is greater than zero, all client connections will use
+    the specified value.  Note: setting this value is delicate, do not
+    use this option unless you know what you are doing.
+    </doc>
+    </property>
+
+    <property name = "frame max" type = "int" min = "2048" max = "4194304" default = "32768">
+    Maximum size of AMQP content frames
+    <doc>
+    Defines the maximum frame size the server will accept. Larger frame
+    sizes are useful for applications that create very large message
+    headers but will cause congestion on multi-channel connections.
+    </doc>
+    </property>
+</path>
+
+<path name = "logging">
+    <property name = "log_path" type = "char *" default = "logs">
+    Active log file directory
+    <doc>
+    Specifies the directory path into which active log files are
+    placed.
+    </doc>
+    </property>
+
+    <property name = "keep logs" type = "Bool" default = "1">
+    Keep log files
+    <doc>
+    Specifies whether or not the server should keep logs.  If zero,
+    the server will not keep logs.  If 1, it will keep an alert log,
+    a daily log, and a debug log as specified.
+    </doc>
+    </property>
+
+    <property name = "archive_path" type = "char *" default = "archive">
+    Archive log file directory
+    <doc>
+    Specifies the directory path into which archived log files are
+    placed.  This can be the same as the active path; archived log
+    files are renamed to avoid conflict with active log files.
+    </doc>
+    </property>
+
+    <property name = "archive_cmd" type = "char *">
+    Archive command
+    <doc>
+    If specified, this command is run on all archived log files. You can
+    use this option to compress archived log files, or clean up old and
+    unwanted files.  When the command is run, the name of the archived
+    log file is provided as an argument to it.
+    </doc>
+    </property>
+
+    <property name = "alert_log" type = "char *" default = "alert.log">
+    Alert log file name
+    <doc>
+    The name of the alert log file, which records all alerts issued by the
+    server.  Note that the server port number is always added to the name
+    of the log file.
+    </doc>
+    </property>
+
+    <property name = "daily_log" type = "char *" default = "daily.log">
+    Daily log file name
+    <doc>
+    The name of the daily log file, which records all normal activity
+    as well as errors. Note that the server port number is always added
+    to the name of the log file.
+    </doc>
+    </property>
+
+    <property name = "debug_log" type = "char *" default = "debug.log">
+    Debug log file name
+    <doc>
+    The name of the debug log file, which records all normal activity,
+    errors, and debug trace information. Note that the server port number
+    is always added to the name of the log file.
+    </doc>
+    </property>
+
+    <property name = "trace" type = "int" default = "0" dynamic = "1">
+    Protocol trace level
+    <doc>
+    Specifies the protocol debug level, which can be 0 (no tracing),
+    1 (show information and protocol methods), 2 (show protocol
+    animation), 3 (show wire-level data).  You should not use any
+    tracing on production servers except in low-volume scenarios.
+    </doc>
+    </property>
+</path>
+
+</opf>

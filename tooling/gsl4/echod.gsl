@@ -1,0 +1,30 @@
+function abort_error ()
+    abort sock.error
+endfunction
+
+function global.echothread (slave)
+    scope echothread
+        while 1
+            my.n = slave. read (my.b, 1)
+            if my.n = 0
+                slave. close ()
+                return
+            endif 
+            slave. write (my.b)
+        endwhile
+    endscope
+endfunction
+
+master = sock.passive ((arg1 ? 0) + 7) ? abort_error ()
+echo "Accepting connections on port $((arg1 ? 0) + 7)"
+ccount = 0
+while 1
+    slave = master.accept () ? 
+    if (! defined (slave))
+        last
+    endif
+    thread.new ("echothread (slave)")
+    ccount += 1
+    echo ccount + ": " + diag.used ()
+    diag.display ("display$(ccount).xml")
+endwhile

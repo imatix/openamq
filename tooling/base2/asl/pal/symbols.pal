@@ -1,0 +1,36 @@
+<?xml?>
+<pal script = "demo_pal_gen">
+    This script demonstrates how to manipulate variables.
+    <set name = "expect_major"  value = "1" />
+    <set name = "exchange_type" value = "fanout" />
+    <set name = "times"         value = "100" />
+    <set name = "size"          value = "64000" />
+    <session
+        queue = "myqueue"
+        exchange = "myexchange"
+        >
+        <echo>Connected to $server_product/$server_version - $server_platform</echo>
+        <assert name = "version_major" value = "$expect_major" />
+        <exchange_declare type = "$exchange_type" />
+        <queue_declare />
+        <queue_bind />
+        <repeat times = "$times" counter = "id">
+          <basic_content size = "$size" content_type = "text/html" message_id = "id-$id" />
+          <basic_publish routing_key = "$queue" />
+        </repeat>
+        <repeat counter = "messages">
+            <basic_get />
+            <basic_returned>
+                <echo>Returned: $message_id</echo>
+            </basic_returned>
+            <basic_arrived>
+                <echo>Arrived: $message_id</echo>
+            </basic_arrived>
+            <empty>
+                <break/>
+            </empty>
+        </repeat>
+        <echo>Total number of messages exchanged: $messages</echo>
+    </session>
+</pal>
+

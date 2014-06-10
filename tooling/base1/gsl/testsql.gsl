@@ -1,0 +1,16 @@
+sql.connect ("aqua", "root")
+echo "Users:"  + sql.exec ("select count(*) from dbuser")
+echo "Groups:" + sql.exec ("select count(*) from dbgroup")
+sql.exec ("select * from dbgroup", "group")
+for ->data.group where dbsystem = 0
+    sql.exec ("select * from dbrole where dbgroupid = $(dbid)")
+    for ->data.row
+        sql.exec ("select * from dbuser where dbid = $(dbuserid)", "user")
+        for ->data.user
+            echo "Group: $(group.dbname) User: $(user.dbmsisdn)"
+        endfor
+    endfor
+endfor
+save root as "test.xml"
+
+

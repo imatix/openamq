@@ -1,0 +1,8 @@
+Base Release Notes
+
+See release.txt notes in individual projects for details.
+
+Current project maintainers:
+
+    Overall:    Martin Lucina <mato@imatix.com>
+

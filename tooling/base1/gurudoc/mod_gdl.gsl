@@ -1,0 +1,49 @@
+#
+#   mod_gdl.gsl - GDL module
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+#   mod_gdl provides a number of functions to work with GDL files:
+#
+#   gdl_load ()     - loads and validates a GDL file
+#                               
+
+include "gdlparse.gsl"      #   Generated from gdl.xnf
+include "gdlcode.gsl"       #   Generated from gdl.xnf
+
+################################   GDL LOAD   ################################
+#
+#   Load the GDL file
+#
+function gdl_load (gdlfile)
+    if ! file.exists (my.gdlfile)
+        abort "$(my.gdlfile) not found"
+    else
+        xml from my.gdlfile
+    endif
+
+    for root.gdl
+        errors = 0
+        gdl_parse_gdl ('gdl')
+
+        if errors > 0
+            abort "gdl file contains one or more errors - aborting"
+        endif
+        gdl_code_gdl ('gdl')
+    endfor gdl
+endfunction
+

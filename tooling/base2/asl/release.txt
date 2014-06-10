@@ -1,0 +1,44 @@
+2005/09/20
+
+- Improved error handling on closed sessions / connections.
+- When peer detects client, no longer does full close hand-shake
+  but sends close, then waits a second for connection to settle,
+  then closes the connection.  This model is designed to allow
+  the sending peer to receive the close method without making the
+  recipient dependent on a close-ok, which will not arrive at
+  once if the sender is pushing asynch methods.
+
+2005/09/17
+
+- All reply method fields automatically added to session &
+  connection context and filled on incoming methods.
+- During session_wait, connection->alive will be switched off
+  if there is a connection error or close.
+
+2005/08/30
+
+- Content class handles large bodies
+- Server and client agents handle multiple body frames
+
+2005/08/07
+
+- Connections are given unique sequence id (inc32)
+- All protocol constants are now defined in ASL file and generated.
+- Destination moved from content header into content-carrying methods.
+
+2005/08/04
+
+- Channel.Flow modified to use opened=True to indicate active channel.
+
+2005/07/01
+
+- Detect and handle invalid frame size in server and client.
+
+2005/07/31 - 1.0a1
+
+- Implemented connection context keys and reconnect logic in the
+  server.
+
+2005/07/30 - version 1.0a0 released
+
+

@@ -1,0 +1,41 @@
+#
+#   buildxn1.gsl - XN1 code generator
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+#   Arguments to script:
+#       -xn1:       name of XN1 file, without extension
+#       -parse:     generate parser (0/1, default 0)
+#       -code:      generate coder (0/1, default 0)
+#       -doc:       generate documentation (text|html|rtf|none)
+
+include "mod_xn1.gsl"
+
+xn1_load ("$(switches.xn1).xn1")
+
+#   Just text for now
+if switches.doc ?= "text"
+    xn1_doc ("$(switches.xn1).txt")
+endif
+
+if switches.parse ?= 1
+    xn1_produce ("$(switches.xn1)parse.gsl", "parse", 1, 1)
+endif
+
+if switches.code ?= 1
+    xn1_produce ("$(switches.xn1)code.gsl",  "code",  0, 0)
+endif

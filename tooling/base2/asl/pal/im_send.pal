@@ -1,0 +1,18 @@
+<?xml?>
+<pal script = "demo_pal_gen">
+    This script implements a simple chat client.  Run this in one window,
+    and im_read in a second window. Usage: im_send -C channel -U username
+    <session>
+        <set name = "channel"  cmdline = "C" value = "default" />
+        <set name = "username" cmdline = "U" value = "guest" />
+        <exchange_declare type = "fanout" exchange = "$channel" />
+        <repeat>
+            <read name = "data" prompt = ">" />
+            <if name = "data" test = "eq" value = "quit">
+                <break/>
+            </if>
+            <basic_content>$username: $data</basic_content>
+            <basic_publish exchange = "$channel" />
+        </repeat>
+    </session>
+</pal>

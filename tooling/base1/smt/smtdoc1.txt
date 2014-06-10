@@ -1,0 +1,3187 @@
+.-----------------------------------------------------------------
+.-  smtdoc1.txt   SMT Documentation
+.-
+.define BASE      smt
+.define author    Pieter Hintjens
+.define written    8 Aug 1996
+.define revised    1 Jan 1999
+.-----------------------------------------------------------------
+.include prelude.def
+.ignore header 4
+
+.if $(superdoc?0) == 1
+.page smtdoc.htm=The SMT Kernel
+.else
+.page index.htm=The SMT Kernel
+.endif
+
+.ignore header
+<H1>$(TITLE)</H1>
+
+<P>The SMT (Simple Multi-Threading kernel) from iMatix is an
+add-on for the $(*lr=Libero) programming tool that lets you
+write portable high-performance multithreaded programs based on
+Libero's finite-state machine (FSM) design method.
+
+<P>You may want to go straight to the $(*TOC=Table of Contents).
+.if $(superdoc?0) == 0
+Also, this documentation is available as <A HREF="smtdoc.htm">a
+single file</A>, suitable for printing.
+
+<P>To download SMT go to the $(*download="download page").
+.endif
+
+<P>You can use the SMT kernel for:
+<UL>
+<LI>Internet programming: where each connection is handled by one
+thread.
+<LI>Real-time programming: where multilevel finite-state machines
+work cooperatively.
+<LI>GUI development: where events are collected from the GUI and
+passed to threads for processing.
+</UL>
+
+<P>The SMT kernel's main features are:
+<UL>
+<LI>100% portability.
+<LI>Strong object orientation.
+<LI>Support for multiple FSM programs within one application.
+<LI>Support for multiple threads within one FSM program.
+<LI>Support for Internet protocols (TCP/IP, UDP/IP).
+<LI>Based on Libero program development method.
+<LI>Standard agents: http, file transfer, authorization,
+logging, console, timing, socket i/o.
+<LI>Unrestricted number of threads, queue sizes, etc.
+</UL>
+
+<P>The SMT kernel currently supports C/C++, and is written in
+portable ANSI C.  It uses the iMatix $(*sfl=SFL) (standard
+function library) as a technical platform, and the $(*lr=Libero)
+tool as development method.  Libero, the SFL, and the SMT kernel
+are provided as free software, copyrighted by iMatix.  You may
+freely incorporate the SFL and SMT packages in your applications
+with a minimum of conditions.  Read the $(*license=SMT license)
+agreement for details.
+
+<P>To use the SMT kernel you should have used Libero and
+understand the concepts involved.  SMT applications are
+essentially written using Libero.  We assume that the reader has
+some familiarity with Libero.
+
+<P>The SMT kernel has been ported to MS-DOS, Windows, UNIX systems
+(Linux, IBM AIX, SunOS, HP/UX) and should be portable to Digital
+VMS.  It comes with complete sources and documentation in HTML.
+It includes XITAMI, a portable multithreaded web server.
+
+<P>Send comments about the SMT kernel, bug reports, and submissions
+to <A HREF="mailto:smt@imatix.com">smt@imatix.com</A>.
+
+.ignore header
+.build anchor TOC
+<H2>Table of Contents</H2>
+.build toc
+.if $(superdoc?0) == 1
+.ignore pages
+.endif
+
+.-----------------------------------------------------------------
+.page Introduction
+<H2>$(TITLE)</H2>
+
+<H3>Origins</H3>
+
+<P>SMT 2.0 is an evolution of SMT version 1.x of the iMatix SMT
+kernel.  SMT 1.x was specifically designed for TCP/IP server
+development.  SMT 2.x is a more generalised approach that makes
+multithreaded FSMs suitable for a variety of purposes.  SMT 2.0 is
+not backwards compatible with SMT 1.x, but it is quite
+straight-forward to convert applications.
+
+<P>The main objectives of SMT 1.0 were:
+<OL>
+<LI>Mulithreading - a cleaner and more efficient approach for
+certain types of problems than alternatives such as
+multiprocessing (forking) or iteration.
+<LI>Simplicity - using the Libero method to simplify an otherwise
+complex multithreaded model.
+<LI>Portability - so that a SMT application runs on UNIX, Windows
+95, Windows NT, and Digital VMS with similar functionality.
+</OL>
+
+<P>SMT 2.0 is meant to answer a wider set of issues. Specifically,
+our goal was to provide multithreading capability in these domains:
+<UL>
+<LI>Internet servers
+<LI>Other communication servers
+<LI>Asynchronous FSM architectures
+<LI>Internally multithreaded (batch) programs
+<LI>GUI-based programs (e.g. Windows)
+</UL>
+
+<P>In SMT 1.x, external events were received and processed by a
+kernel built-in to each SMT program.  The SMT 1.x kernel was
+specifically designed to be driven by TCP/IP events.  An SMT 1.x
+program is invoked, does its work, and finally terminates.  We
+call this type of program a 'batch' program.  This is suitable for
+servers ('daemons'), but not for real-time programs that must be
+integrated into an large-scale event-driven architecture.
+
+<P>SMT 2.x is designed as an event-passing kernel.  The
+application consists of a number of agent programs, each running
+one or more threads.  Each thread has an event queue.  Threads
+send each other events, which are queued, and delivered by the
+kernel to the state machine that controls each thread.  The SMT
+kernel API lets you send and receive events, create threads, etc.
+There are various ways to construct an agent program (single-
+threaded, multithreaded), and different ways to handle event
+queues (one thread per queue, or several threads per queue).
+Agents and events can have priorities, which changes the order of
+execution and delivery.
+
+<P>SMT provides a number of standard agents that are easily reused
+in applications.  For example, in an Internet application, the
+socket i/o agent collects events from the Internet sockets used by
+the application.  When a thread wants to read data from a socket,
+it sends an event to the socket i/o agent, telling it which port,
+and how much data.  The socket i/o agent reads the data and
+returns that as a event.  Other standard agents are: a logging
+agent to write log file data; an operator console agent to handle
+error and warning events; a timer agent to generate alarm
+events.<P>  <P>SMT also includes a number of protocol agents for
+use in SMT applications: echo, HTTP, FTP.
+
+<P>In SMT 1.x, external events such as TCP/IP events were
+collected by the kernel, in SMT 2.x such events are collected by
+an agent program.  Thus it is possible to add support to any
+external event source.
+
+<H3>Classic Multithreading Environments</H3>
+
+<P>Multithreaded programming is often perceived as complicated.
+When we look at multithreading facilities provided by existing
+operating systems, we tend to agree. The most common type of
+multithreading is <EM>pre-emptive multithreading</EM>.  This is
+typically seen on UNIX and Windows NT systems.  The
+characteristics of this approach are:
+<UL>
+<LI>The multithreading system (or operating system) switches
+between threads arbitrarily.  This is 'pre-emptive'.
+<LI>The thread program looks like standard procedural code.
+<LI>Threads communicate using <EM>semaphores</EM>: when one thread
+must wait for another, it sets a semaphore and then waits until
+the second thread resets the semaphore.
+<LI>Threads can access shared resources by using semaphores, or by
+defining <EM>critical sections</EM>.  A critical section is a
+block of code that executes entirely, without a thread
+switch.
+<LI>I/O is handled in critical sections.
+</UL>
+
+<P>A less common type of multithreading is <EM>cooperative
+multithreading</EM>.  One example is the <EM>chained
+multithreading</EM> method used on Digital VMS systems.  The
+characteristics of this approach are:
+<UL>
+<LI>Each thread decides when to return control to the
+multithreading system or operating system.
+<LI>The thread program consists of a chain of small blocks of
+code.
+<LI>Threads can communicate using semaphores.
+<LI>Threads can access shared resources at any time - threads
+always execute as if in a critical section.
+<LI>I/o is handled asynchronously: i/o operations are usually the
+basic unit of logic in a thread.  Each block of code in a thread
+requests an i/o operation, and specifies the successor block.
+</UL>
+
+<P>If we compare these methods, we can see advantages and
+disadvantages in each:
+<UL>
+<LI>The chained method is much harder to program.
+<LI>The chained method can produce much more efficient programs,
+especially if they are i/o bound.
+<LI>The pre-emptive method requires extra work to define critical
+sections; it is not fail-safe.  By forgetting to define a critical
+section, a program may work one day, then fail another time.  The
+chained method does not require critical sections.
+</UL>
+
+<P>Both these methods are expensive to program, and can produce
+code that is hard to maintain, error-prone, and therefore very
+expensive to make robust enough for real applications.
+
+<H3>The History Of Libero Multithreading</H3>
+
+<P>In 1990, $(*leif=Leif Svalgaard) wrote a tiny multitasking
+monitor for MS-DOS, to demonstrate that multitasking did not
+require megabytes of memory.  This monitor was based on an
+event-passing kernel.  It worked well and could multitask several
+DOS sessions simply and efficiently.  This project was remarkable
+because it took a very short time to write (one long weekend) and
+because it required so little memory to run (several kilobytes).
+This monitor was based on Leif Svalgaard's earlier work in
+operating systems design, and defined the core principles of the
+SMT 2.x kernel.
+
+<P>In 1993, Pieter Hintjens developed a complex multithreaded
+application using the Digital VMS chained multithreading method.
+Under severe time constraints, he was obliged to take a radical
+alternative to the normal approach.  He used Libero to abstract
+the 'chain' of multithreaded logic.  This reduced the development
+cost by an estimated 80%, and resulted in a very stable and
+efficient application.  This experience showed that the Libero
+state-machine abstraction - already useful for writing normal
+procedural code - was also good in multithreaded applications.
+
+<P>In 1993, Christian Rozet and Stephen Bidoul of ACSE built a
+version of Libero that generated a C++ 'asynchronous finite-state
+machine' to handle events coming from a GUI (MS-Windows).  The
+resulting applications were in effect multithreaded applications,
+with the multithreading handled by Libero (actually the code that
+Libero generated).
+
+<P>In 1995, Pieter Hintjens and Pascal Antonnaux built SMT version
+1.0, and a set of demonstration programs.  The <EM>smthttpd</EM>
+web server ran on UNIX and Windows 95, showing that portable
+multitasking was a realistic objective.
+
+<P>SMT 2.0 is a fresh approach that combines the experience of
+these projects:
+<UL>
+<LI>It is built on an event-based kernel that integrates smoothly
+into the event-driven state machine inside each program.
+<LI>It uses Libero to abstract the multithreading logic, so that
+the application program is easy to write and maintain.
+<LI>It can be oriented towards socket i/o (important for Internet
+server programs), towards Windows event handling, or towards any
+other event source.
+</UL>
+
+<H3>Differences with Classic Multithreading</H3>
+
+<P>The main differences between SMT and 'classic' multithreading
+are:
+<UL>
+<LI>Multithreading works at the user level, not the kernel level.
+This is sometimes called 'internal multithreading' or 'pseudo-
+multithreading'.  User-level multithreading is transparent to the
+operating system, and can be 100% portable (as it is in SMT).
+<LI>SMT cannot make direct use of multiple CPUs, since threads are
+not visible to the operating system.
+<LI>Threads communicate with events as well as with semaphores.
+This is a clean abstraction that lets you design an
+object-oriented application.
+<LI>SMT is simpler to use.
+<LI>SMT is portable to (almost) any operating system and
+programming language, although the primary implementation is in
+ANSI C.
+</UL>
+
+<P>We note some other points of interest:
+<UL>
+<LI>Thread switching occurs only between dialog action modules.  A
+single dialog module will always run to completion.  Thus, threads
+can share resources (data, files,...) without locking, critical
+sections, or other special safeguards.
+<LI>SMT provides a high-level framework for constructing real
+applications.  This is useful even without the multithreading
+aspects.
+<LI>SMT uses asynchronous or non-blocking i/o as far as possible
+- for Internet sockets and file access.  This results in efficient
+applications that can handle large numbers of connections with a
+low overhead per connection.
+</UL>
+
+<H3>Why Use Multithreading?</H3>
+
+<P>We will consider two specific problems.  Firstly, construction
+of an industrial-scale Internet server.  Secondly, construction of
+a multi-level finite-state machine application.
+
+<P>There are many different ways to design an Internet server.
+The main problem is to handle multiple connections at once
+('concurrency').  The classic way to get concurrency is to use the
+operating system multitasking functions.  This is straight-forward
+enough.  For instance, under UNIX, the server process uses the
+fork() system call to create a 'clone' of itself. At any moment
+there are multiple copies of the server process, each handling one
+connection.  The operating system switches rapidly between these
+processes, so giving concurrency.
+
+<P>The problems with this design become apparent when you try to
+use it for large-scale work.  Firstly, it is not portable - the
+fork() system call does not work on all operating systems.
+Secondly, each fork() call duplicates the server program in
+memory.  This duplication takes a certain time, as does the
+eventual removal of the server process.  A protocol like HTTP
+creates a large number of short-term connections.  Lastly, each
+additional instance of the server process consumes system
+resources so that a typical system cannot handle more than a few
+hundred connections.
+
+<P>There are variations on this design that eliminate some of the
+problems.  For instance, you can create a fixed number of
+instances of the server beforehand, then allow that number of
+connections.  This eliminates the cost of creating and removing
+server processes, but does not raise the ceiling on the maximum
+number of connections.
+
+<P>A more sophisticated approach is to handle multiple connections
+within a single process.  This is relatively simple to arrange,
+using the BSD socket select() function.  This lets a program wait
+for activity on a set of open sockets.  The logic of such a
+program is: wait for activity on a socket; handle the activity;
+repeat.  This approach works when the logic of 'handle the
+activity' is simple.  In realistic applications, however, this
+logic becomes complex, and involves activity such as reading or
+writing to files, or manipulating several sockets at once.
+
+<P>The SMT kernel uses the last approach, but provides a level of
+abstraction that makes the approach practical for large-scale
+problems.  You can create one or several 'threads'.  Each thread
+executes a copy of the finite state machine.  The basic unit of
+logic in a thread is the code module.
+
+<P>The number of threads is limited only by the memory available
+to the process.  Creating or removing a thread is fast (so a new
+connection can be established faster than using a fork() call),
+and as far as the operating system is concerned, there is just one
+process (so the cost to the operating system is lower).
+
+<P>Let's consider the design of an application that consists of
+several interworking state machines.  This is the kind of design
+one finds in telecommunications and other specialised domains.
+The approach can be used in many areas.  Typically, such a state
+machines processes an event queue; one state machine can send
+events to another.
+
+<P>In this type of design we need to save the 'state' of each
+state machine in some way so that it can process events in a
+meaningful manner.  The 'state' consists of the actual state, the
+last event, and context information that the state machine program
+needs to remember between events.  We can define this 'state' as a
+thread: the requirements are very close to that of the Internet
+server described above.  If we only want a single thread in any
+state machine, we can consider this a special case of the general
+case, which is a full multithreaded approach.
+
+<P>Our conclusion from these two chains of argument is that a
+state-machine approach to multithreading is useful and valuable in
+real applications.  Since Libero already provides a state-machine
+abstraction that converts a state-machine diagram into generated
+code, it is reasonable to use this mechanism to implement a
+generic and portable type of multithreading.
+
+<P>The SMT 2.x kernel works with a specific Libero code generation
+schema, smtschm.c, to provide this generic multithreading.
+
+<H3>What You Should Know</H3>
+
+<P>If you intend to write Internet servers, you should have a
+basic understanding of the concepts behind IP, TCP/IP, and UDP/IP.
+While the SMT kernel does a good job of packaging and abstracting
+the Internet programming model, it is no substitute for a solid
+understanding of the issues involved.  We recommend that you be
+familiar with these aspects at least:
+<UL>
+<LI>The differences between TCP/IP and UDP/IP.
+<LI>How TCP and UDP socket connections work.
+<LI>The BSD socket programming interface.
+</UL>
+The SFL socket functions provide the main abstraction layer; for
+instance you will not need to consider system-specific issues such
+as the WINSOCK interface.
+
+<P>Before designing or writing an SMT application you should
+understand the Libero method of program design.  The main
+components of an SMT application - the agents - are designed and
+written using Libero.
+
+<P>Before writing SMT applications you should be familiar with the
+standard function library (SFL), since many SFL functions are used
+in a typical SMT application.
+
+.-----------------------------------------------------------------
+.page The SMT Kernel Architecture
+<H2>$(TITLE)</H2>
+
+<H3>Structure Of An SMT Application</H3>
+
+<P>An SMT application generally consists of a number of
+<EM>agents</EM>, connected to the SMT kernel:
+
+<PRE>
+                     .------------.
+                     : SMT kernel |
+                     `============"
+                            |
+     - -+------------+------+-----+------------+- -
+        |            |            |            |
+    .-------.    .-------.    .-------.    .-------.
+    : Agent |    : Agent |    : Agent |    : Agent |
+    `======="    `======="    `======="    `======="
+
+Figure: Regular SMT application
+</PRE>
+
+<P>We may also use an event driver to make an 'embedded
+application'.  This is necessary when external events cannot be
+collected by a normal SMT agent program such as the socket i/o
+agent.  An example of such an application is one designed for MS
+Windows.
+
+<PRE>
+                     .--------------.
+                     : Event Driver |
+                     `=============="
+                            |
+                     .------------.
+                     : SMT kernel |
+                     `============"
+                            |
+     - -+------------+------+-----+------------+- -
+        |            |            |            |
+    .-------.    .-------.    .-------.    .-------.
+    : Agent |    : Agent |    : Agent |    : Agent |
+    `======="    `======="    `======="    `======="
+
+Figure: Embedded SMT application
+</PRE>
+
+<P>There are many other types of SMT application.  The SMT kernel
+defines a number of objects, and operations on those objects.
+These objects are arranged in a hierarchy: this is structural, not
+morphological (they do not inherit attributes from each
+other):
+
+<PRE>
+         Agent
+           : \
+           :  Method
+         Queue
+        /      \
+    Thread     Event
+
+Figure: Main SMT Objects
+</PRE>
+
+<UL>
+<LI>An SMT application consists of one or more <EM>agents</EM>.
+An agent is written as a single program, based on one Libero
+dialog definition (i.e. a finite state machine, or FSM).
+<LI>An agent declares one or more <EM>methods</EM> that it can
+process.  These are formal declarations of the <EM>events</EM>
+that the agent is prepared to accept.  An agent that declares a
+method "OPEN" will accept events called "OPEN".
+<LI>An agent contains zero or more event <EM>queues</EM>.  When
+you send an event somewhere, you send it to an event queue.
+<LI>An event queue is handled by one or more <EM>threads</EM>.  A
+thread is an instance of the finite-state machine program.
+<LI>An event queue contains zero or more events.  These are events
+waiting to be processed by the queue's thread(s).
+<LI>Agents, methods, threads, and events are named.  Queues are
+unnamed, and are referred-to by a <EM>queue id</EM> block, a token
+that the SMT kernel generates when it creates a new queue.
+</UL>
+
+<P>The SMT holds these objects in a set of linked lists.  Each
+thread, for instance, contains the reference of its parent queue;
+a queue refers to its parent agent.
+
+<PRE>
+                      .------------.
+                      : SMT kernel |
+                      `============"
+                             |
+       -+-------------+------+------+-------------+-
+        |             |             |             |
+                  .-------.
+                  : Agent |
+                  `======="
+                      |
+        +-------------+-------------+
+        |             |             |
+    .--------.    .--------.    .--------.
+    : Queue  |    : Queue  |    : Queue  |
+    `========"    `========"    `========"
+        |             |             |
+    .--------.    .--------.    .--------.
+    : Thread |    : Thread |    : Thread |
+    `========"    `========"    `========"
+
+Figure: Agent Program With 3 Threads
+</PRE>
+
+<H3>Floating Event Queues</H3>
+
+<P>In normal cases, events are sent to a queue that is held by an
+agent program.  Sometimes this is a limitation: we can see cases
+where non-agent programs also need to receive events.  Any program
+can send an event: this is just a call to the SMT kernel API.
+
+<P>We therefore define the concept of a <EM>floating event
+queue</EM>; that is, an event queue that is managed by some
+program that is not constructed as an agent:
+
+<PRE>
+        Program
+           :
+         Queue
+           :
+         Event
+
+Figure: Floating Event Queue
+</PRE>
+
+<P>The designer of the application must also find a way to service
+the event queue, since the SMT kernel cannot schedule and execute
+such a program.
+
+<H3>Routers</H3>
+
+<P>In most cases, one queue is served by one thread.  Thus, when
+you send an event to a queue, you are effectively sending it to a
+specific thread.
+
+In some cases, it is better to share one queue among several
+threads.  Imagine an agent that executes database requests coming
+from a set of clients.  A thread takes an event, processes it, and
+returns a reply.  Each event is independent, and may take some
+time to process.  It makes sense to start several threads, so that
+several events can be processed in parallel.  It would be wrong to
+allocate one queue per thread, however, for two reasons.  Firstly,
+this implies that there are N queues which the clients must know
+about.  Secondly, it implies that someone (client or agent)
+chooses a queue for each event.  Consequently, events may be
+waiting in the queue for one thread while another thread is idle.
+By allocating just one queue, shared between all the agent
+threads, events are processed at full speed, in arrival order.
+
+<P>An agent is either defined as a <EM>router</EM>, or not.  When
+an agent is a router, it is legal to create multiple threads with
+the same name.  All threads in a router agent share a single event
+queue.
+
+<H3>Internal and External Events</H3>
+
+<P>SMT agents are built as event-driven Libero programs.  We
+define two kinds of event: an <EM>internal event</EM> (supplied by
+the program itself) and an <EM>external event</EM> (taken from the
+event queue).  If we consider a normal Libero program, all events
+are internal.  The SMT kernel adds the concept of external
+events.
+
+<P>When you design the program dialog, you do not distinguish
+internal and external events.  Indeed, a name like "Ok" can be
+used for both types of event.
+
+<P>The SMT kernel <EM>delivers</EM> an external event when the
+program did not supply an internal event itself.  This occurs at a
+state transition, i.e. after executing the action modules for an
+event.  When an external event is delivered, it is converted into
+an appropriate internal event.
+
+<P>To put it another way: if none of the action modules put a
+value into the_next_event, then the SMT kernel will pull an event
+from the event queue, translate it into a suitable value, and put
+that into the_next_event instead.
+
+<P>The <EM>methods</EM> define the translation from external event
+to internal event.  External events that do not match declared
+methods are rejected.  This is usually a programming error, so an
+error message is sent to the console.
+
+<H3>Event Management</H3>
+
+<P>The SMT kernel provides an level of event management.  Firstly,
+it will destroy undelivered events after a specified expiry
+period.  Secondly, it will automatically send return events to
+acknowledge receipt or non-receipt of an event.  This works as
+follows: when you send an event, you may specify reply events for
+delivery, rejection, and expiry.
+
+<H3>Priorities and Scheduling</H3>
+
+<P>The SMT kernel has a simple priority and scheduling mechanism.
+Agents run with a certain priority level (a number from 1 to 255).
+When the SMT kernel delivers events to threads, it schedules the
+threads for execution, by placing them in a queue (the <EM>active
+list</EM>).  Threads with higher priorities are placed at the
+start of the active list.  No account is taken of the time spent
+in the active list, so it is quite possible for a set of
+high-priority threads to take-up all execution time.  This
+normally does not happen, since such threads will eventually wait
+for events from somewhere else, so become passive.
+
+<P>Events have a similar priority level, defined by the accepting
+program, in the event method.  When the SMT kernel delivers an
+event, it chooses the event with the highest priority.  One
+example of a high-priority event is <EM>shutdown</EM>, which is
+sent to all threads when the SMT kernel receives a 'kill' signal
+(i.e. when someone decides to stop the running program).
+
+<P>You can change agent and event priorities on the fly, although
+this may get a little complex to manage.  You can also process the
+events in an event queue directly, without waiting for the SMT
+kernel to deliver each one.
+
+<P>In general we recommend that you leave agents and events with
+unspecified priority - i.e. the normal priority level - unless
+there are good reasons for doing otherwise.
+
+<H3>Native Programs Vs. Foreign Programs</H3>
+
+<P>A <EM>native program</EM> is designed as a finite-state machine
+(FSM) and built using Libero and the smtschm.c schema.  A native
+program can be multithreaded.  It is tightly integrated with the
+SMT kernel: the kernel supplies events to the program, schedules
+and executes threads, etc.
+
+<P>A <EM>native program</EM> is also called a <EM>agent</EM>. The
+two terms are equivalent.
+
+<P>A <EM>foreign program</EM> is not based on the smtschm.c
+schema.  It is always single threaded, and while it may call SMT
+kernel functions, it is not integrated with the kernel.  Typically
+a foreign program calls the SMT kernel to send and receive events
+and manage floating event queues.
+
+<H3>The SMT Kernel Meta-State-Machine</H3>
+
+<P>We can consider the application (an ensemble of agents, queues,
+threads, and events) as a meta-state-machine (i.e. a state machine
+that defines a set of state machines).  The application has three
+states:
+<UL>
+<LI><EM>Latent</EM>: we are initialising, but not yet ready to
+start executing the threads.
+<LI><EM>Active</EM>: we are executing threads.
+<LI><EM>Halted</EM>: there are no more active threads, and no
+events left to deliver.
+</UL>
+
+<P>We do not usually define this as a Libero dialog, though it is
+possible to do so.  What we must do is to write a foreign program,
+a <EM>stub</EM>, that implements the application meta-state-
+machine.  This is the stub for an Internet ECHO daemon, showing
+the three states:
+
+<PRE>
+#include "sfl.h"                   /*  SFL library header file  */
+#include "smtlib.h"                /*  SMT kernel functions     */
+
+int main (int argc, char *argv [])
+{
+    /*  Application is latent - initialise it                   */
+    $(*smt_init) ();                   /*  Initialise SMT kernel    */
+    $(*smtecho_init) (NULL);           /*  Initialise ECHO agent    */
+
+    /*  Application is active - execute it                      */
+    $(*smt_exec_full) ();              /*  Run until completed      */
+
+    /*  Application is halted - terminate it                    */
+    $(*smt_term) ();                   /*  Shut-down SMT kernel     */
+    return (0);
+}
+</PRE>
+
+<P>This main code is the glue that joins the various pieces of the
+application.
+
+.-----------------------------------------------------------------
+.page Using The SMT Kernel API
+<H2>$(TITLE)</H2>
+
+<P>The SMT kernel API is aimed mainly at native programs.
+However, you can also use the event-passing facilities in foreign
+programs.  This can be necessary when interfacing SMT applications
+to other event-based systems.
+
+<H3>SMT Kernel Functions</H3>
+
+<P>This is the complete set of functions supported by the SMT
+kernel:
+<DL>
+<DT>$(*smt_init)()</DT>
+<DD>Initialise the SMT kernel.</DD>
+<DT>$(*smt_term)()</DT>
+<DD>Shut-down the SMT kernel.</DD>
+<DT>$(*smt_exec_full)()</DT>
+<DD>Execute the SMT application until halted.</DD>
+<DT>$(*smt_exec_step)()</DT>
+<DD>Execute just next scheduled thread.</DD>
+<DT>$(*smt_active)()</DT>
+<DD>Check if application has halted.</DD>
+<DT>$(*smt_set_console)()</DT>
+<DD>Specify an agent to act as console.</DD>
+<DT>$(*smt_set_timer)()</DT>
+<DD>Specify an agent to act as timer.</DD>
+<DT>$(*smt_atexit)()</DT>
+<DD>Define a termination function.</DD>
+<DT>$(*smt_shutdown)()</DT>
+<DD>Halt the application prematurely.</DD>
+<DT>$(*agent_declare)()</DT>
+<DD>Define a new agent.</DD>
+<DT>$(*agent_lookup)()</DT>
+<DD>Check if a specific agent is defined.</DD>
+<DT>$(*agent_destroy)()</DT>
+<DD>Remove an agent from the SMT kernel tables.</DD>
+<DT>$(*method_declare)()</DT>
+<DD>Define a method for an agent.</DD>
+<DT>$(*method_lookup)()</DT>
+<DD>Check if a specific method is defined.</DD>
+<DT>$(*method_destroy)()</DT>
+<DD>Remove a method from the SMT kernel tables.</DD>
+<DT>$(*queue_create)()</DT>
+<DD>Define an event queue for an agent, or a floating queue.</DD>
+<DT>$(*queue_lookup)()</DT>
+<DD>Check if an event specific queue is defined.</DD>
+<DT>$(*queue_destroy)()</DT>
+<DD>Remove an event queue from the SMT kernel tables.</DD>
+<DT>$(*queue_flush)()</DT>
+<DD>Expire out-of-date events in the event queue.</DD>
+<DT>$(*event_send)()</DT>
+<DD>Send an event to some event queue.</DD>
+<DT>$(*event_accept)()</DT>
+<DD>Accept the next event from an event queue.</DD>
+<DT>$(*event_reject)()</DT>
+<DD>Reject the next event from an event queue.</DD>
+<DT>$(*event_expire)()</DT>
+<DD>Expire the next event from an event queue.</DD>
+<DT>$(*event_discard)()</DT>
+<DD>Discard the next event from an event queue.</DD>
+<DT>$(*event_iterate)()</DT>
+<DD>Find the next event in an event queue.</DD>
+<DT>$(*event_destroy)()</DT>
+<DD>Destroy a specific event.</DD>
+<DT>$(*event_wait)()</DT>
+<DD>Wait explicitly for an external event.</DD>
+<DT>$(*thread_create)()</DT>
+<DD>Define a thread for an agent, maybe create a queue.</DD>
+<DT>$(*thread_lookup)()</DT>
+<DD>Check if a specific thread is defined.</DD>
+<DT>$(*thread_destroy)()</DT>
+<DD>Remove a thread from the SMT kernel tables.</DD>
+<DT>$(*semaph_create)()</DT>
+<DD>Create a new semaphore.</DD>
+<DT>$(*semaph_lookup)()</DT>
+<DD>Check if a specific semaphore is defined.</DD>
+<DT>$(*semaph_destroy)()</DT>
+<DD>Remove a semaphore from the SMT kernel tables.</DD>
+<DT>$(*semaph_wait)()</DT>
+<DD>When the semaphore value is &gt; 0, decrement it.</DD>
+<DT>$(*semaph_signal)()</DT>
+<DD>Add 1 to the semaphore value.</DD>
+<DT>$(*lazy_creat)()</DT>
+<DD>Create a file, without blocking.</DD>
+<DT>$(*lazy_open)()</DT>
+<DD>Open a file, without blocking.</DD>
+<DT>$(*lazy_read)()</DT>
+<DD>Read from a file, without blocking.</DD>
+<DT>$(*lazy_write)()</DT>
+<DD>Write to a file, without blocking.</DD>
+<DT>$(*lazy_close)()</DT>
+<DD>Close a file, without blocking.</DD>
+<DT>$(*senderr)()</DT>
+<DD>Send the current strerror (errno) to some queue.</DD>
+<DT>$(*sendfmt)()</DT>
+<DD>Format a text using printf conventions and send to some
+queue.</DD>
+<DT>$(*raise_exception)()</DT>
+<DD>Raise an exception (for dialog programs only).</DD>
+<DT>$(*recycle_module)()</DT>
+<DD>Repeat execution of the current dialog module.</DD>
+</DL>
+
+<P>The SMT kernel API works with a number of objects - agents,
+threads, queues - which are defined as C structures.  The fields
+in these structures are the properties of the object.  The SMT
+objects contain <EM>private</EM> fields, which you should never
+change or refer to, and <EM>public</EM> fields, which you are free
+to change and use.  We do not discuss the private fields, except
+to note that these contain information that is internal to the SMT
+kernel, or reflect particular implementations that may change.
+
+<P>These are the SMT objects and their public fields:
+
+<PRE>
+AGENT                      /*  Agent descriptor                 */
+    AGENT  *next, *prev    /*    Doubly-linked list             */
+    NODE    methods        /*    Methods accepted by agent      */
+    NODE    queues         /*    Queues defined for agent       */
+    char   *name           /*    Agent's name                   */
+    Bool    router         /*    Default = FALSE                */
+    int     priority       /*    Default = SMT_PRIORITY_NORMAL  */
+    long    max_threads    /*    Default = 0 (no limit)         */
+    long    cur_threads    /*    Current number of threads      */
+    long    top_threads    /*    Max. number threads we had     */
+    long    thread_tally   /*    How many threads created       */
+    long    switch_tally   /*    How many context switches      */
+</PRE>
+
+<P>An agent defines one program written using the Libero SMT
+schema.  When the generated code initialises, it automatically
+creates an agent object.  You may change the router, priority, and
+max_threads fields, but not the other fields.
+
+<PRE>
+METHOD                     /*  Method descriptor                */
+    METHOD *next, *prev    /*    Doubly-linked list             */
+    AGENT  *agent          /*    Parent agent descriptor        */
+    char   *name           /*    Name of method                 */
+    int     priority       /*    Default = SMT_PRIORITY_NORMAL  */
+    int     event_number   /*    Internal event number          */
+</PRE>
+
+<P>The start-up code for an agent (in Initialise-The-Program)
+creates a method for each external event it wants to handle.  You
+may change the priority and event_number fields, but not the other
+fields.
+
+<PRE>
+THREAD                     /*  Thread descriptor                */
+    THREAD  *next, *prev   /*    Doubly-linked list             */
+    QUEUE   *queue         /*    Parent queue descriptor        */
+    long     thread_id     /*    Thread identifier number       */
+    char    *name          /*    Name of thread                 */
+    Bool     animate       /*    Animate this thread            */
+    void    *tcb           /*    Thread context block (TCB)     */
+    EVENT   *event         /*    Last-received event            */
+</PRE>
+
+<P>Any part of the application can create a thread in an agent, if
+it knows the name of the agent.  You may change the animate field,
+but not the other fields.
+
+<PRE>
+QUEUE                      /*  Event queue descriptor           */
+    QUEUE  *next, *prev    /*    Doubly-linked list             */
+    AGENT  *agent          /*    Parent agent descriptor        */
+    NODE    events         /*    Events in queue                */
+    NODE    threads        /*    Threads for queue              */
+    QID     qid            /*    Queue ID descriptor            */
+    int     max_events     /*    Maximum allowed events         */
+    int     cur_events     /*    Current number of events       */
+</PRE>
+
+<P>The SMT kernel automatically creates event queues as needed.
+Generally it will create one event queue per thread.  When an
+agent is defined as a router, however, it only creates an event
+queue for the first thread.  You can also create floating event
+queues.  You may change the max_events fields, but not the other
+fields.  Note that each queue has a unique QID; this is the
+identifier for the queue, and the information you need to send an
+event to a queue.
+
+<PRE>
+EVENT                      /*  Event in queue                   */
+    EVENT  *next, *prev    /*    Doubly-linked list             */
+    QUEUE  *queue          /*    Parent queue descriptor        */
+    QID     sender         /*    Replies come back here         */
+    char   *name           /*    Name of event                  */
+    size_t  body_size      /*    Size of event body in bytes    */
+    char   *body           /*    Event body                     */
+    char   *accept_event   /*    Reply if we accept event       */
+    char   *reject_event   /*    Reply if we reject event       */
+    char   *expire_event   /*    Reply if we expire event       */
+    time_t  timeout        /*    Expires at this time (or 0)    */
+</PRE>
+
+<P>Any part of the application can send an event to an event queue
+using the event_send() function.  The queue may be served by a
+thread, or not (if it is a floating event queue).  You should not
+change any of the fields in the event object: the sender, body,
+and body_size fields are generally interesting.
+
+<PRE>
+SEMAPH                     /*  Semaphore definition             */
+    SEMAPH  *next, *prev;  /*    Doubly-linked list             */
+    char    *name;         /*    Name of semaphore              */
+</PRE>
+
+<P>Semaphores are for synchronising agents, for instance for
+exclusive access to some resource.  We implement general
+semaphores, i.e. they can take any value of 0 or greater (the
+value is defined as an integer).
+
+<H3>Initialisation and Termination</H3>
+
+<P>An SMT application must explicitly initialise and shut-down the
+SMT kernel.  This lets the kernel create global objects (such as
+the symbol table) and then destroy them when finished.
+
+<P>The $(*smt_init)() function initialises the SMT kernel.  The
+$(*smt_term)() function shuts-down the SMT kernel.  These are
+generally the first and last SMT functions that the application
+calls.  Usually, we'll put these calls in the stub (main)
+program.
+
+<P>Any part of the application can call $(*smt_atexit)() to
+register a shut-down function; these shut-down functions are
+called by $(*smt_term)(), in the order that you declare them.
+
+<H3>Creating A Thread</H3>
+
+<P>Any program can create a thread in any agent in the application
+using the thread_create() function.  To create a thread you must
+know the name of the agent and the name of the thread you want to
+create.
+
+<P>A thread's name is local within the agent, and lets an outside
+program look-up the event queue for that thread.  There are
+various ways to name threads.  In single-threaded agents, it is
+useful to leave the thread name empty (specified as an empty
+string - "").  In multithreaded agents, the thread name can
+correspond to some resource name.  For instance, in the echo
+agent, the thread uses the connection socket number as its name.
+In a <EM>router</EM> agent, several threads can have the same
+name; since the threads in such an agent share the same event
+queue, this allows a program to unambigouously find the event
+queue from the thread name.
+
+<P>This is how a single-threaded agent (e.g. the operator console)
+creates a thread:
+
+<PRE>
+    /*  Create initial, unnamed thread                          */
+    $(*thread_create) (AGENT_NAME, "");
+</PRE>
+
+<P>This is how the $(*SMTECHO=echo agent) creates a thread to
+handle a new connection (tcb-&gt; handle contains the handle of
+the echo master socket):
+
+<PRE>
+    SOCKET
+        slave_socket;           /*  Connected socket            */
+    static char
+        thread_name [12];       /*  Socket number as string     */
+
+    slave_socket = accept_socket (tcb-&gt; handle);
+    if (slave_socket != INVALID_SOCKET)
+      {
+        sprintf (thread_name, "%d", slave_socket);
+        $(*thread_create) (AGENT_NAME, thread_name);
+      }
+</PRE>
+
+<H3>Sending and Receiving Events</H3>
+
+<P>These are the API functions that you can use to send an event:
+<DL>
+<DT>$(*event_send)()</DT>
+<DD>Send an event to some event queue.</DD>
+<DT>$(*senderr)()</DT>
+<DD>Send the current strerror (errno) to some queue.</DD>
+<DT>$(*sendfmt)()</DT>
+<DD>Format a text using printf conventions and send to some
+queue.</DD>
+</DL>
+
+<P>In all cases, the target queue is specified as a <EM>QID</EM>.
+The QID is a location-independent queue identifier that the SMT
+kernel creates for each queue.  We use a QID instead of the
+address of the queue object so that events can be sent between
+processes running in different address spaces.  (Although this is
+not yet implemented.)
+
+<P>When you send an event, you specify an event name.  An agent
+program must have declared a method for each event it can accept.
+There is no such restriction for other programs that manage event
+queues themselves.
+
+<P>An event has a body, which is a block of text or binary data
+that is copied to the receiving event queue.  You should always
+ensure that event bodies are portable, since the receiving event
+queue could in principle be on a different system.  Furthermore,
+an event body cannot include the address of an object or variable:
+events can cross address spaces (i.e. be sent to other processes)
+so that such addresses are not meaningful.
+
+<H3>Sending An Initial Event To A Thread</H3>
+
+<P>You can send an event to a thread as soon as it has been
+created.  This can be useful if you need to pass arguments to a
+child thread.  The event will be delivered <EM>after</EM> the
+initialise_the_thread module, if you do not specify a value for
+<TT>the_next_event</TT>.  For an example, see the echo agent
+$(*SMTECHO).
+
+<H3>Event Lifespan and Acknowledgment</H3>
+
+<P>The $(*event_send)() call lets a program specify these optional
+arguments:
+<UL>
+<LI>Reply queue - usually the queue for the thread or program that
+sent the event.
+<LI>Accept event - an event that is returned when the event has
+been sucessfully delivered (though not necessarily processed).  If
+left unspecified, the caller will not be informed when the event
+is delivered.
+<LI>Reject event - an event that is returned if the event is
+rejected by the recipient.  (Typically it is not accepted by the
+thread in its current state.)  If left unspecified, the caller
+will not be informed when the event is rejected.
+<LI>Timeout - a timeout in seconds after which the event will
+expire.
+<LI>Expire event - an event that is returned when the event has
+expired dues to a timeout.  If left unspecified, the caller will
+not be informed when the event expires.
+</UL>
+
+<P>When a program wants to inspect the events in a queue, it uses
+$(*event_iterate)(), which walks through the queue, event by
+event. To take an event off the queue, a program calls
+$(*event_accept)(). This automatically sends an accept event, if
+specified.
+If queue is empty it simply returns with an 'not found' feedback.
+Some programs implement event priorities by combining
+$(*event_iterate)() with $(*event_accept)().  A program may
+manipulate several event queues.
+
+<P>To remove an event without using it, a program calls
+$(*event_destroy)().  The $(*event_destroy)() call automatically
+sends a reject event, if specified.
+
+<P>The SMT kernel handles event expiry automatically for native
+programs.  Programs that handle floating event queues must expire
+old events explicitly by calling $(*queue_flush)() before they
+start to process waiting events.
+
+<H3>Using Priorities</H3>
+
+<P>The SMT kernel provides support for event priorities and for
+thread priorities.  These work as follows:
+<UL>
+<LI>When several events are waiting to be delivered to an agent,
+the event with the highest priority is always delivered first.
+When several events have the same priority, the oldest event is
+delivered first.
+<LI>When a thread is scheduled for execution it is always
+scheduled before the first thread with a lower priority.
+</UL>
+
+<P>In practice we use priorities rarely, and for specific cases
+only.  In the current version of the SMT kernel we use a high
+priority for shutdown events, and a low priority for the socket
+agent.  All other events and threads have normal (equal)
+priority.
+
+
+.-----------------------------------------------------------------
+.page Writing A Native SMT Program
+<H2>$(TITLE)</H2>
+
+<P>A native program is a <EM>agent</EM>.  To build an agent you:
+<UL>
+<LI>Design a dialog using Libero, and base the dialog on the
+smtschm.c schema (specify -schema=smtschm.c).
+<LI>Generate a skeleton program.
+<LI>Modify the program and dialog, regenerate, compile, and link
+the application, and repeat until satisfied.
+</UL>
+
+<P>When you design an agent you must decide whether the it is
+single-threaded or multithreaded.  What's the difference?
+<UL>
+<LI>A single-threaded agent handles just one logical thread; a
+multithreaded agent handles multiple logical threads in
+parallel.
+<LI>A single-threaded agent manages one event queue; a
+multithreaded agent manages (usually) several event queues.
+<LI>A multithreaded agent is usually 'connection oriented' while
+a single-threaded agent is usually 'service oriented'.
+</UL>
+
+<P>By convention, a single-threaded agent creates an unnamed
+thread when it initialises.  A multithreaded agent, by contrast,
+typically create a new thread for each new connection, and uses a
+different name for each thread.
+
+<P>An example of a single-threaded agent is the operator console.
+This is a program that accepts error messages or warnings from
+other parts of the application, then does something useful with
+them.  (The current implementation writes them to stderr.)  The
+operator console has no need for multiple threads.
+
+<P>An example of a multithreaded agent is the logging agent.  This
+is a program that manages log files on behalf of other application
+programs.  It does this at a low priority, and without blocking,
+so that log file data is written without disturbing ongoing work.
+The logging agent can write to several log files in parallel: it
+does this by having one thread for each log file.
+
+<P>To specify that an agent is single-threaded, define
+SINGLE_THREADED as TRUE near the start of the program.  For
+instance, this code comes from the SMTOPER agent:
+
+<PRE>
+/*- Definitions ------------------------------------------------*/
+
+#define AGENT_NAME      SMT_OPERATOR  /*  Our public name       */
+#define SINGLE_THREADED TRUE          /*  Single-threaded agent */
+</PRE>
+
+<H3>Initialising An agent</H3>
+
+<P>An agent program must be 'initialised' before it can do any
+useful work.  For instance, to initialise the logging agent, the
+application must call the function $(*smtlog_init)().  Generally,
+agents are initialised by the stub program, or by other agents.
+We generally recommend that an agent always try to initialise
+every agent it requires.  It is safe to call initialisation
+function for an agent several times; only the first call has any
+effect.
+
+<P>The initialisation function is the only public function for a
+agent.  Once an agent is initialised, it communicates with other
+programs only via events.
+
+<P>An agent program is based on a Libero dialog, and is 'driven'
+by a chunk of code generated by Libero.  This code (defined as an
+#include file) handles the initialisation of the agent.  The code
+looks something like this (we explain each part):
+
+<PRE>
+if ($(*agent_lookup) (AGENT_NAME))
+    return (0);                 /*  Agent already declared     */
+</PRE>
+
+<P>The $(*agent_lookup)() function returns NULL if an agent object
+with the specified name already exists.  Otherwise it returns a
+pointer to the agent object.  Here we check that the agent has
+not already been declared.  The generated code assumes that
+AGENT_NAME has been defined to hold the name of the agent.
+AGENT_NAME can be a variable or a pre-processor macro (the
+generated skeleton program defines it as a macro).
+
+<PRE>
+if ((agent = $(*agent_declare) (AGENT_NAME)) == NULL)
+    return (-1);                /*  Could not declare agent    */
+</PRE>
+
+<P>The $(*agent_declare)() function returns a pointer to the
+newly-created agent object.  If there was an error (e.g. not
+enough memory), it returns NULL.
+
+<PRE>
+#if (defined (SINGLE_THREADED))
+agent-&gt; tcb_size    = 0;    /*  No context block            */
+agent-&gt; max_threads = 1;    /*    and max. 1 thread         */
+#else
+agent-&gt; tcb_size    = sizeof (TCB);
+#endif
+</PRE>
+
+<P>Once the agent has been created, the generated code sets the
+thread context block (TCB) size depending on whether the agent is
+single threaded or multithreaded.  A single-threaded agent does
+not need TCBs, so the size is zero.  The code assumes that
+SINGLE_THREADED has been defined as a macro if required.  The
+generated code then sets a variety of fields in the agent block.
+This allows the SMT kernel to 'drive' the agent program
+correctly.
+
+<P>This is how a typical multithreaded agent program initialises
+(this code is taken from smtlog.c):
+
+<PRE>
+#define AGENT_NAME  SMT_LOGGING    /*  Our public name         */
+</PRE>
+
+<P>The SMT_LOGGING symbol is defined in the standard SMT header
+file, smtlib.h, since this agent is part of the standard package.
+For your own agents you would define AGENT_NAME as a string
+literal.  Note that agent names must be unique within the
+application.
+
+<PRE>
+int smtlog_init (void)
+{
+    AGENT   *agent;             /*  Handle for our agent        */
+    THREAD  *thread;            /*  Handle to console thread    */
+#   include "smtlog.i"          /*  Include dialog interpreter  */
+</PRE>
+
+<P>The initialisation code in smtlog.i assumes that a variable
+'agent' is defined.  Then, you can refer to the agent in
+following code using this 'handle'.  The first thing we do is to
+declare each method:
+
+<PRE>
+/*                           Method     Event value  Priority  */
+    $(*method_declare) (agent, "SHUTDOWN", shutdown_event,
+                                             SMT_PRIORITY_MAX);
+    $(*method_declare) (agent, "OPEN",     open_event,         0);
+    $(*method_declare) (agent, "PUT",      put_event,          0);
+    $(*method_declare) (agent, "CLOSE",    close_event,        0);
+</PRE>
+
+<P>Methods names are not case-sensitive, but by convention we
+specify them in uppercase.  Every agent must support the SHUTDOWN
+method; this is sent to each agent when the SMT kernel terminates
+(for instance when interrupted).  SHUTDOWN gets a high priority,
+so that an agent will handle shutdown events before any other
+waiting events.  The other events get a normal priority (0 means
+'default').
+
+<P>You can define several methods for the same event.  The SMT
+kernel uses the set of methods to translate an incoming external
+event into an internal dialog event.
+
+<PRE>
+    /*  Ensure that operator console is running, else start it  */
+    $(*smtoper_init) ();
+    if ((thread = $(*thread_lookup) (SMT_OPERATOR, "")) != NULL)
+        console = thread-&gt; queue-&gt; qid;
+    else
+        return (-1);
+</PRE>
+
+<P>This agent sends error messages to the operator console agent,
+which is generally a good idea.  It initialises the agent (with
+no effect if the agent is already initialised) and then gets the
+console queue id, so it can send events to the operator console.
+Note how we do a $(*thread_lookup)() with an empty thread name.
+The operator console is single threaded, and that single thread
+has no name.
+
+<PRE>
+    /*  Signal okay to caller that we initialised okay          */
+    return (0);
+}
+</PRE>
+
+<P>Finally, if everything went as expected, we return 0 to signal
+that to the calling program.  This is a convention, although you
+can write the initialisation function any way you like, accepting
+any arguments and returning any value that is appropriate.
+
+<H3>The Thread Context Block</H3>
+
+<P>Threads can share data: any global data in the agent program
+is de-facto shared by all threads.  Since threads also need
+'private' data, each thread owns a block of memory called the
+Thread Context Block, or TCB.  The SMT kernel allocates such a
+block when a thread is created.
+
+<P>The TCB is a structure that contains arbitrary fields.  You
+define this structure at the start of your program.  All code
+modules in the program receive a pointer to this structure: they
+use the pointer to reference private data.  For instance, this is
+how the smtlog.c agent declares its TCB:
+
+<PRE>
+typedef struct                  /*  Thread context block:       */
+{
+    int handle;                 /*    Handle for i/o            */
+} TCB;
+</PRE>
+
+This is how the smtlog.c agent opens a file:
+
+<PRE>
+/*******************   OPEN THREAD LOGFILE   ********************/
+
+MODULE open_thread_logfile (THREAD *thread)
+{
+    char
+        *logfile_name;
+
+    tcb = thread-&gt; tcb;         /*  Point to thread's context   */
+
+    /*  Event body or thread name supplies name for log file    */
+    logfile_name = (strused (thread-&gt; event-&gt; body)?
+                    thread-&gt; event-&gt; body:
+                    thread-&gt; name);
+    tcb-&gt; handle = $(*lazy_creat) (logfile_name, S_IREAD | S_IWRITE);
+    if (io_completed)
+      {
+        if (tcb-&gt; handle &lt; 0)   /*  If open failed, send error  */
+          {                     /*    to console, and terminate */
+            $(*sendfmt) (&console, "ERROR",
+                     "Could not open %s for output",
+                      logfile_name);
+            $(*senderr) (&console);
+            $(*raise_exception) (exception_event);
+          }
+      }
+}
+</PRE>
+
+<H3>Choosing Event Names</H3>
+
+<P>We generally use the same name for the method as for the event.
+E.g. CLOSE and close_event.  This is not obligatory, and in some
+cases not appropriate, but it does make the program easier to
+understand when dialog event names correspond to methods.
+
+<H3>Mechanics Of Event Delivery</H3>
+
+<P>The agent kernel delivers events to threads when required.
+This happens at a precise moment: when the thread moves to a new
+dialog state -- after executing the action module list -- and no
+internal event was provided.
+
+<P>When a thread moves into a state, the set of possible events is
+those events defined in that state, plus the events defined in the
+Defaults state, if any.
+
+<P>The SMT kernel takes the following event (or the event with the
+highest priority) and tries to match it to a method name.  If the
+event does not match a method, the event is rejected.  Otherwise
+it is accepted and translated into an internal event number.  If
+the internal event is illegal at that moment in the dialog, this
+causes a fatal dialog error (the thread rejects the event).
+
+<H3>Waiting For An External Event</H3>
+
+<P>Normally the SMT kernel delivers an external event when the
+dialog moves to a new state, and no event was specified.  In some
+cases this can make a dialog rather large, since you need to break
+each step up into states.  The $(*event_wait)() function causes
+the dialog to halt until an event can be taken from the queue.
+When several threads are executable, this function also switches
+execution to the next thread.
+
+<P>The $(*event_wait)() call sets the variable
+"the_external_event".  This should be the last statement in a
+dialog module.  When used in the last module in a list, it has
+strictly no effect.
+
+<H3>Sending Structured Event Data</H3>
+
+<P>Events can optionally have a body to carry additional
+information.  When you send textual data - for instance a string -
+the event body can be transferred between programs without any
+type of conversion.  (We ignore problems of character-set
+conversion at present.)
+
+<P>When you need to send several items in one event body, we speak
+of sending <EM>structured data</EM>.  Structured data consists of
+a mixture of data items of these types:
+<UL>
+<LI>Single bytes
+<LI>Characters
+<LI>Double-bytes
+<LI>Quad-bytes
+<LI>Booleans
+<LI>Null-terminated strings
+<LI>Blocks of binary data
+</UL>
+
+<P>An example of events with structured data are those accepted by
+the socket i/o agent $(*SMTSOCK).
+
+<P>In C, we can group the data items in a structure, hence the
+term.  We cannot, however, simply copy the structure into the
+message and send that.  We cannot copy the address of the
+structure.  Both these methods will work today, but an event may
+(in the future) be sent to an agent in a different process,
+perhaps running on a different machine.
+<UL>
+<LI>The agent may run in a different address space, so passing
+addresses is definitely not a good idea.
+<LI>Structures can contain empty space (padding) that depends on
+the compiler used, the compiler options, and the machine word
+size.  So, if you pass a structure as-is, the data may not map
+correctly to the receiving program's structure.
+<LI>Different systems use different ways of ordering the bytes in
+a multi-byte integer.  One often hears the terms 'little-endian'
+and 'big-endian'; these are just the two main varieties.
+</UL>
+
+<P>Our solution is to take each data field in turn, and pack the
+structure into a machine-independent stream.  We transmit this
+stream, then do the reverse unpacking in the target program.
+
+<P>To do the conversion we use the SFL functions exdr_read() and
+exdr_write().
+
+<P>This is more work than just sending the complete structure, but
+is the only way to ensure that data can safely be sent between two
+programs that may be running on separate systems.
+
+<H3>Sending Events Within An Agent</H3>
+
+<P>Within one agent, you do not need to use the EXDR functions.
+It is quite acceptable to pass data in a structure.  To do this,
+<UL>
+<LI>Define a structure for each event you want to send;
+<LI>To send an event, fill-in the structure fields and send the
+structure using the event_send function;
+<LI>Access the individual fields using a type cast as follows:
+<PRE>(SOMESTRUCT *) thread-> event-> body-> some_field</PRE>
+</UL>
+
+<H3>Ignoring External Events</H3>
+
+<P>In some cases, you may want to ignore reply events sent by an
+agent.  This can be useful to simplify a dialog.  This is how we
+declare a method to ignore some specific event:
+
+<PRE>
+    $(*method_declare) (agent, "SOME_EVENT", SMT_NULL_EVENT, 0);
+</PRE>
+
+<H3>Non-Blocking File Access</H3>
+
+<P>The SMT kernel provides a minimum file access layer that is
+safe to use in multithreaded programs.  To understand what this
+means, first understand what is 'unsafe'.
+
+<P>On some systems, like UNIX and Digital VMS, file access may
+need resources that are not always available - like memory for
+buffers.  If you ask to read some data from a file, and there is a
+problem, the operating system may loop a few times - waiting and
+then trying again - before finally returning to the calling
+program.  In the meantime your program and all threads are
+blocked.
+
+<P>The general solution is to request <EM>non-blocking file
+access</EM>.  Then, in the case of a resource problem, the
+operating will not loop, but will return at once with an error
+code that means 'try again'.  The SMT kernel integrates this
+solution with its thread management, so that a thread waiting for
+file access will loop slowly, allowing other threads to continue
+to run.
+
+<P>To make this work, you should not call the open(), creat(),
+read(), or write() functions directly in your program.  Instead,
+call the SMT kernel functions $(*lazy_open)(), $(*lazy_creat)(),
+$(*lazy_read)(), $(*lazy_write)(), and $(*lazy_close)().
+Furthermore, construct your code like this:
+
+<PRE>
+rc = $(*lazy_write) (tcb-> handle, formatted, fmtsize);
+if (io_completed && rc < 0)     /*  If write failed send error  */
+  {                             /*    to console and terminate  */
+    $(*sendfmt) (&console, "ERROR",
+             "Could not write to %s", thread-> name);
+    $(*senderr) (&console);
+    $(*raise_exception) (exception_event);
+  }
+</PRE>
+
+<P>If <TT>io_completed</TT> is FALSE, then the code module should
+do no further work.  In this case the SMT kernel automatically re-
+executes the <EM>entire</EM> code module.
+
+<P>This is simple and sufficient for sequential file access.  If
+you need heavy database access, where one SELECT statement may
+take a long time to complete, you'll find that your program
+responds slowly.  A better architecture in such cases is to handle
+database requests in a separate process, which talks to your
+application program using sockets.  The requests will take the
+same time to complete, but in the meantime other threads - e.g.
+handling new connections - can run normally.
+
+<P>While we generally recommend you use the non-blocking i/o
+functions, there are instances where this is not really necessary.
+Most obviously, when an application is initialising (e.g. reading
+configuration files) or terminating (dumping data to a log file),
+there is no need to avoid blocking i/o.  In such cases, you can
+access sequential files directly.
+
+<H3>Real-time Programming</H3>
+
+<P>When you call a function like $(*lazy_read)() and it detects a
+'busy' condition, it sets <TT>io_completed</TT> to FALSE, and
+automatically re-executes the current code module.  You may want
+to manage this yourself, however.  It can also be useful to have a
+similar looping when you access a socket and receive the EAGAIN
+error code.
+
+<P>The $(*recycle_module)() function lets you control this looping
+explicitly.  For example, we can decide to abort a file access
+after more than RETRY_MAX retries:
+
+<PRE>
+typedef struct                  /*  Thread context block:       */
+{
+    int handle;                 /*    Handle for i/o            */
+    int retries;                /*    Number of retries so far  */
+} TCB;
+</PRE>
+
+Let's assume that 'retries' has been set to zero, either during
+thread initialisation (okay), or by a specific dialog module
+(better).  We can then try to open a file like this, calling
+$(*recycle_module)() with a FALSE argument to prevent looping when
+we have retried too often:
+
+<PRE>
+/********************   OPEN THREAD LOGFILE   *******************/
+
+MODULE open_thread_logfile (THREAD *thread)
+{
+    tcb = thread-&gt; tcb;         /*  Point to thread's context   */
+
+    /*  Our thread's name is the name for the log file          */
+    tcb-&gt; handle = $(*lazy_creat)
+                      (thread-&gt; name, S_IREAD | S_IWRITE);
+    if (io_completed)
+      {
+        /*  If open failed, send error to console, and end      */
+        if (tcb-&gt; handle &lt; 0)
+          {
+            $(*sendfmt) (&console, "ERROR",
+                     "Could not open %s for output", thread-&gt; name);
+            $(*senderr) (&console);
+            $(*raise_exception) (exception_event);
+          }
+      }
+    else
+      {
+        if (++tcb-> retries == RETRY_MAX)
+          {
+            $(*sendfmt) (&console, "ERROR",
+                     "Could not open %s for output", thread-&gt; name);
+            $(*sendfmt) (&console, "ERROR", "Too many retries.")
+            $(*raise_exception) (exception_event);
+            $(*recycle_module) (FALSE);
+          }
+      }
+}
+</PRE>
+
+<H3>Using Semaphores</H3>
+
+<P>A <EM>semaphore</EM> is an object that you can use to
+synchronise threads, lock resources, etc.  Semaphores are widely-
+used in multithreaded and parallel computing, and the SMT kernel
+implements semaphores in a conventional manner.  Semaphores have
+these characteristics:
+<UL>
+<LI>Any program can create or destroy semaphores, at any time,
+using $(*semaph_create)() and $(*semaph_destroy)().
+<LI>Semaphores are identified by name and can be located using
+$(*semaph_lookup)().
+<LI>Any resource - such as a file - can be <EM>protected</EM> by a
+semaphore through convention.  All parties that access the
+resource agree to use a single semaphore to lock access to the
+resource.
+<LI>Semaphores have a numeric value that is 0 or greater.
+<LI>The initial value for a semaphore indicates the number of
+parties that can access the semaphore's resource at once.
+'Normal' <EM>binary semaphores</EM> have an initial value of 1.
+The SMT kernel permits <EM>general semaphores</EM> with an initial
+value of 1 or greater.
+<LI>A thread that wants to access a semaphore's resource uses
+$(*semaph_wait)() to wait until the semaphore is ready, then it
+decrements the semaphore's value.
+<LI>When a thread has finished using the resource it uses
+$(*semaph_signal)() to increment the semaphore's value, so allow
+other threads to access the resource.
+</UL>
+
+<H3>Replacing The Standard Agents</H3>
+
+<P>In realistic projects you will want to replace the operator
+console agent and perhaps the logging agent with your own,
+customised versions.  One way to do this is to modify the code of
+the programs we supply.  However, this just causes maintenance
+problems.  A better way is to use the existing code as a basis for
+new agents that use the same agent name (but written as a
+different source file).  Initialise the replacement agent from
+your main() function.  Then, the standard agent will never be
+initialised.  All events normally sent to the standard agent will
+be sent to your agent instead.  Do not try to change the form or
+meaning of events sent to the standard agents.
+
+.-----------------------------------------------------------------
+.page Using The SMT API In A Foreign Program
+<H2>$(TITLE)</H2>
+
+<P>In an SMT application there will always be some
+<EM>foreign</EM> programs.  Some examples are:
+<UL>
+<LI>The stub that starts-up the application.
+<LI>Programs that interface with non-SMT event-supplying
+systems.
+</UL>
+
+<P>It may make sense in some applications to write all programs as
+foreign.  For instance, you could use the SMT kernel simply to
+send events between programs without using the multithreading
+facilities.
+
+<H3>Writing A Stub Program</H3>
+
+<P>When you build a new SMT application you must also write a STUB
+program (the main() function).  The stub program usually does
+this:
+<UL>
+<LI>It initialises the SMT kernel by calling $(*smt_init)().
+<LI>It initialises each agent that it needs.
+<LI>It tells the SMT kernel to execute the application by calling
+$(*smt_exec_full)().
+<LI>It terminates the SMT kernel by calling $(*smt_term)().
+</UL>
+
+<P>When you compile and link the stub, you create the executable
+program for the application.
+
+<H3>Managing A Floating Event Queue</H3>
+
+<P>An interface between a native program (or a thread) and a
+foreign program consists of at least an event queue in either
+direction.  The SMT kernel automatically handles the event queue
+for the native program.  You must handle the other event queue
+yourself:
+
+<PRE>
+       Foreign                               Native
+   .--------------.                     .--------------.
+   : event_send() :-----------&gt; ()()()():              |
+   :              |()()()() &lt;-----:-----: event_send() |
+   `=============="    :          :     `=============="
+                       :        normal event queue
+                       `----- floating event queue
+
+Figure: Managing a floating event queue
+</PRE>
+
+<P>The program that sends an event does not know whether the event
+queue is floating or not, although it can find this out if it has
+to, by examining the queue object.  The difference between a
+floating event queue and a normal event queue is that you must get
+events off a floating event queue yourself.  You can use the API
+function calls:
+<DL>
+<DT>$(*event_accept)()</DT>
+<DD>Accept the next event from an event queue.</DD>
+<DT>$(*event_reject)()</DT>
+<DD>Reject the next event from an event queue.</DD>
+<DT>$(*event_expire)()</DT>
+<DD>Expire the next event from an event queue.</DD>
+<DT>$(*event_discard)()</DT>
+<DD>Discard the next event from an event queue.</DD>
+<DT>$(*event_iterate)()</DT>
+<DD>Find the next event in an event queue.</DD>
+<DT>$(*event_destroy)()</DT>
+<DD>Destroy a specific event.</DD>
+</DL>
+
+<P>You can use methods if you need to.  This can be a convenient
+way of translating event names into internal numbers of some sort.
+For instance, if you design the foreign program using the standard
+Libero C schema, you can use methods to translate event names into
+internal numbers, much as the SMT kernel does for a native
+program.  This is (more or less) the SMT kernel code that does
+this translation:
+
+<PRE>
+    EVENT   *event;             /*  Event information block     */
+    EVENT   *deliver_event;     /*  Event to deliver            */
+    METHOD  *method;            /*  Method information block    */
+    THREAD  *active;            /*  Thread in active list       */
+    int     top_priority;       /*  Highest event priority      */
+    int     event_number;       /*  Number for event to deliver */
+
+    /*  Get event to deliver - find event with highest priority */
+    top_priority  = -1;
+    deliver_event = NULL;
+    event = queue-&gt; events.next;
+    while ((NODE *) event != &queue-&gt; events)
+      {
+        /*  Lookup method; if method not declared, reject event */
+        method = $(*method_lookup) (agent, event-&gt; name);
+        if (method == NULL)
+          {
+            /*  Reject this event, but keep place in queue...   */
+            $(*sendfmt) (&console, "ERROR",
+                     "Event %s not declared by %s",
+                      event-&gt; name, agent-&gt; name);
+            event = event-&gt; next;
+            $(*event_reject) (queue, event-&gt; prev);
+            continue;           /*  Process this new event      */
+          }
+        if (method-&gt; priority &gt; top_priority)
+          {
+            deliver_event = event;
+            event_number  = method-&gt; event_number;
+            top_priority  = method-&gt; priority;
+          }
+        event = event-&gt; next;
+      }
+    if (deliver_event)
+      {
+        /*  Deliver event, move thread to active queue          */
+        thread-&gt; event          = $(*event_accept) (queue,
+                                  deliver_event);
+        thread-&gt; the_next_event = event_number;
+        thread-&gt; active         = TRUE;
+      }
+</PRE>
+
+<H3>Executing The Application</H3>
+
+<P>The main() function in an executable is a foreign program.
+Since a foreign program is external to the multithreading process
+of the SMT kernel, control must pass back and forwards between the
+SMT kernel and the foreign program.  Typically this is a loop like
+this:
+<UL>
+<LI>Collect any events and send them to the appropriate event
+queues.
+<LI>Call the SMT kernel to deliver the events and execute all
+active threads.
+<LI>Repeat until the application has ended.
+</UL>
+
+<P>To do the second step, the foreign program calls
+$(*smt_exec_full)().  This function runs all the agent threads
+until there are no more events left to deliver, or active
+threads.
+
+<P>Sometimes it is better to call $(*smt_exec_step)()
+repeatedly. This function delivers events, but only executes the
+first active thread.  This function provides a finer-grain
+control.  For instance, if the application loops because two
+threads send each other events in a never-ending loop (usually a
+programming error), the $(*smt_exec_full)() call will never
+return, while the $(*smt_exec_step)() call will return each
+time that the kernel switches between the threads.
+
+.-----------------------------------------------------------------
+.page Standard SMT Agents
+<H2>$(TITLE)</H2>
+
+<P>The SMT architecture lets one build an application out of
+existing and new agents.  We provide a number of standard agents.
+All these agents correctly support the <TT>shutdown</TT> method,
+which the SMT kernel broadcasts when it needs to end the
+application.
+
+<P>These are the standard SMT agents:
+<UL>
+<LI>The logging agent $(*SMTLOG) - writes data to log files.
+<LI>The operator console $(*SMTOPER) - handles error messages
+produced by other agents.
+<LI>The timer agent $(*SMTTIME) - generates one-off or repeated
+timing events.
+<LI>The time-slot agent $(*SMTSLOT) - generates events
+according to a set of time-slots.
+<LI>The socket agent $(*SMTSOCK) - handles input and output on
+sockets.
+<LI>The transfer agent $(*SMTTRAN) - handles message and basic
+file transfer via TCP sockets.
+<LI>The TCP echo agent $(*SMTECHO) - handles the TCP echo
+protocol.
+<LI>The HTTP agent $(*SMTHTTP) - handles the HTTP server
+protocol.
+<LI>The simulation agent $(*SMTSIMU) - simulates network delays.
+</UL>
+
+<P>These agents are in development, or planned:
+<UL>
+<LI>The FTP agent SMTFTP - handles the FTP protocol.
+<LI>The secure socket agent SMTSSL - handles input and output
+using the Secure Socket Layer protocol.
+<LI>The fileio agent SMTFILE - handles input and output to
+sequential files, with caching.
+<LI>The robust transfer protocol (RTP) agent SMTRTP - handles
+robust data transfer via UDP sockets.
+<LI>The zip/unzip agent SMTZIP - handles access to compressed
+files using the zip standard.
+</UL>
+
+.-----------------------------------------------------------------
+.page The Logging Agent - SMTLOG
+.build anchor SMTLOG
+<H3>$(TITLE)</H3>
+
+<P>Creates log files, and writes data to the log files.  Can
+handle multiple log files in parallel; each open log file is
+managed by one thread.  Sends errors to the operator console
+agent.
+
+<P>To use, call $(*smtlog_init)().  This does not create any
+threads. Create an unnamed thread using the thread_create()
+function.  Send an OPEN or APPEND event to create the log file and
+PUT events to write to the log file.  Finally, send a CLOSE event
+to close the log file and terminate the log file thread.  SMTLOG
+does not reply - errors are sent to the console, not the
+requesting program.  It supports these methods:
+<UL>
+<LI>CYCLE - cycle log file if it already exists.
+<LI>OPEN - create new, empty log file.
+<LI>APPEND - open log file in append mode.
+<LI>PUT - write line of data to log file.
+<LI>PLAIN - do not timestamp logged data.
+<LI>STAMP - timestamp logged data (default).
+<LI>CLOSE - close log file and destroy log file thread.
+</UL>
+
+<P>Example of initialising SMTLOG:
+
+<PRE>
+/*  Static data                                                 */
+static QID
+    logq;                       /*  Logging agent event queue   */
+
+    /*  In agent initialisation code                            */
+    THREAD  *thread;            /*  Handle to various threads   */
+    /*  Ensure that logging agent is running, else start it     */
+    $(*smtlog_init) ();
+    if ((thread = $(*thread_create) (SMT_LOGGING, "")) != NULL)
+        logq = thread-&gt; queue-&gt; qid;   /*  Get logging queue id */
+    else
+        return (-1);
+</PRE>
+
+<H4>The CYCLE Method</H4>
+
+<P>If the specified log file already exists, renames it to a file
+whose name consists of the first letter of the log file name,
+followed by the date in 7 positions (YYYYDDD).  If that file
+name already exists, generates a unique filename.  Takes the
+event body to supply the log file name; if the event body is
+empty, uses the thread name instead.  If the log file name is
+empty ("") or the 4-letter string "NULL", nothing is done.
+
+<H4>The OPEN Method</H4>
+
+<P>Creates a new, empty log file.  Takes the event body to supply
+the log file name; if the event body is empty, uses the thread
+name instead.  If the log file name is "" or "NULL", no file is
+created, and SMTLOG discards all output.
+
+<H4>The APPEND Method</H4>
+
+<P>Opens an existing log file for additional output.  If the log
+file does not already exist, acts like OPEN.  Takes the event body
+to supply the log file name; if the event body is empty, uses the
+thread name instead.
+
+<H4>The PUT Method</H4>
+
+<P>Takes the event body as a string, prefixes the date and time,
+and writes it to the log file.
+
+<H4>The PLAIN Method</H4>
+
+<P>Disables time-stamping of the logged data.  Use this when you
+do not want the default SMTLOG time-stamping.
+
+<H4>The STAMP Method</H4>
+
+<P>Enables time-stamping of the logged data.
+
+<H4>The CLOSE Method</H4>
+
+<P>Closes the log file and destroys the thread used to manage it.
+You normally send this event when you end your program.
+
+<H4>Example Of Use</H4>
+
+<P>The $(*SMTECHO) agent shows an example of using the Logging
+agent.
+
+<H4>SMTLOG Implementation</H4>
+
+<P>The <A HREF="smtlog.htm">hypertext view</A> of SMTLOG's dialog
+and source code may help to understand how SMTLOG works.
+
+.-----------------------------------------------------------------
+.page The Operator Console Agent - SMTOPER
+.build anchor SMTOPER
+<H3>$(TITLE)</H3>
+
+<P>Accepts error messages, warnings, and information messages, and
+does something useful (but unspecified) with them.  The current
+implementation writes all received messages to the standard error
+device.
+
+<P>To use SMTOPER, call $(*smtoper_init)().  This creates a single
+unnamed thread automatically the first time it is called, and has
+no effect thereafter.  You can then send messages to this thread.
+SMTOPER does not reply.  It supports these methods:
+<UL>
+<LI>ERROR - handle serious error message.
+<LI>WARNING - handle warning message.
+<LI>INFO - handle information message.
+<LI>LOG - direct console messages to a log file.
+</UL>
+
+<P>Example of initialising SMTOPER:
+
+<PRE>
+/*  Static data                                                 */
+static QID
+    console;                    /*  Operator console queue      */
+
+    /*  In agent initialisation code                            */
+    THREAD  *thread;            /*  Handle to console thread    */
+    /*  Ensure that operator console is running, else start it  */
+    smtoper_init ();
+    if ((thread = $(*thread_lookup) (SMT_OPERATOR, "")) != NULL)
+        console = thread-&gt; queue-&gt; qid;
+    else
+        return (-1);
+</PRE>
+
+<H4>The ERROR Method</H4>
+
+<P>The event body contains a string.  This string is handled as a
+serious error message.  For example:
+
+<PRE>
+    $(*sendfmt) (&console, "ERROR", "Could not open %s", filename);
+    $(*senderr) (&console);
+    $(*raise_exception) (exception_event);
+</PRE>
+
+<H4>The WARNING Method</H4>
+
+<P>The event body contains a string.  This string is handled as a
+non-fatal warning message.  For example:
+
+<PRE>
+    $(*sendfmt) (&console, "WARNING", "Exceeded connection quota");
+</PRE>
+
+<H4>The INFO Method</H4>
+
+<P>The event body contains a string.  This string is handled as a
+information message.  For example:
+
+<PRE>
+    $(*sendfmt) (&console, "INFO", "Connection from %s", system);
+</PRE>
+
+<H4>The LOG Method</H4>
+
+<P>The event body contains a string that specifies the name of a
+SMTLOG thread.  All operator output is sent to this thread.
+
+<H4>SMTOPER Implementation</H4>
+
+<P>The <A HREF="smtoper.htm">hypertext view</A> of SMTOPER's dialog
+and source code may help to understand how SMTOPER works.
+
+.-----------------------------------------------------------------
+.page The Timer Agent - SMTTIME
+.build anchor SMTTIME
+<H3>$(TITLE)</H3>
+
+<P>Generates timing events.  You can request one timing event
+after a specific delay, or repeated timing events at regular
+intervals.  The timer is accurate to 1/100th of a second.  You
+specify delays as a number of days and a number of
+centiseconds.
+
+<P>To use SMTTIME, call $(*smttime_init)().  This creates a single
+unnamed thread automatically the first time it is called, and has
+no effect thereafter.  You can then send messages to this thread.
+It supports these methods:
+<UL>
+<LI>ALARM - send alarm event after specified delay.
+<LI>WAKEUP - send alarm event at some specific day and time.
+<LI>CLOCK - send alarm events at regular intervals.
+<LI>FLUSH - flush any requests for a client thread.
+</UL>
+
+<P>Example of initialising SMTTIME:
+
+<PRE>
+/*  Static data                                                 */
+static QID
+    timeq;                      /*  Timer agent event queue     */
+
+    /*  In agent initialisation code                            */
+    THREAD  *thread;            /*  Handle to various threads   */
+
+    $(*method_declare) (agent, "TIME_ALARM", alarm_event, 0);
+    $(*method_declare) (agent, "TIME_ERROR", error_event, 0);
+
+    /*  Ensure that timer agent is running, else start it       */
+    $(*smttime_init) ();
+    if ((thread = $(*thread_lookup) (SMT_TIMER, "")) != NULL)
+        timeq = thread-&gt; queue-&gt; qid;
+    else
+        return (-1);
+</PRE>
+
+<H4>The ALARM Method</H4>
+
+<P>Sends a single alarm event after some specified delay.  Build
+the event body using exdr_write() and the message definition
+SMT_TIME_ALARM.  The event body consists of these fields (see
+exdr_write() for the field types):
+<UL>
+<LI>[q] The delay, in days.
+<LI>[q] The delay, in 1/100th seconds.
+<LI>[mM] An argument block, returned with the alarm event.  This
+is arbitrary data, and may be NULL.
+</UL>
+SMTTIME replies to an ALARM event with one of these events:
+<UL>
+<LI>TIME_ALARM - the alarm went off.  The event body contains the
+argument block, if any.  Decode the event body, if you need to,
+using exdr_read() and the message definition SMT_TIME_REPLY.  The
+body contains these fields: [mM] the argument block.
+<LI>TIME_ERROR - there was an error that prevented the timer from
+working.  This can be handled as a fatal error.  At present the
+only cause for such an error is insufficient memory.  The event
+body contains an error message.
+</UL>
+<P>The ALARM method implicitly does a FLUSH before proceeding.
+
+<H4>The WAKEUP Method</H4>
+
+<P>Sends a single alarm event at some specified day and time.
+Build the event body using exdr_write() and the message definition
+SMT_TIME_ALARM.  The event body consists of these fields (see
+exdr_write() for the field types):
+<UL>
+<LI>[q] The alarm time in days.
+<LI>[q] The alarm time in 1/100th seconds.
+<LI>[mM] An argument block, returned with the alarm event.  This
+is arbitrary data, and may be NULL.
+</UL>
+SMTTIME replies to a WAKEUP event with one of these events:
+<UL>
+<LI>TIME_ALARM - the alarm went off.  The event body contains the
+argument block, if any.  Decode the event body, if you need to,
+using exdr_read() and the message definition SMT_TIME_REPLY.  The
+body contains these fields: [mM] the argument block.
+<LI>TIME_ERROR - there was an error that prevented the timer from
+working.  This can be handled as a fatal error.  At present the
+only cause for such an error is insufficient memory.  The event
+body contains an error message.
+</UL>
+<P>The WAKEUP method implicitly does a FLUSH before proceeding.
+
+<H4>The CLOCK Method</H4>
+
+<P>Sends a repeated alarm event after some specified delay, for
+ever, or a specific number of times.  Build the event body using
+exdr_write() and the message definition SMT_TIME_CLOCK.  The event
+body consists of these fields (see exdr_write() for the field
+types):
+<UL>
+<LI>[q] The delay, in days.
+<LI>[q] The delay, in 1/100th seconds.
+<LI>[w] A number of times to cycle; zero means forever.
+<LI>[mM] An argument block, returned with the alarm event.  This
+is arbitrary data, and may be NULL.
+</UL>
+SMTTIME replies to a CLOCK event with one of these events:
+<UL>
+<LI>TIME_ALARM - the alarm went off.  The event body contains the
+argument block, if any.  Decode the event body, if you need to,
+using exdr_read() and the message definition SMT_TIME_REPLY.  The
+body contains these fields: [mM] the argument block.
+<LI>TIME_ERROR - there was an error that prevented the timer from
+working.  This can be handled as a fatal error.  At present the
+only cause for such an error is insufficient memory.  The event
+body contains an error message.
+</UL>
+<P>The CLOCK method implicitly does a FLUSH before proceeding.
+
+<H4>The FLUSH Method</H4>
+
+<P>Removes any requests sent by a particular client thread.  Use
+this to cancel a CLOCK method, or an unexpired ALARM or WAKEUP
+request.  You do not need to provide an event body, but you must
+specify your thread's QID correctly when you use event_send().
+SMTTIME does not reply to a FLUSH method.
+
+<H4>Example Of Use</H4>
+
+<P>The SMTTST1 test agent shows an example of using the timer
+agent.
+
+<H4>SMTTIME Implementation</H4>
+
+<P>The <A HREF="smttime.htm">hypertext view</A> of SMTTIME's dialog
+and source code may help to understand how SMTTIME works.
+
+.-----------------------------------------------------------------
+.page The Time Slot Agent - SMTSLOT
+.build anchor SMTSLOT
+<H3>$(TITLE)</H3>
+
+<P>Manages 'time slots', a mechanism to allow long-running programs
+to 'switch on' and 'switch off' at specific times during the day.
+The time slot agent simulates a wall timer, i.e. a timer that
+switches a device like a lamp or electric heater on and off during
+the day.
+
+<P>To use SMTSLOT, call $(*smtslot_init)(). This does not create
+any threads. Create a named thread, then send SPECIFY events to
+define the various time slots for your application.  Then send an
+ON or OFF event to initialise the timer.  The time slot agent then
+sends a SWITCH_ON event when the timer move to an 'ON' state, and a
+SWITCH_OFF event when the timer moves to an 'OFF' state.  Errors
+are sent to the console, not the requesting program.  SMTSLOT
+supports these methods:
+<UL>
+<LI>SPECIFY - define a time slot specification.
+<LI>ON - initialise timer - application is switched on.
+<LI>OFF - initialise timer - application is switched off.
+</UL>
+
+<P>Example of initialising SMTSLOT:
+
+<PRE>
+/*  Static data                                                 */
+static QID
+    slotq;                       /*  Time slot event queue      */
+
+    /*  In agent initialisation code                            */
+    THREAD  *thread;            /*  Handle to various threads   */
+    /*  Ensure that time slot agent is running, else start it   */
+    $(*smtslot_init) ();
+    if ((thread = $(*thread_create) (SMT_SLOT, "myprog")) != NULL)
+        slotq = thread-&gt; queue-&gt; qid;
+    else
+        return (-1);
+</PRE>
+
+<H4>The SPECIFY Method</H4>
+
+<P>Defines one or more time slots.  A slot specification is a
+string, in the format: "name value ...".  The name field is a day
+name ("mon"-"sun"), a date in MD order ("12/31") or a date in YMD
+order ("95/12/31").  The value is a list of times in 24 hour
+HH:MM[-HH:MM] format ("7:30-12:30 13:30-17:30 17:35").  A value
+"off" clears all time slots for that day. The time slot accuracy
+is SLOT_TICK csecs.  Any day that does not have specified values
+is switched 'off'.  Build the event body using exdr_write() and the
+message definition SMT_SLOT_SPEC.  The event body consists of these
+fields (see exdr_write() for the field types):
+<UL>
+<LI>[s] slot specification string.
+</UL>
+SMTTRAN replies to a SPECIFY event with a SLOT_ERROR event if there
+was an error, else it does not reply.
+
+<H4>The ON Method</H4>
+
+<P>Sets the timer 'ON'.  The event does not have a body.  The timer
+will respond with a SWITCH_OFF event when it moves into an 'OFF'
+state.
+
+<H4>The OFF Method</H4>
+
+<P>Sets the timer 'OFF'.  The event does not have a body.  The
+timer will respond with a SWITCH_ON event when it moves into an
+'ON' state.
+
+<H4>Example Of Use</H4>
+
+<P>The SMTTST2 agent shows an example of using the time slot
+agent.
+
+<H4>SMTSLOT Implementation</H4>
+
+<P>The <A HREF="smtslot.htm">hypertext view</A> of SMTSLOT's dialog
+and source code may help to understand how SMTSLOT works.
+
+.-----------------------------------------------------------------
+.page The Socket I/O Agent - SMTSOCK
+.build anchor SMTSOCK
+<H3>$(TITLE)</H3>
+
+<P>Handles input and output to TCP and UDP sockets. You should use
+this agent for all access to TCP or UDP sockets, although you can
+also access sockets directly using the SFL socket access
+functions.  Socket i/o is both central to most Internet servers,
+and reasonably delicate, making it a task that is well done by a
+specific agent.
+
+<P>SMTSOCK has two main functions: it acts as the central
+'heartbeat' for an Internet server, and it perform input and
+output on sockets.  The heartbeat function works as follows:
+SMTSOCK uses the select() function to monitor all open sockets.
+Each socket is owned by a thread, somewhere.  When a socket shows
+signs of life, SMTSOCK sends an event to the appropriate thread.
+The thread can then decide to read or write data as required.  In
+a typical Internet application -- such as the XITAMI web server --
+the socket agent is the main source of the events that drive the
+application.  By contrast, in non-Internet applications the
+'heartbeat' role could be played by the timer agent SMTTIME.
+
+<P>The second task for SMTSOCK is input and output on sockets.
+For instance, you can ask SMTSOCK to read data from a socket, or
+to write a block of data to a socket.  Both these tasks can
+require multiple cycles, waiting until the socket is ready, then
+reading/writing as much data as possible, until all the data has
+been read/written.  SMTSOCK handles this automatically.
+
+<P>To use SMTSOCK, call $(*smtsock_init)().  This creates a single
+unnamed thread automatically the first time it is called, and has
+no effect thereafter.  You can then send messages to this thread.
+SMTSOCK replies to most events.  It supports these methods:
+<UL>
+<LI>READ - read data from a socket.
+<LI>READR - read data from a socket, repeatedly.
+<LI>WRITE - write data to a socket.
+<LI>INPUT - wait for ready for input on a socket.
+<LI>INPUTR - wait for ready for input on a socket, repeatedly.
+<LI>OUTPUT - wait for ready for output on a socket.
+<LI>CONNECT - make connection to specified host and port.
+<LI>FLUSH - cancel any requests on a socket.
+</UL>
+
+<P>Example of initialising SMTSOCK:
+
+<PRE>
+/*  Static data                                                 */
+static QID
+    sockq;                      /*  Socket agent event queue    */
+
+    /*  In agent initialisation code                            */
+    THREAD  *thread;            /*  Handle to various threads   */
+
+    /*  Reply events from socket agent                          */
+    $(*method_declare) (agent, "SOCK_INPUT_OK",  ok_event,       0);
+    $(*method_declare) (agent, "SOCK_OUTPUT_OK", ok_event,       0);
+    $(*method_declare) (agent, "SOCK_READ_OK",   read_ok_event,  0);
+    $(*method_declare) (agent, "SOCK_WRITE_OK",  write_ok_event, 0);
+    $(*method_declare) (agent, "SOCK_CLOSED",    closed_event,   0);
+    $(*method_declare) (agent, "SOCK_ERROR",     error_event,    0);
+    $(*method_declare) (agent, "SOCK_TIMEOUT",   error_event,    0);
+
+    /*  Ensure that socket agent is running, else start it      */
+    $(*smtsock_init) ();
+    if ((thread = $(*thread_lookup) (SMT_SOCKET, "")) != NULL)
+        sockq = thread-&gt; queue-&gt; qid;
+    else
+        return (-1);
+</PRE>
+
+<H4>The READ Method</H4>
+
+<P>Waits for, and reads data from a socket.  TCP/IP breaks a
+stream of data into chunks of arbitrary size, and each low-level
+read operation will read one such chunk.  Thus, to read a specific
+amount of data, you may need to make several low-level read calls.
+SMTSOCK packages this so that one READ event can read as much data
+as required.  You can alternatively ask SMTSOCK to read just the
+next chunk sent by TCP/IP.  Build the event body using
+exdr_write() and the message definition SMT_SOCK_READ.  The event
+body consists of these fields (see exdr_write() for the field
+types):
+<UL>
+<LI>[d] A timeout, in seconds.  After this timeout, the read
+request will be cancelled.  If zero, no timeout is applied.  Note
+that this is not the same type of timeout as that you can specify
+in $(*event_send)().
+<LI>[q] The socket to read from.  The socket must be opened and
+connected.
+<LI>[d] The size of the receiving buffer.  The buffer is allocated
+by SMTSOCK, and can be any size up to (almost) 64K bytes.  This is
+the maximum size of the returned data.
+<LI>[d] The minimum amount of data to read, which can be a value
+from one up to the full buffer size.  If zero, the full buffer
+must be read.
+<LI>[q] A user-defined request tag; this is an arbitrary token
+that is returned with reply events.
+</UL>
+SMTSOCK replies to a READ event with one of these events:
+<UL>
+<LI>SOCK_READ_OK - data was read successfully.  Decode the event
+body using exdr_read() and the message definition
+SMT_SOCK_READ_OK. The body contains these fields: [d] timeout in
+seconds from read request; [q] the socket specified for i/o; [mM]
+a block of memory containing the read data; [q] the user-defined
+request tag.  The SMT_SOCK_READ_OK message maps exactly to a
+SMT_SOCK_WRITE message, so that you can perform an 'echo' simply
+by returning the event to SMTSOCK.
+<LI>SOCK_CLOSED - the socket was closed by the peer.  Data may or
+may not have been read.  Decode the event as for SOCK_READ_OK.
+<LI>SOCK_TIMEOUT - the read request timed-out.  Data may or may
+not have been read.  Decode the event as for SOCK_READ_OK.
+<LI>SOCK_ERROR - there was an error on the socket.  Any data read
+is discarded.  Decode the event body using exdr_read() and the
+message definition SMT_SOCK_ERROR.  The body contains these
+fields: [s] a string containing the error message, [q] the socket
+specified for i/o; [q] the user-defined request tag.
+</UL>
+
+<H4>The READR Method</H4>
+
+<P>Works in the same way as the READ method, but works repeatedly
+until a FLUSH is sent for the socket.  The READR method is useful
+for servers that have to loop on reading a socket; it saves the
+need for sending fresh READ events.
+
+<H4>The WRITE Method</H4>
+
+<P>Writes a block of data to a socket.  If you call the low-level
+TCP/IP write function directly, you must handle various error and
+retry conditions.  It is easier and safer to use SMTSOCK to do
+this.  Build the event body using exdr_write() and the message
+definition SMT_SOCK_WRITE.  The event body consists of these
+fields:
+<UL>
+<LI>[d] A timeout, in seconds.  After this timeout, the write
+request will be cancelled.  If zero, no timeout is applied.
+<LI>[q] The socket to write to.  The socket must be opened and
+connected.
+<LI>[mM] The block of data to write, specified as a length and
+memory address.
+<LI>[q] A user-defined request tag; this is an arbitrary token
+that is returned with reply events.
+</UL>
+SMTSOCK replies to a WRITE event with one of these events:
+<UL>
+<LI>SOCK_WRITE_OK - data was written successfully.  Decode the
+event body using exdr_read() and the message definition
+SMT_SOCK_OK. The body contains these fields: [q] the socket
+specified for i/o; [q] the user-defined request tag.
+<LI>SOCK_CLOSED - the socket was closed by the peer.  Data may or
+may not have been written.  Decode the event as for SOCK_READ_OK.
+<LI>SOCK_TIMEOUT - the write request timed-out.  Data may or may
+not have been written.  Decode the event as for SOCK_READ_OK.
+<LI>SOCK_ERROR - there was an error on the socket.  Data may or
+may not have been written.  Decode the event body using
+exdr_read() and the message definition SMT_SOCK_ERROR.  The body
+contains these fields: [q] the socket specified for i/o; [s] a
+string containing the error message; [q] the user-defined request
+tag.
+</UL>
+
+<H4>The INPUT Method</H4>
+
+<P>Waits for input to arrive on a socket.  This can be data, or a
+connection request.  Build the event body using exdr_write() and
+the message definition SMT_SOCK_INPUT.  The event body consists of
+these fields:
+<UL>
+<LI>[d] A timeout, in seconds.  After this timeout, the input
+request will be cancelled.  If zero, no timeout is applied.
+<LI>[q] The socket to wait on.  The socket must be opened and
+ready.
+<LI>[q] A user-defined request tag; this is an arbitrary token
+that is returned with reply events.
+</UL>
+SMTSOCK replies to an INPUT event with one of these events:
+<UL>
+<LI>SOCK_INPUT_OK - data is waiting on the socket.  Decode the
+event body using exdr_read() and the message definition
+SMT_SOCK_OK. The body contains these fields: [q] the socket
+specified for i/o; [q] the user-defined request tag.
+<LI>SOCK_CLOSED - the socket was closed by the peer.  Decode the
+event as for SOCK_READ_OK.
+<LI>SOCK_TIMEOUT - the input request timed-out.  Decode the event
+as for SOCK_READ_OK.
+<LI>SOCK_ERROR - there was an error on the socket.  Decode the
+event body using exdr_read() and the message definition
+SMT_SOCK_ERROR.  The body contains these fields: [q] the socket
+specified for i/o; [s] a string containing the error message; [q]
+the user-defined request tag.
+</UL>
+
+<H4>The INPUTR Method</H4>
+
+<P>Works in the same way as the INPUT method, but works repeatedly
+until a FLUSH is sent for the socket.  The INPUTR method is useful
+for servers that have to loop on waiting for a socket; it saves
+the need for sending fresh INPUT events.
+
+<H4>The OUTPUT Method</H4>
+
+<P>Waits for a socket to be ready for output.  If you use the low-
+level TCP/IP write functions, you must be sure that the socket is
+ready for output, or your thread will block the entire application
+if it has to wait.  Build the event body using exdr_write() and
+the message definition SMT_SOCK_OUTPUT.  The event body consists
+of these fields:
+<UL>
+<LI>[d] A timeout, in seconds.  After this timeout, the output
+request will be cancelled.  If zero, no timeout is applied.
+<LI>[q] The socket to wait on.  The socket must be opened and
+ready.
+<LI>[q] A user-defined request tag; this is an arbitrary token
+that is returned with reply events.
+</UL>
+SMTSOCK replies to an OUTPUT event with one of these events:
+<UL>
+<LI>SOCK_OUTPUT_OK - the socket is ready to receive data.  Decode
+the event body using exdr_read() and the message definition
+SMT_SOCK_OK. The body contains these fields: [q] the socket
+specified for i/o; [q] the user-defined request tag.
+<LI>SOCK_CLOSED - the socket was closed by the peer.  Decode the
+event as for SOCK_READ_OK.
+<LI>SOCK_TIMEOUT - the output request timed-out.  Decode the event
+as for SOCK_READ_OK.
+<LI>SOCK_ERROR - there was an error on the socket.  Decode the
+event body using exdr_read() and the message definition
+SMT_SOCK_ERROR.  The body contains these fields: [q] the socket
+specified for i/o; [s] a string containing the error message; [q]
+the user-defined request tag.
+</UL>
+
+<H4>The CONNECT Method</H4>
+
+<P>Establishes a TCP or UDP connection to some specified host and
+service (or port).  Build the event body using exdr_write() and
+the message definition SMT_SOCK_CONNECT.  The event body consists
+of these fields:
+<UL>
+<LI>[d] A timeout, in seconds.  After this timeout, the output
+request will be cancelled.  If zero, no timeout is applied.
+<LI>[s] The type of connection wanted: "UDP" or "TCP".
+<LI>[s] The host system to connect to, specified as a name or a
+dotted address string, or NULL, meaning the current system.
+<LI>[s] The service to connect to, as a service name or a port
+number in ASCII, or NULL, meaning use the binary port/address
+information below.
+<LI>[d] A 16-bit host port, or 0.
+<LI>[q] A 32-bit host address, or 0.  You can supply either these
+two values, or the host/service strings.  The binary port/address
+data will form a connection faster.
+<LI>[q] A user-defined request tag; this is an arbitrary token
+that is returned with reply events.
+</UL>
+SMTSOCK replies to a CONNECT event with one of these events:
+<UL>
+<LI>SOCK_OUTPUT_OK - the socket is ready for receiving data.
+Decode the event body using exdr_read() and the message definition
+SMT_SOCK_OK. The body contains these fields: [q] the socket
+specified for i/o; [q] the user-defined request tag.
+<LI>SOCK_CLOSED - the socket was closed by the peer.  Decode the
+event as for SOCK_READ_OK.
+<LI>SOCK_TIMEOUT - the output request timed-out.  Decode the event
+as for SOCK_READ_OK.
+<LI>SOCK_ERROR - there was an error on the socket.  Decode the
+event body using exdr_read() and the message definition
+SMT_SOCK_ERROR.  The body contains these fields: [q] the socket
+specified for i/o; [s] a string containing the error message; [q]
+the user-defined request tag.
+</UL>
+
+<H4>The FLUSH Method</H4>
+
+<P>Removes any requests for a socket.  Since events are delivered
+in a straight first-in first-out basis (ignoring the high priority
+SHUTDOWN event) it is safe to send first a FLUSH event, followed
+by another event, with no intervening wait.  Build the event body
+using exdr_write() and the message definition SMT_SOCK_FLUSH.  The
+event body consists of these fields:
+<UL>
+<LI>[q] The socket to flush; all pending requests on this socket
+are removed without further feedback.
+</UL>
+SMTSOCK does not reply to a FLUSH event.
+
+<H4>Example Of Use</H4>
+
+<P>The $(*SMTECHO) agent provides a good basic example of using
+$(*SMTSOCK).  Study this program, and use it as a basis for your
+own socket-based agents.
+
+<H4>Notes and Comments</H4>
+<P>The SOCK_CLOSED and SOCK_TIMEOUT return events can come from
+various requests; to make processing of this possible, they are
+always formatted as SOCK_READ_OK events.
+
+<H4>SMTSOCK Implementation</H4>
+
+<P>The <A HREF="smtsock.htm">hypertext view</A> of SMTSOCK's dialog
+and source code may help to understand how SMTSOCK works.
+
+.-----------------------------------------------------------------
+.page The Transfer Agent - SMTTRAN
+.build anchor SMTTRAN
+<H3>$(TITLE)</H3>
+
+<P>Transfers blocks of data or files to connected sockets.  You
+can use this agent to simplify certain types of communication.
+The transfer agent uses the socket agent for actual reading and
+writing to sockets.
+
+<P>To use SMTTRAN, call $(*smttran_init)().  This creates a single
+unnamed thread automatically the first time it is called, and has
+no effect thereafter.  You can then send messages to this thread.
+It supports these methods:
+<UL>
+<LI>PUT_BLOCK - writes a length-specified block to a socket.
+<LI>GET_BLOCK - reads a length-specified block from a socket.
+<LI>PUT_FILE - writes an entire file to a socket.
+<LI>GET_FILE - reads an entire file from a socket.
+<LI>COMMIT - wait until all outstanding requests are
+complete.
+</UL>
+
+<P>Example of initialising SMTTRAN:
+
+<PRE>
+/*  Static data                                                 */
+static QID
+    tranq;                      /*  Transfer agent queue        */
+
+    /*  In agent initialisation code                            */
+    THREAD  *thread;            /*  Handle to console thread    */
+    /*  Ensure that transfer agent is running, else start it    */
+    $(*smttran_init) ();
+    if ((thread = $(*thread_lookup) (SMT_TRANSFER, "")) != NULL)
+        tranq = thread-&gt; queue-&gt; qid;
+    else
+        return (-1);
+</PRE>
+
+<H4>The PUT_BLOCK Method</H4>
+
+<P>Writes a length-specified block to a socket: first writes a
+two-byte length specifier in network format, then writes the block
+data.  Build the event body using exdr_write() and the message
+definition SMT_TRAN_PUTB.  The event body consists of these fields
+(see exdr_write() for the field types):
+<UL>
+<LI>[q] socket to use for output.
+<LI>[mM] block of data to write to socket.
+</UL>
+SMTTRAN replies to a PUT_BLOCK event with one of these events:
+<UL>
+<LI>TRAN_PUT_OK - the block was completely written to the socket.
+The event body contains the amount of data written.  Decode the
+event body, if you need to, using exdr_read() and the message
+definition SMT_TRAN_PUTB_OK.  The body contains these fields: [d]
+the size of the block.
+<LI>TRAN_CLOSED - the socket was closed before the block could be
+completely written.  The event body is empty.
+<LI>TRAN_ERROR - there was an error on the socket.  The event body
+contains the socket error message text.
+</UL>
+
+<H4>The GET_BLOCK Method</H4>
+
+<P>Reads a length-specified block from a socket: first reads a
+two-byte length specifier in network format, then reads that many
+bytes of block data.  Build the event body using exdr_write() and
+the message definition SMT_TRAN_GETB.  The event body consists of
+these fields (see exdr_write() for the field types):
+<UL>
+<LI>[q] socket to use for input.
+</UL>
+SMTTRAN replies to a GET_BLOCK event with one of these events:
+<UL>
+<LI>TRAN_GET_OK - the block was completely read from the socket.
+The event body contains the data block.  Decode the event body
+using exdr_read() and the message definition SMT_TRAN_GETB_OK.
+The body contains these fields: [mM] the data block.
+<LI>TRAN_CLOSED - the socket was closed before the block could be
+completely read.  The event body is empty.
+<LI>TRAN_ERROR - there was an error on the socket.  The event body
+contains the socket error message text.
+</UL>
+
+<H4>The PUT_FILE Method</H4>
+
+<P>Writes a file to a socket: reads the file in pieces of
+unspecified size, and writes these to the output socket.  Build
+the event body using exdr_write() and the message definition
+SMT_TRAN_PUTF.  The event body consists of these fields (see
+exdr_write() for the field types):
+<UL>
+<LI>[q] socket to use for output.
+<LI>[s] name of file to write to socket.
+</UL>
+SMTTRAN replies to a PUT_FILE event with one of these events:
+<UL>
+<LI>TRAN_PUT_OK - the file was completely written to the socket.
+The event body contains the amount of data written.  Decode the
+event body, if you need to, using exdr_read() and the message
+definition SMT_TRAN_PUTF_OK.  The body contains these fields: [q]
+the size of the file.
+<LI>TRAN_CLOSED - the socket was closed before the file could be
+completely written.  The event body is empty.
+<LI>TRAN_ERROR - there was an error on the socket or accessing the
+file.  The event body contains the socket or file error message
+text.
+</UL>
+
+<H4>The GET_FILE Method</H4>
+
+<P>Reads a file from a socket and saves it with the specified
+name.  Build the event body using exdr_write() and the message
+definition SMT_TRAN_GETF.  The event body consists of these fields
+(see exdr_write() for the field types):
+<UL>
+<LI>[q] socket to use for input.
+<LI>[s] name of file to create.
+</UL>
+SMTTRAN replies to a GET_FILE event with one of these events:
+<UL>
+<LI>TRAN_GET_OK - the file was completely read from the socket.
+The event body contains the amount of data written.  Decode the
+event body, if you need to, using exdr_read() and the message
+definition SMT_TRAN_GETF_OK.  The body contains these fields: [q]
+the size of the file.
+<LI>TRAN_CLOSED - the socket was closed before the file could be
+completely read.  The event body is empty.
+<LI>TRAN_ERROR - there was an error on the socket or accessing the
+file.  The event body contains the socket or file error message
+text.
+</UL>
+
+<H4>The COMMIT Method</H4>
+
+<P>Waits until all put and get requests are finished, then replies
+with a TRAN_CLOSED event.  This event does not take any arguments.
+SMTTRAN replies to a GET_FILE event with one of these events:
+<UL>
+<LI>TRAN_CLOSED - no requests remain.  The event body is
+empty.
+<LI>TRAN_ERROR - there was an error on the socket.  The event body
+contains the socket error message text.
+</UL>
+
+<H4>Example Of Use</H4>
+
+<P>The SMTHTTP agent uses the transfer agent to send files.
+
+<H4>SMTTRAN Implementation</H4>
+
+<P>The <A HREF="smttran.htm">hypertext view</A> of SMTTRAN's dialog
+and source code may help to understand how SMTTRAN works.
+
+.-----------------------------------------------------------------
+.page The TCP ECHO Agent - SMTECHO
+.build anchor SMTECHO
+<H3>$(TITLE)</H3>
+
+<P>Provides the TCP echo service on port 7.
+
+<P>To use SMTECHO, call $(*smtecho_init)().  This initialises the
+echo service on TCP port 7.  If you set the global variable
+ip_portbase to some value before initialising SMTECHO, the echo
+port is moved by that value.  For instance, if you set ip_portbase
+to 8000, the echo port is 8007.  This lets you run the service in
+'user space': on most systems you need root access to use ports
+below 1000.
+
+<H4>SMTECHO Implementation</H4>
+
+<P>The <A HREF="smtecho.htm">hypertext view</A> of SMTECHO's dialog
+and source code may help to understand how SMTECHO works.
+
+.-----------------------------------------------------------------
+.page The HTTP Agent - SMTHTTP
+.build anchor SMTHTTP
+<H3>$(TITLE)</H3>
+
+<P>Provides the HTTP service on port 80.
+
+<P>To use SMTHTTP, call $(*smthttp_init)().  This initialises the
+HTTP service on TCP port 80.  If you set the global variable
+ip_portbase to some value before initialising SMTHTTP, the HTTP
+port is moved by that value.  For instance, if you set ip_portbase
+to 8000, the HTTP port is 8080.  This lets you run the service in
+'user space': on most systems you need root access to use ports
+below 1000.
+
+<P>To connect to a webserver running on some system at port 8080,
+use this URL: <TT>http://hostname:8080/</TT>.
+
+<P>The current implementation of SMTHTTP is quite sophisticated.
+It will look for <TT>default.htm</TT>, <TT>default.html</TT>,
+<TT>index.htm</TT>, <TT>index.html</TT> in that order if no
+filename is specified.  The file <TT>smthttp.aut</TT> defines
+directories that are protected by username/password definitions.
+You can find the full documentation for the web server in the
+Xitami package.
+
+<P>The program <TT>xitami.c</TT> is a fairly complete web server
+based on the SMTHTTP agent.  You can use this program as-is, or
+as a basis for your own work.
+
+<H4>SMTHTTP Implementation</H4>
+
+<P>The <A HREF="smthttp.htm">hypertext view</A> of SMTHTTP's dialog
+and source code may help to understand how SMTHTTP works.
+
+.-----------------------------------------------------------------
+.page The Network Delay Simulation Agent - SMTSIMU
+.build anchor SMTSIMU
+<H3>$(TITLE)</H3>
+
+<P>Simulates network delays.  You can use SMTSIMU when you want
+to test that an application will handle network delays in a robust
+manner.  This can be important for applications that use the UDP
+protocol, which does not provide the same traffic-control features
+as TCP.
+
+<P>SMTSIMU will insert itself invisibly between your application
+agents and the socket agent when you include the file
+<TT>smtsimu.h</TT> at the start of your program, after the other
+include files (specifically, after <TT>smtlib.h</TT>).
+
+<H4>SMTSIMU Implementation</H4>
+
+<P>The <A HREF="smtsimu.htm">hypertext view</A> of SMTSIMU's dialog
+and source code may help to understand how SMTSIMU works.
+
+
+.-----------------------------------------------------------------
+.page SMT API Quick Reference
+<H2>$(TITLE)</H2>
+<PRE>
+.include quickref.txt
+</PRE>
+
+.-----------------------------------------------------------------
+.page The Unattended Process Monitor (UPM) Tool
+<H2>$(TITLE)</H2>
+
+<H3>Overview</H3>
+
+<P>The UPM tool is a small application developed with SMT, and
+included as an example.  The UPM tool was developed on UNIX and may
+not be very useful on other systems.
+
+<P>The UPM tool allows you to manage 'unattended' processes, which
+may handle input/output on some devices, typically terminals.  The
+UPM tool lets you start and stop such processes, manually or using
+a timer.
+
+<H3>Technical Details</H3>
+
+<P>The UPM tool consists of four programs:
+<OL>
+<LI><TT>upmd</TT> is a server program that runs permanently.
+<LI><TT>upmc</TT> is a client program that provides a command-level
+interface.
+<LI><TT>smtupmd</TT> is an agent that handles the UPM server
+protocol.  The <TT>upmd</TT> program is basically a wrapper around
+this agent.
+<LI><TT>smtupmc</TT> is an agent that handles the UPM client
+protocol.  The <TT>upmc</TT> program is basically a wrapper around
+this agent.
+</OL>
+
+<P>The main UPM configuration file is called "upm.ini".  This is
+a typical "upm.ini" file:
+</PRE>[Setup]
+    logfile=upmd.log
+[Tasks]
+    name=task1
+    name=task2
+</PRE>
+
+<P>The [Tasks] section defines each of the UPM tasks.  Each task
+has a config file to define task-specific values. The config file
+for "task1" is called "TASK1.ini". For example:
+<PRE>#   Configuration for Task 1
+[Setup]
+    stdin=/dev/pts/1
+    stdout=/dev/pts/1
+    stderr=/dev/pts/1
+[Environment]
+    DATABASE=test
+    PRINTER=tcp://localhost:1000
+[Run]
+    idle=banner IDLE
+    startup=run BBORNE.gnt
+    cancel=cleanup
+</PRE>
+
+<P>The [Setup] section defines the input/output devices for the
+task.  The [Environment] section defines a list of variables for
+the task.  The [Run] section defines the idle command and the
+startup command.  These commands must be executable files (scripts
+or programs) with optional arguments.  Redirection or multiple
+commands are not permitted.
+
+<P>Each task also has an optional TIMES file.  The times file for
+task1 is called "TASK1.tim", and looks something like this:
+<PRE>#  This file specifies the times for Task1
+
+mon 8-12 12:30-20
+tue 8-12 12:30-20
+wed 8-12 12:30-20
+thu 8-12 13:05-13:06  13:08:13-10
+fri 8-12 12:30-20
+12/25 off
+1/1 off
+</PRE>
+
+<P>Each line (except blank lines and comments) defines some times
+for a day.  The first word on the line is the <EM>day</EM>, the
+remaining words are one or more time <EM>specifications</EM>.  A
+day can be:
+<UL>
+<LI>A day name, Mon-Sun.
+<LI>A date, MM/DD or YY/MM/DD or YYYY/MM/DD.  If you use YY/MM/DD,
+the century is assumed to be 20 for years higher than 50.
+</UL>
+A time specification can be:
+<UL>
+<LI>'off', meaning clear all times for that day.
+<LI>hh:mm-hh:mm, meaning activate for that time range, inclusive.
+</UL>
+
+<P>If no TIMES file is provided, you can (or rather, must) start
+and stop the tasks manually.
+
+<H3>Using The UPM Tool</H3>
+
+<OL>
+<LI>Define the upm.ini and task .ini files correctly.  Make sure
+that the devices exist and are writable.
+<LI>For testing, run the <TT>upmd</TT> program in a shell window.
+For real life use, place into the system startup procedure
+(<TT>inittab</TT> on a UNIX system).  You can run <TT>upmd</TT> in
+the background like this (assuming a UNIX system):
+
+<PRE>nohup upmd&
+</PRE>
+
+<P>Run the command <TT>upmc</TT> to start the BORMAN client.  The
+<TT>upmc<TT> program acts as a 'front-end' for the upmd daemon.
+Since the daemon runs as a process in the background, it cannot
+read commands from the keyboard itself.
+
+<P>When you run <TT>upmc<TT> you get a message like this:
+<PRE>upmc> 100- Connecting to UPM daemon...
+upmc> 102- Connected to UPM daemon version 1.0
+upmc></PRE>
+
+<P>You can give various commands at the prompt.  This is what the
+'help' command shows:
+<PRE>upmc> help
+Commands and arguments can be in any case.  Commands are:
+LIST                 - list all known tasks
+START [task | ALL]   - start specified task (default all)
+STOP [task | ALL]    - stop specified task (default all)
+STATUS [task | ALL]  - show status for specified task (default all)
+HALT                 - halt UPM daemon
+EXIT                 - end this UPM client session
+QUIT                 - end this UPM client session
+HELP                 - show this information
+VERSION              - show UPM client version
+</PRE>
+
+<P>If you run <TT>upmc<TT> when the <TT>upmd<TT> daemon is not
+running, you get this:
+<PRE>upmc> 100- Connecting to UPM daemon...
+upmc> 301- UPD daemon connection failed: Connection refused
+</PRE>
+
+<P>You can also run <TT>upmc<TT> to execute a command directly:
+<PRE>$ upmc start all
+</PRE>
+Which is the same as typing this:
+<PRE>$ upmc start
+</PRE>
+
+<H3>UPM Trouble Shooting</H3>
+
+<P>These are some possible errors:
+<UL>
+<LI>The device you specified in the task .ini file is not
+accessible to the upm daemon.  You will get an error message in the
+daemon log file, or in the shell window where you ran
+<TT>upmd</TT>.
+<LI>The commands you specified in the task .ini file are not found
+or not accessible.  You will get an error message in the daemon log
+file, or in the shell window where you ran <TT>upmd<TT>.
+</UL>
+
+<H4>UPM Implementation</H4>
+
+<P>The <A HREF="smtupmd.htm">hypertext view</A> of SMTUPMD's dialog
+and source code may help to understand how SMTUPMD works.
+
+<P>The <A HREF="smtupmc.htm">hypertext view</A> of SMTUPMC's dialog
+and source code may help to understand how SMTUPMC works.
+
+
+.-----------------------------------------------------------------
+.page Installing The SMT Kernel
+.build anchor download
+
+<H2>$(TITLE)</H2>
+
+<H3>Availability and Distribution</H3>
+
+<P>We supply the SMT kernel as two archives: a source kit and a
+documentation kit (in HTML).  These files are available for
+download by HTTP from our $(*imatix=website) on a permanent basis.
+You need to recompile the SMT for your specific system, using an
+ANSI C compiler.  We don't provide binary kits.
+
+<P>To install and use the SMT kernel you must first install the
+$(*sfl=SFL package).  SMT requires the current version of the
+SFL.  To write SMT programs you also need to install the
+$(*lr=Libero) tool.
+
+<H4>Getting The Source Archive</H3>
+
+<P>The SMT source archive is supplied as a $(*smtsrc.zip=zip file)
+and a $(*smtsrc.tgz=GNU gzipped tar file).  Note that the zipped files
+are in MS-DOS format (carriage-return, linefeed) while the gzip+tar
+file is in UNIX format (linefeed only).  The unzip command allows
+you to extract correctly for the system you are running on.
+These are the files in the /pub/smt/src directory:
+.build dir /pub/smt/src
+
+<P>If you have trouble accessing the iMatix site, send us an
+$(*info=e-mail) and we'll send you the SMT archives by return
+e-mail.
+
+<H4>Getting The The Documentation Kit</H3>
+
+<P>The SMT documentation is supplied as HTML files, available
+on-line or off-line as a $(*smtdoc.zip=single .zip file) that
+you can install on a hard disk for rapid access, and also as
+a $(*smtdoc.tgz=gzipped tar file).  These are the files in the
+/pub/smt/doc directory:
+.build dir /pub/smt/doc
+
+<P>We recommend that you unzip or gunzip/detar the documentation
+archive into a subdirectory.  Then, point your browser at the
+<TT>index.htm</TT> file to access the documentation.  We use
+relative addressing in all HTML documents, so that links work just
+as well on a local hard-disk (without a web server) as on-line on
+our website.  In a windowing environment is it easy and useful to
+create an icon that launches a Web browser on this file.
+
+<H3>Installation for UNIX Systems</H3>
+
+<P>To install the SMT kernel on a UNIX system you need to:
+<OL>
+<LI>Install the $(*sfl=SFL package): you will want to place
+<TT>libsfl.a</TT> and <TT>sfl.h</TT> in the current directory.
+
+<LI>Download the SMT source archive and decompress it.
+<LI>Run the 'build' script to compile the SMT sources and build
+the libsmt.a archive file and various executables.
+</OL>
+
+<H4>Decompressing The Source Archive</H4>
+
+<P>To unzip the $(*smtsrc.zip=source .zip file), you need the Infozip
+$(*info-zip=unzip) tool:
+<PRE>$ mkdir temp
+$ mv smtsrc$(version_no).zip temp
+$ cd temp
+$ unzip -a smtsrc$(version_no)
+</PRE>
+
+<P>To decompress the $(*smtsrc.tgz=source archive) you need GNU gzip/gunzip
+and tar:
+<PRE>$ mkdir temp
+$ mv smtsrc$(version_no).tgz temp
+$ cd temp
+$ gzip -d smtsrc$(version_no).tgz
+  or
+$ gunzip smtsrc$(version_no).tgz
+$ tar -xvf smtsrc$(version_no).tar
+</PRE>
+
+<P>You can also, in extreme cases, unzip the files on a PC and
+transfer the individual files to the UNIX system.
+
+<H4>Compiling The SMT Sources</H4>
+
+<P>To compile the SMT sources, use this command:
+<PRE>$ chmod +x build
+$ build
+</PRE>
+
+<P>If you get warnings or error messages, this is usually a bad
+sign.  Some compilers issue warnings just because you ask for ANSI
+compilation.  If you get any other error messages, please let us
+know.
+
+<P>The SMT source archive includes a script, <TT><B>c</B></TT>,
+that you can (and should) use to compile an individual SMT source.
+This script invokes the ANSI C compiler to produce an object code
+file. It detects the platform and invokes the compiler with the
+necessary switches for ANSI C compilation.  On some systems this
+is the normal behaviour for the <B>cc</B> command.  On other
+systems it is not normal.  You should make the <TT>c</TT> script
+executable, (preferrably) install it in a shared directory like
+/usr/local/bin, and try it out:
+<PRE>$ chmod a+rx c
+$ mv c /usr/local/bin
+$ c
+</PRE>
+
+<P>The <TT>c</TT> script is also included in the SFL package.
+
+<H3>Installation for Digital VMS Systems</H3>
+
+<P>SMT has not been tested on Digital VMS systems.  However, it
+should be portable, especially to later versions of VMS that are
+POSIX compliant.  To install the SMT on a Digital VMS system you
+need to:
+<OL>
+<LI>Install the SFL package: you will want to place
+<TT>libsfl.olb</TT> and <TT>sfl.h</TT> in the current
+directory.
+<LI>Download the source archive and decompress it.
+<LI>Run the 'build.txt' command file to build the libsmt.olb
+library file and the various executables.
+</OL>
+
+<H4>Decompressing The Source Archive</H4>
+
+<P>To unzip the $(*smtsrc.zip=source .zip file), you need the Infozip
+$(*info-zip=unzip) tool:
+<PRE>$ create/dir [.temp]
+$ ren smtsrc$(version_no).zip [.temp]
+$ set def [.temp]
+$ unzip -a smtsrc$(version_no)
+</PRE>
+
+<P>You can also, in extreme cases, unzip the files on a PC and
+transfer the individual files to the VMS system.
+
+<H4>Compiling The SMT Sources</H4>
+
+<P>To compile the SMT sources, use this command:
+<PRE>$ @build.txt
+</PRE>
+
+<P>Note: this command file has not yet been tested, so it would be
+a little surprising if it worked.  Nonetheless, the work it does
+is simple: compile all .c programs, then link a couple of main
+programs.  If you get warnings or error messages, this is a bad
+sign - please let us know.
+
+<H3>Installation for Windows</H3>
+
+<P>Our preferred way of working is to build the SFL as a static
+library, and do the same for the SMT kernel.  Using a typical
+Windows-hosted compiler, we create two projects.  Then, we create a
+project for each main program.  For instance, we create a project
+each for the echod and echocli programs.  In these projects, we
+refer to the SFL and SMT library files.  While the SFL and SMT
+libraries compile fine under 16-bit Windows, the link phase usually
+gives problems, and we prefer to work with a 32-bit memory model.
+All SMT programs, including the Xitami web server, run as 32-bit
+console processes under Windows NT and 95.
+
+.-----------------------------------------------------------------
+.page System-Specific Concerns
+<H2>$(TITLE)</H2>
+
+<P>This section notes constraints that we've come across on
+various systems.  This is not meant to be a complete list of all
+possible problems.
+
+<H3>Windows</H3>
+
+<H4>SMTSOCK and the select() call</H4>
+
+<P>SMTSOCK uses the select() call to wait for socket events.  On
+UNIX systems, select() returns when the process receives a signal.
+We use this fact to implement the process timer, SMTTIME, in an
+application that may also be doing socket i/o.
+
+<P>Under Windows 95, however, the select() call does not unblock
+when a signal is sent.  The winsock call WSACancelBlockingCall()
+is meant to unblock the select() call.  This does not work under
+Windows 95, at least.  (WSAIsBlocking() always reports FALSE.)
+
+<P>The consequence of this is that the timeout specified in the
+select() call makes a difference to the way that the timer work.
+If we use a 1-second timeout, for instance, we find that timer
+events are also limited to a resolution of 1 second.  This makes
+it difficult to use timer events for real-time work in socket
+based applications.
+
+<P>This appears to be a bug in the Windows 95 winsock.dll; it
+may also affect Windows NT.
+
+<P>Our solution is to use WSACancelBlockingCall() in any case,
+should the winsock.dll support it correctly.  Secondly, under
+Windows, we reduce the select() timeout from 1 second to 1/5th
+of a second.  On other systems - UNIX, OS/2 - we use 1 second,
+so that the application uses minimal system resources.
+
+.-----------------------------------------------------------------
+.page The SMT License Agreement
+.build anchor license
+<H2>$(TITLE)</H2>
+
+<P>This license agreement covers your use of the iMatix <EM>SIMPLE
+MULTITHREADING KERNEL (SMT)</EM>, its source code, documentation, and
+executable files, hereinafter referred to as <EM>"the Product"</EM>.
+
+<P>The Product is Copyright &#169; 1991-2009 iMatix Corporation. You may use
+it and distribute it according to this following License Agreement. If you
+do not agree with these terms, please remove the Product from your system.
+By incorporating the Product in your work or distributing the Product to
+others you implicitly agree to these license terms.
+
+.ignore header
+<H3>Statement Of Copyright</H3>
+
+<P>The Product is, and remains, Copyright &#169; 1991-2009 iMatix Corporation,
+with exception of specific copyrights as noted in the individual source
+files.
+
+.ignore header
+<H3>Conditions Of Use</H3>
+
+<P>You do not need to provide the source code for the Product as part of
+your product. However, you must do one of these things to comply with the
+Product License Agreement:
+<OL>
+<LI>Provide the source code for Product modules that you use, or
+<LI>Make your product freely available according to a license similar to the
+GNU General Public License, or the Perl Artistic License, or
+<LI>Add this phrase to the documentation for your product:
+<EM>"This product uses parts of the iMatix SMT kernel, Copyright
+&#169; 1991-2000 iMatix Corporation &lt;http://www.imatix.com&gt;"</EM>.
+</OL>
+
+.ignore header
+<H3>Rights Of Usage</H3>
+
+<P>You may freely and at no cost use the Product in any project, commercial,
+academic, military, or private, so long as you respect the License
+Agreement. The License Agreement does not affect any software except the
+Product. In particular, any application that uses the Product does not
+itself fall under the License Agreement.
+
+<P>You may modify any part of the Product, including sources and
+documentation, except this License Agreement, which you may not modify.
+
+<P>You must clearly indicate any modifications at the start of
+each source file.  The user of any modified Product code must know
+that the source file is not original.
+
+<P>At your discretion, you may rewrite or reuse any part of the
+Product so that your derived code is not obviously part of the
+Product.  This derived code does not fall under the Product
+License Agreement directly, but you must include a credit at the
+start of each source file indicating the original authorship and
+source of the code, and a statement of copyright as follows:<BR>
+<EM>"Parts copyright (c) 1991-2000 iMatix Corporation."</EM>
+
+.ignore header
+<H3>Rights Of Distribution</H3>
+
+<P>You may freely distribute the Product, or any subset of the Product, by
+any means. The License, in the form of the file called "LICENSE.TXT" must
+accompany any such distribution.
+
+<P>You may charge a fee for distributing the Product, for providing a
+warranty on the Product, for making modifications to the Product, or for any
+other service provided in relation to the Product. You are not required to
+ask our permission for any of these activities.
+
+<P>At no time will iMatix Corporation associate itself with any distribution
+of the Product except that supplied from the Internet site
+http://www.imatix.com.
+
+.ignore header
+<H3>Disclaimer Of Warranty</H3>
+
+<P>The Product is provided as free software, in the hope that it will be
+useful. It is provided "as-is", without warranty of any kind, either
+expressed or implied, including, but not limited to, the implied warranties
+of merchantability and fitness for a particular purpose. The entire risk as
+to the quality and performance of the Product is with you. Should the
+Product prove defective, the full cost of repair, servicing, or correction
+lies with you.

@@ -1,0 +1,40 @@
+<html>
+<head>
+<title>body</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="gdstyle.css" type="text/css">
+</head>
+<body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0">
+<table width="100%" height="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr valign="top">
+    <td width="5" bgcolor="#DDDDDDD">&nbsp;</td>
+    <td>
+      <a name="TOC3"><h1>Overview</h1></a>
+      <h2><a name="TOC4">Introducing PAL</a></h2>
+<p>And Base/2 begat ASL which begat PAL. PAL is a scripting system for ASL-based protocol clients.  Mainly, we built PAL to make it simple to write test cases for OpenAMQ.  There are several neat things about PAL.  One: the scripting language is easy to use. Two: it can be turned into code in any programming language.  Three: as AMQ evolves, the PAL scripting language automatically keeps up, since the PAL grammar (the stuff that defines what the scripting commands are) is produced automatically from the ASL specifications for AMQ. </p>
+<h2><a name="TOC5">A Quick Start</a></h2>
+<p>Build Base/2 and OpenAMQ. In the asl/pal directory, you'll find a collection of PAL examples.  Read these, and try them.  To build and run a PAL script, use the 'pal' command. </p>
+<h2><a name="TOC6">Jargon and Conventions</a></h2>
+<dl>
+<dt><b>ASL</b></dt>
+<dd>Abstract Server Language - an iMatix technology for defining protocols and building clients and servers that implement such protocols.  ASL is a language, a set of protocol standards, and a set of tools. ASL is itself constructed using XNF. </dd>
+<dt><b>XNF</b></dt>
+<dd>XML Normal Form - an iMatix technology for defining XML grammars and building code generators that implement such grammars. XNF is a language, and a set of tools.  XNF is constructed using XNF. The key point of XNF is to generate a full validating and denormalising parser and to couple this with hand-written back-end code generators (aka "targets"). </dd>
+<dt><b>GSL</b></dt>
+<dd>Generator Scripting Lanuage - an iMatix technology used to build code generators.  GSL is a scripting language designed to work with tree-structured data (usually XML) and inject this data into a template-driven code generation process.  All iMatix code generators are written in GSL, and most are complex enough to benefit from being constructed using XNF. </dd>
+<dt><b>PAL</b></dt>
+<dd>Protocol Automation Language - an iMatix technology for writing scripts to automate the client half of a discussion carried out in a protocol built with ASL.  PAL is a add-on to ASL. </dd>
+<dt><b>PAL/P</b></dt>
+<dd>PAL implementation for a protocol called "P".  Since PAL is not a single language but a class of languages, all built from the same basis, we call the actually languages "PAL/" plus the name of the prototol.  Thus, "PAL/AMQ", "PAL/demo". </dd>
+<dt><b>Session</b></dt>
+<dd>Another name for "channel".  We use "channel" at the protocol level and "session" at the API level, mainly because "session" maps to existing APIs like JMS, while "channel" is common usage for multiplexing networking protocols such as ours. </dd>
+</dl>
+
+      <p>
+    </td>
+  </tr height="40">
+    <td width="5" bgcolor="#DDDDDDD">&nbsp;</td>
+    <td valign="bottom" class="footer">iMatix Corporation <amq@imatix.com> - Copyright (c) 2004-2009 iMatix Corporation</td>
+  </tr>
+</body>
+</html>

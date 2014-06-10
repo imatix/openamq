@@ -1,0 +1,146 @@
+.template 0
+#  ----------------------------------------------------------------------------
+#   iCL template for documentation
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+#
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#  ----------------------------------------------------------------------------
+
+function output_title (title, linetype)
+    output_title_format (my.title, my.linetype, "neat")
+endfunction
+
+
+function output_title_format (title, linetype, format)
+    >
+    >$(my.title:$(my.format))
+    >$((my.linetype + "") * string.length (my.title))
+endfunction
+
+
+function comment_block (block)
+    while string.length(my.block) > 0
+         regexp.match ("\s*(.*\n)", my.block, my.row)
+         if defined(my.row)
+             my.block = string.substr(my.block, string.length(my.row), ,string.length(my.block) - string.length(my.row))
+         else
+             my.row = my.block
+             my.block = ""
+         endif
+
+         if string.trim(my.row) <> ""
+            >* $(string.trim(my.row):)
+         endif
+    endwhile
+endfunction
+
+
+function short_summary
+    if (class.abstract?0)
+        abstract = "Abstract class"
+    else
+        abstract = "Class"
+    endif
+    output_title (abstract + " $(class.name)", "=")
+
+    >Class version:
+    >    $(class.version:)
+    >
+    if defined(class.role)
+        >Class role:
+        >    $(class.role:)
+        >
+    endif
+
+    if defined (class->inherit)
+        >Class inheritance:
+        my.comma = ""
+        for class.inherit
+            if defined (inherit.class)
+                >    $(my.comma)$(inherit.class:)
+            else
+                >    $(my.comma)$(inherit.name:)
+            endif
+            my.comma = ", "
+        endfor
+    endif
+    >++++
+
+    >
+    >$(class.comment)
+    >
+    if defined (class->doc)
+        >$(class->doc.:justify,block%-80s)
+    endif
+    >++++
+endfunction
+
+
+function quick_reference
+    if defined (class->context) | defined (class->method)
+        output_title ("Quick reference", "-")
+
+        if defined (class->context)
+            output_title ("Context", ".")
+            for class->context
+                comment_block(.)
+            endfor
+        endif
+
+        if defined (class->method)
+            output_title ("Methods", ".")
+            for class.method
+                args = ""
+                sep = ""
+                for argument
+                    args += sep + "$(type) $(name)"
+                    sep = ", "
+                endfor
+                >* $(name) ($(args))
+            endfor
+        endif
+    endif
+endfunction
+
+function full_reference
+    if defined (class->method)
+        for class.method
+            if defined (->doc)
+                if !defined (my.first)
+                    output_title ("Full reference", "-")
+                    my.first = 1
+                endif
+                output_title ("Method $(name)", ".")
+                for doc
+                    >$(.:justify,block%-80s)
+                endfor
+            endif
+        endfor
+    endif
+endfunction
+
+
+#################################   MAIN   #################################
+
+if !defined (switches.quiet)
+    echo "Generating $(selfname) documentation..."
+endif
+output "$(class.name).txt"
+
+short_summary   ()
+quick_reference ()
+full_reference  ()
+
+.endtemplate

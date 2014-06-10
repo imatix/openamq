@@ -1,0 +1,491 @@
+#
+#   oo_simple.gsl - Template GDL module
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+#########################   PARAGRAPH STYLES   #####################
+
+h1_first          = "P23"
+h1                = "P9"
+h2                = "P10"
+h3                = "P11"
+h4                = "P12"
+default           = "P13"
+center            = "P4"
+quote             = "P19"
+example           = "P15"
+ruler             = "P20"
+list_itemized     = "L1"
+list_enumerated   = "L2"
+list_bullet       = "P16"
+list_number       = "P17"
+definition        = "P18"
+definition_term   = "T1"
+definition_value  = "T2"
+table             = "Table1"
+table_column      = "A"
+table_cell        = "A"
+table_last_cell   = "C"
+table_header      = "P21"
+table_content     = "P22"
+image             = "fr1"
+
+#########################   OO_FMT   ###############################
+
+function fmt ()
+    return (oo_hyper_link (.?''))
+endfunction
+
+#########################   OO_HYPER_LINK   ########################
+
+function oo_hyper_link (line)
+    my.line = string.convch (my.line, "\n", " ")
+    while 1
+        #   Format <a@host>
+        if regexp.match ('(.*)&lt;([^@]+@[^&]+)&gt;(.*)', my.line, pre, addr, post)
+            my.line = pre + '<text:a xlink:type="simple" xlink:href="mailto:$(addr:)">$(addr:)</text:a>' + post
+
+        #   Format <xxx://host/uri:description>
+        elsif regexp.match ('(.*)&lt;(\\w+://[^:]+):([^&]+)&gt;(.*)', my.line, pre, addr, desc, post)
+            my.line = pre + '<text:a xlink:type="simple" xlink:href="$(addr:)">$(desc:)</text:a>' + post
+
+        #   Format <xxx://host/uri>
+        elsif regexp.match ('(.*)&lt;(\\w+://[^&]+)&gt;(.*)', my.line, pre, addr, post)
+            my.line = pre + '<text:a xlink:type="simple" xlink:href="$(addr:)">$(addr:)</text:a>' +post
+        else
+            last
+        endif
+    endwhile
+    return (my.line)
+endfunction
+
+#########################   OO_ESCAPE   ############################
+
+function ooverbatim(string) 
+    return oofilter(my.string, "\n ")
+endfunction
+
+#########################   OO_FILTER   ############################
+
+function oofilter(string, special) 
+    if (defined(my.string) & string.lexcmp(my.string, ""))
+        my.old_string = my.string
+        
+        # Escape special characters
+        my.i = 0
+        my.special_len = string.length(my.special)
+        while (my.i < my.special_len)
+            
+            # For the current special character
+            my.current_special = string.substr(my.special, my.i, , 1) 
+            my.new_string = ""
+            while (1)
+                my.match = string.locate(my.old_string, my.current_special) ?
+                if (defined(my.match))
+                    my.new_string += string.prefix(my.old_string, my.current_special)
+                    
+                    if (my.current_special = " ")
+                        my.new_string += "<text:s/>"
+                    elsif (my.current_special = "\n")
+                        my.new_string += "<text:line-break/>\n"
+                    endif
+                    
+                    my.old_string = string.defix(my.old_string, my.current_special)
+                else
+                    last    
+                endif
+            endwhile
+            my.new_string += my.old_string
+            my.old_string = my.new_string
+            my.i += 1
+        endwhile
+        return my.new_string
+    else
+        return my.string
+    endif
+endfunction
+
+##########################   GENERATE_GDL_BEFORE   #################
+
+function generate_gdl_before
+    g_header_level = 0
+    g_header_count = 0
+    g_h1_count = 0
+    g_h2_count = 0
+    g_h3_count = 0
+    g_h4_count = 0
+    g_figure_count = 0
+    g_graphic_count = 0
+
+    toc  = ""
+    body = ""
+endfunction
+
+##########################   GENERATE_GDL_AFTER   ##################
+
+function generate_gdl_after
+    work_dir = "_tmp_oo"
+    tpl_dir = "tpl"
+    tpl = "tpl_sxw.zip"
+    
+    #  Setup work directory    
+    dir.create ("$(work_dir)")
+    dir.create ("$(work_dir)/META-INF")
+    file.copy ("$(tpl)", "$(work_dir)/tpl_sxw.zip")
+    dir.setcwd (work_dir)
+
+    #   Extract the template files in the template directory
+    zip.extract ("$(tpl)", "$(tpl_dir)")
+    
+    # Generate files
+    output "content.xml"
+    oo_style = "$(tpl_dir)/oostyle_content.xml"
+    template 1
+.   include "$(tpl_dir)/tpl_oo_content.xml"
+.   endtemplate
+    close
+    
+    output "styles.xml"
+    oo_style = "$(tpl_dir)/oostyle_styles.xml"
+    template 1
+.   include "$(tpl_dir)/tpl_oo_styles.xml"
+.   endtemplate
+    close
+    
+    output "meta.xml"
+    template 1
+.   include "$(tpl_dir)/tpl_meta.xml"
+.   endtemplate
+    close
+    
+    # Copy non-generated required files
+    file.copy ("$(tpl_dir)/mimetype", "mimetype")
+    file.copy ("$(tpl_dir)/manifest.xml", "META-INF/manifest.xml")
+    
+    #   Clean template files
+    file.delete(tpl)
+    dir.delete (tpl_dir, 1)
+
+    #   Create a new scope, and load in it all necessary files
+    new lst
+        dir.load (., , 1)
+        
+        #   Create OOo file (in the original directory) with files in the scope
+        zip.create (., "$(base).sxw")
+    endnew
+    
+    # Go back to the parent directory
+    dir.setcwd ("..")
+    file.copy("$(work_dir)/$(base).sxw", "$(base).sxw")
+    
+    #   Clean temporary files
+    dir.delete ("$(work_dir)", 1)
+endfunction
+
+########################   GENERATE_HEADER_BEFORE   #########################
+
+function generate_header_before
+    g_header_level += 1
+    if defined (.)
+        g_header_count += 1
+        header_name = string.trim (.)
+        if (g_header_level = 1)
+            if (g_h1_count = 0)
+              style = "$(h1_first:)"
+            else
+              style = "$(h1:)"
+            endif
+            body += '<text:p text:style-name=""/>\n'
+            g_figure_count = 0
+            g_h1_count += 1
+            number = "$(g_h1_count)"
+            body += '<text:h text:style-name="$(style:)" text:level="1">'
+        elsif (g_header_level = 2)
+            g_h2_count += 1
+            number = "$(g_h1_count).$(g_h2_count)"
+            body += '<text:h text:style-name="$(h2:)" text:level="2">'
+        elsif (g_header_level = 3)
+            g_h3_count += 1
+            number = "$(g_h1_count).$(g_h2_count).$(g_h3_count)"
+            body += '<text:h text:style-name="$(h3:)" text:level="3">'
+        elsif (g_header_level = 4)
+            g_h4_count += 1
+            number = "$(g_h1_count).$(g_h2_count).$(g_h3_count).$(g_h4_count)"
+            body += '<text:p text:style-name="$(h4:)">'
+        endif
+        if (g_header_level < 4)
+            body += '$(number:)<text:s/><text:s/>$(header_name:)'
+            body += '</text:h>\n'
+        elsif (g_header_level = 4)
+            body += '$(header_name:)'
+            body += '</text:p>\n'
+        endif
+    endif
+endfunction
+
+
+#########################   GENERATE_HEADER_AFTER   #########################
+
+function generate_header_after
+    g_header_level -= 1
+endfunction
+
+
+#######################   GENERATE_PARAGRAPH_BEFORE   #######################
+
+function generate_paragraph_before
+    body += '<text:p text:style-name="$(default:)"/>'
+    body += '<text:p text:style-name="$(default:)">'
+    body += '$(fmt())'
+    body += '</text:p>\n'
+endfunction
+
+
+#######################   GENERATE_PARAGRAPH_AFTER   ########################
+
+function generate_paragraph_after
+endfunction
+
+
+####################   FUNCTION GENERATE_QUOTE_BEFORE   #####################
+
+function generate_quote_before
+    body += '<text:p text:style-name="$(default:)"/>\n'
+    body += '<text:p text:style-name="$(quote:)">'
+    body += '$(fmt())'
+    body += '</text:p>\n'
+endfunction
+
+
+#####################   FUNCTION GENERATE_QUOTE_AFTER   #####################
+
+function generate_quote_after
+endfunction
+
+
+########################   GENERATE_EXAMPLE_BEFORE   ########################
+
+function generate_example_before
+    verbatim = 1
+
+    body += '<text:p text:style-name="$(default:)"/>\n'
+    body += '<text:p text:style-name="$(example:)">\n'
+endfunction
+
+
+########################   GENERATE_EXAMPLE_AFTER   #########################
+
+function generate_example_after
+    verbatim = 0
+
+    body += '</text:p>\n'
+endfunction
+
+
+#########################   GENERATE_LINE_BEFORE   ##########################
+
+function generate_line_before
+    line = '$(fmt())\n'
+    
+    if verbatim
+        body += ooverbatim(line)
+    else 
+        body += line   
+    endif
+endfunction
+
+
+#########################   GENERATE_RULER_BEFORE   #########################
+
+function generate_ruler_before
+    body += '<text:p text:style-name="$(ruler:)"/>\n'
+endfunction
+
+########################   GENERATE_ITEMIZE_BEFORE   ########################
+
+function generate_itemize_before
+    bullet_type = 0
+    body += '<text:p text:style-name="$(default:)"/>\n'
+    body += '<text:unordered-list text:style-name="$(list_itemized:)">\n'
+endfunction
+
+########################   GENERATE_ITEMIZE_AFTER   #########################
+
+function generate_itemize_after
+    body += '</text:unordered-list>\n'
+endfunction
+
+
+#######################   GENERATE_ENUMERATE_BEFORE   #######################
+
+function generate_enumerate_before
+    bullet_type = 1
+    body += '<text:p text:style-name="$(default:)"/>\n'
+    body += '<text:ordered-list text:style-name="$(list_enumerated)">\n'
+endfunction
+
+
+#######################   GENERATE_ENUMERATE_AFTER   ########################
+
+function generate_enumerate_after
+    body += '</text:ordered-list>\n'
+endfunction
+
+#########################   GENERATE_ITEM_BEFORE   ##########################
+
+function generate_item_before
+    body += '   <text:list-item>\n'
+    if (bullet_type)
+        body += '<text:p text:style-name="$(list_bullet:)">'
+    else
+        body += '<text:p text:style-name="$(list_number:)">'
+    endif    
+    body += '$(fmt())'
+    body += '</text:p>\n'
+    body += '   </text:list-item>\n'
+endfunction
+
+
+######################   GENERATE_DEFINITION_BEFORE   #######################
+
+function generate_definition_before
+    body += '<text:p text:style-name="$(default:)"/>\n'
+endfunction
+
+
+#######################   GENERATE_DEFINITION_AFTER   #######################
+
+function generate_definition_after
+endfunction
+
+
+#######################   GENERATE_DEF_TERM_BEFORE   ########################
+
+function generate_def_term_before
+    body += '<text:p text:style-name="$(definition)">\n'
+    body += '<text:span text:style-name="$(definition_term)">$(fmt())</text:span>\n'
+endfunction
+
+
+#######################   GENERATE_DEF_VALUE_BEFORE   #######################
+
+function generate_def_value_before
+    body += '<text:s/><text:span text:style-name="$(definition_value)">$(fmt())</text:span>\n'
+    body += '</text:p>\n'
+endfunction
+
+
+#########################   GENERATE_TABLE_BEFORE   #########################
+
+function generate_table_before
+    first_row = 1
+    scope ->table_row 
+        last_col = $(count(table_data))
+    endscope    
+    
+    body += '<text:p text:style-name="$(default:)"/>\n'
+    body += '<table:table table:name="$(table:)" table:style-name="$(table)">\n'
+    body += '<table:table-column table:style-name="$(table:).$(table_column:)" table:number-columns-repeated="$(last_col:)"/>\n'
+endfunction
+
+
+#########################   GENERATE_TABLE_AFTER   ##########################
+
+function generate_table_after
+    body += '</table:table>\n'
+endfunction
+
+
+#######################   GENERATE_TABLE_ROW_BEFORE   #######################
+
+function generate_table_row_before
+    curr_col = 1
+
+    if first_row
+        body += '   <table:table-header-rows>\n'
+    endif
+    body += '   <table:table-row>\n'
+endfunction
+
+
+#######################   GENERATE_TABLE_ROW_AFTER   ########################
+
+function generate_table_row_after
+    body += '   </table:table-row>\n'
+    if first_row
+        body += '   </table:table-header-rows>\n'
+    endif
+    first_row = 0
+endfunction
+
+######################   GENERATE_TABLE_DATA_BEFORE   #######################
+
+function generate_table_data_before
+    if first_row
+        style = "$(table_header:)"
+        row = "1"
+    else
+        style = "$(table_content:)"
+        row = "2"
+    endif
+    if curr_col = last_col
+        col = "$(table_last_cell:)"
+    else
+        col = "$(table_cell:)"
+    endif
+    body += '       <table:table-cell table:style-name="$(table:).$(col:)$(row:)" table:value-type="string">\n'
+    body += '<text:p text:style-name="$(style:)">'
+    body += '$(string.replace(., '&lt;BR&gt;|<BR>')?'&nbsp;')'
+    body += '</text:p>\n'
+    body += '       </table:table-cell>\n'
+    curr_col += 1
+endfunction
+
+
+#########################   GENERATE_IMAGE_BEFORE   #########################
+
+function generate_image_before
+    g_graphic_count += 1
+    work_dir = dir.cwd ()
+    
+    body += '<text:p text:style-name="$(default:)">\n'
+    body += '<draw:image '
+    body += '   draw:style-name="$(image)" '
+    body += '   draw:name="Graphic$(g_graphic_count)" '
+    body += '   text:anchor-type="paragraph" '
+    body += '   draw:z-index="0" '
+    body += '   xlink:href="$(filename:)" '
+    body += '   xlink:type="simple" '
+    body += '   xlink:show="embed" '
+    body += '   xlink:actuate="onLoad" '
+    body += '   draw:filter-name="&lt;All formats&gt;"/>'
+    body += '</text:p>\n'
+   
+endfunction
+
+
+########################   GENERATE_FIGURE_BEFORE   #########################
+
+function generate_figure_before
+    g_figure_count += 1
+
+    body += '<text:p text:style-name="$(default:)"/>\n'
+    body += '<text:p text:style-name="$(center:)">Figure: $(g_h1_count).$(g_figure_count) $(caption?:)</text:p>\n'
+
+    generate_image_before ()
+endfunction
+

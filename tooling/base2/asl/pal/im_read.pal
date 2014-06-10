@@ -1,0 +1,18 @@
+<?xml?>
+<pal script = "demo_pal_gen">
+    This script implements a simple chat client.  Run this in one window,
+    and im_send in a second window. Usage: im_send -C channel
+    <session queue = "imdemo">
+        <set name = "channel" cmdline = "C" value = "default" />
+        <exchange_declare type = "fanout" exchange = "$channel" />
+        <queue_declare />
+        <queue_bind exchange = "$channel" />
+        <repeat>
+            <wait timeout = "1000" />
+            <basic_get />
+            <basic_arrived>
+                <echo>$body_text</echo>
+            </basic_arrived>
+        </repeat>
+    </session>
+</pal>

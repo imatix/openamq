@@ -1,0 +1,101 @@
+#  ----------------------------------------------------------------------------
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+#
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#  ----------------------------------------------------------------------------
+
+/*
+    Generic template for doubly-linked list handling code.
+    ---------------------------------------------------------------------
+
+    The following generalised doubly-linked list model was documented
+    by Leif Svalgaard in 1991 as follows:
+
+    "Removing and inserting a node are actually the same operation:
+        swap (next [left],  next [node])
+        swap (prev [right], prev [node])
+
+    For this to work it is only required that nodes be initialised to
+    point to themselves.  How do we determine what is left and what is
+    right?  For removal that is straight forward:
+        Remove: left  = prev [node]
+                right = next [node]
+
+    For insertion, it is even simpler because left and right are two
+    adjacent nodes between which we want the new node to go.  The only
+    complication is that we usually think of attaching the new node to a
+    given one of the nodes in the list.  There are now two possibilities
+    for the other node: the previous one or the next one.  If the other
+    node is the next one, the new node is inserted after the given node.
+    If the other node is the previous node, the new one is insert before
+    the given one.  Thus:
+        Insert after:   left  = given node
+                        right = next [given node]
+        Insert before:  left  = prev [given node]
+                        right = given node"
+
+    Taken from the "ETK Programmer's Reference Manual", written by Pieter
+    Hintjens and Leif Svalgaard in 1998-1991.
+*/
+
+#   Muck with shuffle option so code body stays clean
+#   Note that code body _cannot_ contain ' character
+#
+shuffle_default = shuffle
+shuffle = 0
+
+my.prefix  ?= "list"
+my.next    ?= my.prefix + "_next"
+my.prev    ?= my.prefix + "_prev"
+my.base    ?= selfname
+my.type    ?= selftype
+my.private ?= 1
+if my.private
+    my.base = "s_" + my.base
+endif
+
+xml to global.top '
+<method base = "$(my.base)" name = "$(my.prefix)_relink"
+        private = "$(my.private)" inline = "1">
+    <argument name = "item" type = "$(my.type) *"/>
+    <argument name = "left" type = "$(my.type) *"/>
+    <argument name = "right" type = "$(my.type) *"/>
+    <local>
+    $(my.type)
+        *swap;
+    </local>
+    swap = left->$(my.next);
+    left->$(my.next) = item->$(my.next);
+    item->$(my.next) = swap;
+
+    swap = item->$(my.prev);
+    item->$(my.prev) = right->$(my.prev);
+    right->$(my.prev) = swap;
+</method>
+
+<method base = "$(my.base)" name = "$(my.prefix)_unlink" return = "item"
+        private = "$(my.private?1)" inline = "1">
+    <argument name = "item" type = "$(my.type) *"/>
+    $(my.base)$(my.prefix)_relink (item, item->$(my.prev), item->$(my.next));
+</method>
+
+<method base = "$(my.base)" name = "$(my.prefix)_attach" 
+        private = "$(my.private?1)" inline = "1">
+    <argument name = "item" type = "$(my.type) *"/>
+    <argument name = "list" type = "$(my.type) *"/>
+    $(my.base)$(my.prefix)_relink (item, list->$(my.prev), list);
+</method>
+'
+
+shuffle = shuffle_default

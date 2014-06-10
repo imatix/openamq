@@ -1,0 +1,252 @@
+#  ----------------------------------------------------------------------------
+#   iCL template for Standard ANSI-C using iMatix runtime libraries
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+#
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#  ----------------------------------------------------------------------------
+
+.include "icl_stdc_lib.gsl"
+
+#############################   GENERATE METHOD   #############################
+
+.macro generate_method
+
+        <method name = "$(name)"\
+.   if defined (nextstate)
+                nextstate = "$(nextstate)"\
+.   endif
+        >
+.   for action
+            <action name = "$(name)">
+.--- Output method argument macros --------------------------------------------
+
+#define self tcb->$(selfname)
+.       for method.argument
+.          if argument.ref
+$(expand(deref_type))
+    $(deref_name:c);
+.           else
+$(expand(type))
+    $(name:c);
+.           endif
+.       endfor
+
+.       for method.argument
+.          if argument.ref
+    $(deref_name:c) = $(method.name:c)_m->$(deref_name:c);
+.           else
+    $(name:c) = $(method.name:c)_m->$(name:c);
+.           endif
+.       endfor
+.#      Lacking a local block for these actions
+        {
+.       output_code (action)
+        }
+#undef self
+            </action>
+.   else
+.       echo "WARNING: No actions defined for asynchronous method '$(name)'"
+.   endfor
+            //  Force release of method immediately
+            smt_method_destroy (&thread->method);
+        </method>
+
+.endmacro
+
+############################   GENERATE SMT FILE   ############################
+
+.macro generate_smt_file
+.   if !defined (switches.quiet)
+.       echo "Generating $(selfname:c)_agent.smt..."
+.   endif
+.   output "$(selfname:c)_agent.smt"
+<?xml?>
+<!---------------------------------------------------------------------------
+    $(selfname:c)_agent.smt - $(selfname) component
+
+.   for doc
+.       output_doc (doc)
+.   endfor
+    Generated from $(arg?filename) by $(script) using GSL/4.
+.   if defined (copyright)
+    $(copyright:)
+.   endif
+
+.   $(license:lower)_license (" ")
+ ----------------------------------------------------------------------------->
+
+<agent
+    name = "$(selfname)_agent"
+    script = "smt_gen.gsl"
+    animate = "$(animate?0)"
+    >
+<import class = "$(selfname:c)" />
+
+.for method where async ? 0= 1
+<method name = "$(name)">
+.   for argument
+.       if argument.ref
+    <argument name = "$(deref_name)" type = "$(gsl.exec(deref_type))" />
+.       else
+    <argument name = "$(name)" type = "$(gsl.exec(type))" />
+.       endif
+.   endfor
+.   for possess
+    <possess>
+$(expand(.))
+    </possess>
+.endfor
+.   for release
+    <release>
+$(expand(.))
+    </release>
+.endfor
+</method>
+
+.endfor
+.
+<thread name = "class">
+    <context>
+        $(selftype)
+            *$(selfname);
+    </context>
+    
+    <handler name = "thread new">
+        <argument name = "self" type = "$(selftype) *">The iCL object</argument>
+        tcb->$(selfname) = self;
+    </handler>
+        
+    <state name = "main">
+.for method where async ? 0 = 1
+.   generate_method ()
+.endfor
+.for event
+        <event name = "$(name)"\
+.   if defined (nextstate)
+                nextstate = "$(nextstate)"\
+.   endif
+        >
+.   for action
+            <action name = "$(name)">
+            
+#define self tcb->$(selfname)
+
+.#      Lacking a local block for these actions
+        {
+.       output_code (action)
+        }
+        
+#undef self
+            </action>
+.   else
+.       echo "WARNING: No actions defined for event '$(name)'"
+.   endfor
+        </event>
+.endfor event
+        <event name = "shutdown" nextstate = "shutting down" />
+    </state>
+    
+    <state name = "shutting down">
+.for method where async ? 0 = 1 & on_shutdown ? 0 = 1
+.   generate_method ()
+.endfor
+.for method where async ? 0 = 1 & on_shutdown ? 0 = 0
+        <method name = "$(name)" />
+.endfor
+.for event
+        <event name = "$(name)" />
+.endfor event
+    </state>
+</thread>
+
+.for private where name = "async header"
+<private name = "types">
+.    output_code (private)
+</private>
+
+.endfor
+.for private where name = "async footer"
+<private name = "functions">
+.    output_code (private)
+</private>
+
+.endfor
+</agent>
+.
+.close
+.
+.endmacro
+
+##############################   GENERATE CLASS   #############################
+
+.function generate_class (class)
+    prepare_to_generate ()
+
+    if !defined (switches.quiet)
+        echo "Generating $(selfname) component..."
+    endif
+    
+    for method where async ? 0
+        method. = (method. ? "") + "
+if (self) {
+    assert (self->thread);
+    if ($(selfname)_agent_$(name:c) (self->thread"
+        for method.argument
+            if argument.ref
+                if deref_name <> "self"
+                    method. += ",$(deref_name:c)"
+                endif
+            else
+                if name <> "self"
+                    method. += ",$(name:c)"
+                endif
+            endif
+        endfor
+        method. += ")) {
+        //icl_console_print (\"Error sending '$(name)' method to $(selfname) agent\");
+        rc = -1;
+    }
+}
+else
+    rc = -1;"
+    endfor
+
+    #   First generate the normal iCL header and code files.
+    generate_header_file ()
+    generate_code_file ()
+
+    #   Now remove the 'self' argument from all asynchronous methods.
+    for method where async ? 0
+        method. =                       #   Get rid of synchronous part
+        for argument
+            if argument.ref
+                if argument.deref_name = "self"
+                    argument.delete ()
+                endif
+            else
+                if argument.name = "self"
+                    argument.delete ()
+                endif
+            endif
+        endfor
+    endfor
+
+    #   Generate the SMT file
+    generate_smt_file ()
+    
+    if (class->option (name = "selftest").value?1) = "1"
+        generate_test_file ()
+    endif
+.endfunction

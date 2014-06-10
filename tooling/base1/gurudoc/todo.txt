@@ -1,0 +1,43 @@
+- Index special words
+    * external file, index.txt
+    * two columns: term, and URL
+    * when term is found, it is turned into hyperlink
+
+- Internal document references
+    [Cf. Some Title Text]
+    * If "Some Title Text" is found, links to that section
+    * otherwise removes this line
+    * Handled by gurudoc...?
+    
+- Resizable TOC
+    (done 2003/01/16, PH)
+    
+- Emphasis
+    * _this_ should be underlined
+    * *this* should be bold
+    * /this/ should be italic
+
+- Include files
+    * [see somefile.txt] in gurudoc (done 2003/01/16, PH)
+
+- Title
+    * Handle continuation character '\'. (done 2002/09/01)
+
+- Handle blank lines in PRE block (done 2002/08/29)
+
+- Handle tables with more than two columns (done 2002/08/30)
+
+- Bulleted and numbered lists
+    * Handle nested lists
+    * Handle blank lines
+    * Allowing PRE blocks
+    * Allowing to continue list after PRE
+
+- Index
+    * $(Index) is not good (done 2002/08/29)
+    * not anchor for current page (done 2002/08/29)
+
+- Handle FAQ numbering schemes
+
+- Link
+    * Allow port number in the link

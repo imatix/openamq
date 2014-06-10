@@ -1,0 +1,66 @@
+<?xml?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+
+<pdl>
+    <!-- iCL Class definitions -->
+    <class name = "icl abstract class" inherit = "public resource">
+    Class file that is only used at code-generation time.
+    </class>
+
+    <class name = "icl private data" inherit = "gsl data" >
+    Class file that generates an eponymous library module and header.
+    For class files that only hold definitions, no methods.
+        <derive extension = ".h"       class = "generated header" />
+        <derive extension = ".c"       class = "generated module" />
+    </class>
+
+    <class name = "icl public data" inherit = "gsl data" >
+    Class file that generates an eponymous library module and header.
+    For class files that only hold definitions, no methods.
+        <derive extension = ".h"       class = "generated header" />
+        <derive extension = ".c"       class = "generated module" />
+        <install as = "resource"/>
+    </class>
+
+    <class name = "icl private class" inherit = "icl private data" >
+    Class file that generates an eponymous library module and header
+    and a test program.  For all normal objects.
+        <derive extension = "_test.c" class = "generated test"   />
+    </class>
+
+    <class name = "icl public class" inherit = "icl public data" >
+    Class file that generates an eponymous library module and header.
+        <derive extension = "_test.c" class = "generated test"   />
+    </class>
+
+    <class name = "icl private cont" inherit = "icl private class" generated = "1">
+    Containers are generated class files.
+    </class>
+
+    <class name = "icl public cont" inherit = "icl public class" generated = "1">
+    Containers are generated class files.
+    </class>
+
+    <class name = "icl com object" inherit = "gsl data" >
+    Class file that generates COM object
+        <derive extension = ".dll" class = "shared library" target = "win32"/>
+        <generate target = "win32">
+            <execute command = "gsl -q -quiet:1" />
+        </generate>
+    </class>
+</pdl>

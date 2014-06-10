@@ -1,0 +1,480 @@
+<?xml version="1.0"?>
+<gdl
+    name      = "gddoc"
+    author    = "iMatix Corporation &lt;tools@imatix.com&gt;"
+    copyright = "Copyright (c) 1006-2009 iMatix Corporation"
+    customer  = ""
+    product   = "Base"
+    reference = ""
+    subtitle  = "Documentation Processor"
+    title     = "Gurudoc"
+    version   = "1.1"
+    written   = "2002/10/08"
+>
+<header>Introduction
+
+<paragraph>Gurudoc works by recognising layout, and converting this to GDL. We've
+tried to keep a balance between features and complexity, to give you
+something useful without becoming too formal. Basically, gurudoc relies
+on layout rules that also help to make the text readable in any case.
+For example, blank lines and indentation are significant in most places.
+One consequence of this is that the plain text file is very readable
+even before it is converted to any target.
+</paragraph>
+
+<paragraph>Gurudoc reads an input text file (with any name and extension except
+'.gdl') and creates an output file with the same name and the extension
+'.gdl'. It then processes this file as it would any normal input file.
+The '.gdl' file remains afterwards, so you can use it as the basis for
+further refinement if wanted.
+</paragraph>
+
+</header>
+<header>Gurudoc
+
+<paragraph>To use Gurudoc, use this command in a DOS box to build the GDL document
+from the plain text file:
+</paragraph>
+<example>
+
+<line>mkgdl gddoc</line>
+</example>
+
+<paragraph>Then use the 'html_simple' (default) skin to get some output files with
+these commands:
+</paragraph>
+<example>
+
+<line>gsl -gdl:gddoc gurudoc</line>
+<line>start gddoc.htm</line>
+</example>
+
+<paragraph>and you can also use the framed skin :
+</paragraph>
+<example>
+
+<line>gsl -tpl:html_frame -gdl:gddoc gurudoc</line>
+<line>start gddoc.htm</line>
+</example>
+
+<paragraph>GDL is define in the 'gdl.xnf' file.
+</paragraph>
+
+<paragraph>Then, you can use 'skins' and 'templates' with Gurudoc processor to get
+some final outputs.
+</paragraph>
+
+<header>Standard Gurudoc Definitions
+
+<paragraph>Gurudoc always check if the file start with 'gdl'. This block of
+informations end with a line starting with 'end gdl'. You can add
+informations to tune the results of Gurudoc.
+</paragraph>
+
+</header>
+<header>Chapter and Section Headers
+
+<paragraph>Gurudoc handles four levels of headers. In the text these look like
+this:
+</paragraph>
+<example>
+
+<line>Chapter Header</line>
+<line>**************</line>
+<line>Section Header</line>
+<line>==============</line>
+<line>Subsection Header</line>
+<line>-----------------</line>
+<line>Subsubsection Header</line>
+<line>....................</line>
+</example>
+
+<paragraph>The line following the header text must start with 3 or more asterisks
+'*', equals '=', hyphens '-' or dots '.'. There is no way to specify H5
+or other headers. I recommend that you start the document with a chapter
+header.
+</paragraph>
+
+<paragraph>The header text line must come after a blank line, or at the start of
+the document.
+</paragraph>
+
+<paragraph>You can also request a horizontal rule by putting four or more
+underscore '_', plus '+', hash '#', or tilde '~' characters on a line by
+themselves:
+</paragraph>
+<example>
+
+<line>++++</line>
+</example>
+
+<ruler/>
+</header>
+<header>Paragraphs
+
+<paragraph>A paragraph is anything following a blank line that does not look like
+something else. Basically, any plain text following a blank line is
+given a &lt;paragraph&gt; tag. Note however the exceptions that follow...
+</paragraph>
+
+</header>
+<header>Preformatted Text
+
+<paragraph>If a line is indented by 4 or more spaces, or a tab, Gurudoc treats the
+line as 'preformatted' text and inserts a &lt;example&gt; tag. You can mix
+blank lines with preformatted text.
+</paragraph>
+
+</header>
+<header>Bulleted and Numbered Lists
+
+<header>Bulleted Lists
+
+<paragraph>A paragraph starting with a hyphen '-', a plus '+' or a asterisk '*'
+followed by a space is considered to be a bulleted list item.
+</paragraph>
+
+</header>
+<header>Numbered Lists
+
+<paragraph>A paragraph starting with a digit [0-9] followed by a dash '-', a dot
+'.' or a right parenthesis ')' and followed by a space is considered to
+be a numbered list item.
+</paragraph>
+
+</header>
+<header>Lists usage
+
+<paragraph>You can put blank lines between list items, but it's not necessary.
+Cosmetically, when list items are short, blank lines are disturbing. But
+when list items are several lines, blank lines make the text more
+readable. Either way, Gurudoc is happy.
+</paragraph>
+
+<paragraph>For example:
+</paragraph>
+<example>
+
+<line>- you can do unnumbered lists</line>
+<line>+ as many</line>
+<line>* as you like</line>
+<line>1- You can also do numbered lists</line>
+<line>2. With numbers at the beginning of the line</line>
+<line>3) As many as you like.</line>
+<line>   We should be able to span this one over</line>
+<line>   more lines than just one.</line>
+</example>
+<itemize>
+
+<item>you can do unnumbered lists</item>
+<item>as many</item>
+<item>as you like</item>
+</itemize>
+<enumerate>
+
+<item>You can also do numbered lists</item>
+<item>With numbers at the beginning of the line</item>
+<item>As many as you like. We should be able to span this one over more lines than just one.</item>
+</enumerate>
+
+</header>
+</header>
+<header>Definition Lists
+
+<paragraph>A definition list is a line ending with a colon ':' and followed by some
+lines indented by one or more spaces.
+</paragraph>
+
+<paragraph>For example:
+</paragraph>
+<example>
+
+<line>Indention of text:</line>
+<line>    Explanation one.</line>
+<line>Second indention:</line>
+<line>    Explanation two.</line>
+<line>    We should be able to span this one over</line>
+<line>    more lines than just one.</line>
+</example>
+<definition>
+
+<def_term>Indention of text</def_term>
+<def_value>Explanation one.
+</def_value>
+<def_term>Second indention</def_term>
+<def_value>Explanation two.
+We should be able to span this one over
+more lines than just one.
+</def_value>
+</definition>
+
+<paragraph>You can put blank lines between definition items, but again, it's a
+matter of cosmetics. There should be a blank line before the first
+definition item, however.
+</paragraph>
+
+</header>
+<header>Quoted Text
+
+<paragraph>Quoted text is marked by indentation and a leading ", as follows:
+</paragraph>
+
+<quote>
+"Life is a stage and we are all but actors in a play"
+-- William Shakespear
+
+</quote>
+</header>
+<header>Tables
+
+<paragraph>Gurudoc tries to solve the most common case; a rectangular table
+consisting of a N columns and M rows.
+</paragraph>
+
+<paragraph>A table can start with a header, which is a line like this:
+</paragraph>
+<example>
+
+<line>Some column:  Followed by some explanation:</line>
+</example>
+
+<table>
+<table_row>
+<table_data>Some column</table_data>
+<table_data> Followed by some explanation</table_data>
+</table_row>
+</table>
+<paragraph>Here, the colons (':') are important. Gurudoc also wants one or more
+spaces after the first colon. The table header is optional; you can
+start immediately with table items. Either way, Gurudoc needs a blank
+line before the table. A table item looks like this:
+</paragraph>
+<example>
+
+<line>Column: Explanation:</line>
+<line>Table_item_with_some_spaces: Here is what is all means</line>
+<line>    We should be able to span this one over</line>
+<line>    more lines than just one.</line>
+<line>Another_table_item: More things follow in this table.</line>
+</example>
+
+<paragraph>Column: Explanation
+Table_item_with_some_spaces: Here is what is all means
+</paragraph>
+<example>
+
+<line>We should be able to span this one over</line>
+<line>more lines than just one.</line>
+Another_table_item: More things follow in this table.
+</example>
+
+<paragraph>A bigger one:
+</paragraph>
+<example>
+
+<line>Col 1: Col 2: Col 3: Col 4:</line>
+<line>a11: a12: a13: a14</line>
+<line>a21: a22: a23: a24</line>
+<line>a31: a32: a33: a34</line>
+<line>a41: a42: a43: a44</line>
+</example>
+
+<table>
+<table_row>
+<table_data>Col 1</table_data>
+<table_data>Col 2</table_data>
+<table_data>Col 3</table_data>
+<table_data>Col 4</table_data>
+</table_row>
+<table_row>
+<table_data>a11</table_data>
+<table_data>a12</table_data>
+<table_data>a13</table_data>
+<table_data>a14</table_data>
+</table_row>
+<table_row>
+<table_data>a21</table_data>
+<table_data>a22</table_data>
+<table_data>a23</table_data>
+<table_data>a24</table_data>
+</table_row>
+<table_row>
+<table_data>a31</table_data>
+<table_data>a32</table_data>
+<table_data>a33</table_data>
+<table_data>a34</table_data>
+</table_row>
+<table_row>
+<table_data>a41</table_data>
+<table_data>a42</table_data>
+<table_data>a43</table_data>
+<table_data>a44</table_data>
+</table_row>
+</table>
+<paragraph>The first column must be a single word - if you want several words, use
+underlines. Gurudoc replaces these by spaces. The explanation can come
+on several lines, which MUST be indented by one or more spaces.
+</paragraph>
+
+</header>
+<header>Figures and Images
+
+<paragraph>To insert a figure, use one of these conventions:
+</paragraph>
+<example>
+
+<line>[Figure filename: caption]</line>
+<line>[Figure "filename": caption]</line>
+</example>
+
+<paragraph>For example:
+</paragraph>
+<example>
+
+<line>[Figure mainlogo.jpg: The iMatix logo]</line>
+<line>[Figure "mainlogo.jpg": The iMatix logo]</line>
+</example>
+
+<paragraph>Gurudoc inserts a figure caption, numbering the figures in a document
+from 1 upwards. The caption is followed by an &lt;image&gt; tag to display the
+file. You can use a URI (a path) as the filename, or an URL (with a host
+name specifier); you must put an URL in quotes. My preference is to put
+image files locally with the GDL files, and use a simple filename
+without a path. This is just easier to manage and lets you put the GDL
+files plus images in any directory. If Gurudoc can find the image you
+specify, and it's a .GIF or .JPG file, it will insert the WIDTH= and
+HEIGHT= tags automatically.
+</paragraph>
+
+<paragraph>To insert a plain image, omit the 'Figure' keyword. For example:
+</paragraph>
+<example>
+
+<line>[Figure mainlogo.jpg: The iMatix logo]</line>
+<line>[mainlogo.jpg: The iMatix logo]</line>
+<line>[Figure mainlogo.jpg]</line>
+<line>[mainlogo.jpg]</line>
+</example>
+
+</header>
+<header>Hyperlinks
+
+<paragraph>If you use &lt;name@address&gt;, this is converted into a mailto: URL
+hyperlink. If you use &lt;http://address/document&gt; -- or any other URL --
+this is converted into a hyperlink as well. You can follow the URL by
+':description' if you like, e.g.
+&lt;http://www.imatix.com:iMatix_Corporation's_Site&gt;.
+</paragraph>
+
+<paragraph>Gurudoc does not presently allow links within the document or to other
+documents.
+</paragraph>
+
+</header>
+<header>Multi-file Documents
+
+<paragraph>To include text from another file, use this convention:
+</paragraph>
+<example>
+
+<line>[See filename]</line>
+</example>
+
+<paragraph>This takes the text from the specified filename and inserts it in place of
+the line containing the [See] instruction.
+</paragraph>
+
+</header>
+<header>Special Characters
+
+<paragraph>Since you're not typing XML, Gurudoc replaces &lt;, &gt; and & by XML
+metacharacters. &lt; and &gt; are used to indicate hyperlinks.
+</paragraph>
+
+</header>
+<header>Limitations
+
+<header>Lists and Examples
+
+<paragraph>You can add example only at the end of a item.
+</paragraph>
+
+<paragraph>For example:
+</paragraph>
+<example>
+
+<line>Here is a list of commands:</line>
+<line>1. directory content</line>
+<line>    ls [Enter]</line>
+<line></line>
+<line>2. get current directory</line>
+<line>    cd [Enter]</line>
+</example>
+
+<paragraph>Here is a list of commands:
+</paragraph>
+<enumerate>
+
+<item>directory content</item>
+</enumerate>
+<example>
+
+<line>ls [Enter]</line>
+<line></line>
+</example>
+<enumerate>
+
+<item>get current directory</item>
+</enumerate>
+<example>
+
+<line>cd [Enter]</line>
+</example>
+
+<paragraph>But you reset the counter of the list.
+</paragraph>
+
+<paragraph>Moreover, if you add a new indented paragraph in it like this:
+</paragraph>
+<example>
+
+<line>Here is a list of commands:</line>
+<line>1. directory content</line>
+<line>    ls [Enter]</line>
+<line>   and for more detail</line>
+<line>    ls -l [Enter]</line>
+</example>
+
+<paragraph>Here is a list of commands:
+</paragraph>
+<enumerate>
+
+<item>directory content</item>
+</enumerate>
+<example>
+
+<line>ls [Enter]</line>
+<line></line>
+   and for more detail
+<line>ls -l [Enter]</line>
+</example>
+
+<paragraph>You can see that we lose the paragraph "and for more detail".
+</paragraph>
+
+</header>
+</header>
+</header>
+<header>Skins
+
+<paragraph>To be completed.
+</paragraph>
+
+</header>
+<header>Templates
+
+<paragraph>To be completed.
+</paragraph>
+
+</header>
+</gdl>

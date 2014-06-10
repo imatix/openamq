@@ -1,0 +1,28 @@
+.------------------------------------------------------------------------------
+.-                                                                            
+.-  testdir.gsl - Test directory GSL functions
+.-                                                                            
+.------------------------------------------------------------------------------
+
+echo "current working directory: " + dir.cwd ()
+
+dir.load (, "c:/imatix/products/base/boom")
+for file by name
+    echo "File name: $(name:)   size: $(size)"
+endfor
+
+echo "***************************"
+
+dir.load (, "c:/imatix/products/base/gaggle")
+for file by path
+    echo "$(directory) $(path:%-30s) $(name)"
+endfor
+
+rc = dir.create ("dummy")
+output ("dummy/dummy.txt")
+>dir.create has returned value $(rc)
+close
+file.delete ("dummy/dummy.txt")
+rc = dir.delete ("dummy/dummy.txt")
+echo "dir.delete has returned value $(rc)"
+

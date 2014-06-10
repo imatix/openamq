@@ -1,0 +1,17 @@
+<?xml?>
+<pal script = "demo_pal_gen">
+    This script demonstrates how to do a simple loop using a variable that
+    we increment and check by hand.  It is not as elegant as the loop2.pal
+    example.
+    <set name = "index" value = "0" />
+    <repeat>
+        <if name = "index" value = "10">
+            <break/>
+        </if>
+        <else>
+            <echo>I can count up to $index</echo>
+        </else>
+        <inc name = "index" />
+    </repeat>
+</pal>
+

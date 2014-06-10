@@ -1,0 +1,424 @@
+#
+#   pwl_lib.gsl - PWL shared library
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+#
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+#   stream_output       - starts new output stream
+#   stream_append       - starts new output stream in append mode
+#   stream_pop          - continues with previous stream
+#   invoke_rule         - invoke rule in PWL target library
+#   format_title        - format a name as a header title
+#   format_block        - format a block of text into lines
+#   format_pathname     - return path formatted for target
+#   format_basename     - return filename without extension
+#   inherit_file_class  - inherit class attributes into file
+#   assert_dependency   - create dependent file if not already defined
+#   walk_project        - process all files and directories in project
+#   trace               - show message if verbose option enabled
+#   check_install_file  - updates install attribute on project files
+#   resolve_directories - checks formatting of project directory names
+
+##############################   STREAM OUTPUT   #############################
+#
+#   Saves current output stream and opens a new one.
+#   Enables nested file output streams.  Use stream_pop to close.
+#
+function stream_output (newfile)
+    if ! defined (_stream_stack)
+        _stream_stack = 0
+    endif
+    _stream_stack = _stream_stack + 1
+    _stream_stack_$(_stream_stack) = my.newfile
+    output my.newfile
+endfunction
+
+
+##############################   STREAM APPEND   #############################
+#
+#   Saves current output stream and opens a new one in append mode.
+#   Enables nested file output streams.  Use stream_pop to close.
+#
+function stream_append (newfile)
+    if ! defined (_stream_stack)
+        _stream_stack = 0
+    endif
+    _stream_stack = _stream_stack + 1
+    _stream_stack_$(_stream_stack) = my.newfile
+    append my.newfile
+endfunction
+
+
+###############################   STREAM POP   ###############################
+#
+#   Close current output stream and resume previous one.
+#   Use together with stream_output and stream_append.
+#
+function stream_pop ()
+    if ! defined (_stream_stack) | _stream_stack = 0
+        abort "Stream stack is empty - unexpected use of stream_pop()"
+    endif
+    _stream_stack = _stream_stack - 1
+    if _stream_stack > 0
+        append _stream_stack_$(_stream_stack)
+    else
+        close
+    endif
+endfunction
+
+
+###############################   INVOKE RULE   ##############################
+#
+#   Invokes a PWL library rule, or the inherited rule if necessary
+#
+function invoke_rule (name)
+    rule = "$(target.name)_$(my.name:c)"
+    if macro (rule)
+        $(rule) ()
+    elsif defined (target.output)
+        if defined (target.inherit)
+            inherit_rule = "$(target.inherit)_$(my.name:c)"
+            if macro (inherit_rule)
+                $(inherit_rule) ()
+            else
+                echo "Cannot find $(my.name) in $(script) or $(inherit)"
+            endif
+        else
+            echo "Cannot find $(rule) in $(script)"
+            if class.file.exists (script)
+                echo "Generating stub for $(rule) in $(script)..."
+                stream_append (script)
+                >
+                >$(format_title (action.name, 77, "#"):)
+                >
+                >.macro $(rule) ()
+                >.endmacro
+                stream_pop ()
+            endif
+        endif
+    endif
+endfunction
+
+
+##############################   FORMAT TITLE   ##############################
+#
+#   Formats a name into a header title
+#
+function format_title (name, max, mark)
+    my.title = "   " + "$(my.name:upper)" + "   "
+    while string.length (my.title) < my.max - 1
+        my.title = my.mark + my.title + my.mark
+    endwhile
+    if string.length (my.title) < my.max
+        my.title += my.mark
+    endif
+    return (my.title)
+endfunction
+
+
+##############################   FORMAT BLOCK   ##############################
+#
+#   Formats a text block with a prefix and suffix on each line
+#
+function format_block (block, prefix, suffix, empty)
+    text = string.trim (my.block?"")
+    my.formatted = ""
+
+    line_start = 0
+    while string.substr (text,line_start,,1) = " " | string.substr (text,line_start,,1) = "\n"
+        line_start += 1
+    endwhile
+    while line_start < string.length (text)
+        line_end = line_start
+        while line_end < string.length (text) & string.substr (text,line_end,,1) <> "\n"
+            line_end += 1
+        endwhile
+        if string.substr (text,line_end,,1) = "\n" & line_end > 0
+            my.line = string.substr (text, line_start, line_end - 1, )
+        else
+            my.line = string.substr (text, line_start, line_end, )
+        endif
+        if my.line = ""
+            my.line = my.empty
+        endif
+        my.formatted = my.formatted + my.prefix + string.trim (my.line) + my.suffix + "\n"
+        line_start = line_end + 1
+    endwhile
+    if string.length (text) > 2    #   Ends in redundant newline
+        my.formatted = string.substr (my.formatted,0,string.length (my.formatted) - 2,)
+    endif
+    return (my.formatted)
+endfunction
+
+
+#############################   FORMAT BASENAME   ############################
+#
+#   Accepts a filename, returns the basename without extension.
+#
+function format_basename (filename)
+    char_nbr = string.length (my.filename) - 1
+    while char_nbr > 0 & string.substr (my.filename, char_nbr,,1) <> "."
+        char_nbr -= 1
+    endwhile
+    if char_nbr > 0
+        return (string.substr (my.filename, 0, char_nbr - 1,))
+    else
+        return (my.filename)
+    endif
+endfunction
+
+
+############################   FORMAT PATHNAME   #############################
+#
+#   Ensures that the specified path is in the correct format for the current
+#   target.
+#
+function format_pathname (path)
+    my.pathname = my.path
+    char_nbr = 0
+    while char_nbr < string.length (my.pathname)
+        cur_char = string.substr (my.pathname, char_nbr,,1)
+        if cur_char = "\\" | cur_char = "/" & cur_char <> target.pathsep
+            if char_nbr > 0
+                begin = string.substr (my.pathname, 0, char_nbr - 1)
+            else
+                begin = ""
+            endif
+            my.pathname = begin + target.pathsep + string.substr (my.pathname, char_nbr + 1)
+        endif
+        char_nbr += 1
+    endwhile
+    return (my.pathname)
+endfunction
+
+
+###########################   INHERIT FILE CLASS   ###########################
+#
+#   Inherits all details from a file class
+#
+function inherit_file_class ()
+    if count (pdl.class, count.name = file.class, count) = 0
+        abort ("File class '$(file.class:)' not defined")
+    endif
+    for pdl.class where name = file.class
+        file.basename   = format_basename (file.name)
+        file.generated ?= class.generated?0
+        file.shared    ?= class.shared?0
+        file.filetype  ?= class.filetype?""
+        file.model     ?= class.model?
+        #   Library can be inherited from directory or pdl, whichever
+        #   happens to be the closest parent.
+        file.library   ?= library?""
+
+        #   Copy all children to file
+        for . where defined (name()) as child
+            copy child to file
+        endfor
+        resolve_file_derivations ("")
+    endfor
+endfunction
+
+
+############################   ASSERT DEPENDENCY   ###########################
+#
+#   Adds a dependent file to the project definition if not already defined.
+#
+function assert_dependency (newname, newclass, description, newmodel, newgenerated)
+    for pdl.class where name = my.newclass
+        newtype = class.filetype?""
+    endfor
+    if scope (directory)
+        parent = "directory"
+    else
+        parent = "pdl"
+    endif
+    if count ($(parent).file, count.name ?= my.newname & (count.filetype?"") = newtype, count) = 0
+        new file to $(parent)
+            file.name       = my.newname
+            file.basename   = my.newname
+            file.realname   = my.newname
+            file.class      = my.newclass
+            if defined (my.newmodel)
+                file.model  = my.newmodel
+            else
+                file.model ?= class.model?
+            endif
+            file.ext        = ""
+            file.           = my.description? "Generated file - do not modify"
+            inherit_file_class ()
+            #  Override generated, if specified in derivation
+            if defined (my.newgenerated)
+                file.generated = my.newgenerated
+            endif
+        endnew
+    endif
+    for $(parent).file as newfile where newfile.name ?= my.newname & (newfile.filetype?"") = newtype
+        if newfile.generated ?= 1 & scope (file) & count (file.generate)
+            newfile.derived_from ?= file.name
+        endif
+    endfor
+endfunction
+
+
+##############################   WALK PROJECT   ##############################
+#
+#   Processes all files and directories in the project recursively.  The
+#   pathsep attribute in the root PDL must have been set to / or \ as
+#   appropriate for the target.  If called without a target context, uses
+#   a default separator of "/".
+#
+function walk_project (path, func_action, func_file, func_opendir, func_closedir)
+    if scope (target)
+        pathsep = target.pathsep
+    else
+        pathsep = "/"
+    endif
+    if my.path = ""
+        my.parent = "pdl"
+    else
+        my.parent = "directory"
+    endif
+
+    if defined (my.func_action)
+        for $(my.parent).actions where when = "before"
+            $(my.func_action) (my.path)
+        endfor
+    endif
+
+    if defined (my.func_file)
+        for $(my.parent).file
+            $(my.func_file) (my.path)
+        endfor
+    endif
+
+    if defined (my.func_action)
+        for $(my.parent).actions where when = "after"
+            $(my.func_action) (my.path)
+        endfor
+    endif
+
+    for $(my.parent).directory
+        if defined (my.func_opendir)
+            $(my.func_opendir) (my.path + directory.name)
+        endif
+        walk_project (my.path + directory.name + pathsep, \
+            my.func_action, my.func_file, my.func_opendir, my.func_closedir)
+
+        if defined (my.func_closedir)
+            $(my.func_closedir) (my.path + directory.name)
+        endif
+    endfor
+endfunction
+
+
+###########################   WALK PROJECT REMAP   ############################
+#
+#   As walk_project, but applies the keep_paths attribute of directories to
+#   calculate path names that map to the installed application rather than to
+#   the project source organisation.
+#
+function walk_project_remap (path, func_action, func_file)
+    pathsep = target.pathsep?"/"
+    if my.path = ""
+        my.parent = "pdl"
+    else
+        my.parent = "directory"
+    endif
+    if my.path = "."
+        my.use_path = ""
+    else
+        my.use_path = my.path
+    endif
+
+    if defined (my.func_action)
+        for $(my.parent).actions where when = "before"
+            $(my.func_action) (my.use_path)
+        endfor
+    endif
+
+    if defined (my.func_file)
+        for $(my.parent).file
+            $(my.func_file) (my.use_path)
+        endfor
+    endif
+
+    if defined (my.func_action)
+        for $(my.parent).actions where when = "after"
+            $(my.func_action) (my.use_path)
+        endfor
+    endif
+
+    for $(my.parent).directory
+        if directory.keep_paths = 1
+            walk_project_remap (my.use_path + directory.name + pathsep, my.func_action, my.func_file)
+        else
+            walk_project_remap (".", my.func_action, my.func_file)
+        endif
+    endfor
+endfunction
+
+
+#################################   TRACE   ##################################
+#
+#   Shows a message if the 'verbose' option was specified when running the
+#   script.
+#
+function trace (message)
+    if defined (switches.verbose)
+        echo my.message?"-"
+    endif
+endfunction
+
+
+###########################   CHECK INSTALL FILE   ###########################
+#
+#   Checks an installed file, sets the file install path.  Use as follows:
+#
+#       walk_project ("", , "check_install_file")
+#
+function check_install_file (path)
+    if count (file.target) = 0 | count (file.target, count.name = target.name, count) = 1
+        for install
+            if    [as] = "include"
+                file.install = "include"
+                pdl.install_include = 1
+            elsif [as] = "library"
+                file.install = "lib"
+                pdl.install_lib = 1
+            elsif [as] = "command" | [as] = "resource" | [as] = "script" | [as] = "license"
+                file.install = "bin"
+                pdl.install_bin = 1
+            elsif [as] = "readme" | [as] = "document"
+                file.install = "doc" + pathsep + "$(pdl.name:c)"
+                pdl.install_doc = 1
+            endif
+        endfor
+    else
+        file.install =
+    endif
+endfunction
+
+
+###########################   RESOLVE DIRECTORIES   ##########################
+#
+#   Ensures that a directory name is correctly formatted for the current
+#   target.  Use as follows:
+#
+#       walk_project ("",,, "resolve_directories")
+#
+function resolve_directories (path)
+    directory.name = format_pathname (directory.name)
+endfunction

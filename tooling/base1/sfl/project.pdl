@@ -1,0 +1,180 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<pdl
+    name      = "SFL"
+    acronym   = "sfl"
+    version   = "3.31"
+    copyright = "Copyright (c) 1991-2009 iMatix Corporation"
+    workflow  = "standard.pwl"
+    library   = "libsfl">
+
+<include filename = "prelude.pdl" />
+<file name = "version.h"    class = "c version"        >Project version file</file>
+
+<file name = "prelude.h"    class = "private resource" >Portability abstraction header file</file>
+<file name = "sflhead.h"    class = "private resource" >SFL header file</file>
+<file name = "sflbits.c"    class = "library module"   >Large bitmap manipulation functions</file>
+<file name = "sflcomp.c"    class = "library module"   >Compression functions</file>
+<file name = "sflcons.c"    class = "library module"   >Console output functions</file>
+<file name = "sflconv.c"    class = "library module"   >Global variables for conversion functions</file>
+<file name = "sflcryp.c"    class = "library module"   >Encryption and decryption functions</file>
+<file name = "sfldate.c"    class = "library module"   >Date and time manipulation functions</file>
+<file name = "sfldescr.c"   class = "library module"   >Descriptor manipulation functions</file>
+<file name = "sfldir.c"     class = "library module"   >Directory handling functions</file>
+<file name = "sflenv.c"     class = "library module"   >Environment manipulation</file>
+<file name = "sflexdr.c"    class = "library module"   >External data representation</file>
+<file name = "sflfile.c"    class = "library module"   >File manipulation functions</file>
+<file name = "sflfind.c"    class = "library module"   >String and data searching functions</file>
+<file name = "sflfort.c"    class = "library module"   >Fortune cookie functions</file>
+<file name = "sflheap.c"    class = "library module"   >Heap management functions</file>
+<file name = "sflhttp.c"    class = "library module"   >HTTP processing functions</file>
+<file name = "sflini.c"     class = "library module"   >Configuration file processing</file>
+<file name = "sfllang.c"    class = "library module"   >Multilingual date/time/number representation</file>
+<file name = "sfllbuf.c"    class = "library module"   >Line buffering routines</file>
+<file name = "sfllist.c"    class = "library module"   >Double-linked lists</file>
+<file name = "sflmail.c"    class = "library module"   >Mail sending functions</file>
+<file name = "sflmath.c"    class = "library module"   >Mathematical functions</file>
+<file name = "sflmem.c"     class = "library module"   >Memory allocation/deallocation tracking</file>
+<file name = "sflmesg.c"    class = "library module"   >Error message access functions</file>
+<file name = "sflmime.c"    class = "library module"   >MIME support functions</file>
+<file name = "sflnode.c"    class = "library module"   >Linked list functions, deprecated</file>
+<file name = "sflprint.c"   class = "library module"   >Printing functions</file>
+<file name = "sflproc.c"    class = "library module"   >Process control functions</file>
+<file name = "sflsearch.c"  class = "library module"   >Full-text search functions</file>
+<file name = "sflsha.c"     class = "library module"   >Secure Hash (SHA) functions</file>
+<file name = "sflslot.c"    class = "library module"   >Time slot functions</file>
+<file name = "sflsort.c"    class = "library module"   >List sorting functions</file>
+<file name = "sflstr.c"     class = "library module"   >String manipulation functions</file>
+<file name = "sflsymb.c"    class = "library module"   >Symbol table functions</file>
+<file name = "sflsyst.c"    class = "library module"   >System type identification</file>
+<file name = "sfltok.c"     class = "library module"   >String tokenisation</file>
+<file name = "sfltree.c"    class = "library module"   >Binary trees</file>
+<file name = "sfltron.c"    class = "library module"   >Tracing functions</file>
+<file name = "sfluid.c"     class = "library module"   >User and group ID functions </file>
+<file name = "sflxml.c"     class = "library module"   >XML navigation functions</file>
+<file name = "sflxmll.c"    class = "library module"   >XML loading and saving functions</file>
+<file name = "sflxmls.c"    class = "library module"   >XML Store functions</file>
+<file name = "sflsock.c"    class = "library module"   >Socket handling functions</file>
+<file name = "sflcvbs.c"    class = "sub program"      >Convert a boolean to a string</file>
+<file name = "sflcvdp.c"    class = "sub program"      >Convert a date to a string (using a picture)</file>
+<file name = "sflcvds.c"    class = "sub program"      >Convert a date to a string (hard coded format)</file>
+<file name = "sflcvns.c"    class = "sub program"      >Convert a number to a string</file>
+<file name = "sflcvsb.c"    class = "sub program"      >Convert a string to a boolean</file>
+<file name = "sflcvsd.c"    class = "sub program"      >Convert a string to a date</file>
+<file name = "sflcvsn.c"    class = "sub program"      >Convert a string to a number</file>
+<file name = "sflcvst.c"    class = "c/libero"         >Convert a string to a time</file>
+<file name = "sflcvtp.c"    class = "sub program"      >Convert a time to a string (using a picture)</file>
+<file name = "sflcvts.c"    class = "sub program"      >Convert a string into a time</file>
+<file name = "sflscrit.c"   class = "c/libero"         >Full-text search analysis function</file>
+<file name = "sflproco.imp" class = "private resource" >Process control functions for OS/2</file>
+<file name = "sflprocu.imp" class = "private resource" >Process control functions for Unix</file>
+<file name = "sflprocv.imp" class = "private resource" >Process control functions for OpenVMS</file>
+<file name = "sflprocw.imp" class = "private resource" >Process control functions for Win32</file>
+<file name = "sflprocx.h"   class = "private resource" >Process control functions support</file>
+<file name = "sflprocx.imp" class = "private resource" >Process control functions core</file>
+
+<file name = "testall.c"    class = "main program"     >Test</file>
+<file name = "testbits.c"   class = "main program"     >Test bitmap functions</file>
+<file name = "testcgi.c"    class = "main program"     >Test CGI functions</file>
+<file name = "testcomp.c"   class = "main program"     >Test compression functions</file>
+<file name = "testconv.c"   class = "main program"     >Test conversion functions</file>
+<file name = "testcryp.c"   class = "main program"     >Test</file>
+<file name = "testdate.c"   class = "main program"     >Test date conversion functions</file>
+<file name = "testdir.c"    class = "main program"     >Test directory functions</file>
+<file name = "testenv.c"    class = "main program"     >Test environment access functions</file>
+<file name = "testexdr.c"   class = "main program"     >Test EXDR conversions</file>
+<file name = "testfile.c"   class = "main program"     >Test file access functions</file>
+<file name = "testfind.c"   class = "main program"     >Test searching functions</file>
+<file name = "testfort.c"   class = "main program"     >Test fortune cookies</file>
+<file name = "testheap.c"   class = "main program"     >Test heap access functions</file>
+<file name = "testhttp.c"   class = "main program"     >Test http functions</file>
+<file name = "testini.c"    class = "main program"     >Test configuration functions</file>
+<file name = "testlang.c"   class = "main program"     >Test language conversions</file>
+<file name = "testmem.c"    class = "main program"     >Test memory access functions</file>
+<file name = "testmime.c"   class = "main program"     >Test MIME functions</file>
+<file name = "testproc.c"   class = "main program"     >Test process control functions</file>
+<file name = "teststr.c"    class = "main program"     >Test string manipulation functions</file>
+<file name = "testsym.c"    class = "main program"     >Test symbol table functions</file>
+<file name = "testtok.c"    class = "main program"     >Test token manipulation functions</file>
+<file name = "testtree.c"   class = "main program"     >Test memory tree functions</file>
+<file name = "testtron.c"   class = "main program"     >Test trace functions</file>
+<file name = "testuid.c"    class = "main program"     >Test user-id functions</file>
+<file name = "testxml.c"    class = "main program"     >Test XML functions</file>
+<file name = "testxmls.c"   class = "main program"     >Test XML Store functions</file>
+<file name = "testsearch.c" class = "main program"     >Test full-text search functions</file>
+<file name = "testconv.dat" class = "private resource" >Test conversion data</file>
+<file name = "testfort.txt" class = "private resource" >Test fortune cookies</file>
+<file name = "dos2unix.c"   class = "main program"     >DOS end-of-line convertor</file>
+
+<!-- Deliverables -->
+<file name = "libsfl"       class = "public library"   >SFL runtime library</file>
+
+<actions>
+  <generate>
+    <collect into = "sfl.h" class = "public header" >
+      <file name = "sflhead.h"  />
+      <file name = "prelude.h"  />
+      <file name = "sflbits.h"  />
+      <file name = "sflcomp.h"  />
+      <file name = "sflcons.h"  />
+      <file name = "sflconv.h"  />
+      <file name = "sflcryp.h"  />
+      <file name = "sfldate.h"  />
+      <file name = "sfldescr.h" />
+      <file name = "sflexdr.h"  />
+      <file name = "sflfile.h"  />
+      <file name = "sflfind.h"  />
+      <file name = "sflfort.h"  />
+      <file name = "sflheap.h"  />
+      <file name = "sfllang.h"  />
+      <file name = "sfllbuf.h"  />
+      <file name = "sfllist.h"  />
+      <file name = "sflnode.h"  />
+      <file name = "sflmath.h"  />
+      <file name = "sflmem.h"   />
+      <file name = "sflmesg.h"  />
+      <file name = "sflmime.h"  />
+      <file name = "sflnode.h"  />
+      <file name = "sfldir.h"   />
+      <file name = "sflslot.h"  />
+      <file name = "sflsock.h"  />
+      <file name = "sflmail.h"  />
+      <file name = "sflsort.h"  />
+      <file name = "sflsha.h"   />
+      <file name = "sflstr.h"   />
+      <file name = "sflsymb.h"  />
+      <file name = "sflproc.h"  />
+      <file name = "sflprint.h" />
+      <file name = "sflsyst.h"  />
+      <file name = "sflsearch.h"/>
+      <file name = "sflhttp.h"  />
+      <file name = "sflini.h"   />
+      <file name = "sflenv.h"   />
+      <file name = "sfltok.h"   />
+      <file name = "sfltree.h"  />
+      <file name = "sfltron.h"  />
+      <file name = "sfluid.h"   />
+      <file name = "sflxml.h"   />
+      <file name = "sflxmll.h"  />
+      <file name = "sflxmls.h"  />
+    </collect>
+  </generate>
+</actions>
+
+</pdl>

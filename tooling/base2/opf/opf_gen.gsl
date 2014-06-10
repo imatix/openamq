@@ -1,0 +1,133 @@
+.#
+.#   Copyright (c) 1996-2009 iMatix Corporation
+.#
+.#   This program is free software; you can redistribute it and/or modify
+.#   it under the terms of the GNU General Public License as published by
+.#   the Free Software Foundation; either version 2 of the License, or (at
+.#   your option) any later version.
+.#
+.#   This program is distributed in the hope that it will be useful, but
+.#   WITHOUT ANY WARRANTY; without even the implied warranty of
+.#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.#   General Public License for more details.
+.#
+.#   For information on alternative licensing for OEMs, please contact
+.#   iMatix Corporation.
+.#
+.template 0
+.macro generate_class
+.   include "opf_gen_class.gsl"
+.endmacro
+
+.macro generate_docs
+.   include "opf_gen_docs.gsl"
+.endmacro
+include "license.gsl"
+
+function expand (gsl_script)
+    if defined (my.gsl_script)
+        my.result = gsl.exec (my.gsl_script, 1) ?
+        if ! defined (my.result)
+            abort "Error in GSL script:\n$(my.gsl_script)"
+        endif
+    endif
+    return my.result
+endfunction
+
+function output_code (entity)
+    if defined (my.entity.)
+>$(expand(string.trim (my.entity.)):left)
+    endif
+endfunction
+
+#   Resolve inheritence if any, one pass, single-level
+#   Inherit paths and properties within paths
+for opf.inherit
+    loaded = xml.load_file (filename)?
+    if !defined (loaded)
+        echo ("Error loading inherit file: $(filename): $(xml.error?)")
+        abort
+    else
+        for loaded. as child
+            childtype = name (child)
+            childname = child.name?""
+            if childtype = "private" | childtype = "public"
+                #   Do nothing
+            elsif childtype = "path"
+                if defined (opf->$(childtype) (0.name ?= childname))
+                    for opf.path where path.name = childname
+                        for child. as iproperty
+                            if !defined (path->property (0.name ?= iproperty.name))
+                                move iproperty to path
+                            endif
+                        endfor
+                    endfor
+                else
+                    move child to opf
+                endif
+            else
+                abort "Unknown entity type: $(childtype)"
+            endif
+        endfor
+        loaded.delete ()
+    endif
+endfor
+
+opf.license ?= "gpl"
+ignorecase = 0
+for path
+    for property
+        if type = "char *"
+            property.metat = "string"
+        elsif type = "size_t" | type = "int" | type = "uint" | type = "longint" \
+            | type = "qbyte" | type = "int64_t" | type = "Bool" | type = "long"
+            property.metat = "integer"
+        else
+            abort "Can't do $(name) - type '$(type)' is unknown"
+        endif
+    
+        if type = "char *"
+            property.format = "%s"
+        elsif type = "size_t"
+            property.format = "%zu"
+        elsif type = "int"
+            property.format = "%i"
+        elsif type = "uint"
+            property.format = "%u"
+        elsif type = "longint"
+            property.format = "%li"
+        elsif type = "qbyte"
+            property.format = "%lu"
+        elsif type = "int64_t"
+            property.format = "%lli"
+        elsif type = "Bool" | type = "long"
+            property.format = "%i"
+        endif
+        property.src = "$(name:c)"
+        if defined (prefix)
+            property.name = "$(prefix:c)_$(name:c)"
+        else
+            property.name = "$(name:c)"
+        endif
+    endfor
+endfor
+
+#   Denormalise paths
+for path
+    for property
+        property.path = "/" + opf.root + "/" + path.name
+        copy property to opf
+    endfor
+endfor
+
+generate_class ()
+generate_docs ()
+for plugin
+.   template 1
+.       for root.opf
+.           include "$(plugin.name).gsl"
+.       endfor
+.   endtemplate
+endfor
+
+endtemplate

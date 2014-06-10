@@ -1,0 +1,27 @@
+.------------------------------------------------------------------------------
+.-                                                                            
+.-  testpcre.gsl - Test regular expression GSL functions
+.-                                                                            
+.------------------------------------------------------------------------------
+
+xml to root <<.
+<sample>
+If you use &amp;lt;name@address&amp;gt;, this is converted into a
+mailto: URL hyperlink. If you use
+&amp;lt;http://address/document&amp;gt; -- or any other URL -- this is
+converted into a hyperlink as well. You can follow the URL by
+':description' if you like, e.g.
+&amp;lt;http://www.imatix.com:iMatix_Corporation's_Site&amp;gt;.
+</sample>
+.
+
+for sample
+    echo "line: $(.)"
+
+    regexp.match ("&lt;([^@]+@[^&]+)&gt;", ., str)
+    echo "1> $(str)"
+
+    regexp.match ("&lt;(\\w+://[^&]+)&gt;", ., str)
+    echo "2> $(str)"
+endfor
+

@@ -1,0 +1,109 @@
+#  ----------------------------------------------------------------------------
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+#
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#  ----------------------------------------------------------------------------
+
+#   Generate a container "xxx_queue.icl" for a queue item "xxx.icl"
+#
+#   We generate a container class file only if the class does not
+#   exist.
+#
+#   In the following code, selfname/type is the queue item class,
+#   while my.selfname/type is the container class.
+#
+.macro generate_container (container)
+.my.selfname = my.container
+.my.selftype = my.container + "_t"
+<?xml?>
+<class
+    name      = "$(my.selfname)"
+    comment   = "Implements the queue container for $(selfname)"
+    version   = "1.0"
+    script    = "icl_gen"
+.if defined (class.animate)
+    animate   = "$(class.animate)"
+.endif
+    >
+<doc>
+    This class implements the queue container for $(selfname)
+</doc>
+
+<inherit class = "icl_queue_head" >
+    <option name = "links"      value = "$(inherit.links?0)" />
+    <option name = "prefix"     value = "$(prefix)"/>
+    <option name = "childname"  value = "$(selfname)" />
+    <option name = "childtype"  value = "$(selftype)" />
+    <option name = "count"      value = "$(count?0)" />
+.if inherit.child_has_links ? class.links ?= 0
+    <option name = "child_has_links"    value = "0"/>
+.endif
+.if inherit.link_to_child ? inherit.child_has_links ? class.links ?= 0
+    <option name = "link_to_child"      value = "0"/>
+.endif
+</inherit>
+<option name = "alloc" value = "$(alloc?'cache')" />
+
+<import class = "$(selfname)" />
+
+<context>
+    <!-- add properties for the container -->
+</context>
+
+<method name = "new">
+    <!-- any initialisation code you need -->
+</method>
+
+<method name = "destroy">
+    <!-- any destruction code you need, note that the queue is
+         automatically destroyed, you don't need to do this.
+      -->
+</method>
+
+<method name = "selftest">
+    <!-- Add your selftest code -->
+    <local>
+    </local>
+</method>
+</class>
+.endmacro
+
+#  We can't just <import> the container because of the way the structures
+#  refer to each other.  Instead we manually include the header files in
+#  the right places
+
+my.container = selfname + "_$(prefix)"
+new import to class
+    import.[after] = "1"
+    import.class = "$(my.container:c)"
+endnew
+
+
+#   We don't regenerate if the class already exists.
+#   To rebuild, the developer has to clean the project.
+my.output = my.container + ".icl"
+if (global.top_class.abstract?0) = 0
+    if !file.exists (my.output)
+        if !defined (switches.quiet)
+            echo "Generating $(my.output:)"
+        endif
+        output my.output
+        generate_container (my.container)
+        close
+    else
+        if !defined (switches.quiet)
+            echo "$(my.output:) already exists."
+        endif
+    endif
+endif

@@ -1,0 +1,144 @@
+<html>
+<head>
+<title>body</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="gdstyle.css" type="text/css">
+</head>
+<body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0">
+<table width="100%" height="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr valign="top">
+    <td width="5" bgcolor="#DDDDDDD">&nbsp;</td>
+    <td>
+      <a name="TOC7"><h1>The Problem PAL Solves</h1></a>
+      <h2><a name="TOC8">ASL Refresher</a></h2>
+<p>iMatix ASL - the Abstract Server Language - is a protocol and software-construction toolkit we built in order to help develop OpenAMQ. The concept of ASL is loosely based on the concept of formal grammars such as ASN.1, but in typical iMatix fashion is rather more aggressive in aiming to generate high-quality code and documentation. </p>
+<p>ASL is a formal language, a grammar.  It does not define the low-level wire-protocol but rather the higher-level language that a protocol carries.  We describe this language in terms of "methods", grouped into "classes".  The specific technology used to carry these methods depends on the specific implementation.  Thus, ASL is abstract. </p>
+<p>ASL is an extensible framework - a single ASL grammar can be fed to any number of different back-end "targets", each generating some different output.  Today we have targets for: </p>
+<ul>
+<li><p>A Standard C implementation of client and server layers.</li>
+<li><p>A Java implementation of client layers.</li>
+<li><p>Documentation in iMatix gurudoc format.</li>
+</ul>
+<p>This diagram shows the overall ASL code generation process: </p>
+<pre>
+ .----------------.
+ |  ASL grammar   |         ASL grammar written as XML files, using
+ | for protocol P |         inheritence and other XNF techniques.
+ `----------------'
+         :
++------------------+
+|  ASL front-end   |        GSL parser, generated from asl.xnf.
+|      parser      |        using the iMatix XNF toolkit.
++------------------+
+         :
+ .----------------.
+ |  Denormalised, |         Data structure held in memory.
+ | validated tree |
+ `----------------'
+         :
++------------------+
+|     Specific     |        GSL code generator, written by hand.
+|  back-end target |
++------------------+
+         :
+ .----------------.
+ | Generated text |         Documentation or code as desired.
+ |    outputs     |
+ `----------------'
+</pre>
+<p>We can summarise the approach that drives ASL: </p>
+<ol>
+<li><p>Define an abstract and high-level syntax capable of supporting the full functionality required by all possible protocols in our domain.</li>
+<li><p>Implement the code generators for this abstract syntax.</li>
+<li><p>Use the syntax to define our full protocol.</li>
+</ol>
+<p>Note the major benefit of using ASL: writing a large and rich protocol is very cheap, as 100% of the protocol support both at the client and server side is generated, leaving only the functional implementation of the protocol methods as work for the programmer. </p>
+<h2><a name="TOC9">Large-scale Testing</a></h2>
+<p>By making it cheap to design and implement functionality on top of a standard technical base, ASL also encourages very large and explicit protocols. While a hand-built protocol might use a single method for several purposes, ASL would encourage the definition of several individual methods. This clarity is very pleasant for the application developer, but it means that testing must also happen on a large scale. </p>
+<p>This - cheap large-scale testing - is the problem that PAL solves. </p>
+<h2><a name="TOC10">The PAL Architecture</a></h2>
+<p>These diagrams show how PAL fits into the toolchain. First, the process of constructing a PAL generator for a particular protocol, 'P': </p>
+<pre>
+      .----------------.
+      |  ASL grammar   |         ASL grammar written as XML files, using
+      |    "p.asl"     |         inheritence and other XNF techniques.
+      `----------------'
+              :
+     +------------------+
+     |  ASL front-end   |        GSL parser, generated from asl.xnf.
+     |      parser      |        using the iMatix XNF toolkit.
+     |  "asl_gen.gsl"   |
+     +------------------+
+              :
+      .----------------.
+      |  Denormalised, |         Data structure held in memory.
+      | validated tree |
+      `----------------'
+              :
+     +------------------+
+     |       PAL        |        GSL code generator, hand-made.
+     |  back-end target |
+     |   "asl_pal.gsl"  |
+     +------------------+
+        :           :
++-----------+   +-----------+
+|  PAL XNF  |   |  PAL stdc |    GSL code generators, hand-made
+|  driver   |   |   driver  |
++-----------+   +-----------+
+      :               :
+.-----------.         :
+|   PAL/P   |         :          XNF grammar of PAL language
+|  grammar  |         :          specifically for protocol 'P'
+`-----------'         :
+      :               :
+.-----------.   .-----------.
+| front-end |   |   stdc    |    Components of a PAL generator
+| for PAL/P |   |  target   |    specifically for protocol 'P'
+`-----------'   `-----------'
+
+gsl -target:pal p.asl
+gsl p_pal.xnf
+</pre>
+<p>Second, the process of turning a PAL script into executable code: </p>
+<pre>
+ .----------------.
+ |  PAL/P script  |         PAL script written as XML files, using
+ |  "example.pal" |         include and other XNF techniques.
+ `----------------'
+         :
++------------------+
+|  PAL/P front-end |        GSL parser, generated from p.asl
+|      parser      |        (see previous diagram).
+| "p_pal_gen.gsl"  |
++------------------+
+         :
+ .----------------.
+ |  Denormalised, |         Data structure held in memory.
+ | validated tree |
+ `----------------'
+         :
++------------------+
+|       stdc       |        GSL code generator, generated from
+|  back-end target |        p.asl (see previous diagram).
+| "p_pal_stdc.gsl" |
++------------------+
+         :
+ .----------------.
+ |  Source code   |         Generated C test program.
+ |  "example.c"   |
+ `----------------'
+</pre>
+<p>To illustrate, these are the commands that would be used to perform the above chain, for a script called "example": </p>
+<pre>
+gsl example.pal
+</pre>
+<p>The resulting test program is compiled and linked as usual. </p>
+
+      <p>
+    </td>
+  </tr height="40">
+    <td width="5" bgcolor="#DDDDDDD">&nbsp;</td>
+    <td valign="bottom" class="footer">iMatix Corporation <amq@imatix.com> - Copyright (c) 2004-2009 iMatix Corporation</td>
+  </tr>
+</body>
+</html>

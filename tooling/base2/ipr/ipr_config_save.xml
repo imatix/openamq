@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<config>
+    <general>
+        <security>
+            <profile
+                name = "default"
+                maxusers = "20"
+                timeout = "100"/>
+            <profile
+                name = "custom"
+                maxusers = "250"
+                timeout = "0"/>
+        </security>
+    </general>
+    <queues>
+        <queue
+            maxusers = "10"
+            overflow = "2000"/>
+        <template
+            name = "non-persistent"
+            maxusers = "250"
+            overflow = "25000"
+            prefill = "1"
+            maxsize = "4000"
+            blocksize = "1000"/>
+        <queue
+            name = "test"
+            maxusers = "10"
+            overflow = "2000"
+            prefill = "0"
+            maxsize = "32000"
+            blocksize = "4000">This is a test queue</queue>
+        <queue
+            name = "prime"
+            template = "non-persistent"/>
+    </queues>
+    <profiles
+        config_meta = "discrete">
+        <profile
+            name = "example">
+            <limit
+                value = "1000"
+                action = "warn"/>
+            <limit
+                value = "10000"
+                action = "trim"/>
+            <limit
+                value = "100000"
+                action = "kill"/>
+        </profile>
+    </profiles>
+</config>

@@ -1,0 +1,421 @@
+#   Asynchronous portal generator
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+#
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+.macro generate_front_end_async
+.if !defined (switches.quiet)
+.   echo "Generating $(class.name)_front.icl..."
+.endif
+.output "$(class.name)_front.icl"
+.###############################   FRONT-END   ###############################
+.#
+<?xml?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<class
+    name     = "$(class.name)_front"
+    comment  = "Portal front-end - async client wrapper"
+    script   = "smt_object_gen"
+    target   = "smt"
+    abstract = "1"
+    >
+
+<inherit class = "smt_object" />
+
+<import class = "$(class.name)" />
+<import class = "ipr_looseref" />
+.for class.import
+<import class = "$(import.class)" />
+.endfor
+
+<context>
+    ipr_looseref_list_t
+        *$(class.name)_list,            //  List of all own portals
+        *$(class.name)_factory_list;    //  List of all own portal factories
+    Bool
+        $(class.name)_stopped;          //  Is this portal stopped?
+</context>
+
+<method name = "new">
+    self->$(class.name)_list = ipr_looseref_list_new ();
+    self->$(class.name)_factory_list = ipr_looseref_list_new ();
+</method>
+
+<method name = "destroy">
+    <action>
+    {
+    $(class.name)_t
+        *$(class.name);                 //  Portal object
+
+    if (icl_atomic_cas32 ((volatile qbyte *) &self->$(class.name)_stopped, TRUE, FALSE) == FALSE) {
+        //  Destroy own portals
+        while (($(class.name) = ($(class.name)_t *) ipr_looseref_pop (self->$(class.name)_list))) {
+            $(class.name)->client_looseref = NULL;
+            $(class.name)_destroy (&$(class.name));
+        }
+        ipr_looseref_list_destroy (&self->$(class.name)_list);
+        //  Destroy own portal factories
+        while (($(class.name) = ($(class.name)_t *) ipr_looseref_pop (self->$(class.name)_factory_list))) {
+            $(class.name)->client_looseref = NULL;
+            $(class.name)_destroy (&$(class.name));
+        }
+        ipr_looseref_list_destroy (&self->$(class.name)_factory_list);
+    }
+    }
+    </action>
+</method>
+
+<method name = "_$(class.name) bind" template = "function">
+    <doc>
+    Binds a $(class.name) portal, ready for use.
+    </doc>
+    <argument name = "$(class.name)" type = "$(class.name)_t *">Portal reference</argument>
+    //
+    $(class.name)->client_object = self;
+    if ($(class.name)->server_object)
+        $(class.name)->client_looseref = ipr_looseref_queue (
+            self->$(class.name)_list, $(class.name)_link ($(class.name)));
+    else                                //  server_object is null for factories
+        $(class.name)->client_looseref = ipr_looseref_queue (
+            self->$(class.name)_factory_list, $(class.name)_link ($(class.name)));
+
+    //  Build virtual function table for client-side methods
+    $(class.name)->client_unbind = self__$(class.name)_unbind_shim;
+.for class->data.response
+    $(class.name)->response_$(name:c) = self_$(name:c)_shim;
+.endfor
+
+    //  Signal that portal is ready for use
+    $(class.name)_ready ($(class.name));
+</method>
+
+<!--
+    The shims provide a way for us to cast void * into a correctly-typed
+    reference that works for passing to async methods, since we cannot make
+    async methods that accept a void pointer.
+ -->
+<method name = "_$(class.name) unbind shim" private = "1">
+    <argument name = "self_v" type = "void *">Self as void pointer</argument>
+    <argument name = "portal" type = "$(class.name)_t *">Portal reference</argument>
+    self__$(class.name)_unbind (($\(selftype) *) self_v, portal);
+</method>
+<method name = "_$(class.name) unbind" template = "async function">
+    <doc>
+    Client-to-portal unbind.
+    </doc>
+    <argument name = "portal" type = "$(class.name)_t *">Portal reference</argument>
+    <action>
+    if (portal->client_looseref) {
+        ipr_looseref_destroy (&portal->client_looseref);
+        $(class.name)_unlink (&portal);
+    }
+    </action>
+</method>
+
+.for class->data.response
+<method name = "$([0].name) shim" private = "1" return = "rc">
+    <argument name = "self_v" type = "void *">Self as void pointer</argument>
+    <argument name = "portal" type = "$(class.name)_t *">Portal back to server</argument>
+.   for field
+    <argument name = "$(field.name)" type = "$(field.type)" />
+.   endfor
+    <declare name = "rc" type = "int" default = "0">Return code</declare>
+    rc = self_$([0].name:c) (($\(selftype) *) self_v, portal\
+.   for field
+, $(field.name:c)\
+.   endfor
+);
+</method>
+<method name = "$([0].name)" async = "1" template = "function">
+    <doc>
+    This is the $(name) incoming response method, which the client class should
+    inherit and provide the body for.  This method is invoked by the portal when
+    the server makes the response; it is a private method and not accessible as
+    part of the normal class API for this object.
+    </doc>
+    <argument name = "portal" type = "$(class.name)_t *">Portal back to server</argument>
+.   for field
+    <argument name = "$(field.name)" type = "$(field.type)" />
+.   endfor
+.   for possess
+    <possess>
+    $(possess.?'')
+    </possess>
+.   endfor
+.   for release
+    <release>
+    $(release.?'')
+    </release>
+.   endfor
+    <action></action>
+</method>
+
+.endfor
+
+<method name = "selftest" />
+
+</class>
+.endmacro
+
+.macro generate_back_end_async
+.if !defined (switches.quiet)
+.   echo "Generating $(class.name)_back.icl..."
+.endif
+.output "$(class.name)_back.icl"
+.###############################   BACK-END   ################################
+.#
+<?xml?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<class
+    name     = "$(class.name)_back"
+    comment  = "Portal back-end - async server wrapper"
+    script   = "smt_object_gen"
+    target   = "smt"
+    abstract = "1"
+    >
+
+<inherit class = "smt_object" />
+<inherit class = "icl_init" />
+
+<import class = "$(class.name)" />
+.for class.import
+<import class = "$(import.class)" />
+.endfor
+
+<private name = "header">
+static ipr_looseref_list_t
+    *s_$(class.name)_list;              //  List of portal factories
+static Bool
+    s_$(class.name)_stopped;            //  Is this portal factory stopped?
+</private>
+
+<context>
+    ipr_looseref_list_t
+        *$(class.name)_list;            //  List of portals
+    Bool
+        $(class.name)_stopped;          //  Is this portal stopped?
+</context>
+
+<method name = "new">
+    self->$(class.name)_list = ipr_looseref_list_new ();
+</method>
+
+<method name = "destroy">
+    <action>
+    {
+    $(class.name)_t
+        *$(class.name);                 //  Portal object
+
+    if (icl_atomic_cas32 ((volatile qbyte *) &self->$(class.name)_stopped, TRUE, FALSE) == FALSE) {
+        while (($(class.name) = ($(class.name)_t *) ipr_looseref_pop (self->$(class.name)_list))) {
+            $(class.name)->server_looseref = NULL;
+            $(class.name)_destroy (&$(class.name));
+        }
+    }
+    ipr_looseref_list_destroy (&self->$(class.name)_list);
+    }
+    </action>
+</method>
+
+<method name = "initialise">
+    s_$(class.name)_list = ipr_looseref_list_new ();
+</method>
+
+<method name = "terminate">
+    <local>
+    $(class.name)_t
+        *$(class.name);                 //  Portal factory object
+    </local>
+    //
+    if (icl_atomic_cas32 ((volatile qbyte *) &s_$(class.name)_stopped, TRUE, FALSE) == FALSE) {
+        while (($(class.name) = ($(class.name)_t *) ipr_looseref_pop (s_$(class.name)_list))) {
+            $(class.name)->server_looseref = NULL;
+            $(class.name)_destroy (&$(class.name));
+        }
+    }
+    ipr_looseref_list_destroy (&s_$(class.name)_list);
+</method>
+
+<method name = "_$(class.name) new" return = "$(class.name)">
+    <doc>
+    Creates and initialises a new portal instance.  If the server argument is
+    null, creates a hidden server object that can only be referenced through
+    the portal.  This is recommended for most purposes.
+    </doc>
+    <argument name = "self_v" type = "void *">Untyped server reference</argument>
+.newargs = ""
+.for class.method where name = "new"
+.   for argument
+.       newargs += ", $(argument.name:c)"
+    <argument name = "$(argument.name)" type = "$(argument.type)" />
+.   endfor
+.endfor
+    <declare name = "$(class.name)" type = "$(class.name)_t *" />
+    <local>
+    $\(selftype)
+        *self;
+    </local>
+    //
+    //  Grab a link to a new or the provided server object
+    if (self_v)
+        self = self_link (($\(selftype) *) self_v);
+    else
+        self = self_new ();
+
+    $(class.name) = $(class.name)_new (self, self__$(class.name)_link, self__$(class.name)_unlink$(newargs));
+    $(class.name)->server_looseref = ipr_looseref_queue (
+        self->$(class.name)_list, $(class.name)_link ($(class.name)));
+
+    //  Build virtual methods for server-side methods
+    $(class.name)->server_unbind = self__$(class.name)_unbind_shim;
+.for class->data.request
+    $(class.name)->request_$(name:c) = self_$(name:c)_shim;
+.endfor
+
+    //  Drop link to server object
+    self_unlink (&self);
+</method>
+
+<method name = "_$(class.name) factory" return = "$(class.name)">
+    <doc>
+    Creates and initialises a new portal factory instance.
+    </doc>
+.newargs = ""
+.for class.method where name = "new"
+.   for argument
+.       newargs += ", $(argument.name:c)"
+    <argument name = "$(argument.name)" type = "$(argument.type)" />
+.   endfor
+.endfor
+    <declare name = "$(class.name)" type = "$(class.name)_t *" />
+    //
+    if (!s_$\(selfname)_active)
+        self_initialise ();             //  Since we don't call $\(selfname)_new
+    $(class.name) = $(class.name)_new (NULL, self__$(class.name)_link, self__$(class.name)_unlink$(newargs));
+    $(class.name)->server_looseref = ipr_looseref_queue (
+        s_$(class.name)_list, $(class.name)_link ($(class.name)));
+
+    //  Build virtual methods for server-side methods
+    $(class.name)->server_new = self__$(class.name)_new;
+</method>
+
+<method name = "_$(class.name) unbind shim" private = "1">
+    <argument name = "self_v" type = "void *">Self as void pointer</argument>
+    <argument name = "portal" type = "$(class.name)_t *">Portal reference</argument>
+    self__$(class.name)_unbind (($\(selftype) *) self_v, portal);
+</method>
+<method name = "_$(class.name) unbind" template = "async function">
+    <doc>
+    Server-to-portal unbind.
+    </doc>
+    <argument name = "portal" type = "$(class.name)_t *">Portal reference</argument>
+    //
+    <action>
+    if (portal->server_looseref) {
+        ipr_looseref_destroy (&portal->server_looseref);
+        $(class.name)_unlink (&portal);
+    }
+    </action>
+</method>
+
+.for class->data.request
+<method name = "$([0].name) shim" private = "1" return = "rc">
+    <argument name = "self_v" type = "void *">Self as void pointer</argument>
+    <argument name = "portal" type = "$(class.name)_t *">Portal back to server</argument>
+.   for field
+    <argument name = "$(field.name)" type = "$(field.type)" />
+.   endfor
+    <declare name = "rc" type = "int" default = "0">Return code</declare>
+    rc = self_$([0].name:c) (($\(selftype) *) self_v, portal\
+.   for field
+, $(field.name:c)\
+.   endfor
+);
+</method>
+<method name = "$([0].name)" async = "1" template = "function">
+    <doc>
+    This is the $(name) incoming request method, which the server class should
+    inherit and provide the body for.  This method is invoked by the portal when
+    the client makes the request; it is a private method and not accessible as
+    part of the normal class API for this object.
+    </doc>
+    <argument name = "portal" type = "$(class.name)_t *">Portal back to client</argument>
+.   for field
+    <argument name = "$(field.name)" type = "$(field.type)" />
+.   endfor
+.   for possess
+    <possess>
+    $(possess.?'')
+    </possess>
+.   endfor
+.   for release
+    <release>
+    $(release.?'')
+    </release>
+.   endfor
+    <action></action>
+</method>
+
+.endfor
+<!-- These two methods provide untyped link/unlink methods that can be
+     called from the portal to work on the server object.
+  -->
+<method name = "_$(class.name) link" return = "object" private = "1">
+    <argument name = "object" type = "void *">Reference cast as a void *</argument>
+    //
+    object = (void *) $\(selfname)_link ((($\(selftype) *) object));
+</method>
+
+<method name = "_$(class.name) unlink" private = "1">
+    <argument name = "object_p" type = "void *">Reference pointer cast as a void *</argument>
+    //
+    $\(selfname)_unlink ((($\(selftype) **) object_p));
+</method>
+
+<method name = "selftest" />
+
+</class>
+.endmacro

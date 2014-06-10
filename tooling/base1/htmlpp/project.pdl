@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<pdl
+    name      = "Htmlpp"
+    acronym   = "htmlpp"
+    version   = "4.3"
+    copyright = "Copyright (c) 1991-2009 iMatix Corporation"
+    workflow  = "scripted.pwl" >
+
+<include filename = "prelude.pdl" />
+<file name = "htmlppver.pl" class = "perl version"    >Project version header</file>
+
+<file name = "htmlpp"       class = "perl/libero"     >Htmlpp Perl script</file>
+<file name = "guru.def"     class = "public resource" >Guru-mode definitions</file>
+<file name = "contents.def" class = "public resource" >Build table of contents</file>
+<file name = "macros.def"   class = "public resource" >Macro definitions</file>
+<file name = "filetype.def" class = "public resource" >Build file types</file>
+<file name = "guru_opt.fmt" class = "public resource" >Guru mode options file</file>   
+<file name = "gurutst.txt"  class = "private resource">Test file for Guru mode</file>   
+<file name = "findfile.pl"  class = "public script"   >Find file on path</file>
+<file name = "sflcvdp.pl"   class = "public script"   >SFL convert date to pictures</file>
+<file name = "sfldate.pl"   class = "public script"   >SFL date functions</file>
+<file name = "shellwd.pl"   class = "public script"   >Shell word handling</file>
+<file name = "textdb.pl"    class = "public script"   >Flat-text database module</file>   
+
+<!-- Documentation, not built
+
+<file name = "htmlpp.txt"   class = "private resource">Documentation source</file>
+<actions when = "after">
+  <generate>
+    <execute command = "perl htmlpp -quiet htmlpp.txt" />
+  </generate>
+</actions>
+<file name = "index.htm"    class = "htmlpp output"   >Generated documentation</file>
+<file name = "index1.htm"   class = "htmlpp output"   >Generated documentation</file>
+<file name = "index2.htm"   class = "htmlpp output"   >Generated documentation</file>
+<file name = "index3.htm"   class = "htmlpp output"   >Generated documentation</file>
+<file name = "index4.htm"   class = "htmlpp output"   >Generated documentation</file>
+<file name = "index5.htm"   class = "htmlpp output"   >Generated documentation</file>
+<file name = "prelude.def"  class = "private resource">Documentation prelude</file>
+<file name = "htmlpp1.gif"  class = "web resource"    >Htmlpp logo</file>
+<file name = "im0096c.gif"  class = "web resource"    >iMatix logo (old)</file>
+<file name = "newstone.gif" class = "web resource"    >Background image</file>
+
+-->
+
+<!-- Template examples -->
+<directory name = "template" >Template for new project
+    <file name = "contents.def"  class = "private resource" >Build table of contents</file>
+    <file name = "filetype.def"  class = "private resource" >Build file types</file>
+    <file name = "prelude.def"   class = "private resource" >Documentation prelude</file>
+    <file name = "template.txt"  class = "private resource" >Template text file</file>
+</directory>
+</pdl>

@@ -1,0 +1,1316 @@
+.#  ----------------------------------------------------------------------------
+.#   iMatix SMT (State Machine Threadlets)
+.#   smt_stdc.gsl - Script to generated ANSI C SMT manager
+.#
+.#   Copyright (c) 1996-2009 iMatix Corporation
+.#
+.#   This program is free software; you can redistribute it and/or modify
+.#   it under the terms of the GNU General Public License as published by
+.#   the Free Software Foundation; either version 2 of the License, or (at
+.#   your option) any later version.
+.#
+.#   This program is distributed in the hope that it will be useful, but
+.#   WITHOUT ANY WARRANTY; without even the implied warranty of
+.#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.#   General Public License for more details.
+.#
+.#   For information on alternative licensing for OEMs, please contact
+.#   iMatix Corporation.
+.#  ----------------------------------------------------------------------------
+
+.function expand (gsl_script)
+    if defined (my.gsl_script)
+        my.result = gsl.exec (my.gsl_script, 1) ?
+        if ! defined (my.result)
+            abort "Error in GSL script:\n$(my.gsl_script)"
+        endif
+    endif
+    return my.result
+.endfunction
+
+.#  ----------------------------  Generate Return  -----------------------------
+
+.macro generate_return (call)
+    if (smt_thread_position_pop (thread) == SMT_EMPTY)
+        _rc = SMT_EMPTY;
+    else
+        _rc = SMT_BREAK;
+.endmacro
+
+.#  -----------------------------  Generate Call  ------------------------------
+
+.macro generate_call (call)
+    thread->module++;
+    smt_thread_position_push (thread);
+    thread->module = 0;
+.
+.#  This stuff generates code to handle the call by working out which thread
+.#  we are in.  If the call is only defined in a single thread, we skip this
+.#  bit.
+.
+.   if count (my.call.callplace) > 1
+.       for my.call.callplace
+.           my.thread = agent->thread (name = callplace.thread)
+.           my.nthread = my.thread.next ("thread") ?
+.           if defined (my.nthread)
+    if (thread->place < $(my.nthread.place))
+.           endif
+        thread->place = $(callplace.place);
+.           if !last (callplace)
+    else
+.           endif
+.       endfor
+.   else
+    thread->place = $(my.call->callplace.place);
+.   endif
+.
+.   if defined (my.call.event)
+    smt_thread_set_next_event (thread, $(my.call.event:c)_event);
+.   endif
+.
+    _rc = SMT_BREAK;
+.
+.endmacro generate_call
+
+.#  -------------------------------  Generate  ---------------------------------
+
+.function generate_argument_list (item)
+    my.shuffle_save = [gsl].shuffle
+    [gsl].shuffle = 1
+    my.result = ""
+    for my.item.argument
+        my.result += "
+    $(type:)              $(name:c)$(!last()??','?)"
+    else
+        my.result = 
+    endfor
+    [gsl].shuffle = my.shuffle_save 
+    return my.result ?
+.endfunction
+
+.#  --------------------------- Message generation -----------------------------
+
+.macro generate_message_send_prototype (message)
+static int
+$(agent.name:c)_$(message.name:c)_send (
+    smt_method_queue_t *_queue,
+    smt_event_t        _event,
+.   for my.message.argument
+    $(type:)       $(name:c)$(last()??');'?',')
+.   endfor
+.endmacro
+
+.macro generate_message_send_function (message)
+static int
+$(agent.name:c)_$(my.message.name:c)_send (
+    smt_method_queue_t *_queue,
+    smt_event_t        _event,
+.           for argument
+    $(type:)       $(name:c)$(last()??')'?',')
+.           endfor argument
+{
+    int
+        rc = 0;
+    $(agent.name:c)_$(my.message.name:c)_t
+        *_message;
+        
+.           for message.possess
+    //  Possess code for $(my.message.name)
+    $(.?'')
+.           endfor
+
+    _message = icl_mem_cache_alloc (s_$(my.message.name:c)_cache);
+.           for argument
+    _message->$(name:c)                 = $(name:c);
+.           endfor argument
+
+    rc = smt_method_send (_queue,           //  The queue
+                          _event,           //  The event
+                          SMT_PRIORITY_$(PRIORITY),
+                          SMT_OK,           //  Always OK
+                          _message,         //  The message
+                          $(agent.name:c)_$(my.message.name:c)_destructor);
+    
+    return rc;
+}
+.endmacro
+
+.macro generate_message_destroy_prototype (message)
+int
+$(agent.name:c)_$(my.message.name:c)_destructor (void *data);
+.endmacro
+
+.macro generate_message_destroy_function (message)
+int
+$(agent.name:c)_$(my.message.name:c)_destructor (void *data)
+{
+    int
+        rc = 0;
+.   for my.message.argument
+$(type:) $(name:c);
+.   endfor
+
+.#      Do assignment in two phases to avoid 'unused variable' warnings.
+.   for my.message.argument
+    $(name:c) = (($(agent.name:c)_$(my.message.name:c)_t *) data)-> $(name:c);
+.   endfor
+
+.   for my.message.release
+$(.?'')
+.   endfor
+
+    icl_mem_free (data);
+    return rc;
+}
+
+.endmacro
+
+.#  ---------------------------- Method generation -----------------------------
+
+.macro generate_method_prototype (method)
+.   my.argument_list = generate_argument_list (my.method) ?
+int
+$(agent.name:c)_$(method.name:c) (
+    smt_thread_t * thread\
+.   if defined (my.argument_list)
+,\
+$(my.argument_list:));
+.   else
+);
+.   endif
+
+.endmacro generate_method_prototype
+
+.macro generate_method_function (method)
+.   my.argument_list = generate_argument_list (my.method) ?
+int
+$(agent.name:c)_$(method.name:c) (
+    smt_thread_t * thread\
+.   if defined (my.argument_list)
+,\
+$(my.argument_list:))
+.   else
+)
+.   endif
+{
+    int
+        rc = 0;
+
+    //  Trying to send to a null of zombied thread returns an error            
+    if (thread && !thread->zombie) {
+        assert (thread->manager == $(agent.name:c)_manager);
+.   if defined (method.message)
+        rc = $(agent.name:c)_$(method.message:c)_send (
+                thread->reply_queue, $(my.method.event:c)_event,
+.       for my.method.argument
+                $(name:c)$(!last()??','?');')
+.       endfor argument
+.   else
+        rc = smt_method_send (
+                thread->reply_queue,
+                $(my.method.event:c)_event,
+                SMT_PRIORITY_$(PRIORITY),
+                SMT_OK, NULL, NULL);
+.   endif
+    }
+    else
+        rc = -1;
+        
+    return rc;
+}
+
+.endmacro generate_method_function
+
+.macro generate_arguments (handler)
+.   my.result = ""
+.   if defined (my.handler->argument)
+.       for my.handler.argument
+.           my.result += "
+    $(type:) $(name:c)$(!last()??','?)"
+.       endfor
+.   else
+.       my.result += "void"
+.   endif
+.   return my.result
+.endmacro
+
+.macro generate_agent (agent)
+.   [gsl].ignorecase = 1
+.   scope my.agent
+.
+.       if !defined (switches.quiet)
+.           echo "Generating $(name:c).h..."
+.       endif
+.       output "$(name:c).h"
+.       selfname = name
+/*---------------------------------------------------------------------------
+    $(name:c).h - prototypes for $(agent.title?name:).
+
+    Generated from $(arg?filename) by $(script) using GSL/4.
+.   if defined (copyright)
+    $(copyright:)
+.    endif
+
+.   $(set_final_license ())_license (" ")
+ *---------------------------------------------------------------------------*/
+
+#if !defined (ICL_IMPORT_HEADERS) || (ICL_IMPORT_HEADERS == 1)
+# ifndef INCLUDE_$(selfname:upper,c)_SAFE
+#   define INCLUDE_$(selfname:upper,c)_SAFE
+#   define INCLUDE_$(selfname:upper,c)_ACTIVE
+#   if !defined (ICL_IMPORT_HEADERS)
+#       define ICL_IMPORT_$(selfname:upper,c)_ROOT
+#       define ICL_IMPORT_HEADERS 1
+#   endif
+
+.   for import
+#   include "$(expand(.class):c).h"
+.   endfor
+.       for public where (name?types) = "include"
+.gsl .?''
+.       endfor
+.       for public where (name?types) = "types"
+.gsl .?''
+.       endfor
+
+#   undef INCLUDE_$(selfname:upper,c)_ACTIVE
+#   if defined (ICL_IMPORT_$(selfname:upper,c)_ROOT)
+#       undef  ICL_IMPORT_HEADERS
+#       define ICL_IMPORT_HEADERS 2
+#   endif
+# endif
+#endif
+
+#if !defined (ICL_IMPORT_HEADERS) || (ICL_IMPORT_HEADERS == 2)
+# ifndef INCLUDE_$(selfname:upper,c)_UNSAFE
+#   define INCLUDE_$(selfname:upper,c)_UNSAFE
+#   define INCLUDE_$(selfname:upper,c)_ACTIVE
+
+.   for import
+#   include "$(expand(.class):c).h"
+.   endfor
+.       for public where (name?types) = "include"
+.gsl .?''
+.       endfor
+.       for message where !defined (->method)
+typedef struct
+  {
+.           for argument
+    $(type:)       $(name:c);
+.           endfor argument
+  }
+$(agent.name:c)_$(message.name:c)_t;
+
+.       endfor
+.
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+.       for method
+.           generate_method_prototype (method)
+.       endfor method
+.       for public where name = "functions"
+.gsl .?''
+.       endfor
+.       my.handler = agent->handler (name = "agent init") ?
+int  $(agent.name:c)_init ($(generate_arguments (my.handler)));
+void $(agent.name:c)_term (void);
+void $(agent.name:c)_animate (Bool animate);
+.
+.       for thread
+.           my.handler = thread->handler (name = "thread new") ?
+smt_thread_t *$(agent.name:c)_$(thread.name:c)_thread_new ($(generate_arguments (my.handler)));
+.       endfor
+
+#ifdef __cplusplus
+}
+#endif
+
+.       for message where ! defined (->method)
+#define $(agent.name:c)_$(message.name:c)_m (($(agent.name:c)_$(message.name:c)_t *) thread->method->data)
+.       endfor message
+
+#   undef INCLUDE_$(selfname:upper,c)_ACTIVE
+#   if defined (ICL_IMPORT_$(selfname:upper,c)_ROOT)
+#       undef  ICL_IMPORT_HEADERS
+#       define ICL_IMPORT_HEADERS 3
+#   endif
+# endif
+#endif
+
+#if !defined (ICL_IMPORT_HEADERS) || (ICL_IMPORT_HEADERS == 3)
+# if !defined (INCLUDE_$(selfname:upper,c)_INLINE)
+#   define INCLUDE_$(selfname:upper,c)_INLINE
+#   define INCLUDE_$(selfname:upper,c)_ACTIVE
+
+.   for import
+#   include "$(expand(.class):c).h"
+.   endfor
+
+#   undef INCLUDE_$(selfname:upper,c)_ACTIVE
+#   if defined (ICL_IMPORT_$(selfname:upper,c)_ROOT)
+#       undef ICL_IMPORT_HEADERS
+#       undef ICL_IMPORT_$(selfname:upper,c)_ROOT
+#   endif
+# endif
+#endif
+.       close
+.
+.       if !defined (switches.quiet)
+.           echo "Generating $(name:c).c..."
+.       endif
+.       output "$(name:c).c"
+/*---------------------------------------------------------------------------
+    $(name:c).c - functions for $(agent.title?name:).
+
+    Generated from $(arg?filename) by $(script) using GSL/4.
+.   if defined (copyright)
+    $(copyright:)
+.    endif
+
+.   $(set_final_license ())_license (" ")
+ *---------------------------------------------------------------------------*/
+
+#include "icl.h"                        //  iCL base classes
+#include "ipr.h"                        //  For iPR classes
+#include "smt.h"                        //  For SMT classes
+#include "$(name:c).h"
+
+.       for thread
+.           for state where defined (0.id)
+#define $(thread.name:c)_$(state.name:c)_state     $(state.id)
+.           endfor state
+
+.       endfor thread
+.
+.       for message where defined (->method)
+#define $(message.name:c)_m (($(agent.name:c)_$(message.name:c)_t *) thread->method->data)
+
+.       endfor message
+.
+enum {
+.       for event
+    $(event.name:c)_event                          = $(event.id),
+.       endfor event
+};
+
+#define laststate                                  $(laststate)
+#define lastevent                                  $(lastevent)
+#define lastplace                                  $(lastplace)
+
+#define $(name:c)_agent_name                       "$(Name:cobol)"
+
+.       for thread
+#define $(name:c)_thread_name                      "$(Name:cobol)"
+.       endfor
+
+.       for thread
+.           for state where defined (0.id)
+#define $(name:c)_state_name                       "$(Name:cobol)"
+.           endfor state
+.       endfor thread
+
+.       for event
+#define $(name:c)_event_name                       "$(Name:cobol)"
+.       endfor event
+
+.       for action where defined (0.final_id) by 0.final_id
+#define $(name:c)_action_name                      "$(Name:cobol)"
+.       endfor action
+
+#define the_next_event                             thread->_next_event
+#define exception_raised                           thread->_exception_raised
+
+.       for message where defined (->method)
+typedef struct
+  {
+.           for argument
+    $(type:)       $(name:c);
+.           endfor argument
+  }
+$(agent.name:c)_$(message.name:c)_t;
+
+.       endfor message
+.
+.       for private where name = "types"
+.gsl .?''
+
+.       endfor
+.
+.       for context
+static icl_cache_t
+    *s_$(context.name:c)_context_cache = NULL;
+
+typedef struct {
+    int
+        links;
+$(context.)
+} $(agent.name:c)_$(context.name:c)_context_t;
+
+.       endfor
+.
+.       for message
+static icl_cache_t
+    *s_$(message.name:c)_cache = NULL;
+.       endfor
+
+.
+static const char *thread_name [] = {
+    "<NULL>",
+.       for thread
+    $(name:c)_thread_name$(!last()??',')
+.       endfor
+};
+
+static const char *state_name [] = {
+    "<NULL>",
+.       for state where defined (0.id)
+    $(name:c)_state_name$(!last()??',')
+.       endfor
+};
+
+static const char *event_name [] = {
+    "<NULL>",
+.       for event
+    $(name:c)_event_name$(!last()??',')
+.       endfor
+};
+
+#if (defined (BASE_ANIMATE) || defined (BASE_ANIMATE_$(agent.name:UPPER,c))   \
+ ||  defined (BASE_TRACE)   || defined (BASE_TRACE_$(agent.name:UPPER,c))     \
+ ||  defined ($(agent.name:UPPER,c)_TRACE))
+static const char *action_name [] = {
+    "<NULL>",
+.       for action where defined (0.final_id) by 0.final_id
+    $(name:c)_action_name$(!last()??',')
+.       endfor
+};
+#endif
+
+#if (defined (BASE_ANIMATE) || defined (BASE_ANIMATE_$(agent.name:UPPER,c)))
+static Bool
+    s_animate = FALSE;
+#endif
+
+.--- Output statistics pointers -----------------------------------------------
+.
+.   for action where defined (0.final_id) by 0.final_id
+.
+#if (defined (BASE_STATS) \
+ ||  defined (BASE_STATS_$(agent.name:UPPER,c)) \
+ ||  defined (BASE_STATS_$(agent.name:UPPER,c)_$(name:UPPER,c)))
+static icl_stats_t *s_$(agent.name:c)_$(name:c)_stats = NULL;
+#endif
+.
+.   endfor
+
+.
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+.
+.       for private where name = "data"
+.gsl .?''
+
+.       endfor
+.
+//  Function prototypes                                                        
+
+static int    $(agent.name:c)_manager         (smt_thread_t **thread);
+static int    $(agent.name:c)_catcher         (smt_thread_t *thread);
+.       for thread
+static int    $(agent.name:c)_$(thread.name:c)_destroy\
+                                              (smt_thread_t *thread);
+.       endfor
+static void   find_thread_state_next_state    (int          *thread_type,
+                                               smt_state_t  *state_id,
+                                               smt_event_t  *event_id,
+                                               smt_state_t  *nextstate_id,
+                                               smt_thread_t *thread);
+static void   report_unrecognised_event_error (smt_thread_t *thread);
+static void   report_state_machine_error      (smt_thread_t *thread);
+
+#if (defined (BASE_ANIMATE) || defined (BASE_ANIMATE_$(agent.name:UPPER,c)))
+static void   animate_start_new_event         (smt_thread_t *thread,
+                                               smt_event_t  saveevent_id);
+static void   animate_action                  (smt_thread_t *thread_id,
+                                               int          action_id);
+static int    find_thread_type                (smt_place_t  place);
+#endif
+#if (defined (BASE_TRACE)   || defined (BASE_TRACE_$(agent.name:UPPER,c))     \
+ ||  defined ($(agent.name:UPPER,c)_TRACE))
+static void   s_dump                          (icl_os_thread_t apr_os_thread,
+                                               apr_time_t      time,
+                                               qbyte           info);
+
+#endif
+
+.       for thread
+.           if defined (thread->handler (name = "before action"))
+static void   $(thread.name:c)_before_action  (smt_thread_t *thread);
+.           endif
+.           if defined (thread->handler (name = "after action"))
+static void   $(thread.name:c)_after_action   (smt_thread_t *thread);
+.           endif
+.       endfor
+.       for action where used ?> 0 & ! defined (action->action)
+static int    action_$(action.name:c)         (smt_thread_t *thread);
+.       endfor
+.       for message
+.           generate_message_send_prototype (message)
+.           generate_message_destroy_prototype (message)
+.       endfor message
+.
+//  Function definitions                                                       
+
+.       for message
+.           generate_message_send_function (message)
+
+.           generate_message_destroy_function (message)
+
+.       endfor message
+.
+.       for method
+.           generate_method_function (method)
+.       endfor method
+.
+.       for private where name = "functions"
+.gsl .?''
+
+.       endfor
+.
+.       my.handler = agent->handler (name = "agent term") ?
+void
+$(agent.name:c)_term (void)
+{
+$(my.handler.?)
+}
+
+.       my.handler = agent->handler (name = "agent init") ?
+int 
+$(agent.name:c)_init ($(generate_arguments (my.handler)))
+{
+    int
+        rc = SMT_OK;                    //  Return code
+
+.       for context
+    s_$(context.name:c)_context_cache = icl_cache_get (sizeof ($(agent.name:c)_$(context.name:c)_context_t));
+.       endfor
+.       for message
+    s_$(name:c)_cache = icl_cache_get (sizeof ($(agent.name:c)_$(message.name:c)_t));
+.       endfor
+
+    //  Initialise basic stuff.
+    smt_initialise ();
+    
+    {
+$(->handler (name = "agent init").?)
+    }
+    icl_system_register (NULL, $(agent.name:c)_term);
+    
+    return rc;
+}
+
+void
+$(agent.name:c)_animate (Bool animate)
+{
+#if (defined (BASE_ANIMATE) || defined (BASE_ANIMATE_$(agent.name:UPPER,c)))
+    s_animate = animate;
+#endif
+}
+
+.       for thread
+.           my.handler = thread->handler (name = "thread new") ?
+smt_thread_t *
+$(agent.name:c)_$(thread.name:c)_thread_new ($(generate_arguments (my.handler)))
+{
+    smt_thread_t
+        *thread;
+
+    thread = smt_thread_new ($(agent.name:c)_manager,
+                             $(agent.name:c)_catcher,
+                             $(agent.name:c)_$(thread.name:c)_destroy);
+                             
+.           if thread.schedule ?= "poll"
+    thread->schedule = SMT_SCHEDULE_POLL;
+.           endif
+
+#if (defined ($(agent.name:UPPER,c)_TRACE))
+    thread->trace = icl_trace_new ($(agent.trace_size?"ICL_TRACE_SIZE"));
+#endif
+
+    if (thread) {
+#if (defined (BASE_ANIMATE) || defined (BASE_ANIMATE_$(agent.name:UPPER,c)))
+        thread->animate = s_animate;
+        if (s_animate)
+            icl_console_print ("%4lu> %-15s/%-15s <Created>",
+                thread->id,
+                "$(agent.name:c)",
+                $(thread.name:c)_thread_name);
+#endif
+
+        thread->place   = $(thread.place);
+.           if defined (thread.context)
+.               if thread.share
+        smt_thread_share (thread, share);
+.               else
+        thread->context = icl_mem_cache_alloc (s_$(thread.context:c)_context_cache);
+        memset (thread->context, 0, sizeof ($(agent.name:c)_$(thread.context:c)_context_t));
+        (($(agent.name:c)_$(thread.context:c)_context_t *) thread->context)->links = 1;
+.               endif
+.           else
+        thread->context = NULL;
+.           endif
+        thread->event_name = event_name;
+{
+.           if defined (thread.context)
+#define tcb (($(agent.name:c)_$(thread.context:c)_context_t *) thread->context)
+.           endif
+$(my.handler.?)
+#undef  tcb
+}
+    }
+    return thread;
+}
+
+
+.       endfor thread
+static int
+$(agent.name:c)_manager (smt_thread_t **thread_p)
+{
+    smt_thread_t
+        *thread = *thread_p;
+        
+    int
+        rc;
+#if (defined (BASE_ANIMATE) || defined (BASE_ANIMATE_$(agent.name:UPPER,c)))
+
+    smt_event_t
+        saveevent_id = SMT_NULL_EVENT;
+#endif
+        
+    assert (thread->manager == $(agent.name:c)_manager);
+                                                 //  Ensure correct manager    
+
+.#  Generate execution interrupt code
+.
+    //  First deal with shutdown request.  These are asynchronous.             
+    if (thread->shutdown_request) {
+        //  Cancel any outstanding requests
+        smt_thread_purge (thread);
+        
+        thread->shutdown_request = FALSE;
+        if (! thread->shutting_down) {
+            thread->shutting_down     = TRUE;
+            thread->signal_raised     = FALSE;
+            thread->_exception_raised = FALSE;
+            thread->_next_event       = shutdown_event;
+            thread->module            = 0;
+        }
+    }
+    
+    //  Convert signal to exception
+    if (thread->signal_raised) {
+        //  Cancel any outstanding requests
+        smt_thread_purge (thread);
+        
+        thread->signal_raised = FALSE;
+        thread->_exception_raised = TRUE;
+        thread->_exception_event  = thread->signal_event;
+    }
+
+    //  Return straight away if there are pending operations.  This can happen
+    //  if a thread gets woken at just the wrong moment.
+    if (thread->monitor
+    ||  thread->pending_count)
+        return SMT_SLEEPING;
+
+    //  Collect method before testing for exception because method may
+    //  provoke an exception.
+    if ((!thread->_exception_raised)
+    &&    thread->module == SMT_TERM_MODULE
+    &&    thread->_next_event == SMT_NULL_EVENT
+    &&    smt_thread_method_accept (thread) == SMT_EMPTY)
+        return SMT_SLEEPING;
+        
+    //  Finally trap exception and convert to a normal event.                  
+    if (thread->_exception_raised) {
+        thread->_exception_raised = FALSE;
+        thread->_next_event       = thread->_exception_event;
+        thread->_exception_event  = SMT_NULL_EVENT;
+        thread->module            = 0;
+    }
+
+.#  Generate state exit code
+.
+    if (thread->module == SMT_TERM_MODULE)
+        switch (thread->place) {
+.       my.place =
+.       for agent.place by nextstate
+.           if ! defined (my.place)
+.               my.place = place
+.           elsif place.nextstate <> my.place.nextstate
+.               if my.place.nextstate = ""     #  Shutdown
+                thread->place = SMT_TERM_PLACE;
+.               else
+                thread->place = $(my.place.nextplace);
+.               endif
+                break;
+.               my.place = place
+.           endif
+            case $(place.id):
+.       endfor
+.       if my.place.nextstate = ""     #  Shutdown
+                thread->place = SMT_TERM_PLACE;
+.       else
+                thread->place = $(my.place.nextplace);
+.       endif
+                break;
+        }    
+    else
+    if (thread->module == 0) {
+.       for agent.thread
+.           my.nextthread = thread.next ("thread") ?
+        if (thread->place == $(thread.place)) { //  $(thread.Name) thread
+            if (!thread->shutting_down) {
+{
+.           if defined (thread.context)
+#define tcb (($(agent.name:c)_$(thread.context:c)_context_t *) thread->context)
+.           endif
+$(->handler (name = "thread init").?)
+#undef  tcb
+}
+            }
+            thread->place = $(thread->state.place);
+            if (thread->_next_event == SMT_NULL_EVENT
+            &&  smt_thread_method_accept (thread) == SMT_EMPTY) {
+                thread->module = SMT_TERM_MODULE;
+                return SMT_SLEEPING;
+            }
+        }
+        else
+.           for state where defined (0.id)
+.               my.nextstate = state.next ("state") ?
+.               my.nextplace = my.nextstate.place ? my.nextthread.place ?
+.               if defined (my.nextplace)
+        if (thread->place < $(my.nextplace))    //  $(state.Name) state
+.               endif
+            thread->place = $(state.place);
+.               if defined (my.nextplace)
+        else
+.               endif
+.           endfor
+.       endfor
+    }
+
+.#  Generate state entry code
+.
+    switch (thread->place) {
+.       for agent.thread
+.           for state where defined (0.id)
+        case $(state.place):            //  $(state.Name:) state                
+{
+.           if defined (thread.context)
+#define tcb (($(agent.name:c)_$(thread.context:c)_context_t *) thread->context)
+.           endif
+$(->handler (name = "before state").?)
+#undef  tcb
+}
+            switch (thread->_next_event) {
+                case SMT_NULL_EVENT:    //  In multi-thread mode, accidental   
+                    break;              //  awakening is possible.             
+.               for state.event
+                case $(event.name:c)_event:
+#if (defined (BASE_TRACE) || defined (BASE_TRACE_$(agent.name:UPPER,c)))
+    icl_trace_record (NULL, s_dump, thread->id * 0x10000 + $(state.id));
+    icl_trace_record (NULL, s_dump, thread->id * 0x10000 + laststate + $(event.id));
+#endif
+#if (defined ($(agent.name:UPPER,c)_TRACE))
+    icl_trace_record (thread->trace, s_dump, thread->id * 0x10000 + $(state.id));
+    icl_trace_record (thread->trace, s_dump, thread->id * 0x10000 + laststate + $(event.id));
+#endif
+                    thread->place = $(event.place); break;
+.               endfor event
+                default:
+.               my.default = state->default ?
+.               if defined (my.default)
+                    thread->place = $(my.default.place);
+.               else
+                    report_unrecognised_event_error (thread);
+                    return SMT_THREAD_ERROR;
+.               endif
+            };
+            if (thread->_next_event != SMT_NULL_EVENT) {
+#if (defined (BASE_ANIMATE) || defined (BASE_ANIMATE_$(agent.name:UPPER,c)))
+                saveevent_id = thread->_next_event;
+#endif
+                thread->_next_event = SMT_NULL_EVENT;
+                thread->module = 1;
+            }
+            break;
+.           endfor state
+.       endfor thread
+    }
+.
+                                  
+#if (defined (BASE_ANIMATE) || defined (BASE_ANIMATE_$(agent.name:UPPER,c)))
+    if (thread->animate && thread->module == 1)
+        animate_start_new_event (thread, saveevent_id);
+#endif
+
+.#  Generate action code
+.
+    switch (thread->place) {
+.       for agent.actionlist
+.           for place
+        case $(place.id):
+.           endfor
+.
+            switch (thread->module) {
+.           for action
+                case $(action.num):
+#if (defined (BASE_TRACE) || defined (BASE_TRACE_$(agent.name:UPPER,c)))
+                    icl_trace_record (
+                        NULL, s_dump, thread->id * 0x10000 + laststate + lastevent + $(agent->action(0.id?=-1.id).final_id));
+#endif
+#if (defined ($(agent.name:UPPER,c)_TRACE))
+                    icl_trace_record (
+                        thread->trace, s_dump, thread->id * 0x10000 + laststate + lastevent + $(agent->action(0.id?=-1.id).final_id));
+#endif
+#if (defined (BASE_ANIMATE) || defined (BASE_ANIMATE_$(agent.name:UPPER,c)))
+                    if (thread->animate)
+                        animate_action (thread, $(agent->action(0.id?=-1.id).final_id));
+#endif
+                    rc = action_$(action.name:c) (thread);
+
+.#   Code to break abruptly after a certain number of actions.                                        
+#if (defined (SMT_ACTION_LIMIT))
+                    if (icl_atomic_dec32 (&smt_actions_remaining) == 0) {
+                        icl_console_print ("BREAKING!!!");
+                        abort ();
+                    }
+#endif
+                    
+                    if (rc == SMT_BREAK) {
+                        rc = SMT_OK;
+                        break;
+                    }
+                    if (rc != SMT_OK)
+                        return rc;
+                    
+                    thread->module++;
+            
+                    if (thread->pending_count
+                    ||  thread->_exception_raised
+                    ||  thread->signal_raised
+                    ||  thread->shutdown_request
+                    ||  smt_break_requested)
+                        break;
+
+.           endfor action
+.
+                case $(lastaction+1):           //  After actions              
+                    thread->module = SMT_TERM_MODULE;
+.           if count (place, nextstate = "")
+.               if count (place, nextstate <> "")
+.                   for actionlist.place where nextstate = ""
+                    $(first()??'if ('?'||  ')thread->place == $(place.id)$(last()??')'?)
+.                   endfor
+                        thread->_next_event = SMT_TERM_EVENT;
+.               else
+                    thread->_next_event = SMT_TERM_EVENT;
+.               endif
+.           endif
+                    break;
+                default:
+                    report_state_machine_error (thread);
+                    return SMT_THREAD_ERROR;
+        }
+        break;
+.       endfor actionlist
+    }
+
+    if (thread->_next_event == SMT_TERM_EVENT) {
+        //  Because we optimise links, we need to grab ourselves one now.
+        thread = smt_thread_link (thread);
+        smt_thread_destroy (thread_p);
+        return SMT_FINISHED;
+    }
+    
+    return SMT_OK;
+}
+
+static int
+$(agent.name:c)_catcher (smt_thread_t *thread)
+{
+.       if defined (->catch)
+.           my.catchother = agent->catch (! defined (catch.error)) ?
+    switch (thread->result) {
+.           if defined (my.catchother)
+        case 0:
+.               my.lastevent = ""
+.           else
+.               my.lastevent =
+.           endif
+.           for catch where  defined (catch.error) \
+                      & (defined (catch.event) | defined (my.catchother)) \
+                     by  event ? ""
+.               if defined (my.lastevent) & event ? "" <> my.lastevent
+.                   if my.lastevent <> ""
+            thread->_exception_event = $(my.lastevent:c)_event; break;
+.                   else
+            return SMT_OK;
+.                   endif
+.               endif
+.               my.lastevent = catch.event ? ""
+        case $(error:):
+.           endfor
+.           if defined (my.lastevent)
+.               if my.lastevent <> ""
+            thread->_exception_event = $(my.lastevent:c)_event; break;
+.               else
+            return SMT_OK;
+.               endif
+.           endif
+        default:
+.           if defined (my.catchother)
+            thread->_exception_event = $(my.catchother.event:c)_event;
+.           else
+            return SMT_OK;
+.           endif
+    }
+    thread->_exception_raised = TRUE;
+    
+.       endif
+    return SMT_OK;
+}
+
+
+.       for thread
+static int    
+$(agent.name:c)_$(thread.name:c)_destroy (smt_thread_t *thread)
+{
+#if (defined (BASE_TRACE) || defined (BASE_TRACE_$(agent.name:UPPER,c)))
+    //  Don't trust thread->os_thread while destroying thread.
+    icl_trace_record (NULL, s_dump, thread->id * 0x10000 + 0);
+#endif
+#if (defined ($(agent.name:UPPER,c)_TRACE))
+    //  Don't trust thread->os_thread while destroying thread.
+    icl_trace_record (thread->trace, s_dump, thread->id * 0x10000 + 0);
+#endif
+#if (defined (BASE_ANIMATE) || defined (BASE_ANIMATE_$(agent.name:UPPER,c)))
+    if (thread->animate)
+        icl_console_print ("%4lu> %-15s/%-15s <Destroyed>",
+                  thread->id,
+                  "$(agent.name:c)",
+                 $(thread.name:c)_thread_name);
+
+#endif
+.
+.           if defined (->handler (name = "thread destroy").)
+{
+.               if defined (thread.context)
+#define tcb (($(agent.name:c)_$(thread.context:c)_context_t *) thread->context)
+.               endif
+$(->handler (name = "thread destroy").?)
+#undef  tcb
+}
+.           endif
+.           if defined (thread.context)
+    if (--(($(agent.name:c)_$(thread.context:c)_context_t *) thread->context)->links == 0)
+        icl_mem_free (thread->context);
+.           endif
+    return 0;
+}
+
+
+.       endfor
+.
+static void
+find_thread_state_next_state (
+    int             *thread_type,
+    smt_state_t     *state_id,
+    smt_event_t     *event_id,
+    smt_state_t     *nextstate_id,
+    smt_thread_t    *thread)
+{
+    *thread_type  = 0;
+    *state_id     = 0;
+    *event_id     = 0;
+    *nextstate_id = 0;
+    
+.       for agent.thread
+.           my.nthread = thread.next ("thread") ?
+.           if item () > 1
+    else
+.           endif
+.           if defined (my.nthread)
+    if (thread->place < $(my.nthread.place))
+.           endif
+      {
+        *thread_type = $(thread.id);
+.           for state where defined (0.id) by 0.place
+.               my.nstate = state.next ("state") ?
+.               if item () > 1
+        else
+.               endif
+.               if defined (my.nstate)
+        if (thread->place < $(my.nstate.place))
+.               endif
+          {
+            *state_id = $(state.id);
+            switch (thread->place) {
+.               for state.event
+                case $(event.place): *event_id = $(event.id); \
+.                   if event.nextstate ?<> ""
+                                     *nextstate_id = $(agent->state (0.name = nextstate).id); \
+.                   endif
+                                     break;
+.               endfor event
+.               my.default = state->default ?
+.               if defined (my.default)
+                default:
+.                   if my.default.nextstate ?<> ""
+                                     *nextstate_id = $(agent->state (0.name = my.default.nextstate).id); \
+.                   endif
+                                     break;
+.               endif
+            }
+          }
+.           endfor state          
+      }
+.       endfor thread
+}
+
+//  Action functions                                                           
+
+.       for thread
+.           if defined (thread->handler (name = "before action"))
+static void
+$(thread.name:c)_before_action (smt_thread_t *thread)
+{
+#define tcb (($(agent.name:c)_$(thread.context:c)_context_t *) thread->context)
+$(my.thread->handler (name = "before action").?)
+#undef  tcb
+}
+
+.           endif
+.           if defined (thread->handler (name = "after action"))
+static void
+$(thread.name:c)_after_action (smt_thread_t *thread)
+{
+#define tcb (($(agent.name:c)_$(thread.context:c)_context_t *) thread->context)
+$(my.thread->handler (name = "after action").?)
+#undef  tcb
+}
+
+.           endif
+.       endfor
+
+static void
+report_unrecognised_event_error (smt_thread_t *thread)
+{
+    int
+        thread_type;
+    smt_state_t
+        state_id;
+    smt_event_t
+        event_id;
+    smt_state_t
+        nextstate_id;
+    char
+        num_buffer[8],
+        *event_name_or_number;
+        
+    find_thread_state_next_state (&thread_type,
+                                  &state_id,
+                                  &event_id,
+                                  &nextstate_id,
+                                  thread);
+    if (thread->_next_event >= 0
+    &&  thread->_next_event <  tblsize (event_name))
+        event_name_or_number = (char *) event_name[thread->_next_event];
+    else {
+        apr_snprintf (num_buffer, sizeof (num_buffer), "%u", (unsigned) thread->_next_event);
+        event_name_or_number = num_buffer;
+    }
+    icl_console_print ("$(agent.name): Unrecognised event '%s' in '%s' thread number: %u, state: %s",
+                       event_name_or_number,
+                       thread_name [thread_type],
+                       thread->id,
+                       state_name  [state_id]);
+    abort ();
+}
+
+static void
+report_state_machine_error (smt_thread_t *thread)
+{
+    int
+        thread_type;
+    smt_state_t
+        state_id;
+    smt_event_t
+        event_id;
+    smt_state_t
+        nextstate_id;
+        
+    find_thread_state_next_state (&thread_type,
+                                  &state_id,
+                                  &event_id,
+                                  &nextstate_id,
+                                  thread);
+    icl_console_print ("State machine error: Event: %s Thread: %s, state: %s",
+              event_name  [event_id],
+              thread_name [thread_type],
+              state_name  [state_id]);
+}
+
+#if (defined (BASE_ANIMATE) || defined (BASE_ANIMATE_$(agent.name:UPPER,c)))
+
+static void
+animate_start_new_event (smt_thread_t *thread, smt_event_t saveevent_id)
+{
+    int
+        thread_type;
+    smt_state_t
+        state_id;
+    smt_event_t
+        event_id;
+    smt_state_t
+        nextstate_id;
+        
+    find_thread_state_next_state (&thread_type,
+                                  &state_id,
+                                  &event_id,
+                                  &nextstate_id,
+                                  thread);
+                                  
+  icl_console_print ("%4lu> %-15s/%-15s %s:",
+            thread->id,
+            "$(agent.name:c)",
+            thread_name [thread_type],
+            state_name [state_id]);
+  icl_console_print ("%4lu> %-15s/%-15s    (--) %-32s->%s",
+            thread->id,
+            "$(agent.name:c)",
+            thread_name [thread_type],
+            event_name [event_id != SMT_NULL_EVENT ? event_id : saveevent_id],
+            nextstate_id ? state_name [nextstate_id] : "");
+}
+
+static void
+animate_action (smt_thread_t *thread, int action_id)
+{
+    icl_console_print ("%4lu> %-15s/%-15s           + %s",
+              thread->id,
+              "$(agent.name:c)",
+              thread_name [find_thread_type (thread->place)],
+              action_name [action_id]);
+}
+
+static int
+find_thread_type (smt_place_t place)
+{
+    int
+        thread_type = 0;
+        
+.       for agent.thread
+.           my.nthread = thread.next ("thread") ?
+.           if item () > 1
+    else
+.           endif
+.           if defined (my.nthread)
+    if (place < $(my.nthread.place))
+.           endif
+        thread_type = $(thread.id);
+.       endfor        
+    return thread_type;
+}
+
+#endif
+#if (defined (BASE_TRACE) || defined (BASE_TRACE_$(agent.name:UPPER,c))       \
+ ||  defined ($(agent.name:UPPER,c)_TRACE))
+static void s_dump (
+    icl_os_thread_t thread,
+    apr_time_t      time,
+    qbyte           info)
+{
+    smt_thread_id_t
+        thread_id = info / 0x10000;
+    smt_place_t
+        state_or_event_or_action = info % 0x10000;
+    int
+        action_id;
+    smt_event_t
+        event_id;
+    smt_state_t
+        state_id;
+        
+    if (state_or_event_or_action > laststate + lastevent) {
+        action_id = state_or_event_or_action - laststate - lastevent;
+        icl_console_print_thread_time (thread, time,
+                                       "%4lu> %-15s           + %s",
+                                       thread_id,
+                                       "$(agent.name:c)",
+                                       action_name [action_id]);
+    }
+    else
+    if (state_or_event_or_action > laststate) {
+        event_id = state_or_event_or_action - laststate;
+        icl_console_print_thread_time (thread, time,
+                                       "%4lu> %-15s    (--) %-32s",
+                                       thread_id,
+                                       "$(agent.name:c)",
+                                       event_name [event_id]);
+    }
+    else {
+        state_id = state_or_event_or_action;
+        icl_console_print_thread_time (thread, time,
+                                       "%4lu> %-15s %s:",
+                                       thread_id,
+                                       "$(agent.name:c)",
+                                       state_id ? state_name [state_id] : "<Destroyed>");
+    }
+}
+
+#endif
+.
+.       for action where used ?> 0 & ! defined (action->action)
+static int
+action_$(action.name:c) (smt_thread_t *thread)
+{
+    int
+        _rc = SMT_OK;
+
+#if (defined (BASE_STATS) \
+ ||  defined (BASE_STATS_$(agent.name:UPPER,c)) \
+ ||  defined (BASE_STATS_$(agent.name:UPPER,c)_$(name:UPPER,c)))
+    icl_stats_inc ("$(agent.name:c)_$(name:c)", &s_$(agent.name:c)_$(name:c)_stats);
+#endif        
+.   for action. as verb
+.       if name() ?= "call"
+.           generate_call (verb)
+.       elsif name() ?= "return"
+.           generate_return (verb)
+.       elsif ! defined (name ())
+.#  Define context block but only if this action has a single context.
+.           if action.context <> ""
+#define tcb (($(agent.name:c)_$(action.context:c)_context_t *) thread->context)
+.           endif
+{
+$(.?'')
+}
+.           if action.context <> ""
+#undef  tcb
+.           endif
+.       endif
+.   endfor
+    return _rc;
+}
+
+.       endfor
+.       close
+.   endscope
+.endmacro

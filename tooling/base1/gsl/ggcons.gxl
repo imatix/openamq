@@ -1,0 +1,139 @@
+<?xml?>
+<!--
+    GSL/console - Console i/o functions
+
+    Provides GSL applications with the ability to read and write to
+    the console.  The application must be running in a foreground
+    process for this to work.
+
+    Copyright (c) 1991-2009 iMatix Corporation
+
+    ------------------ GPL Licensed Source Code ------------------
+    iMatix makes this software available under the GNU General
+    Public License (GPL) license for open source projects.  For
+    details of the GPL license please see www.gnu.org or read the
+    file license.gpl provided in this package.
+
+    This program is free software; you can redistribute it and/or             
+    modify it under the terms of the GNU General Public License as            
+    published by the Free Software Foundation; either version 2 of            
+    the License, or (at your option) any later version.                       
+                                                                              
+    This program is distributed in the hope that it will be useful,           
+    but WITHOUT ANY WARRANTY; without even the implied warranty of            
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             
+    GNU General Public License for more details.                               
+                                                                               
+    You should have received a copy of the GNU General Public                  
+    License along with this program in the file 'license.gpl'; if             
+    not, write to the Free Software Foundation, Inc., 59 Temple               
+    Place - Suite 330, Boston, MA 02111-1307, USA.                            
+                                                                              
+    You can also license this software under iMatix's General Terms           
+    of Business (GTB) for commercial projects.  If you have not               
+    explicitly licensed this software under the iMatix GTB you may            
+    only use it under the terms of the GNU General Public License.            
+                                                                              
+    For more information, send an email to info@imatix.com.                   
+    --------------------------------------------------------------            
+ -->
+    
+<gxl script = "ggobjt.gsl" filename = "ggcons" title = "GSL/console package" >
+
+<extra>
+#define GSLCONS_VERSION       "GSL/CONSOLE/1.0"
+
+#define STRING_VALUE(arg,default)   (arg? string_value (&arg-> value): default)
+#define NUMBER_VALUE(arg,default)   (arg? number_value (&arg-> value): default)
+
+#define RETURN_STATUS(status) \
+    { \
+    result-> value.type = TYPE_NUMBER;\
+    result-> value.n    = (status);\
+    return (0); \
+    }
+</extra>
+
+
+<object name = "console" title = "Console i/o" >
+
+<!-------------------------------------------------------------------------
+    console.version (type)
+
+    Returns version information.  Use the type argument as follows:
+        "obj"   Returns the version number of the GSL/console interface
+    If the type argument is ommitted, the default is "obj".
+ -------------------------------------------------------------------------->
+
+<function name = "version" >
+  <parameter name = "type"   pass = "value"  />
+<body>
+{
+    char
+        *my_type,
+        *version;
+        
+    my_type = STRING_VALUE (type, "obj");
+    if (streq (my_type, "obj")) {
+        version = GSLCONS_VERSION;
+    }
+    else
+        version = "(illegal type argument)";    
+
+    result-> value.type = TYPE_STRING;
+    result-> value.s    = mem_strdup (version);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    console.put (text)
+
+    Writes the specified text to the console, regardless of the current
+    state of GSL's output stream.  The text is output with a newline.
+ -------------------------------------------------------------------------->
+
+<function name = "put" >
+  <parameter name = "text"   pass = "value"  compulsory = "1" />
+<body>
+{
+    fprintf (stderr, STRING_VALUE (text, ""));
+    fprintf (stderr, "\n");
+    fflush  (stderr);
+    RETURN_STATUS (0);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    console.get ([prompt])
+
+    Reads a line of text from the console.  If you specify a prompt, this
+    text is written to the console first, without a newline.  Returns the
+    text read.
+ -------------------------------------------------------------------------->
+
+<function name = "get" >
+  <parameter name = "prompt"  pass = "value"  />
+<body>
+{
+    static char
+        buffer [2048 + 1];
+        
+    printf (STRING_VALUE (prompt, ""));
+    fflush (stderr);
+    fgets (buffer, 1024, stdin);
+
+    buffer [strlen (buffer) - 1] = '\0';
+    result-> value.type = TYPE_STRING;
+    result-> value.s    = mem_strdup (buffer);
+    return (0);
+}
+</body>
+</function>
+</object>
+
+</gxl>
+

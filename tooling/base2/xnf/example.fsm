@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<fsm
+    name   = "example"
+    script = "fsm_gen.gsl"
+    target = "stdc"
+    >
+
+<state name = "initial">
+    <event name = "ok" nextstate = "processing">
+        <action name = "initialise" />
+        <action name = "process data" />
+    </event>
+</state>
+
+<state name = "processing">
+    <event name = "more">
+        <action name = "process data" />
+        <call state = "sub state 1" event = "process" />
+    </event>
+    <event name = "done" nextstate = "">
+        <action name = "signal finished" />
+    </event>
+</state>
+
+<state name = "sub state 1">
+    <event name = "process" >
+        <return />
+    </event>
+</state>
+
+<state name = "defaults">
+    <event name = "exception" nextstate = "">
+        <action name = "signal error" />
+    </event>
+</state>
+
+<action name = "initialise">
+    the_next_event = ok_event;
+</action>
+
+</fsm>

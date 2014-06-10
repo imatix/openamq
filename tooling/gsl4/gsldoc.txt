@@ -1,0 +1,2011 @@
+The Generator Script Language
+*****************************
+
+Author:
+  iMatix Corporation <tools@imatix.com>
+Revised:
+  2004/09/20
+
+Introduction
+************
+
+What is GSL?
+
+- Generator Script Language (GSL) is a simple and powerful scripting
+  language designed to facilitate code generation based on data from a
+  wide variety sources.
+- GSL can run either as a stand-alone tool or be integrated into an
+  application.
+
+What can GSL do?
+
+- GSL is a general-purpose file generator.
+- GSL is a powerful tool for creating and transforming XML.
+- GSL is a reporting tool.
+- GSL is a web scripting language (integrated into the Xitami
+  web server).
+- GSL is a server scripting language.
+
+The Legal Stuff
+===============
+
+Please read this section before anything else. You may have downloaded
+this as "free software", but there are some very specific strings
+attached.  You do not have to accept these conditions, in which case
+you should remove GSL and Base from your system.
+
+Copyright and Licensing
+-----------------------
+
+GSL is part of the iMatix "Base" technology toolkit. Base is the property
+of iMatix Corporation, a company registered in Brussels, Belgium. iMatix
+provides Base under a dual-licensing scheme: GPL (the GNU General
+Public License) and/or an iMatix commercial license falling under our
+General Terms of Business (GTB). The GPL license ensures that the
+Base source code is freely available today and forever to all
+software developers, whatever the future disposition of iMatix. The GPL
+license establishes the rights of software developers to access and use
+Base freely, under a set of conditions including one key condition:
+any work derived from the GPL-licensed Base source code must itself
+be covered by the GPL.
+
+However, we also provide Base under an iMatix commercial license
+falling under our General Terms of Business. This GTB license - which is
+negotiable and changes over time - lets you use Base as commercial
+source code, which is what it is.  You would be able to take the
+commercially-licensed source code and use it in commercial products sold
+under arbitrary (non-GPL) licenses.
+
+In this way, Base is really aimed at two groups of customers. One:
+free software developers who use the GPL for their work. Two: paying
+customers who are ready to help us finance development of Base. If
+you fall into the third group (commercial software developers who are
+looking for source code to steal) you will just have to delete this
+package from your hard drive and go back to your keyboard. Base is
+most categorically not public-domain software. You may not take our
+GPL-licensed source code and turn it into commercial products sold under
+a non-GPL license. That would be theft of our intellectual property, and
+we would sue.
+
+Base includes a number of open source packages which are _not_ our
+property and which are provided under their original licenses.  If you
+use these in commercial closed-source products you will have to refer to
+the original license in each case.
+
+Contributions
+-------------
+
+We welcome patches, contributions, and so on. However, if you make
+changes to our sources, and you want these changes included in the
+'official' version, you will have to:
+
+1. Transfer the copyright of this work to us.
+2. Accept that we may rewrite your changes in any way we see fit.
+3. Do not complain if this takes months or even years.
+
+This is not a complex procedure: a simple email agreeing to these
+conditions is enough for us. If you do significant improvements to our
+packages, we are willing to pay for the work. If you are really good, we
+may even offer you a job. But at the end of the day, every line of code
+in our projects must belong to us, or we cannot apply our dual-licensing
+model.
+
+This is our condition for making Base available as open source. We
+think it's more than fair, but hey: if you don't agree, you are free to
+take the package and make your own version. This is what the GPL is all
+about. Long live Richard Stallman.
+
+The 5-minute Presentation
+=========================
+
+Your World
+----------
+
+You are an applications programmer.  You are rigorous in keeping
+implementation decisions separate from design specifications.  Now you
+have a large collection of files describing your application, some of them
+general (eg data file format descriptions), some of them ad hoc (eg lists
+of modules to include when building various versions of the application).
+Changes that
+occur continually to both the application description and the implementation
+technology force modifications to both the content and format of these files.
+In the midst of this
+flux you need to be able to generate at any time your entire application:
+source files, documentation, reports and so on.
+
+Your Nightmare
+--------------
+You spend most of your working day modifying your application building
+procedures in order to accommodate the latest changes mandated by your
+client or imposed by your supplier of technology.
+
+Your Dream
+----------
+Imagine being able to assemble data from a wide variety of sources
+(eg XML files, flat files, databases, sockets), format
+it using an intuitive yet powerful scripting language and output it to
+an equally wide variety of destinations.  You can thus build your source
+code, documentation, databases, send and receive emails and pretty much
+anything you want.
+
+Becomes Reality
+---------------
+By using GSL, you can accomplish all this and much more.  Use GSL as a
+reporting tool and writing complicated reports will no longer feel like
+fitting a square block into a round hole.  Use GSL to prototype a server
+and you will write simple services in minutes instead of hours.  Integrate
+GSL into any application written using the iMatix SMT (Simple
+Multi-Threading) kernel and you will have a scripting language to control
+the appliction.
+
+Don't Believe Us
+----------------
+This is what others have written about earlier versions of GSL:
+
+???
+
+
+GSL Questions
+*************
+
+What do I need to know before I start?
+--------------------------------------
+
+To use GSL, you should be comfortable with the basic concepts of the
+Extensible Markup Language (XML).  However, GSL does not use DTDs,
+stylesheets, or the other many layers that can render XML complex to use.
+When you use GSL, XML can be as simple as `<hello>world</hello>'.
+
+Installing GSL
+--------------
+
+GSL is provided as a ready-to-run executable for Windows (95/98 and NT),
+OS/2 (requires EMX), and Linux.  For other platforms you can rebuild GSL
+from the source files... ???
+
+Let's Get Started
+*****************
+
+Getting Started
+---------------
+
+How do I use GSL?
+
+- If you have a GSL file entitled test.gsl, the simplest way to
+  invoke GSL is
+
+    gsl test
+
+- You may also invoke GSL on an XML file.  In this case the name of the
+  GSL script must be specified either by the attribute 'script' of the
+  top-level XML item, or in the command line:
+
+    gsl -script:xxxxxxx.gsl test.xml
+
+A Hello World Example
+---------------------
+
+Try a `hello world' test:
+
+Create a file called `hello.gsl':
+
+    echo "hello world"
+
+Run this by typing `gsl hello'.  This shows a trivial GSL script running
+without any XML data.  The script does some work, and ends.  Let's look at
+how we process an XML data file.
+
+Create a file called `hello.xml':
+
+    <HWML>
+    <WORLD NAME="World">
+        <HELLO NAME="Hello" />
+    </WORLD>
+    </HWML>
+
+Change `hello.gsl' (we now use a dot in the first column):
+
+    .for world
+    .  for hello
+    .    echo "$(name) $(world.name)"
+    .  endfor
+    .endfor
+
+Then, run GSL:
+
+    gsl -script:hello.gsl hello.xml
+
+A More Complex Example
+----------------------
+
+This is a script which generates a simple DOS batch file to install
+programs by copying them into various directories. It's something you
+might want to generate for specific projects:
+
+    .-
+    .- install.gsl   Generates install script from install.xml
+    .-
+    .output "install.bat"
+    @echo off
+    rem generated by GSL from $(filename), $(script)
+    .for file
+    .  if    type = "binary"
+    echo $(name:) -- \\usr\\bin
+    copy $(name:) \\usr\\bin >nul
+    .  elsif type = "script"
+    echo $(name:) -- \\usr\\lib
+    copy $(name:) \\usr\\lib >nul
+    .  elsif type = "doc"
+    echo $(name:) -- \\usr\\doc
+    copy $(name:) \\usr\\doc >nul
+    .  endif
+    copy $(name:) install >nul
+    .endfor
+
+The input is an XML file like this:
+
+    <?xml version="1.0"?>
+    <INSTALL script="install.gsl">
+    <FILE name="GSL.exe"  type="binary" />
+    <FILE name="GSL.htm"  type="doc"    />
+    <FILE name="install.gsl" type="script" />
+    <FILE name="hello.gsl"   type="script" />
+    </INSTALL>
+
+We run GSL to process the XML file:
+
+    gsl install.xml
+
+This is the result:
+
+    @echo off
+    rem generated by GSL from install.xml, install.gsl
+    echo GSL.exe -- \usr\bin
+    copy GSL.exe \usr\bin >nul
+    copy GSL.exe install >nul
+    echo GSL.htm -- \usr\doc
+    copy GSL.htm \usr\doc >nul
+    copy GSL.htm install >nul
+    echo install.gsl -- \usr\lib
+    copy install.gsl \usr\lib >nul
+    copy install.gsl install >nul
+    echo hello.gsl -- \usr\lib
+    copy hello.gsl \usr\lib >nul
+    copy hello.gsl install >nul
+
+What's Going On?
+----------------
+
+The scripts hello.gsl and install.gsl contain lines with a point (`.')
+in the first column.  These are called script lines and contain
+instructions to be interpreted.  The script install.gsl also contains
+lines which do not begin with a point.  These are called template
+lines and contain text to be output when the line is interpreted.
+They may also contain substitution symbols which look like the text
+`$(name)'.  Notice that each occurrence of the backslash character is
+repeated in the script, but not in the output file.  This is because
+GSL, like many programs, uses the backslash to introduce a special
+character, and two backslashes are required to output one backslash.
+
+The `for' instruction requires some explanation; it is the way to
+iterate through XML data.  This is somewhat redundant in the case of
+`hello.gsl' since there is only one instance of the XML items `WORLD'
+and `HELLO'.  The `for' instruction makes available the attributes of
+the XML item of the same name.  Thus the attributes `name' and `type'
+of the items  named `FILE' in `install.xml' can be used in the lines
+between the `for' and corresponding `endfor'.  Notice that in the
+first example, the items `WORLD' and `HELLO' both contain an attribute
+`NAME' which the script accesses independently by specifying
+`$(world.name)' or `$(name)'.  It could also use `$(hello.name)' in
+the second case; if the attribute name appears alone then GSL
+searches for an attribute with that name in all open XML items
+beginning with the most recently opened.
+
+Another Complex Example
+-----------------------
+
+Try this command:
+
+    GSL -script:xmlfile.gsl spfper.dbm
+
+This generates a C function, spfper.c, which handles a data table (in this
+case a list of persons) as an XML file, with functions to read, save, and
+update data in this table.  This is a good example of a complex GSL script,
+and one that is used in real life to handle data objects in iMatix Studio.
+
+Command-line Syntax
+-------------------
+
+To run GSL, use the following syntax
+    gsl -<option> ... -<attr>[:<value>] ... filename ...
+
+If the filename has no extension, GSL tries to find an XML file with
+that name, or with the extension `.xml' (recognised by the <?xml... tag on
+the first line).  If it finds no XML file it tries to find a file with
+that name or the extension `.gsl', which it interprets as a GSL file.
+
+Options currently recognised by GSL are:
+
+q, quiet:
+    Suppresses copyright and other messages from GSL.
+
+Command-line attributes are loaded with an XML file and are available to
+a script.  This allows paramaters to be passed from the command line to the
+script.  The attribute script can be set to the name of a GSL file to be
+interpreted.
+
+If GSL found an XML file, it loads it, then looks for an attribute named
+script of the top-level item.  This name is used to find a GSL script to
+interpret.  If GSL found a GSL file, it begins interpreting it without
+loading an XML file.
+
+The Generator Script Language (GSL) 
+***********************************
+
+Description
+===========
+
+GSL is a scripting language developed by iMatix Corporation. It was first
+designed as a schema language for code generation, grew into a
+powerful tool for manipulating XML data, and is now able to treat data from
+a variety of sources including XML, sockets, file systems and relational
+databases.
+
+GSL is related to a reporting language such as is used to
+generate reports from a relational database, in that it provides a mechanism
+for iterating through the data, performing calculations and outputing text
+based on the data. Unlike a reporting language it can also manipulate, create,
+load and save data.
+
+Many GSL concepts are borrowed directly from database terminology, to which
+it is closely related.
+
+Important Concepts
+==================
+
+Scalar Data Types
+-----------------
+
+GSL recognises two scalar data types: numeric and string.  It generally makes
+no formal distinction between them; if a value looks numeric then it
+is treated as such, otherwise it is treated as a string.  If strict typing
+is required, the type conversion functions `conv.number' and `conv.string'
+can be used.
+
+Structured Data Types
+---------------------
+
+GSL also understands structured data types.  Structured data types are
+modelled on XML; they have a name, attributes and children.  Attributes and 
+children may be of a scalar type or (unlike XML) a structured type.
+An attribute effectively represents a 1:1 link while children represent
+1:n links.
+
+Structured data types are used to represent underlying data, and the
+attributes and children are based on their structure.  The archetypal case
+is XML data; its particularities mean that children are also XML items,
+attributes may only have scalar values while both children and attributes
+may have any name.
+
+Constants
+---------
+
+Constants express a constant value of one of the two scalar types.
+A string constant is specified with either single- or double-quotes as
+delimiters, for example: "ABC".   String constants may continue over
+several source lines.  The line break is considered part of the string
+constant, unless the last character in the line is a single backslash
+(`\') in which case neither the backslash nor the line break is part
+of the string.  A numeric constant is a simple number with an optional
+sign and optional decimal characters, for example 123 and -0.3.
+
+Scopes
+------
+
+According to The Free On-line Dictionary of Computing, © 1993-2004 Denis Howe:
+
+The scope of an identifier is the region of a program source within
+which it represents a certain thing. This usually extends from the place
+where it is declared to the end of the smallest enclosing block
+(begin/end or procedure/function body). An inner block may contain a
+redeclaration of the same identifier in which case the scope of the
+outer declaration does not include (is "shadowed" or "occluded" by) the
+scope of the inner.
+
+GSL extends this usage so that a scope also has an alias, or name.  When we
+refer to a scope, we generally do so by its alias rather than by the region
+in the script where it is defined.
+
+All data access in GSL begins with a scope; that is, there is no such thing as
+data unrelated to a GSL scope.  Note that it is not always necessary to 
+explicitly specify the scope (see Referencing Scopes below).
+
+A scope defines a mapping from GSL data
+space onto the underlying data structures.  Its name is typically the same
+as the name of its underlying structure; the principal reason for using a
+different alias is to differentiate two data structures with the same name.
+
+Scopes are opened (created) and closed (terminated) by matching pairs of GSL
+instructions: for/endfor, new/endnew and scope/endscope.  These instructions
+must be nested; that is they may not overlap.  At any point in the script there
+is therefore a series of open scopes, ranging from outer (opened earlier)
+to inner (opened more recently).
+
+In addition, GSL predefines a number of scopes; these are considered to have
+been opened before any scopes opened by the script.
+
+Referencing Scopes
+------------------
+
+In general, scopes may be referred to in a variety of ways: by alias,
+by number or implicitly.  When referring to a scope by its alias name,
+open scopes are searched,
+from innermost to outermost, for a scope with the specified name.  If there
+is more than one scope with the same name, only the innermost can be
+referred to by name.  In addition, scopes may be declared with no alias, in
+which case they cannot be referred to by name.
+
+When referring to a scope by number, 1 refers to the outermost scope, 2 to
+the second outermost scope and so on.   Alternatively 0 refers to the
+innermost scope (this is very useful), -1 refers to the second innermost
+scope and so on.  In fact the situation is slightly more complicated than this.
+Scopes may be declared as 'unstacked', meaning that they do not appear in
+the sequence of numbers, either positive or negative.
+  
+A unstacked scope with no alias could not be referred to at all and is thus
+disallowed.
+
+A scope may be recast with a new alias, stacked or unstacked, with the
+`.scope' instruction.
+
+Predefined Scopes
+-----------------
+
+Before processing a script, GSL defines several scopes.  These need to
+be taken into account when referring to a scope with a positive number.
+
+The first predefined scope is called `global' and can be used to hold 
+global data.  Its
+underlying data structure is a symbol table; it may have attributes with any
+name and any type (scalar or structured), but no children.
+
+The second predefined scope is called 'gsl' and holds GSL internal data.
+
+NB At the current moment there is a namespace clash between the scope
+'gsl' and the instruction 'gsl'.  This can be avoided by the use of square
+brackets [gsl] to reference the scope.  The problem will disappear when the
+gsl instruction is deprecated.
+
+The third predefined scope is called 'class' and holds the classes registered
+with GSL.  These are typically: file, string, env, conv, math, sock, thread,
+xml, time, regexp, proc and diag.  They should be documented below.
+
+The fourth predefined scope is called 'root'.  It refers to an XML item also
+called 'root', which is typically used as a parent for all other XML 
+structures.
+
+The fifth and final predefined scope is the top-level XML item from the XML
+source file, if one was specified.
+
+Data Specifiers
+===============
+
+A data specifier is the means by which you access an item of data.  GSL
+provides a variety of ways to access a particular piece of data.
+
+Scopes
+------
+
+As mentioned above, all data begins with a scope.  The underlying data of a
+scope may be accessed by simply referencing the scope.  For example
+
+    global.foo = root
+    
+assigns the XML structure referred to by the scope 'root' to the attribute
+'foo' of the scope 'global'.  Recall that the underlying data of this scope
+is a symbol table whose attributes can hold structured data.
+
+Attributes
+----------
+
+Attributes are referenced by the use of the period ('.')  For instance to
+display the value of the attribute 'name' of the XML structure referred to
+my the scope 'root' you could use:
+
+    echo root.name
+
+Implicit Scope Referencing
+--------------------------
+
+If, instead of explicitly specifying the scope 'root' in the above example,
+you used:
+
+    echo name
+    
+GSL would search stacked scopes, from the innermost to the outermost, for one
+that defines the attribute 'name'.  Assuming the scope 'root' does not define
+an attribute 'name' but the scope 'global' does (we understand that neither
+the scope 'gsl' nor the scope 'class' defines an attribute 'name'), this
+code would output the value of the attribute 'name' of the scope 'global'.
+
+This form of GSL is useful for two reasons.  Firstly it makes for shorter
+and easier-to-read code, when the location of the attribute is not in question.
+Secondly it allows the value to be 'inherited' from outer to inner scopes.
+
+Notice that the above example contains some ambiguity: does 'name' refer to
+an attribute 'name' or a scope 'name'?  GSL searches first scopes then
+attributes within scopes to find a match.  If you wish to match only an
+attribute then use the alternative form:
+
+    echo .name
+
+Structure Flattening
+--------------------
+
+What if, in the above example, the scope 'global' defined an attribute 'name',
+but this attribute were not a scalar value but an XML structure.  Since the
+instruction 'echo' can only deal with scalar values, it requests a 'flattened'
+value of the structure.  The meaning of a flattened value depends on the
+structure in question; for an XML item it refers to the value of the item.
+
+Look at the example:
+
+    global.name = xml.load_string ("<A value = \"2\">Hello</A>")
+    echo name
+    echo global.name.value
+
+The first line loads the XML string <A name = "2">Hello</A> (note the
+backslashes preceeding the quotation marks inside the string) into the
+attribute 'name' of the global scope.  The second line prints the flattened
+value of the XML, while the third line outputs the attribute 'value' of the
+attribute 'name' of the scope 'global'.  Note that the use or non-use of the
+scope 'global' makes no difference in this case because no innermore scopes
+defined an attribute 'name'.  The output of this GSL script is:
+
+    2004/09/20 16:36:25: gsl/4 M: Hello
+    2004/09/20 16:36:25: gsl/4 M: 2
+    
+In addition to this implicit flattening, you can also explicitly request the
+flattened value of a structure as follows:
+
+    global.foo = name.
+    
+Notice that this form resembles a request for an attribute with no name; this
+is the desired effect.
+
+Navigating Children
+-------------------
+
+Just as the period ('.') accesses an attribute of a structure, the member
+('->') construct accesses a child.  For instance
+
+    global.parent->child
+    
+accesses the (first) child called 'child' of the structure referred
+to by the attribute 'parent' of the global scope.
+
+A more sophisticated version of this structure exists:
+
+    global.parent-> child (value = "2")
+    
+accesses the (first) child called 'child' for which the condition
+'value = "2"' is TRUE.
+
+The detail of how this works is that a scope called
+'child' is opened for the duration of the evaluation of the condition.  This
+underlying data for this scope is the child (called 'child') of global.parent.
+The typical use for such a structure is when the child defines an attrbute
+'value' so that the expression is used to locate the particular child we
+want, the one whose attribute 'value' is 2.
+
+As a final detail, the scope opened during the evaluation of this expression
+may clash with other scopes called 'child'.  For this reason, the following
+expression may be used:
+
+    global.parent-> child (baby.value = child.value, baby)
+    
+The second argument 'baby' indicates that the name of the scope created to
+evaluate the condition should be 'baby'.
+
+Identifiers
+-----------
+
+An identifier is the generic term used for GSL scopes, attributes and
+children.  It is restricted to a combination of alphanumeric characters and
+the underscore ('_') and must begin with a letter or an underscore.
+
+As the underlying data may not have the same restrictions on its name space,
+and because GSL has a certain number of reserved words which may clash with
+identifiers, identifiers may
+be surrounded by square brackets.  Inside square brackets, just about anything
+can be used.  Use a backslash ('\') tn introduce a special character, two
+backslashes to make a backslash.
+
+Case Sensitivity
+----------------
+
+GSL has two modes of handling the case of identifiers.  In the default mode,
+GSL matches names without regard to
+the case (upper or lower) used to specify them.  In certain
+substitutions  GSL modifies the case of the value of the identifier
+to match the case used to specify the attribute name.  In
+case-sensitive mode, GSL matches names taking into account the
+case, and does not modify the case of the result.  See the description
+of subsitutions for details.
+
+To change modes, set the value of the identifier `ignorecase' in the
+gsl scope to 0 or 1.  Eg: `[gsl].ignorecase = 0'
+
+Expressions
+===========
+
+GSL expressions are much the same as expressions in other high-level
+programming languages.  They include the following operators:
+
+Multiplicative:
+    *, /
+Additive:
+    +, -
+If/Default:
+    ??, ?
+Comparative:
+    =, <>, >, >=, <, <=
+Safe comparative:
+    ?=, ?<>, ?>, ?>=, ?<, ?<=
+Logical:
+    |, &, !
+
+Operator precedence is standard (multiplicative, additive, if/default,
+comparative, logical) and brackets are treated as you would expect.
+
+Logical operators treat zero as FALSE and non-zero as TRUE.
+
+GSL optimises expression evaluation to the extent that the second
+operand of a binary logical operator (`|', `&') is not evaluated if
+the result of the expression is determined by the first operand.  This
+allows you to use expressions such as
+
+    defined (X) & X
+
+since the second operator is not evaluated when X is undefined.
+
+The default operator allows undefined expressions to be replaced by another
+expression.  The value of
+
+    <expr1> ? [<expr2>]
+
+is equal to the value of <expr1>, if defined; otherwise it is equal to the
+value of <expr2>, whether or not the latter is defined.  If the second operand
+<expr2> is omitted then the evaluation of the expression is `safe', that is,
+GSL does not object (when this is feasible) to the result of the expression
+being undefined.  This feature can be used in symbol definitions and
+substitutions to make GSL accept an undefined expression.  See the
+description of these instructions for details.
+
+The safe comparative operators return the same result as their equivalent
+comparative operators when both operands are defined.  If one or both 
+operator is undefined, the safe operators return FALSE while the normal
+operators produce an error.  Notice that `a ?<> b' returns TRUE if both
+a and b are defined and they are not equal and FALSE otherwise.
+
+The if operator returns the second operand if the first operand evaluates
+to a non-zero number.  Otherwise the result is undefined.  Thus an
+expression such as
+
+    test ?? "YES"
+
+returns YES if test is 1 (or any other non-zero number); otherwise the
+result is undefined.  The if operator can thus be combined with the default
+operator:
+
+    test ?? "YES" ? "NO"
+
+If an operand is not a constant then its type depends its value; if it looks
+like a number then it is treated as a number, otherwise it is treated as a
+string.
+
+Generally, additive, multiplicative and logical operators only apply to
+numeric operands.  There are two cases where an arithmetic operator can
+apply to string values:
+
++:
+    "ABC" + "DEF" evaluates to "ABCDEF"
+*:
+    "AB" * 3 evaluates to "ABABAB"
+
+Substituting Symbols and Expressions
+------------------------------------
+
+At almost any place in a GSL script, you may use a substitute construct in
+the place of literal text.  The format of a substitute construct is:
+
+    $( <expression> [% format] [: pretty-print] )
+
+The construct is replaced by the value of the expression, output according to
+the format and pretty-print modifiers, if they exist.  The order of the format 
+and pretty-print modifiers is not important.
+
+If the expression ends with a default operator that has no second operand,
+and the value of the expressions result is undefined then the substitution
+resolves to an empty string.
+
+If a format string is provided, it is used to format the result before
+continuing.  The format string is similar to that used by the printf
+function in C.  It must contain exactly one conversion specification,
+consisting of zero or more of the flags `#', `0', `-', ` ' and `+', an
+optional minimum field width, an optional precision consisting of a
+point (`.') followed by an optional number, and a mandatory conversion
+specifier among the following: `d', `i', `o', `u', `x', `X', `e', `E',
+`f', `g', `c' and `s'.  The data are always converted to the appropriate
+type (one of long int, double, char or char *) for the conversion string.
+Note that not all legal C format strings are allowed in GSL.  See details
+of the C printf function for more details. :)
+
+The pretty-print modifier specifies how case modification and replacement
+of certain characters takes place.  The valid pretty-print modifiers (not
+case-sensitive) are:
+
+UPPER:
+    UPPER CASE
+lower:
+    lower case
+Neat:
+    Neat Case Modification
+Camel:
+    CamelCase
+no:
+    No case modification
+c:
+    substitute_non_alpha_to_make_c_identifier
+cobol:
+    SUBSTITUTE-NON-ALPHA-TO-MAKE-COBOL-IDENTIFIER
+justify:
+    Text is left justified within available
+    space
+left:
+    Entire block is shifted left as far as possible by removing
+    the same number of spaces from each line.
+block:
+    Text over multiple lines 
+    is formatted into a block
+
+More than one pretty-print modifier may be specified; they should be
+separated by commas.
+
+If GSL is in ignore-case mode (see below), and a substition expression
+consists
+of a single identifier and no case-modifier is specified (c or cobol
+may still be specified), the case in which the identifier name is
+specified is used as an example to determine whether the case of the
+result should be modified to UPPER, lower or Neat.  To over-ride this,
+either disable ignore-case mode or provide an empty pretty-print string.
+
+Some examples:  Assume the identifier IDENT has the value
+`A few words from our sponsors' and identifer XXX is undefined.
+
+$(XXX):
+    produces a run-time GSL error: Undefined expression.
+$(XXX?"Undefined"):
+    `Undefined'
+$(XXX?):
+    `'
+$(IDENT%30s):
+    ` A FEW WORDS FROM OUR SPONSORS'
+$(ident:upper):
+    `A FEW WORDS FROM OUR SPONSORS'
+$(Ident):
+    `A Few Words From Our Sponsors'
+$(ident:c):
+    `a_few_words_from_our_sponsors'
+$(IDENT:):
+    `A few words from our sponsors'
+$(1 + 1):
+    `2'
+$(ident:justify):
+    a few words from
+    our sponsors
+/*  $("Description:":block)\
+                  $(ident:justify,block%-8s)  */:
+    /*  Description:  a few                       */
+    /*                words                       */
+    /*                from our                    */
+    /*                sponsors                    */
+
+What You Can Substitute
+-----------------------
+
+A substitution can appear at any place in a literal string (template line
+or string constant) or as an operand in an expression.  It can also replace 
+part or all of a single identifier in a data specification,
+but not a point (`.') or member construct (`->').
+
+Some examples:  Assume the identifier IDENT has the value `NUM'
+and identifer NUM has the value `1'.
+
+$($(ident)):
+    `1'
+$($(ident)).NAME:
+    `1.NAME'  This may used in another expression as an identifer.
+$(ident)+1:
+    `NUM1'
+$($(ident))+1:
+    `2'
+
+GSL Internals
+=============
+
+Setting GSL internal variables
+------------------------------
+
+GSL has a series of internal variables, described below, that influence 
+its behaviour in
+various ways.  These variables are held in the scope `gsl' and can be
+modified by an instruction of the form:
+
+    [gsl].xxxxx = yyyy
+    
+You can also set the initial value of these variables when starting GSL
+by using a command of the form:
+
+    gsl -xxxxx:yyyy somescript.gsl
+    
+Template and Script Modes
+-------------------------
+
+Lines of GSL may be either script lines or template lines.  GSL has two
+different modes for distinguishing script from template lines.  In template
+mode, lines are assumed to be template lines unless they begin with a period
+(`.').  In script mode, lines are assumed to be script lines unless they begin
+with a greater-than symbol (`>').
+
+GSL starts in one of these modes, depending on the manner in which is was
+invoked.  If it was invoked using an XML file as an argument, it begins in
+template mode as it is assumed that the XML file is to be used as data for
+creating an output file.  If GSL was invoked using a GSL gile as an argument,
+it begins in script mode.
+
+You can change between template and script mode with the `template' and
+`endtemplate' commands.  See the description of these commands below for 
+details.
+
+Template Lines
+--------------
+
+The simplest template line is just text, which is copied verbatim
+to the current output file.  If no output file has been opened, or if the
+last output file has been closed, the output is copied to the standard
+output.
+
+The backslash ('\') serves several special functions in a template
+line.  Firstly, if the last character of an template line is a
+backslash then the line is output with no line terminator; otherwise a
+line terminator follows the template line.  Secondly, a backslash
+introduces one of three special character sequences: '\n', '\r' and '\t' which
+are replaced by a line feed, carriage return and a tabulation character (TAB)
+respectively.  Thirdly, a backslash followed by and other character is
+replaced by that character; this allows characters which would
+normally be interpreted as script commands to be output literally.
+
+Script Lines
+------------
+
+The script commands are described below.
+
+If a script command line ends with a backslash (`\') then the following 
+script line is treated as a continuation of the current line.
+
+Comments
+--------
+
+There are three ways to include comments in GSL scripts.  The first is
+to place a hyphen (`-') as the first character of a script line, or following
+the point (`.') in a template line.  The second way is
+to place a hash (`#') after a GSL command.  Any characters following
+the hyphen are ignored by GSL.  The third way is
+to enclose comment text (which may continue over more than one line)
+inside comment markers (`/*' and `*/') just as in C.  However if
+GSL finds these characters in a template line (but not inside a
+substitution) it assumes that they are destined for output, so does
+not treat them as a comment.
+
+Examples:
+
+    .- This entire line is a comment
+
+    .output "file"  # This is a trailing comment
+
+    .output /* This is an embedded 
+    multi-line comment */ "file"
+
+    If this is a template line then /* this is not a comment */
+
+    $("but "/* this is */)
+
+Ignorecase
+----------
+
+GSL has two modes which influence case-sensitivity of identifier names.
+In the first mode (ignore-case), GSL is case-insensitive regarding identifier
+names and instead as a guide to modifying the output string, as described
+above ('Case Sensitivity').  In the second mode (case-sensitive), GSL
+treats the case of identifier names as significant.  You can change the 
+behaviour by setting the value of the
+attribute 'ignorecase' in the scope 'gsl' to 1 for ignore case and 0 for
+case sensitivity.
+
+
+Shuffle
+-------
+
+GSL can help to keep code neat by enlarging or shrinking white space
+so that column numbers match as far as possible between the script and
+the output file.  For instance, in the value of the identifier X is
+ABCDEF then:
+
+    $(X)   .
+
+evaluates to
+
+    ABCDEF .
+
+but
+
+    $(X?"Undefined") .
+
+evaluates to
+
+    ABCDEF .
+
+The shuffle algorithm uses the value of the attribute `shuffle' of the gsl 
+scope).  It expands a block of white space no shorter than `shuffle' as
+much as necessary so that the text following the white space is output
+in the same column.  It also shrinks white space down to a minimum of
+`shuffle' to make space for text preceeding the white space.  If
+`shuffle' is zero, then shuffle is disabled.  The default value of
+`shuffle' is 2; this is the value which produces the results shown
+above.
+
+If the current output ends with a backslash, then the shuffle continues on
+the following line.  Thus
+
+    $(X?"Undefined")\\
+             .
+
+evaluates to
+
+    ABCDEF   .
+
+Shuffle can cause problems in some cases, for example when outputting
+literal text where the size of white space is important.  In this case
+shuffle should be disabled by setting the value to zero.
+
+COBOL
+-----
+
+GSL helps you make neat COBOL code by automatically filling the first
+six characters of each line with the four-digit line number followed
+by two zeroes.  To enable this function set the value of the attribute 'cobol`
+in the gsl scope to 1.
+
+Line Terminators
+----------------
+GSL uses as its line terminator the value of of the attribute
+'terminator' of the gsl scope.  The default value is "\n" but it could
+also be set to "\r\n", for example.
+
+Arguments
+---------
+If GSL is invoked with a `-a' switch, all arguments following the first
+are treated as arguments to the first script, rather than as further
+arguments to GSL, as would otherwise be the case.  So if you type:
+
+    gsl -a myscript.gsl localhost 80
+    
+GSL defines attributes 'arg1' in the symbol table 'switches' in scope `gsl'
+with value `localhost' and attribute `arg2' with value `80'.  A GSL script
+can access these values with an instruction of the form:
+
+    echo switches.arg1
+    
+or in a loop:
+
+    n = 1
+    echo switches.arg$(n)
+
+Predefined Identifiers
+----------------------
+
+There are some identifiers whose value is maintained by GSL in the global
+space referred to by the predefined scopes `gsl' and `global'.  They are
+defined as attributes of the global item.
+
+script:
+  The name of the GSL script file currently being processed.
+filename:
+  The name of the XML file being processed.
+outfile:
+  The name of the current output file; undefined if there is none.
+line:
+  The line number of the line currently being output to the output file.
+me:
+  The name of the current application: GSL.
+version:
+  The version of the current application.
+date:
+  (DEPRECATED) The current date in the format YYYY/MM/DD
+time:
+  9DEPRECATED) The current time in the format hh:mm:ss
+switches:
+  A symbol table holding all the command-line switches present when GSL
+  was invoked.
+
+Built-In Functions
+******************
+
+MODULE: GSL/conv package
+
+    Class: Conversion Functions
+    
+        Function: conv . chr (arg)
+
+        Function: conv . number (arg)
+
+        Function: conv . ord (arg)
+
+        Function: conv . string (arg)
+
+
+MODULE: GSL/diag package
+
+    Class: Diagnostic Functions
+    
+        Function: diag . used ()
+
+        Function: diag . allocs ()
+
+        Function: diag . frees ()
+
+        Function: diag . display (filename)
+
+        Function: diag . checkall ()
+
+        Function: diag . raise (signal)
+
+        Function: diag . animate (value)
+
+        Function: diag . console_set_mode (mode)
+
+
+MODULE: GSL/environment package
+
+    Class: Environment Functions
+    
+        Function: env . get (name)
+
+        Function: env . set (name,[value])
+
+
+MODULE: GSL/fileio package
+
+    Class: Directory
+    
+        Function: directory . open ([path],[error])
+
+        Function: directory . setcwd (path,[error])
+
+        Function: directory . create (path)
+
+        Function: directory . delete (path,[error])
+
+        Function: directory . resolve (path,[separator])
+
+
+    Class: File
+    
+        Function: file . open (filename,[mode],[error])
+
+        Function: file . read (handle,[error])
+
+        Function: file . write (handle,string,[error])
+
+        Function: file . close (handle,[error])
+
+        Function: file . tell (handle,[error])
+
+        Function: file . seek (handle,[offset],[error])
+
+        Function: file . slurp (filename,[error])
+
+        Function: file . exists (filename,[error])
+
+        Function: file . timestamp (filename,[error])
+
+        Function: file . rename (oldname,newname,[error])
+
+        Function: file . delete (filename,[error])
+
+        Function: file . locate (filename,[path],[error])
+
+        Function: file . copy (src,dest,[mode],[error])
+
+        Function: file . basename (filename)
+
+
+    Class: Directory
+    
+
+    Class: File
+    
+        Function: <file entry> . open ([mode],[error])
+
+        Function: <file entry> . read ([error])
+
+        Function: <file entry> . write (string,[error])
+
+        Function: <file entry> . close ([error])
+
+        Function: <file entry> . tell ([error])
+
+        Function: <file entry> . seek ([offset],[error])
+
+
+MODULE: GSL/gsl control package
+
+    Class: GSL Control Class
+
+        Function: gsl . include (filename,[template])
+            Includes a GSL script file. Uses the current template mode unless
+            over-ridden by the optional argument.
+
+        Function: gsl . exec (command,[template])
+            Executes a GSL script. If the script does not open an output file,
+            its output is returned as the result of this function. Uses the
+            current template mode unless over-ridden by the optional argument.
+
+
+MODULE: GSL/math package
+
+    Class: Math Functions
+
+        Function: math . abs (parm)
+
+        Function: math . ceil (parm)
+
+        Function: math . floor (parm)
+
+        Function: math . mod (x,y)
+
+        Function: math . rand ()
+
+        Function: math . sqrt (parm)
+
+        Function: math . exp (parm)
+
+        Function: math . log (parm)
+
+        Function: math . log10 (parm)
+
+        Function: math . pow (x,y)
+
+        Function: math . sin (parm)
+
+        Function: math . cos (parm)
+
+        Function: math . tan (parm)
+
+        Function: math . sinh (parm)
+
+        Function: math . cosh (parm)
+
+        Function: math . tanh (parm)
+
+        Function: math . asin (parm)
+
+        Function: math . acos (parm)
+
+        Function: math . atan (parm)
+
+        Function: math . atan2 (x,y)
+
+        Function: math . pi ()
+
+        Function: math . asinh (parm)
+
+        Function: math . acosh (parm)
+
+        Function: math . atanh (parm)
+
+
+MODULE: GSL/regexp package
+
+    Class: Regular Expression Functions
+    
+        Function: regexp . match (pattern,subject,[match])
+
+
+MODULE: GSL/process management
+package
+
+    Class: Process
+    
+        Function: proc . new (command,[workdir],[inname],[outname],[errname])
+            Creates a process object.  The command is a native system command.  Does
+                not execute the command.                                            
+                                                                                    
+                Returns the process object.                                         
+
+
+    Class: Process handle
+    
+        Function: <proc handle> . setenv (name,[value])
+            Sets an environment variable for the process.  Can only be called before
+                the process is started with proc_handle.run ()                      
+
+        Function: <proc handle> . getenv (name)
+            Gets an environment variable from the process.
+
+        Function: <proc handle> . run ([error])
+            Runs a process created with proc.create ()                               
+                                                                                     
+                Returns -1 if there was an error creating the object.  Also places an
+                error message into the parameter error.                              
+
+
+MODULE: GSL/script package
+
+    Class: GSL Script Line
+    
+
+MODULE: GSL/socket package
+
+    Class: Socket
+    
+        Function: sock . passive (service,[error])
+
+        Function: sock . connect ([host],service,[timeout],[error])
+
+
+    Class: Socket handle
+    
+        Function: <sock handle> . accept ([timeout],[error])
+
+        Function: <sock handle> . close ([timeout],[error])
+
+        Function: <sock handle> . read (buffer,[minimum],[timeout],[error])
+
+        Function: <sock handle> . write (buffer,[timeout],[error])
+
+
+MODULE: GSL/string package
+
+    Class: String Functions
+    
+        Function: string . length (string)
+
+        Function: string . locate (haystack,needle)
+
+        Function: string . locate_last (haystack,needle)
+
+        Function: string . substr (string,[start],[end],[length])
+
+        Function: string . trim (string)
+
+        Function: string . justify (string,width,[prefix])
+
+        Function: string . certify (number,[language])
+
+        Function: string . replace (strbuf,strpattern)
+
+        Function: string . match (string1,string2)
+
+        Function: string . prefixed (string,prefix)
+
+        Function: string . prefix (string,delims)
+
+        Function: string . defix (string,delims)
+
+        Function: string . hash (string)
+
+        Function: string . convch (string,from,to)
+
+        Function: string . lexcmp (string1,string2)
+
+        Function: string . lexncmp (string1,string2,count)
+
+        Function: string . lexwcmp (string1,pattern)
+
+        Function: string . matchpat (string1,pattern,[ic])
+
+        Function: string . soundex (string)
+
+        Function: string . cntch (string,value)
+
+
+MODULE: GSL/symb package
+
+    Class: Symbol
+    
+
+MODULE: GSL/thrd package
+
+    Class: Thread
+    
+        Function: thread . parse (command,[error])
+            Parses the command, placing any error message in the parameter 'error'.
+                Errors can also be recovered via thread class attributes.          
+                If successful, returns an object of type 'parsed item' which can   
+                then be run as many times as necessary, saving the need to re-parse
+                each time.                                                         
+
+        Function: thread . new (command,[error])
+            Parses and runs the command, placing any error message in the parameter      
+                'error'.   Errors can also be recovered via thread class and child thread
+                object attributes.   If the parsing was successful, returns an object    
+                of type 'child thread'.                                                  
+
+        Function: thread . sleep (csecs)
+            Puts the current thread to sleep for the specified number of centiseconds.
+                Returns -1 if csecs is invalid.                                       
+
+        Function: thread . receive ([receive])
+            Receives a message from the thread's message queue.  If the queue is empty, 
+                the thread sleeps until a message is available.                         
+                                                                                        
+                Places a reference to the sending thread in the first parameter.  Places
+                arbitrary values from the message into successive parameters.           
+
+
+    Class: Thread
+    
+        Function: <remote thread> . send ()
+            Sends a message with an arbitrary number of arguments to the thread.
+
+
+    Class: Thread
+    
+        Function: <child thread> . interrupt ()
+            Shuts down the thread.
+
+        Function: <child thread> . send ()
+            Sends a message with an arbitrary number of arguments to the thread.
+
+
+    Class: Thread
+    
+        Function: <parsed item> . run ([error])
+
+
+MODULE: GSL/time package
+
+    Class: Time Functions
+    
+        Function: time . picture ([time],[picture])
+
+        Function: time . number (time)
+
+        Function: time . now ([date],[time])
+            Assigns date and time to the passed parameters.  Also returns the time.
+
+        Function: time . diff (date1,time1,date2,time2)
+            Returns the difference (in csecs) between two date/times.
+
+
+    Class: Date Functions
+    
+        Function: date . picture ([date],[picture])
+
+        Function: date . number (date)
+
+
+MODULE: GSL/XML package
+
+    Class: XML
+    
+        Function: XML . new ([name])
+            Creates a free 'unattached' XML item.  In reality it is attached to the     
+                global variable ancestor, but only so that GSL can de-allocate it on    
+                termination.                                                            
+                                                                                        
+                Therefore if the GSL script does not deallocate the item, it will remain
+                until GSL shuts down.                                                   
+
+        Function: XML . load_string (string,[error])
+            Loads the supplied string as an XML item.                                    
+                Returns a pointer to the (first) resulting XML item or undefined if there
+                was an error.  In the latter case, an error message is placed in the     
+                parameter 'error' and in the XML thread context.                         
+
+        Function: XML . load_file (filename,[error])
+            Loads the file with the supplied name as an XML item.                        
+                Returns a pointer to the (first) resulting XML item or undefined if there
+                was an error.  In the latter case, an error message is placed in the     
+                parameter 'error' and in the XML thread context.                         
+
+
+    Class: XML item
+    
+        Function: <XML item> . deleted ()
+            Returns TRUE if the XML item has been deleted.
+
+        Function: <XML item> . prev ()
+            Returns the previous XML item.
+
+        Function: <XML item> . string ()
+            Returns the XML item formatted as a string.
+
+        Function: <XML item> . load_string (string,[error])
+            Loads the supplied string as a child of the item.                            
+                Returns a pointer to the (first) resulting XML item or undefined if there
+                was an error.  In the latter case, an error messa   ge is placed in the  
+                parameter 'error' and in the XML thread context.                         
+
+        Function: <XML item> . load_file (filename,[error])
+            Loads the file with the supplied name as a child of the item.                
+                Returns a pointer to the (first) resulting XML item or undefined if there
+                was an error.  In the latter case, an error message is placed in the     
+                parameter 'error' and in the XML thread context.                         
+
+        Function: <XML item> . save (filename,[error])
+            Saves the XML item to a file with the given name.  Any file errors are     
+                places in the parameter 'error' and in the XML thread context.  Returns
+                zero if no error occurred, errno otherwise.                            
+
+
+    Class: XML value
+    
+
+
+Script Commands
+***************
+
+Output File Manipulation
+========================
+
+.output
+-------
+    .output <filename>
+
+closes the current output file, if one is open, and opens a new one.
+
+Examples:
+
+    .output "myfile.c"
+    .output FILENAME
+
+where FILENAME is an identifier whose value is the desired file name.
+
+.append
+-------
+    .append <filename>
+
+closes the current output file, if one is open, and
+opens a previously existing one and prepares to extend it.
+
+See the description of the output command for examples.
+
+.close
+------
+    .close
+
+closes the current output file, if one is open.
+
+.literal
+--------
+    .literal [ from <filename> | " <text> " | << <terminator> ]
+
+Copies text directly to the output file, without substition.  The text
+can come from another file, a GSL expression, or from lines in the
+script, ending with a line beginning with the specified terminator.
+
+Examples:
+
+    .literal from "file.txt"
+
+    .literal "whatever you want"
+
+    .literal << .endliteral
+    Lines are now copied without substitution of
+    things like $(abc).
+    .endliteral
+
+Control Structures
+==================
+
+.for
+----
+    .for [[<data-specifier>] .] <name> [as <alias> | noalias] [nostack] [where <expr>] [by <expr>]
+    .for  [<data-specifier>] .         [as <alias> | noalias] [nostack] [where <expr>] [by <expr>]
+
+opens a scope and introduces a loop.  The following block of code is
+processed once for each item specified.  If no scope if specified, the
+most recently opened scope is assumed.  The items processed are those
+children of the XML item corresponding to this scope.  If the first
+form is used only children with the specified name are processed; if
+the second form is used, all children are processed.
+
+The alias allows you to give the new scope a name other than the
+specified item name; use this when you nest scopes which would
+otherwise have the same name or to supply a scope name when using the
+second form.
+
+The where clause allows you to specify a condition which must be
+satisfied for the code to be processed; the expression is evaluated
+before any processing occurs.
+
+The by clause allows you to sort the items according to the result of
+evaluating the expression for each item.  If no by clause is specified
+the items are processed from the oldest to the youngest, the same
+order in which they are described in the XML file.
+
+The expressions in the where and by clauses are evaluated within the
+new scope.  This means that they can access attributes of the iterating
+item.
+
+During the evaluation of the `by' and `where' expressions, as well as
+during the processing of the code, the function `item (name)' returns
+the number of the child (1, 2, ...) of the current item.  This number
+is associated with the XML item itself and is not affected by a `by'
+or `where' clause.
+
+Within the loop, but not within `by' and `where' expressions, the function
+`index (name)' returns the index of the current iteration.  This is associated
+with the loop, so that it always takes consecutive values.
+
+If there are no items to iterate, an optional .else clause is executed.
+
+.endfor
+-------
+    .endfor [<scope>]
+
+terminates a .for loop, closing the scope.  The scope name is optional and
+does not affect the operation.  GSL confirms that its value is the name of
+the scope to be closed and reports an error if this is not the case.  In this
+way, GSL can be made to validate nested .for loops for you.
+
+Examples:
+
+    .for RECORD.FIELD by NAME
+    $(FIELD.NAME)
+    .endfor
+
+outputs the names of the fields of the current record, sorted in alphabetical
+order.
+
+    .for FIELD as PASTURE where item () = 2
+    something
+    .else
+    somethine else
+    .endfor PASTURE
+
+processes only the second item named FIELD, and executes an .else clause if
+there is no such item.
+
+.if
+---
+    .if <expr>
+
+starts conditional processing of the following block of code if the result
+of evaluating the expression is non-zero.
+
+.elsif
+------
+
+    .elsif <expr>
+
+may follow an `if' construct.  Any number of `elsif' constructs may be used.
+
+.else
+-----
+
+    .else
+
+may follow an `if' or `elsif' or a `for' construct.  The following block
+of code is processed if the logical value of all the expressions is FALSE.
+
+.endif
+------
+    .endif
+
+terminates a conditional processing construct.
+
+Examples:
+
+    .if NAME = "JAMES"
+    something
+    .elsif NAME = "JAIME"
+    something else
+    .else
+    everything else
+    .endif
+
+.while
+------
+    .while <expr>
+
+introduces a loop.  The following block of code is processed repeatedly as long
+as the expression evaluates to a logical value of TRUE, that is not equal to
+zero.  Expression evaluation takes place before the code is processed, so that
+the code will never be processed if the expression evaluates to FALSE the first
+time.
+
+.endwhile
+---------
+    .endwhile
+
+terminates a `while' loop.
+
+Examples:
+
+    .define I = 0
+    .while I < 5
+    loop iteration number $(I)
+    .endwhile
+
+.next
+-----
+    .next [<scope>]
+
+inside a `for' or `while' loop causes immediate iteration, skipping execution
+of any code between the `next' command and the `endfor' or `endwhile'
+statement.  If the scope is specified then the `for' loop corresponding to
+that scope is iterated.
+
+.last
+-----
+    .last [<scope>]
+
+inside a `for' or `while' loop causes the loop to terminate iteration
+immediately.  Control passes to the line following the `endfor' or `endwhile'
+statement.  If the scope is specified then the `for' loop corresponding to
+that scope is terminated.
+
+Scope Manipulation
+==================
+
+.scope
+------
+    .scope <data-specifier> [as <alias> | noalias] [nostack]
+
+Opens a new scope corresponding to the specified data.
+
+.endscope
+---------
+    .endscope [<scope>]
+
+terminates a block opened with a .scope command, closing the scope.
+The scope name is optional and does not affect the operation.  GSL
+confirms that its value is the name of the scope to be closed and
+reports an error if this is not the case.  In this way, GSL can be
+made to validate nested .scope blocks for you.
+
+Symbol Definition
+=================
+
+    .<data-specifier> [<operator>]= [ <expr> ] 
+
+defines or undefines an XML attribute or item value.  There are several 
+different forms, described below:
+
+If the scope is omitted from the data specification, GSL searches
+stacked scopes, from inner to outer, for one in which an attribute 
+of the specified name exists.  If
+none is found, it uses the outermost stacked scope, which effectively makes 
+the identifier a global variable.
+
+If the expression is left empty then the symbol becomes undefined.  If the
+expression ends with a default operator `?' but no default expression then
+an undefined expression causes the symbol to becume undefined rather than
+producing a runtime error.
+
+If an arithmetic or default operator is specified then the
+value assigned to the symbol is the result of that operator and the
+supplied expression to the former value of the operator.
+
+Examples:
+
+    .x = 1
+
+assigns the value 1 to the identifier x in the most recently opened 
+open scope where x is already defined, or in the global scope if x is
+undefined.
+
+    .->child. = "Value"
+
+assigns the string `Value' to the value of the first child of the
+innermost stacked scope.
+
+    .x *= 2
+
+multiplies the value of the identifier x by 2.
+
+    .x ?= y ? z ?
+
+does nothing if x is already defined; otherwise assigns it the value of y,
+or if y is undefined then the value of z, or if z is undefined, x remains
+undefined.
+
+Structured Data Manipulation
+============================
+
+.new
+----
+
+    .new [[<data-specifier>] . <name>] [before <before-scope> | after <after-scope>] [as <alias> | noalias] [nostack]
+    .new <name> [to <data-specifier> | before <before-scope> | after <after-scope>] [as <alias> | noalias] [nostack]
+
+creates a new XML item.  This allows you to build new items in the
+data tree.  The new item has the specified name and is a child of the
+XML item corresponding to th specified scope, or the most recently
+opened scope if none is specified.  If a `before-scope' or
+`after-scope' is specified, then then it must be the name of an open
+scope corresponding to a child of <data-specifier>, and the new item is
+inserted just before <before-scope> or just after <after-scope>;
+otherwise the  new item is inserted after any existing children.  The
+construct creates a new scope with the name specified by the alias or
+the item name if there is no alias.  The following block of code is
+processed exactly once within this new scope.  It would typically done
+some attributes of the new XML item.  These values can then be
+retrieved during a future iteration of a `for' construct through the
+new item.
+
+.endnew
+-------
+
+    .endnew [<scope>]
+
+terminates a `new' construct.    The scope name is optional and
+does not affect the operation.  GSL confirms that its value is the name of
+the scope to be closed and reports an error if this is not the case.  In this
+way, GSL can be made to validate nested .new blocks for you.
+
+Examples:
+
+    .new RECORD.FIELD
+    .    define FIELD.NAME = "NEW FIELD"
+    .endnew
+
+    .for RECORD.FIELD as OLDFIELD where NAME = "OLD FIELD"
+    .    new RECORD.FIELD before OLDFIELD
+    .        define FIELD.NAME = "NEW FIELD"
+    .    endnew
+    .endfor
+
+.delete
+-------
+    .delete <data-specifier>
+
+
+deletes the data item corresponding to the specified
+scope.  Once the item has been deleted, any attempt to reference it produces
+an error.
+
+Examples:
+
+    .for RECORD.FIELD where TYPE = "COMMENT"
+    .    delete FIELD
+    .endfor
+
+.copy
+-----
+    .copy [<from-scope>] [ to <parent-data> | after <after-scope> | before <before-scope> ] [as <name>]
+
+
+makes a copy the XML item associated with <from-scope> (or the most
+recently opened scope if not specified) at the point 
+specified by either the new parent (`to') or new sibling (`after' or
+`before'), or as a child of the XML item of the most recently opened
+scope if no parent of sibling is specified.  The `as' clause allows
+you to the new item to have a different name from the old item.
+
+Examples:
+
+    .for DATABASE.TABLE
+    .    for RECORD.FIELD
+    .        copy FIELD to TABLE
+    .    endfor
+    .endfor
+
+.move
+-----
+    .move [<from-data>] [ to <parent-data> | after <after-data> | before <before-data> ] [as <name>]
+
+
+re-attaches a data item at the point specified by  a `to', `after' or
+`before' clause, renaming it to the name specified in the
+`as' clause, if specified.
+
+GSL detects any attempt to make an item its own descendent.
+
+Note that moving an item does not invalidate any scope associated with it.
+If the moved item is associated with a future iteration of a `for' loop,
+the iteration will still take place even if the item is no longer a child
+of the extended scope from the `for' instruction.
+
+Examples:
+
+    .for TABLE.RECORD
+    .    for RECORD.FIELD
+    .        move FIELD to RECORD
+    .    endfor
+    .endfor
+
+.sort
+-----
+
+    .sort [[<data-specifier>] .] [<name>] [as <alias>] by <expr>
+
+Sorts the specified items.  A scope is created with each item in
+turn and is used to evaluate the expression.  The result is then used
+to sort the items.  The `as' clause allows you to give the created
+scope a different name.  After execution, the specified items are
+in order and after any other children of the same parent.
+
+.xml - DEPRECATED - use xml.load_string or xml.load_file
+----
+    .xml [ to <parent-data> | after <after-data> | before <before-data> ] [as <name>] [ from <filename> | <expr> || << <terminator> ]
+
+
+imports XML data into the the specified point.  The data can come from a file,
+an expression, or from lines in the script, ending with a line beginning with
+the specified terminator.  Note that in this form, GSL uses the lines
+literally, without substitution.
+
+Examples:
+
+    .xml from "data.xml"
+
+    .xml to RECORD '<field name="date"/><field name="time"/>'
+
+    .xml after SISTER << .endxml
+    <text>
+    All this text is used literally even though it contains stuff
+    that looks like a substitution, eg $(abc).
+    </text>
+    .endxml
+
+.save - DEPRECATED - use xml.save or xml.string
+-----
+
+    .save <data-specifier> as <filename>
+
+creates an XML file representing the XML item corresponding to the specified
+scope.  This recursively includes all child items.
+
+Script Manipulation
+===================
+
+.include
+--------
+
+    .include <filename>
+
+includes another script file.  Deprecated - see `gsl'
+
+.gsl
+----
+
+    .gsl [ from <filename> | <expr> ]
+
+interprets the contents of the specified file or expression as GSL,
+just as though it were part of the script.
+
+Examples:
+
+    .gsl from "header.gsl"
+    .gsl GSL.TEXT
+
+.template
+---------
+    .template (0 | 1)
+
+
+Turns template mode on or off.
+
+.endtemplate
+------------
+
+Terminates the block introduced by a `template' instruction.
+
+Macros and Functions
+====================
+
+Macros and functions are pieces of GSL which can be invoked with parameters.
+The only difference between a macro and as function is that macros are
+interpreted in template mode and functions in script mode.
+
+Just like other data, macros and functions are attached to scopes, and can
+only be used within that scope.
+
+When a macro or function executes, an unstacked scope is opened with the same
+name as the macro or function.  An unstacked alias to this scope called `my'
+is also created.  This scope holds the parameter values, and can also be used
+for local variables.  Full recursion can thus be achieved.
+
+.macro
+------
+    .macro [global .] <name> [(<param> [, <param>] ...)]
+
+
+introduces a macro definition with the specified name.
+
+.endmacro
+---------
+    .endmacro
+
+terminates a macro definition.
+
+.function
+---------
+    .function [global .] <name> [([<param>] [, <param>] ...)]
+
+
+introduces a function definition with the specified name.
+
+.endfunction
+------------
+    .endfunction <name>
+
+terminates a function definition.
+
+.return
+-------
+
+    .return [<expression>]
+
+Calling a function
+------------------
+    .[<scope> .] <function-name> [([<expr>] [, [<expr>]])] ...)]
+
+
+A macro or function can also be invoked as an expression.  In this case,
+the value of is that returned, or is undefined if there is no `.return'
+statement.
+
+This creates a special scope with the name of the macro or function,
+and attributes corresponding to the parameters value of the
+parameters.  This scope does not count in numeric scope specifications
+and cannot have children.  It can be used to define local variables,
+but must in this case be specified by name.
+
+The number of expressions (or empty expressions) must match exactly
+the number of parameters in the definition.  An empty expression or an
+expression whose value is undefined causes the corresponding parameter
+to be undefined during processing of the macro code.
+
+Examples:
+
+    .macro echotwice (text)
+    .    echo text
+    .    echo text
+    .endmacro
+    ...
+    .echotwice ("Hello")
+
+    .function recursive (N)
+        recursive.localvar = N - 1
+        recursive (localvar)
+    .endfunction
+
+    .function assign (dest, source)
+        .$(dest) = source
+    .endfunction
+
+Miscellaneous
+=============
+
+.echo
+-----
+
+    .echo <expr>
+
+outputs the given expression to the standard output.
+
+.abort
+------
+
+    .abort <expr>
+
+outputs the given expression to the standard output and halts GSL
+operation.
+
+

@@ -1,0 +1,276 @@
+#   ---------------------------------------------------------------------------
+#   Generate serialisation methods for a set of context fields.
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+#
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#  ----------------------------------------------------------------------------
+
+#   Adds the fields to the class context and generates load and
+#   save methods which serialise the fields to and from a user
+#   supplied buffer.
+#
+#   To use:
+#
+#       <invoke script = "icl_serialise"/>
+#       <data>
+#           <field name = "xxx" type = "xxx" />...
+#       </data>
+#
+#   Types: bit, char, octet, shortint, longint, shortstr, longstr
+
+function preprocess ()
+    offset = 0
+    bits   = 0
+    string_fields = ""
+    for data.field
+        name = "item_$(name:c)"
+        field.c_type = type
+        if type ?= "char"
+            offset += 1
+        elsif type ?= "bit"
+            bits += 1
+            if bits = 8
+                bits = 0
+                offset += 1
+            endif
+            c_type = "Bool"
+        elsif type ?= "octet"
+            offset += 1
+            c_type = "byte"
+        elsif type ?= "shortint"
+            offset += 2
+            c_type = "dbyte"
+        elsif type ?= "longint"
+            offset += 4
+            c_type = "qbyte"
+        elsif type ?= "shortstr"
+            offset += 1         #   Length octet
+            string_fields  = string_fields + " + strlen (self->$(name))"
+            c_type = "icl_shortstr_t"
+        elsif type ?= "longstr"
+            offset += 2         #   Length word
+            string_fields  = string_fields + " + (self->$(name)? self->$(name)->cur_size: 0)"
+            c_type = "icl_longstr_t *"
+        else
+            abort "Valid field types are: bit, octet, shortint, longint, shortstr, longstr"
+        endif
+        if type <> "bit" & bits > 0
+            bits = 0
+            offset += 1
+        endif
+    endfor
+    ><private>
+    >#define $(selfname:upper)_SIZE $(offset)$(string_fields:)
+    ></private>
+endfunction
+
+.macro generate ()
+<context>
+    //  The following properties are serialised                                
+.   for data.field
+    $(c_type)
+        $(name:);                       //  $(.?:)                             
+.   endfor
+</context>
+
+<method name = "save" template = "function">
+    <doc>
+    Saves the serialised fields to the specified buffer.  Returns amount of
+    space used in buffer, in octets.  If the buffer is too small, returns 0.
+    Integer data is always saved in network portable format.
+    </doc>
+    <argument name = "data" type = "byte *">Buffer to save into</argument>
+    <argument name = "size" type = "size_t">Buffer size</argument>
+    <declare  name = "rc"   type = "size_t" default = "0">Returned size</declare>
+    <local>
+    byte
+        *dest;
+.   if count (field, type = "shortstr")
+    size_t
+        string_size;
+.   endif
+.   if count (field, type = "bit")
+.       bit_count = 0
+    byte
+        bit_string;
+.   endif
+    </local>
+    assert (data);
+
+    if ($(selfname:upper)_SIZE <= size) {
+        dest = data;
+.   for data.field
+.       if type = "bit"
+.           if bit_count = 0
+        dest += 1;
+        bit_string = 0;
+.               bit_count = 0
+.           endif
+        bit_string |= (self->$(name) & 1) << $(bit_count);
+        *(byte *) (dest - 1) = bit_string;
+.           bit_count += 1
+.           if bit_count = 8
+.               bit_count = 0
+.           endif
+.-
+.       elsif type = "char"
+        *(char *) dest = self->$(name);
+        dest += 1;
+.-
+.       elsif type = "octet"
+        *(byte *) dest = self->$(name);
+        dest += 1;
+.-
+.       elsif type = "shortint"
+        *(dbyte *) dest = htons (self->$(name));
+        dest += 2;
+.-
+.       elsif type = "longint"
+        *(qbyte *) dest = htonl (self->$(name));
+        dest += 4;
+.-
+.       elsif type = "shortstr"
+        string_size = strlen (self->$(name));
+        *(byte *) dest = (byte) string_size;
+        dest += 1;
+        memcpy (dest, self->$(name), string_size);
+        dest += string_size;
+.-
+.       elsif type = "longstr"
+        if (self->$(name)) {
+            assert (self->$(name)->cur_size < 0x10000);
+            *(dbyte *) dest = htons ((dbyte) self->$(name)->cur_size);
+            dest += 2;
+            memcpy (dest, self->$(name)->data, self->$(name)->cur_size);
+            dest += self->$(name)->cur_size;
+        }
+        else {
+            *(dbyte *) dest = 0;
+            dest += 2;
+        }
+.       endif
+.   endfor
+        rc = dest - data;               //  Number of octets processed         
+    }
+    else {
+        icl_console_print ("$(selfname) E: object needs %ld bytes, buffer too small at %ld",
+            $(selfname:upper)_SIZE, size);
+        rc = 0;
+    }
+</method>
+
+<method name = "load" template = "function">
+    <doc>
+    Loads the serialised fields from the supplied buffer.  Returns number of
+    octets loaded; zero means the buffer was empty, or invalid.
+    </doc>
+    <argument name = "data" type = "byte *">Buffer to load from</argument>
+    <argument name = "size" type = "size_t">Buffer size</argument>
+    <declare  name = "rc"   type = "size_t" default = "0">Returned size</declare>
+    <local>
+    byte
+        *src,                           //  Pointer into buffer                
+        *max;                           //  Limit of buffer validity           
+.   if count (field, type = "shortstr")
+    size_t
+        string_size;
+.   endif
+    Bool
+        underflow = FALSE;
+.   if count (field, type = "bit")
+    byte
+        bit_string = 0;
+.       bit_count = 0
+.   endif
+    </local>
+
+    assert (data);
+    src = data;
+    max = data + size;
+.   for data.field
+    if (src < max) {
+.       if type = "bit"
+.           if bit_count = 0
+        bit_string = *(byte *) src;
+        src++;
+.           endif
+        self->$(name) = (bit_string >> $(bit_count)) & 1;
+.       bit_count += 1
+.       if bit_count = 8
+.           bit_count = 0
+.       endif
+.-
+.       elsif type = "char"
+        self->$(name) = *(char *) src;
+        src += 1;
+.-
+.       elsif type = "octet"
+        self->$(name) = *(byte *) src;
+        src += 1;
+.-
+.       elsif type = "shortint"
+        self->$(name) = ntohs (*(dbyte *) src);
+        src += 2;
+.-
+.       elsif type = "longint"
+        self->$(name) = ntohl (*(qbyte *) src);
+        src += 4;
+.-
+.       elsif type = "shortstr"
+        string_size = *(byte *) src;
+        src += 1;
+        memcpy (self->$(name), src, string_size);
+        self->$(name) [string_size] = 0;
+        src += string_size;
+.-
+.       elsif type = "longstr"
+        string_size = ntohs (*(dbyte *) src);
+        src += 2;
+        icl_longstr_destroy (&self->$(name));
+        self->$(name) = icl_longstr_new (src, string_size);
+        src += string_size;
+.       endif
+    }
+    else
+        underflow = TRUE;
+.   endfor
+    if (underflow) {
+        icl_console_print ("$(selfname) E: Insufficient buffer data provided to decode");
+        rc = 0;
+    }
+    else
+        rc = src - data;                //  Number of octets processed         
+</method>
+
+<method name = "get size" template = "function" return = "rc">
+    <declare name = "rc" type = "size_t" />
+     rc = $(selfname:upper)_SIZE;
+</method>
+
+<method name = "destroy">
+.   for data.field where type = "longstr"
+    icl_longstr_destroy (&self->$(name));
+.   endfor
+</method>
+.endmacro
+
+my.build  = xml.new ("class")
+for global.top.data
+    xml to my.build gsl.exec ('preprocess ()')
+    xml to my.build gsl.exec ('generate ()')
+endfor
+preproc_icl (my.build)
+move my.build to global.inherit
+#perform_inherit_icl_item (global.top, my.build)

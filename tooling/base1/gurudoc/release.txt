@@ -1,0 +1,33 @@
+1.3b0 - 2005/06/06
+
+ - Reworked HTML templates, now officially beautiful
+ - 'gurudoc' Generates flat html as well as framed html
+ - 'gurudoc' runs 'guruext' command if present in directory
+ 
+1.3a0 - 2005/04/09
+
+ - Added URL-recognition to HTML generation.
+    - invoked by placing < and > around URL.
+    - allows <http://some/address>
+    - allows <http://some/address:description>
+    - allows <some.address@hostname>
+
+1.2a1 - 2005/04/09
+
+ - Modified frames to show without borders.
+ - Fixed generation of HTML for certain text blocks (empty headers caused problems
+   for html templates).
+
+1.2a0 - 2005/04/05
+
+ - HTML output renamed to .html (from .htm)
+ - added PDF output scripts, needs LaTeX 
+
+Gurudoc 1.1 - 3 October 2004
+
+  - removed all echo statements from generators (too verbose)
+  - added gurudoc commands for Unix, Windows to allow generation directly from boom
+  - added 'gurudoc' class in boom/classes.pdl
+  - renamed imatixlogo.jpg to mainlogo.jpg
+  - removed references to 'sourceflow' in gurudoc scripts
+

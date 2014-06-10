@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2007 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<pdl
+    name      = "Zlib"
+    acronym   = "zlib"
+    version   = "1.2.3"
+    copyright = "(C) 1995-2004 Jean-loup Gailly and Mark Adler"
+    workflow  = "standard.pwl"
+    library   = "libzip">
+
+<include filename = "prelude.pdl" />
+
+<file name = "ChangeLog"        class = "documentation"   />
+<file name = "FAQ"              class = "documentation"   />
+<file name = "README"           class = "documentation"   />
+<file name = "algorithm.txt"    class = "documentation"   />
+<file name = "zlib.3"           class = "documentation"   />
+
+<file name = "adler32.c"        class = "sub program"     />
+<file name = "compress.c"       class = "sub program"     />
+<file name = "gzio.c"           class = "sub program"     />
+<file name = "uncompr.c"        class = "sub program"     />
+<file name = "crc32.c"          class = "library module"  />
+<file name = "deflate.c"        class = "library module"  />
+<file name = "trees.c"          class = "library module"  />
+<file name = "zutil.c"          class = "library module"  />
+<file name = "inflate.c"        class = "library module"  />
+<file name = "infback.c"        class = "sub program"     />
+<file name = "inftrees.c"       class = "library module"  />
+<file name = "inffast.c"        class = "library module"  />
+
+<file name = "inffixed.h"       class = "private resource"/>
+<file name = "zconf.h"          class = "public header"   />
+<file name = "zlib.h"           class = "public header"   />
+
+<directory name = "contrib/minizip">
+  <file name = "ChangeLogUnzip"   class = "documentation"   />
+  <file name = "crypt.h"          class = "private resource"/>
+  <file name = "ioapi.c"          class = "library module"  />
+  <file name = "unzip.c"          class = "library module"  />
+  <file name = "zip.c"            class = "library module"  />
+ 
+  <file name = "ioapi.h"          class = "public header"   />
+  <file name = "unzip.h"          class = "public header"   />
+  <file name = "zip.h"            class = "public header"   />
+
+  <file name = "zconf.h"          class = "generated"       />
+  <file name = "zlib.h"           class = "generated"       />
+
+  <actions>
+    <generate>
+      <copy filename = "zconf.h" from = "." />
+      <copy filename = "zlib.h"  from = "." />
+    </generate>
+  </actions>
+</directory>
+
+<!-- Deliverables -->
+<file name = "libzip"           class = "public library"  />
+
+</pdl>

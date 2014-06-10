@@ -1,0 +1,34 @@
+#
+#   Test frame
+#
+
+base        = "test"
+title       = "title"
+product     = "product"
+toc         = "toc"
+copyright   = "copyright"
+
+output "$(base).htm"
+template 1
+.include "tpl_frame.htm"
+.endtemplate
+close
+
+output "$(base)_top.htm"
+template 1
+.include "tpl_frame_top.htm"
+.endtemplate
+close
+
+output "$(base)_toc.htm"
+template 1
+.include "tpl_frame_toc.htm"
+.endtemplate
+close
+
+output "$(base)_bot.htm"
+template 1
+.include "tpl_frame_bot.htm"
+.endtemplate
+close
+

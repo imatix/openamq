@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!--
+    This is an example of a patch specification file
+    <class name = "" >...
+    <file name = "" [class = "classname"]>
+        <global from = "pattern" to = "pattern" />
+        <delete from = "pattern" [until = "pattern" [after = "pattern"]] />
+        <insert before = "pattern" | after = "pattern" >
+        text
+        </insert>
+    </file>
+-->    
+
+<patches>
+    <class name = "default">
+        <global from = "Gloop" to = "Glarp" />
+    </class>
+    <file name = "license.txt" />
+</patches>
+

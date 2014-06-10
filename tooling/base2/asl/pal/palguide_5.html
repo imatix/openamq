@@ -1,0 +1,85 @@
+<html>
+<head>
+<title>body</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="gdstyle.css" type="text/css">
+</head>
+<body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0">
+<table width="100%" height="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr valign="top">
+    <td width="5" bgcolor="#DDDDDDD">&nbsp;</td>
+    <td>
+      <a name="TOC46"><h1>PAL Implementations</h1></a>
+      <h2><a name="TOC47">The StdC PAL Implementation</a></h2>
+<h3><a name="TOC48">Command-Line Arguments</a></h3>
+<p>The standard C implementation creates a command-line program that accepts these arguments: </p>
+<pre>
+Syntax: program [options...]
+Options:
+  -s server        Server:port to connect to (localhost)
+  -t level         Set trace level (default = 0)
+                   0=none, 1=low, 2=medium, 3=high
+  -r count         Repeat script count times, 0=forever (1)
+  -c               Clock the script (0)
+  -a               Animate: show script commands
+  -e               Execute in single-step mode (0)
+  -q               Quiet mode: no messages
+  -v               Show version information
+  -h               Show summary of command-line options
+The order of arguments is not important. Switches and filenames
+are case sensitive. See documentation for detailed information.
+</pre>
+<h3><a name="TOC49">Performance Measurements</a></h3>
+<p>The -c option clocks the script and produces performance measurement output.  Here is an example of a simple stress test script: </p>
+<pre>
+&lt;?xml?&gt;
+&lt;pal
+    name = "stress"
+    script = "demo_pal_gen"
+    &gt;
+    This script sends a large number of messages to a queue and then
+    reads them back.  The number of messages can be specified on the
+    command-line.
+    &lt;!-- fails on win32, see FOR-6
+    &lt;server name = "demo_srv" where = ".." /&gt;
+    --&gt;
+    &lt;session scope = "default" exchange = "myexchange" queue = "myqueue" &gt;
+        &lt;set name = "number-of-messages" cmdline = "N" value = "1000" /&gt;
+        &lt;set name = "message-size" cmdline = "S" value = "1000" /&gt;
+        &lt;exchange_declare type = "fanout" /&gt;
+        &lt;queue_declare /&gt;
+        &lt;queue_bind /&gt;
+        &lt;repeat times = "$number-of-messages" counter = "index" progress = "100"&gt;
+            &lt;basic_content size = "$message-size" message_id = "id-$index" /&gt;
+            &lt;basic_publish routing_key = "myqueue" /&gt;
+        &lt;/repeat&gt;
+        &lt;while name = "arrived" test = "lt" value = "$number-of-messages" progress = "100"&gt;
+            &lt;basic_get /&gt;
+            &lt;basic_arrived&gt;
+                &lt;inc name = "arrived" /&gt;
+            &lt;/basic_arrived&gt;
+        &lt;/while&gt;
+    &lt;/session&gt;
+&lt;/pal&gt;
+</pre>
+<p>Which produces this output (the figures are obviously just an example): </p>
+<pre>
+...........
+...........
+16:41:26: I: elapsed time:781 msecs
+16:41:26: I: outgoing messages:1000 (976 Kbytes)
+16:41:26: I: incoming messages:1000 (976 Kbytes)
+16:41:26: I: total messages:2000 (1952 Kbytes) average:2560/sec (2499 Kbytes/sec)
+16:41:26: I: message latency min=280 max=410 mean=331 dev=37 msecs
+</pre>
+<h2><a name="TOC50">Other Implementations</a></h2>
+<p>There are no other implementations of PAL at present. </p>
+
+      <p>
+    </td>
+  </tr height="40">
+    <td width="5" bgcolor="#DDDDDDD">&nbsp;</td>
+    <td valign="bottom" class="footer">iMatix Corporation <amq@imatix.com> - Copyright (c) 2004-2009 iMatix Corporation</td>
+  </tr>
+</body>
+</html>

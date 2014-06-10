@@ -1,0 +1,93 @@
+.---------------------------------------------------------------------
+.-  template.txt  Example for new projects
+.-
+.-  The BASE variable tells htmlpp what to call the output files.
+.-  Here, the files will be index.htm, index1.htm, index2.htm...
+.-
+.define BASE      index
+.-
+.-  These variables get put into the header of each HTML file.
+.-
+.define author    Your name
+.define written   24 Feb 1996
+.define revised   12 May 1996
+.-
+.-  The prelude.def file centralises various definitions that I don't
+.-  want to clutter-up this file with.  This is just one of my habits.
+.-
+.include prelude.def
+
+.---------------------------------------------------------------------
+.page Title Of Home Page
+
+<H1>$(TITLE)</H1>
+
+.-  This file builds a table of contents for the current document,
+.-  i.e. all the pages that result from this original text file.
+.-
+.include contents.def
+
+<P>Home Page Welcome...</P>
+<P><EM>What is Grok?</EM>
+<UL>
+<LI>Grok is a pseudo-intelligent Greater Order Kook.</LI>
+</UL></P>
+
+<P><EM>What does grok do?</EM>
+<UL>
+<LI>Grok does everything</LI>
+</UL></P>
+
+<P><EM>How do I use grok?</EM>
+<UL>
+<LI>If you have to ask, you really need grok.</LI>
+</UL></P>
+
+<P><EM>Where do I get grok?</EM>
+<UL>
+<LI>Grok is available from most decent Kook-shops.</LI>
+<UL></P>
+
+<P><EM>What else should I know?</EM>
+<UL>
+<LI>Grok should never be used in combination with Grool.</LI>
+</UL></P>
+
+.---------------------------------------------------------------------
+.page Installing Grok
+
+<H2>$(TITLE)</H2>
+
+<H3>Getting Grok</H3>
+
+<UL>
+<LI>This is how you get grok.</LI>
+</UL>
+
+<H3>Installation Under UNIX</H3>
+
+<UL>
+<LI>This is how you install grok under UNIX.<LI>
+</UL>
+
+<H3>Installation Under MS-DOS</H3>
+
+<UL>
+<LI>This is how you install grok under MS-DOS.<LI>
+</UL>
+
+
+.---------------------------------------------------------------------
+.page Getting Started
+
+<H2>$(TITLE)</H2>
+
+<P>Read the book "Grok for Dummies", and get a good night's sleep.</P>
+
+
+.---------------------------------------------------------------------
+.page Grok Technical Reference
+
+<H2>$(TITLE)</H2>
+
+<P>Read the book "Grok for Gurus", and get a good night's sleep.</P>

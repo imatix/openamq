@@ -1,0 +1,9 @@
+<?xml?>
+<pal script = "demo_pal_gen">
+    This script demonstrates how to do a simple loop using the built-in
+    facilities of the repeat command.
+    <repeat times = "10" counter = "index">
+        <echo>I can count up to $index</echo>
+    </repeat>
+</pal>
+

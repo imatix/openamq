@@ -1,0 +1,250 @@
+<html>
+<head>
+<title>body</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="gdstyle.css" type="text/css">
+</head>
+<body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0">
+<table width="100%" height="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr valign="top">
+    <td width="5" bgcolor="#DDDDDDD">&nbsp;</td>
+    <td>
+      <a name="TOC1"><h1>Introduction</h1></a>
+      <blockquote> "The issue is not one of power, but of coping with the human difficulty in understanding complex structures." -- Leif Svalgaard </blockquote>
+<p>Boom is a portable command-line toolkit that automates the build process for software projects. In simple terms, Boom takes a project description and turns this into various platform-dependent scripts and makefiles that do the hard work of turning source code into executable files. It actually does a lot more than this, and is extensible. </p>
+<p>We'll start with the main Boom Questions. You're going to ask these sooner or later, so we'll get them out of the way and then get down to business. But first, a word from our sponsor. </p>
+<h2><a name="TOC2">The Legal Stuff</a></h2>
+<p>Please read this section before anything else. You may have downloaded this as "free software", but there are some very specific strings attached.  You do not have to accept these conditions, in which case you should remove Boom and Base from your system. </p>
+<h3><a name="TOC3">Copyright and Licensing</a></h3>
+<p>Boom is part of the iMatix Base product. Base is the property of iMatix Corporation, a company registered in Brussels, Belgium. iMatix provides Base under a dual-licensing scheme: GPL (the GNU General Public License) and/or an iMatix commercial license falling under our General Terms of Business (GTB). The GPL license ensures that the Base source code is freely available today and forever to all software developers, whatever the future disposition of iMatix. The GPL license establishes the rights of software developers to access and use Base freely, under a set of conditions including one key condition: any work derived from the GPL-licensed Base source code must itself be covered by the GPL.  Please read the file "license.gpl" for details. </p>
+<p>However, we also provide Base under an iMatix commercial license falling under our General Terms of Business. This GTB license - which is negotiable and changes over time - lets you use Base as commercial source code, which is what it is.  You would be able to take the commercially-licensed source code and use it in commercial products sold under arbitrary (non-GPL) licenses. </p>
+<p>In this way, Base is really aimed at two groups of customers. One: free software developers who use the GPL for their work. Two: paying customers who are ready to help us finance development of Base. If you fall into the third group (commercial software developers who are looking for source code to steal) you will just have to delete this package from your hard drive and go back to your keyboard. Base is most categorically not public-domain software. You may not take our GPL-licensed source code and turn it into commercial products sold under a non-GPL license. That would be theft of our intellectual property, and we would sue. </p>
+<p>Base includes a number of open source packages which are _not_ our property and which are provided under their original licenses.  If you use these in commercial closed-source products you will have to refer to the original license in each case. </p>
+<h3><a name="TOC4">Contributions</a></h3>
+<p>We welcome patches, contributions, and so on. However, if you make changes to our sources, and you want these changes included in the 'official' version, you will have to: </p>
+<ol>
+<li><p>Transfer the copyright of this work to us.</li>
+<li><p>Accept that we may rewrite your changes in any way we see fit.</li>
+<li><p>Do not complain if this takes months or even years.</li>
+</ol>
+<p>This is not a complex procedure: a simple email agreeing to these conditions is enough for us. If you do significant improvements to our packages, we are willing to pay for the work. If you are really good, we may even offer you a job. But at the end of the day, every line of code in our projects must belong to us, or we cannot apply our dual-licensing model. </p>
+<p>This is our condition for making Base available as open source. We think it's more than fair, but hey: if you don't agree, you are free to take the package and make your own version. This is what the GPL is all about. Long live Richard Stallman. </p>
+<h2><a name="TOC5">The 5-minute Presentation</a></h2>
+<p>Wondering what in the world Boom is?  Read on... </p>
+<h3><a name="TOC6">Your World</a></h3>
+<p>You're a programmer, in the large sense. You have to write programs, but also write documentation, make packages, send them to your users, keep track of versions, update web sites, track change requests, and so on. If you're working in a team, you probably use a source control system like CVS, and you work on different systems. Maybe you're writing software for several platforms - for Windows, for Linux, and other Unix boxes. </p>
+<h3><a name="TOC7">Your Nightmare</a></h3>
+<p>Most projects start as one-man jobs, and in many cases there's always just one person who really knows what's going on. But this is a real problem when it comes to delivering the software to your customers. People make mistakes, and complex manual processes understood only by a few people are trouble-prone. Building software - turning it from source code into executable packages that you can actually ship - is complex and not portable. Under Windows you have MS Visual C/C++ (MSVC) or other Win32 compilers, each with their own notion of "project" and "makefile". Under Unix you have Make and makefiles, which are almost-but-not-quite standard. Under Linux you have GNU autoconf and a whole set of dependencies on versions, libraries, headers, and so on. </p>
+<p>It is bad enough having a long and complex build process, without having to port this to many platforms. And yet, this is what you most likely do today. "make config; make all install clean" may work on your Linux box, but what about that Win32 box sitting across the hall? </p>
+<p>The nightmare is having numerous projects, each reinventing and repackaging the same specialized knowledge once again: this is how I build on Windows, this is how I build on Linux, this is how I build on SunOS, etc. </p>
+<h3><a name="TOC8">Imagine an Ideal World</a></h3>
+<p>In an ideal world, all operating systems look the same. Bland, compatible, standardized. You make a simple description of your project, say "here are my files, this is what I need to do to build them", and magic happens. After all, how many ways are there really to compile a C program? C is, after all, C. In an ideal world, you'd be able to say: "these are my C programs - compile them. Here is a main program - link it. Here are some header files - stick them in a public place for other people to use. Here is some HTML documentation - throw that onto our internal web server." </p>
+<p>In an ideal world, you don't have to be a Linux expert to write a program that will compile and run on Linux. If there is a need for specialized knowledge (and there always is), it is packaged so that it can be shared by all projects. </p>
+<h3><a name="TOC9">The Solution</a></h3>
+<p>This is Boom. Bland, compatible, standardized. Write your programs, wrap them in a simple "project description", and watch as Boom turns this into code that does the building for you, on every box you have. Boom can handle any programming language, any build process, no matter how subtle, and any operating system. It is open-ended and extensible. </p>
+<h3><a name="TOC10">Who are iMatix?</a></h3>
+<p>We started iMatix Corporation as a vehicle for doing what we like most, namely writing good software for nice people in a working environment that is exactly the one we'd create if we started our own company. Since we're small (around 10-15 people at most times), we have to be inventive and disciplined. We were one of the first groups to put our best technology out as free software, starting with Libero in 1992, long before Eric S. Raymond invented the term "Open Source". </p>
+<p>We develop technologies - mainly for software engineering and Internet communications - and we implement these as libraries and applications and tools, and then we use those in projects that we do for paying customers. Our communications products - the Xitami and Xitami/Pro web servers, the STEP secure middleware engine - are all based on Base. </p>
+<p>iMatix Corporation, though quite small, has a number of separate business lines mainly aimed at large businesses. You can find some information on these on our web site (imatix.com) at any time. All of these business lines are based around our ability to build reliable high-volume data processing systems. It's the brutal side of IT, where lost data means lost money. </p>
+<h2><a name="TOC11">The Boom Questions</a></h2>
+<p>Rather than wait for you to ask these questions, and then provide the answers in a FAQ, we'll just use the Aristotlean veal method.  Open your mind, and stuff it in! </p>
+<h3><a name="TOC12">What Can Boom Do?</a></h3>
+<p>Boom takes a project description (a PDL file) and turns this into scripts that builds various things from the project sources. However, this is actually implemented not by Boom itself, but by the default workflows and classes that come with Boom. You can easily create your own classes and workflows, or extend the ones provided. But overall, Boom speaks a language related to source projects, files, compiling and linking, and so on. </p>
+<h3><a name="TOC13">Why is Boom Different From Make?</a></h3>
+<p>A makefile is a flat specification of the relationships between the files in a project, and the commands needed to turn file type A into file type B. The only abstraction is being able to say "this file is of type A", and this abstraction works by file extension. </p>
+<p>Makefiles have three unfortunate properties. First, every relationship must be explicitly specified. So, if ten programs each depend on twenty include files, these have to be specified clearly, ten times. This raises the first problem with makefiles - they are costly to maintain. If you have ever had to understand someone else's makefile you will see why this is a joy to be savoured just once. </p>
+<p>Secondly, makefiles are not portable. Yes, there exist tools like GNU autoconf which will produce native makefiles for various targets. The correct use of autoconf is a science in itself, and while it would be a good solution for the kind of projects we do, it remains limited to the scope of makefiles, which is too limited for our needs. In other words, using autoconf to build makefiles solves part of the problem for us but in a way that does not really take us where we want to go. </p>
+<p>Thirdly, makefiles depend on file extensions. There is no way to tell a makefile "this file is a HTML file, but one that has to be handled in such and such a way" except to explicitly add the necessary code on a file per file basis. </p>
+<p>So, makefiles are complex, non-portable, and beastly to understand and maintain. The standard iMatix answer to this kind of code is, as our adherents will have learned by now, to generate it. Boom is therefore a tool that lets us generate makefiles, amongst other things.  Code generation is a wonderful thing, requiring just one mental step, namely that of abstraction.  This is hard work for people used to thinking in long sequences of flat commands, which is what makefiles look like.  But abstraction is the best technique we have for mastering the main problem we face in our work, namely complexity. (The alternative is the combination of excellent memory and unlimited patience.) </p>
+<p>The key to abstraction is to split the world into two kinds of people, those who split the world into two kinds of people, and those who do not. (I'm only half joking). The first group are few, and have to understand the internals of whatever we're abstracting. The second group are many, and (if things are well done) do not even notice that any abstraction is going on. When you watch a movie, you forget that it is built out of scenes, actors, voice-overs and sound effects, lighting, etc. All you see is the story. Similarly, when you use Boom, you should forget that it is built out of classes, workflows, scripts, and so on. All you should see is the end-result, namely the simpler abstraction. </p>
+<p>So, decide whether you are the audience or the film director. If you're the audience, you can skip through to the section "Using Boom", and ignore the boring technical detail that follows now. </p>
+<h3><a name="TOC14">Why do you call Boom "Object Oriented"?</a></h3>
+<p>There are two very good reasons for this. The first is to make fun of anyone who takes definitions such as "object orientation" too seriously, and the second is because it's a good description anyhow. Boom does not let you create objects with methods, but then it's not a programming language*. What it does is let you define classes of objects, and attach build instructions to each class. Classes can be based on other classes, something called "inheritence", and classes can package small but vital bits of information such as "please treat all objects of this class as source code that the user needs in order to build the project", or "please etc. as HTML documentation files that should be placed somewhere where the user can access them". </p>
+<p>The term "Object orientation" is a good one for such an approach. The alternatives, such as "Class orientation", sound too much like Marxism. </p>
+<p>(*Actually, this is a lie, but let's just say that "Boom as a language" is not what most people see.  Boom defines two languages - PDL and PWL - which are aimed at end-users and hackers respectively, and depends heavily on another language - GSL - which is for hackers only.  All the object orientation in Boom happens at the PDL level, and this is so unlike a language that my lie is not really a lie after all.) </p>
+<h3><a name="TOC15">What Should I Know Before Starting?</a></h3>
+<p>Boom is is a heavy user of XML, but before you panic, understand that at iMatix we have a slightly different vision of XML from most of the world. For us, XML is a simplifying technology, not an excuse for writing thousand page stylesheet syntax references. If you have never touched XML, just relax and follow the examples. If you're a hard XML user, a bit of relaxation will do you good as well. This is a stylesheet free zone. </p>
+<p>Secondly, the reaction of many people when using Boom for the first time is bewilderment. Possibly because it seems such a "complex" way of doing such "simple" stuff, in a world in which the words "simple" and "complex" get charmingly inventive new meanings almost but not totally opposed to the traditional ones. Boom works by hiding things, and you have to have some confidence in the engineering processes involved. Luckily you can always look under the hood. But, and I stress this, because some people seem to insist on doing things the hard way, do NOT look under the hood while driving the car. It is not wise. </p>
+<p>Lastly, Boom is for programmers, and that means you. I'm not going to be enormously gentle in this document - you are supposed to know your business and be able to learn new concepts rapidly. Blame me if things do not work, but do not complain if I tell you to read the source code. It is there, catalogued, perfectly written, legible, and clear, and born for only a single purpose: to be read and understood by humans (the fact that it also _does_ something is almost incidental). Learn a new language before breakfast. It's good for the brain. </p>
+<h3><a name="TOC16">What is a "Class", Then?</a></h3>
+<p>In Boom World, projects consist of files, and a class is an abstraction of a file. You can actually write a project description without using any classes, but this rapidly gets very boring and since we tend to use the same classes over and over, Boom comes with a set of pre-defined classes that you can use (or redefine, or not use: as you like). These sit in "classes.pdl", a file that you should at some point open and read through. Classes are just part of the project definition, so use the same PDL syntax, which we will come to later. </p>
+<p>Look at classes.pdl, and you'll see stuff like this: </p>
+<pre>
+&lt;class name = "private resource"&gt;
+Any text resource used to build the project.
+    &lt;distrib as = "source"  /&gt;
+&lt;/class&gt;
+</pre>
+<p>This defines a class "private resource" that we will use in many places. Anything based on this class will be included in a source distribution, which is the meaning of: '&lt;distrib as = "source" /&gt;'.  Look a little further down classes.pdl and you will see this: </p>
+<pre>
+&lt;class name = "sub program" inherit = "private resource" &gt;
+ANSI C sub program, compiled and replaced into library
+    &lt;build&gt;
+        &lt;compile as = "c"/&gt;
+        &lt;replace/&gt;
+    &lt;/build&gt;
+    &lt;derive class = "private object" /&gt;
+&lt;/class&gt;
+</pre>
+<p>In which we define a new class, based on "private resource". The "sub program" class tell Boom that we will compile the source program, place it in our project library, and expect one derived file, namely a compiled object file with class "private object". The "private object" class looks like this: </p>
+<pre>
+&lt;class name = "private object" generated = "1" filetype = "object" &gt;
+Compiled program object file.
+&lt;/class&gt;
+</pre>
+<p>Which tells Boom: the file has the default extension ".obj" under Windows and ".o" on Unix (in fact, this information is not hard-coded in Boom, it's in the workflow libraries, which we'll get to later). This class also tells Boom: delete the object file when you're cleaning up. Nice to know. Let's look some more classes: </p>
+<pre>
+&lt;class name = "dialog" inherit = "private resource" &gt;
+Libero dialog file.  The schema must be specified in the dialog file.
+    &lt;generate&gt;
+        &lt;execute command = "lr" /&gt;
+    &lt;/generate&gt;
+&lt;/class&gt;
+&lt;class name = "c dialog" inherit = "dialog" &gt;
+    &lt;derive extension = ".i"   class = "generated" /&gt;
+    &lt;derive extension = ".d"   class = "generated" /&gt;
+&lt;/class&gt;
+&lt;class name = "generated" generated = "1"&gt;
+Any other generated file that is not installed.
+    &lt;distrib as = "source" /&gt;
+&lt;/class&gt;
+</pre>
+<p>Which defines two classes, "dialog" and "c dialog". A dialog file is a finite-state description of the type we make using Libero. The first class tells Boom that when it wants to perform a "generate" action on the dialog, it has to run the command "lr", which is the Libero command. The second class is inherited from the "dialog" class (so inherits the execute command) but it also tells Boom that there are two derivations (for the generated code we know that Libero will produce for C dialogs). </p>
+<p>We can now put this all together with a super-duper class that is deceptively simple: </p>
+<pre>
+&lt;class name = "c/libero" inherit = "sub program" &gt;
+    &lt;derive extension = ".l"   class = "c dialog" /&gt;
+&lt;/class&gt;
+</pre>
+<p>And now in our project, we just specify the highly abstract concept of a "c/libero" file that encapsulates not just the C source, but also the Libero dialog, generated code, and so on: </p>
+<pre>
+&lt;file name = "lreval.c" class = "c/libero"&gt;Logic evaluator functions&lt;/file&gt;
+</pre>
+<p>Which tells Boom a whole lot: </p>
+<ol>
+<li><p>We have a source file lreval.c.</li>
+<li><p>There is a related dialog file, lreval.l.</li>
+<li><p>To process this dialog file, run "lr lreval".</li>
+<li><p>This generates two files, lreval.d and lreval.i.</li>
+<li><p>When building the project, compile lreval.c.</li>
+<li><p>This generates an object file, lreval.</li>
+<li><p>This has to go into the project library.</li>
+<li><p>When building a source package, include lreval.c, lreval.l, lreval.d, and lreval.i.</li>
+<li><p>When cleaning up, delete lreval.d, lreval.i, and the lreval object file.</li>
+</ol>
+<p>Which you could express directly in PDL, without using classes, as: </p>
+<pre>
+&lt;file name = "lreval.c" &gt;
+    &lt;distrib as = "source"  /&gt;
+    &lt;build&gt;
+        &lt;compile as = "c"/&gt;
+        &lt;replace /&gt;
+    &lt;/build&gt;
+&lt;/file&gt;
+&lt;file name = "lreval.l" &gt;
+    &lt;distrib as = "source"  /&gt;
+    &lt;generate&gt;
+        &lt;execute command = "lr" /&gt;
+    &lt;/generate&gt;
+&lt;/file&gt;
+&lt;file name = "lreval.i" generated = "1" &gt;
+    &lt;distrib as = "source"  /&gt;
+&lt;/file&gt;
+&lt;file name = "lreval.d" generated = "1" &gt;
+    &lt;distrib as = "source"  /&gt;
+&lt;/file&gt;
+&lt;file name = "lreval" generated = "1" filetype = "object" /&gt;
+</pre>
+<p>Which is 10-20 times more work.  There are of course many other ways to express the above twenty lines more compactly, but the most efficient is to be able to say exactly what you, as a programmer, know, which is that "lreval" is a C program with a Libero dialog.  Maybe Boom should be called "automagic". </p>
+<p>Now you start to see the power of Boom. Express yourself in the most succinct manner possible. If you need more abstraction than Boom already provides in classes.pdl (and this is likely, since we've only written classes for the kinds of work we do in Base and Xitami), you can just add your own classes to your project definition, create your own class files, and so on. </p>
+<h3><a name="TOC17">How About Workflows?</a></h3>
+<p>A workflow is a Libero-esque state machine that describes how Boom should handle a particular build command. The workflow is the glue that ties classes to GSL code which does the hard work of producing build scripts, makefiles, and so on. Workflows have the extension .pwl which means "Project Workflow Language". Workflows are not part of the project definition, and PWL is a language all of its own, which we'll get to later. </p>
+<p>Let's look at chunk out of the standard.pwl file: </p>
+<pre>
+&lt;state name = "repository" inherit = "default"&gt;
+  &lt;event name = "build"&gt;
+    &lt;action name = "check project files exist" /&gt;
+    &lt;action name = "produce generated files"   /&gt;
+    &lt;action name = "check source files exist"  /&gt;
+    &lt;action name = "build binary files"        /&gt;
+  &lt;/event&gt;
+&lt;/state&gt;
+</pre>
+<p>What this says is: the project can be in several states, one of which is "repository". The person who wrote the workflow had something in mind here, and it was not medical. "repository" means that the project has been checked out of a SCS repository (CVS or Subversion) rather than delivered via a ZIP or TGZ file.  Why the difference?  Possibly because the repository contains different files than a source package.  We do not generally put generated code into CVS but we do like to provide that as part of a source package.  So building a project from CVS is not the same thing as building it from a source package.  It is this kind of subtle but vital distinction that Boom workflows describe.  And we use a formal method called a "finite state machine" (FSM) to make this description.  FSMs are old and wise. </p>
+<p>Now we come to the nice part about Libero, namely total and utter confusion about words. "Action" and "event" are like interbred cousins, you can't always tell the difference, and when you finally can, you're not sure it is a good thing. You do something, this is an action, but not for the workflow. The workflow sees things happening outside as "events". Then it goes and turns an event into "actions". Confused? Let's try again. You give the "build" command. This gets passed to the workflow by some magic, and the workflow says "ah, I have an event called "build", which matches the definitions I have here. Bingo!". Then the workflow says "OK, so I'm in the "repository" state, what do I have to do to handle this "build" event that I got?" And it finds four actions, nicely listed in order, so it goes and does these one by one. </p>
+<p>The workflow is simply a framework that says: "these are the states we agree on", "these are the events allowed in each state", and "these are the actions that I, the workflow, will perform, given a valid event in a valid state". </p>
+<p>In gross terms, states are the starting points where a project can find itself. A project is always in a well-defined state. Again, what these are depends on the person writing the workflow. I can tell you the states that we decided were useful when we wrote Boom, but that only tells you about the way we at iMatix see the world. </p>
+<p>Events are one of two things.  Either they are build commands entered by the Boom user (see "Time to Panic", later on).  Or, they are events produced by actions.  Yes, this is where most people's brains do a small flip that feels like a grapefruit turning itself inside out.  Let's look at the very beginning of the "standard.pwl" workflow.  This is how the workflow "decides" what state the project is in: </p>
+<pre>
+&lt;state name = "initial"&gt;
+  &lt;event name = "ok" internal = "1" nextstate = "initial check" &gt;
+    &lt;action name = "check operating context" /&gt;
+  &lt;/event&gt;
+&lt;/state&gt;
+&lt;state name = "initial check"&gt;
+  &lt;event name = "repository" internal = "1" nextstate = "repository"  /&gt;
+  &lt;event name = "source" internal = "1" nextstate = "source"  /&gt;
+&lt;/state&gt;
+</pre>
+<p>Let's work through this very slowly. The workflow starts in the first state, which is called "initial" in this workflow. The name is arbitrary. Starting in the first state is also just a convention. We could also start in the last state.  Doing stupid things is just generally a waste of time.  The first state gets an event, "ok", handed to it from somewhere.  The "somewhere" is actually the workflow engine, a chunk of code that I describe in the section "Hacking Boom".  The "ok" event tells the workflow it can start.  It does an action, "check operating context", and moves to a new state, "initial check".  The action does something like this, under Windows: </p>
+<pre>
+set event=source
+if exist CVS\\nul set event=repository
+</pre>
+<p>And under Unix: </p>
+<pre>
+event=source
+[ -d CVS ] &amp;&amp; event=repository
+</pre>
+<p>We'll get to the "where" and the "how" a little later. You will see that the action code sets a variable called "event". This event comes back to the somewhat surprised workflow, which figured that its work was done and it could go back to that rather good book it was reading. The workflow takes the event, which is either "repository" or "source", and switches once more to a new state, this time either "repository" or "source". The fact that the event names and the state names match is totally incidental - it makes life easier for us, reading the workflow, but the states could as well be called "State Is Raw Fish" and "State Is Cooked Haddock". </p>
+<p>Finally, we come to the first chunk of code we showed.  Assuming that the Boom user had used the "build" command, the workflow would now do: </p>
+<pre>
+    &lt;action name = "check project files exist" /&gt;
+    &lt;action name = "produce generated files"   /&gt;
+    &lt;action name = "check source files exist"  /&gt;
+    &lt;action name = "build binary files"        /&gt;
+</pre>
+<p>which is just a very careful and deliberate way of saying "make all". </p>
+<h3><a name="TOC18">What Do I Need To Use Boom?</a></h3>
+<p>Boom is part of Base, and to use it you have to install at least part of Base. Strictly speaking, Boom is a project in the Base product. Base consists of a number of projects: Boom, SFL, SMT, Gaggle, Libero, GSL, and so on. My advice is to just install Base in full. After all, you don't really want to live without something with a name like "Gaggle", do you? Unpack Base, follow the install instructions (basically "boomake install" if you got a binary package, and "boomake build install" if you got a source package). </p>
+<p>Next thing you need is Perl. Boom uses Perl to do various things which are (for now) out of the reach of the feeble capabilities of GSL. We will eventually remove this, not because we don't like Perl (we do) but because it adds an unnecessary step to installation on toy systems like Windows where Perl is not part of the world. How do they survive, we ask ourselves. Never mind. </p>
+<h3><a name="TOC19">What are "Products" and "Projects"?</a></h3>
+<p>Boom defines "products" and "projects" as a way of trying to turn the total and utter chaos we usually see in software development into something that at least pretends to be organized.  We start with the concept of a "product" as being something large enough to justify an independent existence.  Products are the stand-alone deliverables that our software development process produces.  We deliver products to our customers and users.  A product is something we sell, internally or externally.  A typical product would be something like the iMatix Xitami web server. </p>
+<p>A product is usually too large to digest in a single workspace. By this I mean that any product worth producing invariably consists of not just one, but several semi-independent projects. Perhaps there are small tools that the product needs, or additional components, or other internal divisions. These divisions usually follow the structure of the product team. As the old saying goes: "When a team of N people build a compiler, they will usually make a compiler with N-1 passes. Someone has to do the project management."  So, we invent the concept of "project" to break a large product into more manageable pieces.  A project is something we work on, with a specific construction and deliverables. </p>
+<p>There are advantages to breaking work into pieces of the right size, where "right" has a meaning at many levels. A source file should fit into your active memory. A project should fit into your team size. A product should fit into your commercial structure. And so on.  If you push the limits in one way or another, you risk creating inefficient structures.  Imagine that you create a product from every single program.  You would be unable to sell these products in any kind of coherent fashion.  Or, that you create just one product, containing every single program you make.  Again, it would be unsellable, but worse, it would be untestable and unmaintainable.  The "right" size is very important. </p>
+<p>In our experience, and for the type of work we do, a breakdown into products and projects, where our entire product range has perhaps ten items in it, and each product breaks down into perhaps five to ten projects, and each project consists of perhaps twenty to a hundred principle source components, is "right".  Each Boom user will have a different scale of operation, but the breakdown into the two levels I've described is a useful place to start. </p>
+<p>In our experience, commercial developers tend to have a very few very important products, while free developers tend to make many small products.  Boom happily supports both extremes, but my advice about choosing the right scale for your work remains.  You cannot make every soldier in an army into a general. </p>
+<p>In Boom, several overlapping products can co-exist in the same space. This is useful because it is the way real life works. Boom lets you say: "this product consists of these and these projects", and repeat yourself as often as you like. Base is actually several products in the same space that we call "Base" for convenience. There is the basic source product - this is what we release to the great unwashed public. Then there is a binary version of this, which we may or may not release if we feel happy with it. Finally there is a source version that includes encryption (SSL) support, Base/Pro. I can quite easily define new products by picking and choosing projects. For example, I could define a "Base/Lite" product that consisted of just Boom, Libero, and GSL.  This would be compact, but without Gaggle, frankly, who would want it? </p>
+<p>Boom uses different workflows to package projects and products. Thus, the process of building a project is different from the process of building a product. As with most of Boom, this is all plastic and you may find it useful to play with and change it. </p>
+<p>Having said all this, you can work without products, entirely at the project level.  This is often a good place to start.  When you are a beginner.  Careful with that mouse pointer. </p>
+<h3><a name="TOC20">How Can I Extend Boom?</a></h3>
+<p>Jump ahead to "Hacking Boom". Before thinking about this, though, be sure you actually understand what you are doing. By that I mean: use Boom in several projects, and get some familiarity with the wonderful world of GSL. You will need it. </p>
+<h3><a name="TOC21">Why All The XML?</a></h3>
+<p>Boom is one of the many tools we make and use. If it looks strange, this is because it is. We have an unusually aggressive vision of software development. Where most people try to master complexity through sheer willpower, we try to do this through sheer laziness. We are so lazy that we will work for days and weeks to remove complexity from the landscape. This is very hard to do: most activity just moves complexity from A to B. The most typical way of eliminating complexity is to hide it, by making neat packages. We do this, of course. But making neat packages just creates a new mental task - namely package management. We also take a different road, one that is strange to many people, and not at all obvious unless you have been there before. </p>
+<p>I'll call this "hyper-abstraction". What we do is to look at a class of common problems, and try to define a simplified abstract model that lets us implement solutions to those problems. Let me give an example. Let's say we're building houses. We decide that a house will have many things called "windows", and we will build these to a standard model consisting of a "frame", several pieces of "glass", and "hinges". </p>
+<p>Simply defining this standard abstract model of a window allows us to make the window elsewhere and bring it, already assembled, to the building site. Clearly this window model has some constraints and may hinder the traditional carpenter who is used to assembling a window on-site from wood and glass. But it allows higher quality and lower costs. Software is a lot like houses, except that the job of defining standard pieces and models never stops, because there are just too many "traditional carpenters" who enjoy chopping code and fitting it into whatever space there is, disregarding cost and quality and planning. </p>
+<p>Now, the idea of making standard models is not new. This is what object orientation is all about. Object orientation (and its offspring: Java beans, PHP extensions, Perl packages, and Windows components) creates new models and glues them into a programming language framework. We wrap up some behavior and intelligence, call it an "object" and give it to the application programmer. I call this the "wrap-and-go" approach to abstraction. Wrap-and-go depends intimately on a programming language. Can you imagine an "object" without a programming language? No, me neither. </p>
+<p>Yet this is a frankly introspective approach. Programming languages are just tools, not worlds, and while wrap-and-go is extremely powerful, it does not free the programmer from doing a nose-dive into an ultimately limited worldview. It makes it worse. All the Java beans in the world won't help you when you have to start again in C#. </p>
+<p>Thus we get generation after generation of programmer learning to use incredibly complex sets of components, but throwing away everything they know - and everything they write - every 3-5 years just as surely as when programmers were tied to a particular hardware instruction set. The science of software appears to have made enormous strides but in fact is has just moved the complexity from A to B. Yes, we are more productive today, but all this means is that we abandon more lines of code than ever before. </p>
+<p>Hyper-abstraction tries something different (whether it works or not remains to be seen). We look at the history of software development and we notice that languages have progressively gotten "fatter". From assembler to C, we get perhaps 10 times fatter. From C to Perl or Python or Java, we get perhaps 10 times fatter again. </p>
+<p>This is a good thing in the same way as "fat Internet connections" are good. One line of a fat language can do the same as thousands of lines of a thin language. Imagine a program as spaghetti, but hard, dry, straight, and spread-out across a table. Look at the fine lines of code, each doing one small thing. You can cover any surface, however detailed, but the effort of placing each strand of spaghetti is extraordinary. Now take really fat tubes of canellonni. This is a fat language. You can cover the same area much faster, although you may lose some fine detail. </p>
+<p>Wrap-and-go lets you add a lot of useful fat to the language. But in the same way as using macros in assembler, or subroutines in C, wrap-and-go keeps you tied to the language, and tied to the way the language sees the world, and this prevents any radical step in making the next increase in fatness. </p>
+<p>The first rule of hyper-abstraction is that the programming language is almost completely unimportant. It is a "target" in the same way as my notebook's CPU is a target. Yes, of course I care that my CPU works, and works rapidly, but I do not care about the details.  Not knowing the details is essential, actually.  Computers do _not_ tell you what they are doing. </p>
+<p>The second rule of hyper-abstraction is that we look at the way we work and think, and define models that structure that. Having been freed from the limitations of specific programming languages lets us define much more useful and natural models.  It's like saying: "We don't _care_ what kind of wood and what kind of glass go into the furkin windows, so long as we agree that what we call "window" consists of a frame, two panes of glass for insulation, and hinges so that it can open. The kind of wood is an implementation detail." </p>
+<p>The last rule of hyper-abstraction is that it requires magic, which is the technical term for "sufficiently advanced technology" as defined by Clarke.  This is where iMatix goes into territory that few others understand or even dare to investigate.  Our technology is, luckily, sufficiently advanced.  It is called "code generation", and the wizard's staff is a language called GSL that lets you write magic incantations.  Do not look at GSL as a programming language.  It is a language for doing magic that turns fat models into thin ones, much like a super diet pill. </p>
+<p>The recipe for using GSL is actually quite simple. First, identify your problem. In the case of Boom, for instance, the problem is taking a bunch of programs and assorted villains and turning them into a "product" that can be sold in exchange for money or kudos. But we could as well be talking about the problem of turning a car design into physical components, or the problem of turning window specifications into a paper order form. Our real worlds are made out of models, and software just takes this process several stages further. </p>
+<p>Secondly, define a "perfect model" to solve your problem. This is, admittedly, difficult. If you are trying to define the perfect window model, you have to know a lot about how windows are actually made. The model has to be simple, yet general. We make models by defining a set of concepts that seem to fit our world. If we do this well, the fit is obvious and no-one says "well done!" If we do this badly, we get the video player syndrome: an impossibly complex way of doing something that we all know is incredibly simple. Complexity is easy. It takes absolutely no creativity to make a complex model, just stamina and a good memory. It is finding the simplicity that is the hard work. </p>
+<p>It's like this document. I'm writing it using a model called "gurudoc", which is so simple and yet can be turned into such refined documents that it earns the label "magic". Gurudoc took quite a long time to refine, even though it looks trivial. It would have been much easier to use something like XHTML or TeX or one of the dozens of other document standards out there. But they are all _too_ _complex_. </p>
+<p>We often use XML to describe the "perfect model". XML is really good for this - it's a language with almost unlimited scope for fatness, for describing arbitrary concepts with elegance and clarity.  Or, in the wrong hands, for creating a tsunami of complexity that can overwhelm even the most determined person. </p>
+<p>Lastly, we use GSL to make magic that turns instances of the model into live code which can do the actual work. GSL just happens to live almost entirely in an XML-based world. Don't let that fool you into thinking it's like a weak scripting language with some XML capability. GSL was invented specifically as a hyper-abstraction tool, a language for writing code generators, the most powerful kind of tool in a programmer's toolkit. </p>
+<p>Imagine your model.  Implement it as an ultrafat XML language.  Turn it into living code with GSL. </p>
+<p>So, Boom is basically a set of XML-based models and GSL scripts.  It's a good way to build any toolkit. </p>
+
+      <p>
+    </td>
+  </tr height="40">
+    <td width="5" bgcolor="#DDDDDDD">&nbsp;</td>
+    <td valign="bottom" class="footer">iMatix Corporation &amp;lt;tools@imatix.com&amp;gt; - Copyright (c) 2002-2009 iMatix Corporation</td>
+  </tr>
+</body>
+</html>

@@ -1,0 +1,57 @@
+#
+#   gurudoc.gsl - GuruDoc GSL script
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+#   Arguments to script:
+#       -gdl:       name of GDL file, without extension
+#       -base:      name of output, without extension
+#                   (default gdl name)
+#       -tpl:       name of template script, without extension
+#                   (default 'html_simple')
+#       -page:      value of header for page break
+#                   (default '2')
+
+include "mod_gdl.gsl"
+include "guruver.gsl"
+
+page = switches.page?2
+if page < 1
+    page = 1
+endif
+if page > 4
+    page = 4
+endif
+
+if defined (switches.tpl)
+    cssfile = "gdstyle.css"
+    tplfile = "$(switches.tpl:).gsl"
+else
+    cssfile = "gdstyle.css"
+    tplfile = "html_simple.gsl"
+endif
+
+include tplfile
+
+#   Remove any extension on gdl file name (usually '.txt')
+gdlfile = string.prefix (switches.gdl, ".")
+if gdlfile = ""
+    gdlfile = switches.gdl
+endif
+base = switches.base? gdlfile
+
+gdl_load ("$(gdlfile:).gdl")

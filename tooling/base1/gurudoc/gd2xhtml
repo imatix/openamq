@@ -1,0 +1,420 @@
+#! /usr/bin/perl
+#============================================================================
+#
+#   gd2xhtml    Gurudoc-to-XHTML converter
+#
+#   Taken from the htmlpp tool.
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+#============================================================================
+
+text_to_xhtml ();
+
+sub text_to_xhtml {
+    local ($had_blank);                 #   Last line was blank?
+    local ($width, $height);            #   Image width, height
+    local ($captext);                   #   Image caption text
+
+    $lines        = 0;                  #   Line numbering
+    $guru_block   = "";                 #   Not in any block
+    $had_blank    = 1;                  #   Last line was blank, initially
+
+    while (get_plain_line ()) {
+        #   Numbered list consists of line starting with a number, that
+        #   number must be followed by a '-', '.' or ')' character, and
+        #   followed by a whitespace.
+        if (s/^\s{0,2}[0-9]+[\.\-\)]\s+//) {
+            guru_want_block ("ol");
+            print "<li>";
+            do {
+                s/^\s+/ /;
+                print "$_";
+                get_plain_line ();
+            } while (/^\s{1,2}[^\.\-\)]/ & !/^\s{0,2}[0-9]+[\.\-\)]\s+/);
+            print "</li>\n";
+            redo;
+        }
+
+        #   Bulleted list consists of line starting with '- ', '+',
+        #   '*', and followed by a whitespace.
+        elsif (s/^\s{0,2}[\-\*\+]\s+//) {
+            guru_want_block ("ul");
+            print "<li>";
+            do {
+                s/^\s+/ /;
+                print "$_";
+                get_plain_line ();
+            } while (/^\s{1,2}[^\.\-\)]/);
+            print "</li>\n";
+            redo;
+        }
+
+        #   Horizontal rule is 4 or more underscore '_', plus '+',
+        #   hash '#', or tilde '~' characters.
+        #
+        elsif (/^\_\_\_\_/
+        ||     /^\+\+\+\+/
+        ||     /^\#\#\#\#/
+        ||     /^\~\~\~\~/) {
+            guru_want_block ("");          #   Close any previous block
+            $_ = '<hr/>';
+        }
+
+        #   Figure is defined by [Figure filename: caption] where the
+        #   'figure' keyword and caption are optional, and the filename
+        #   may be enclosed in quotes.
+        #   Figures are numbered only if 'Figure' keyword is used
+        #
+        elsif (/^\[(Figure\s+)?"([^"\s]+)"\s*(:\s*([^]]*))?]/i
+        ||     /^\[(Figure\s+)?([^:\s]+)\s*(:\s*([^]]*))?]/i) {
+            guru_want_block ("");          #   Close any previous block
+            #   Get the figure label
+            if ($1 && $3) {
+                $captext = $3;
+                $captext =~ s/^\s*:\s*//g;
+                $captext = " alt=\"$captext\"";
+            }
+            else {
+                $captext = "";
+            }
+            #   Get image width and height if possible
+            $width  = &image_width  ($2);
+            $height = &image_height ($2);
+
+            print "<img";
+            print " src=\"$2\"";
+            print " width=\"$width\"" if $width;
+            print " height=\"$height\"" if $height;
+            print $captext;
+            print "/>\n";
+            next;
+        }
+
+        #   Handle start of block of text after blank line
+        elsif (/^\S/ && $had_blank) {
+            local ($first) = $_;
+            get_plain_line ();
+
+            #   Header 1: line followed by '*****' line
+            #   Header 2: line followed by '=====' line
+            #   Header 3: line followed by '-----' line
+            #   Header 4: line followed by '.....' line
+            #
+            if (/^\*\*\*/) {
+                guru_want_block ("");  #   Close any previous block
+                print "<h1>$first</h1>\n";
+                $had_blank = 1;
+                next;
+            }
+            elsif (/^\=\=\=/) {
+                guru_want_block ("");  #   Close any previous block
+                print "<h2>$first</h2>\n";
+                $had_blank = 1;
+                next;
+            }
+            elsif (/^\-\-\-/) {
+                guru_want_block ("");  #   Close any previous block
+                print "<h3>$first</h3>\n";
+                $had_blank = 1;
+                next;
+            }
+            elsif (/^\.\.\./) {
+                guru_want_block ("");  #   Close any previous block
+                print "<h4>$first</h4>\n";
+                $had_blank = 1;
+                next;
+            }
+
+            #   Tables are triggered by either a header line in the form
+            #   'This field:  Has this meaning:', or by a table line in
+            #   the form 'One_word: Explanation...', where both the word
+            #   and the text start in a letter or a digit.
+            #
+            elsif ($first =~ /^[A-Za-z0-9].*(:\s+[A-Za-z].*)+:/
+            || ($table_row && $first =~ /^[A-Za-z0-9]\w*(:\s+\S+)+/)) {
+                &guru_want_block ("");  #   Close any previous block
+                print "<table>\n";
+                $table_row = 1;
+                while ($first =~ /:\s/) {
+                    #   $_ holds next line
+                    if (/^\s/) {     #   Continuation is indented
+                        $first .= "\n  $'";
+                    }
+                    else {
+                        &guru_table_row ($first, $table_row++);
+                        $first = $_;    #   Look at next line
+                    }
+                    &get_plain_line;
+                }
+                print "</table>\n";
+                redo;                   #   Next line is in $_
+            }
+
+            #   Definition lists are triggered by a line ending in ':'
+            #   followed by indented text.  Each definition item ends in
+            #   a blank line or a non-indented line.
+            #
+            elsif (/^\s/ && $first =~ /^(.*):$/) {
+                guru_want_block ("dl");
+                print "<dt>";
+                print $1;
+                print "</dt>\n";
+                print "<dd>";
+                while (/^\s/) {
+                    s/^\s+//;
+                    print "$_\n";
+                    get_plain_line ();
+                }
+                print "</dd>\n";
+                redo;                   #   Next line is in $_
+            }
+            else {                      #   Start new paragraph
+                &guru_want_block ("");  #   Close any previous block
+                $guru_block = "p";
+                print "<p>$first\n";
+                $had_blank = 0;
+                redo;                   #   Next line is in $_
+            }
+        }
+
+        #   Quote is text indented by 4+ spaces and starting with "
+        #   We pick-up the quoted text up to the blank line.
+        #
+        elsif (/^(    |\t)"/) {
+            guru_want_block ("");      #   Close any previous block
+            print "<blockquote>\n";
+            while (/^\s/) {
+                s/^\s+//;
+                print "$_\n";
+                get_plain_line ();
+            }
+            print "</blockquote>\n";
+            redo;                       #   Next line is in $_
+        }
+
+        #   Preformatted text consists of text indented by 4+ spaces
+        #   or a single tab character.  We strip off 4 spaces or a tab;
+        #   final indentation will be handled by the GDL processor.
+        #
+        elsif (s/^(    |\t)//) {
+            $_ = $';
+            guru_want_block ("pre");
+        }
+        if (/^\s*$/) {
+            $had_blank = 1;
+        }
+        else {
+            print "$_\n";
+            $had_blank = 0;
+        }
+    }
+    guru_want_block ("");              #   Close any current block
+}
+
+sub get_plain_line {
+    if ($_ = <>) {
+        chop while (/\s$/);             #   Drop trailing white space
+        $lines++;
+        unless (/^(    |\t)/) {         #   if not in an example block...
+            while (s/\\\s*$//) {        #   ...handle continuation line symbol '\'
+                $_ .= <>;
+                chop while (/\s$/);     #   Drop trailing white space
+                $lines++;
+            }
+        }
+        #   Escape special characters
+        while (/(.*?)([\200-\377])(?=(.*))/) {
+            $_ = $1 . "\\" . ord ($2) . $3;
+        }
+        s/&/&amp;/g;                    #   Replace & by &amp;
+        s/</&lt;/g;                     #   Replace < by &lt;
+        s/>/&gt;/g;                     #   Replace > by &gt;
+
+        #   Add bold and italic formatting
+        while (/\*[^*]+\*/) {           #   *this is bold*
+            $_ = $`."<b>".$1."</b>".$';
+        }
+        while (/\![^*]+\!/) {           #   !this is italic!
+            $_ = $`."<i>".$1."</i>".$';
+        }
+        #   Replace all hyperlinks in line
+        for (;;) {
+            #   Format [a@host]
+            if (/\[([^@]+@[^&]+)\]/) {
+                $_ = $`."<a href=\"mailto:$1\">$1</a>".$';
+            }
+            #   Format [xxx://host/uri:description]
+            elsif (/\[(\w+:\/\/[^&]+):([^&]+)\]/) {
+                $_ = $`."<a href=\"$1\">$2</a>".$';
+            }
+            #   Format [xxx://host/uri]
+            elsif (/\[(\w+:\/\/[^&]+)\]/) {
+                $_ = $`."<a href=\"$1\">$1</a>".$';
+            }
+            #   Format [/localfile:description]
+            elsif (/\[\/([^&]+):([^&]+)\]/) {
+                $_ = $`."<a href=\"$1\">$2</a>".$';
+            }
+            #   Format [/localfile]
+            elsif (/\[\/([^&]+)\]/) {
+                $_ = $`."<a href=\"$1\">$2</a>".$';
+            }
+            else {
+                last;
+            }
+        }
+        return (1);
+    }
+    else {
+        return (0);
+    }
+}
+
+sub guru_want_block {
+    local ($new_block) = @_;      #   Get subroutine arguments
+
+    if ($guru_block ne $new_block) {
+        if ($guru_block) {
+            print "</$guru_block>\n\n" ;
+        }
+        if ($new_block) {
+            print "<$new_block>\n";
+        }
+        $guru_block = $new_block;
+    }
+}
+
+sub guru_table_row {
+    local ($_, $row) = @_;              #   Get arguments
+
+    s/_/ /g;                            #   Underlines -> spaces
+    print "<tr>\n";
+    #   Table header?
+    if ($row == 1 && /(.*):\s+(.*):$/) {
+        print "<th>$1</th><th>$2</th>\n";
+    }
+    elsif (/([^:]*):\s+((.|\n)*)/) {
+        print "<td>$1</td><td>$2</td>\n";
+    }
+    print "</tr>\n";
+}
+
+
+#   -------------------------------------------------------------------------
+#   The code to extract image sizes was mostly provided by Craig Smith
+#   <cs@aba.net.au> in December 1997 (thanks, Craig!).
+#   -------------------------------------------------------------------------
+
+#   Subroutine returns width of GIF or JPG image, if found, else 0
+#
+sub image_width {
+    local ($_) = @_;                    #   Get arguments
+    local ($hi, $lo);
+
+    if (-e && (/\.gif$/i || /(\.jpg|\.jpeg|\.jfif)$/i)) {
+        open (IMAGE, $_) || die "Can't read $_: $!";
+        if (/\.gif$/i) {
+            #   width is at bytes 6 and 7 (lohi)
+            seek (IMAGE, 6, 0);
+            read (IMAGE, $lo, 1);
+            read (IMAGE, $hi, 1);
+        }
+        elsif (/(\.jpg|\.jpeg|\.jfif)$/i) {
+            #   width is at bytes 7 and 8 of JFIF frame
+            seek (IMAGE, &findJfifFrame ($_) + 7, 0);
+            read (IMAGE, $hi, 1);
+            read (IMAGE, $lo, 1);
+        }
+        close (IMAGE);
+        return (ord ($hi) * 256 + ord ($lo));
+    }
+    else {
+        return (0);
+    }
+}
+
+
+#   Subroutine returns height of GIF or JPG image, if found, else 0
+#
+sub image_height {
+    local ($_) = @_;                    #   Get arguments
+    local ($hi, $lo);
+
+    if (-e && (/\.gif$/i || /(\.jpg|\.jpeg|\.jfif)$/i)) {
+        open (IMAGE, $_) || die "Can't read $_: $!";
+        if (/\.gif$/i) {
+            #   height is at 8 and 9 (lohi)
+            seek (IMAGE, 8, 0);
+            read (IMAGE, $lo, 1);
+            read (IMAGE, $hi, 1);
+        }
+        elsif (/(\.jpg|\.jpeg|\.jfif)$/i) {
+            #   width is at bytes 6 and 7 of JFIF frame
+            seek (IMAGE, &findJfifFrame ($_)+5, 0);
+            read (IMAGE, $hi, 1);
+            read (IMAGE, $lo, 1);
+        }
+        close (IMAGE);
+        return (ord ($hi) * 256 + ord ($lo));
+    }
+    else {
+        return (0);
+    }
+}
+
+
+#   First we identify whether the file is indeed a JFIF file, then we
+#   need to skip through the segments in the file until we find a JPEG
+#   frame, identified by the marker bytes 0xffc0. Each segment contains
+#   a pair of marker bytes, followed by 2 byte length (hilo). The length
+#   includes itself, but not the marker bytes, so the total number of bytes
+#   in each segment is length+2.
+
+sub findJfifFrame {
+    local ($image) = @_;
+    local ($buffer, $offset, $len, $id);
+    local ($hi, $lo);
+
+    open (IFILE, $image) || die "Can't read $image: $!";
+
+    #   Verify JFIF file
+    #   first 4 bytes are 0xffd8ffe0, followed by 2 bytes of length,
+    #   followed by string "JFIF\x00".
+
+    read (IFILE, $buffer, 4);
+    read (IFILE, $hi, 1);
+    read (IFILE, $lo, 1);
+    $len = ord ($hi) * 256 + ord ($lo);
+    read (IFILE, $id, 5);
+
+    if ($buffer ne "\xff\xd8\xff\xe0" || $id ne "JFIF\x00") {
+        die "$image doesn't appear to be a JFIF file";
+    }
+    $offset = 2;
+    $buffer = "\xff\xff";
+
+    while ($buffer ne "\xff\xc0" && $buffer ne "\xff\xc2") {
+        $offset += $len + 2;
+        seek (IFILE, $offset, 0);
+        read (IFILE, $buffer, 2) || die "read: possible corrupt file";
+        read (IFILE, $hi, 1)     || die "read: possible corrupt file";
+        read (IFILE, $lo, 1)     || die "read: possible corrupt file";
+        $len = ord ($hi) * 256 + ord ($lo);
+    }
+    close (IFILE);
+    return $offset;
+}

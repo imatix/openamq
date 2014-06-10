@@ -1,0 +1,16 @@
+* template 0/0???
+
+
+- debugger
+
+- rationalise gsl/template:
+
+  gsl command starts in which mode?
+
+- fix doc: functions, .return, objects...
+
+- make parser use dialog call/return
+
+- make SMT-compliant:
+    * release macros
+    * when to release script?

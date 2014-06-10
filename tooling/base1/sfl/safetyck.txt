@@ -1,0 +1,46 @@
+            Thread-safe     Strcpy/cat
+sflbits     No              Yes
+sflcomp     No              Yes
+sflcons     Yes             Yes
+sflconv     Yes             Yes
+sflcryp     No              Yes
+sflcvbs     Yes             Yes
+sflcvdp     No              No
+sflcvds     No              Yes
+sflcvns     No              Yes
+sflcvsb     Yes             Yes
+sflcvsd     Yes             Yes
+sflcvsn     No              Yes
+sflcvst     No              Yes
+sflcvtp     No              No
+sflcvts     Yes             Yes
+sfldate     Yes             Yes
+sfldir      No              No
+sflenv      Yes             Yes
+sflexdr     Yes             Yes
+sflfile     No              No
+sflfind     No              Yes
+sflhttp     Yes             Yes
+sflini      No              Yes
+sfllang     Yes             Yes
+sfllbuf     Yes             Yes
+sfllist     Yes             Yes
+sflmail     Yes             No
+sflmath     Yes             Yes
+sflmem      Yes             Yes
+sflmesg     No              Yes
+sflmime     No              Yes
+sflproc     
+sflslot
+sflsock
+sflsort
+sflstr
+sflsymb
+sflsyst     Yes             Yes
+sfltok
+sfltree
+sfltron
+sfluid
+sfluml
+sflxml
+sflxmll

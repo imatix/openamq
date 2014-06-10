@@ -1,0 +1,2099 @@
+<?xml?>
+<!--
+    GSL/DB - Berkeley DB interface for GSL programming
+
+    Provides GSL applications with the ability to manage indexed
+    databases based on various ISAM models.  This module implements
+    an API to Berkeley DB 4.1 (www.sleepycat.com).  Note that we
+    have chosen to rename some of the key Berkeley DB concepts: the
+    concepts that Berkeley DB calls "environment" and "database"
+    correspond closely to the more modern terms "database" and
+    "table" and we have used these in the API.  All calls to the
+    Berkeley DB code itself use the Berkeley DB terminology.
+
+    Written: 2003/01/02    Pieter Hintjens
+    Revised: 2003/06/10
+
+    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    Still to be done:
+    - db.insert with identity is not safe for multiple writers
+    - db.update fails when working on alternate keys, EINVAL on c_put :-/ 
+    - db.select (table, [index], rangefrom, [rangeto], [scope])
+        - select set of records using primary or alternate key range
+        - return selection as list of XML items
+    - db.set ("limit", nnn)
+        - set limit for select actions (by default, 250?)
+    - db.delete (table [,key] [,index])
+        - delete all matching records on alternate index
+    - reload catalog if externally modified since last save
+    - allow binary data blocks
+    - cache database connections per GSL thread
+    - more exhaustive test program, possible ex_tpcb example
+    - generate compatible C routines from iAF definition
+    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    
+    Copyright (c) 1991-2009 iMatix Corporation
+
+    ------------------ GPL Licensed Source Code ------------------
+    iMatix makes this software available under the GNU General
+    Public License (GPL) license for open source projects.  For
+    details of the GPL license please see www.gnu.org or read the
+    file license.gpl provided in this package.
+
+    This program is free software; you can redistribute it and/or             
+    modify it under the terms of the GNU General Public License as            
+    published by the Free Software Foundation; either version 2 of            
+    the License, or (at your option) any later version.                       
+                                                                              
+    This program is distributed in the hope that it will be useful,           
+    but WITHOUT ANY WARRANTY; without even the implied warranty of            
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             
+    GNU General Public License for more details.                               
+                                                                               
+    You should have received a copy of the GNU General Public                  
+    License along with this program in the file 'license.gpl'; if             
+    not, write to the Free Software Foundation, Inc., 59 Temple               
+    Place - Suite 330, Boston, MA 02111-1307, USA.                            
+                                                                              
+    You can also license this software under iMatix's General Terms           
+    of Business (GTB) for commercial projects.  If you have not               
+    explicitly licensed this software under the iMatix GTB you may            
+    only use it under the terms of the GNU General Public License.            
+                                                                              
+    For more information, send an email to info@imatix.com.                   
+    --------------------------------------------------------------            
+ -->
+    
+<gxl script = "ggobjt.gsl" filename = "ggbdb" title = "GSL/DB package" >
+
+<extra>
+#include "db.h"
+
+/*  The GSL/DB catalog is created in the database home directory             */
+#define GSLDB_CATALOG       "catalog.xml"       /*  Database catalog         */
+#define GSLDB_DATABASE      "database.dat"      /*  Group filename           */
+#define GSLDB_VERSION       "GSL/DB/1.0"
+
+#define STRING_VALUE(arg,default)   (arg? string_value (&arg-> value): default)
+#define NUMBER_VALUE(arg,default)   (arg? number_value (&arg-> value): default)
+
+#define RETURN_ERROR(what,where) \
+    { \
+    sprintf (object_error, "db error on %s: %s", (where), db_strerror (what));\
+    return (-1); \
+    }
+
+#define RETURN_STATUS(status) \
+    { \
+    result-> value.type = TYPE_NUMBER;\
+    result-> value.n    = (status);\
+    return (0); \
+    }
+#define ASSERT_CONNECTED \
+    if (!db_env) { \
+        sprintf (object_error, "Not connected to a database"); \
+        return (-1); \
+    }
+
+/*  To allow multiple handles, we need to make a table of these and provide
+    the called with a connection handle to work with.
+ */
+static DB_ENV
+    *db_env = NULL;                     /*  Single global database handle    */
+static DB_TXN
+    *db_txn = NULL;                     /*  Current transaction if any       */
+static char
+    *db_catfile;                        /*  Current database catalog file    */
+static XML_ITEM
+    *db_root = NULL,                    /*  Current database catalog         */
+    *db_catalog;
+static SYMTAB
+    *db_handles = NULL,                 /*  Symbol table for table handles   */
+    *db_cursors = NULL;                 /*  Symbol table for table cursors   */
+static Bool
+    db_locking = FALSE,                 /*  True if locking is enabled       */
+    db_cdbtype = FALSE;                 /*  True for CBD database types      */
+
+</extra>
+
+<object name = "db" title = "Berkeley DB Functions" >
+<initialise>
+    db_env  = NULL;
+    db_root = NULL;
+</initialise>
+<terminate>
+    disconnect_current_db ();
+</terminate>
+
+
+<!-------------------------------------------------------------------------
+    db.create_database (database [, type, group])
+        database    name of database directory to create
+        type        database type: ds, cds, tds or hads, default is cds
+        group       group tables into single database file, default is 1
+        
+    The database is created as a set of files in a directory with the
+    name of the database.  The create method insists that the directory
+    does not already exist.  The calling process must have write access to
+    create the directory and files within it.
+
+    The database type is one of four types supported by Berkeley DB:
+        ds      Simple data store, for single-user applications
+        cds     Concurrent data store, single writer, multiple reader
+        tds     Transactional data store, supporting multiple writers
+        hads    High-availability data store, supporting replication
+
+    The group parameter lets you choose whether database tables are kept
+    in seperate files or grouped into a single database file, which is the
+    default model.
+
+    The db.create_database method must be used to create a database before
+    using it through these functions.  You may not access arbitrary Berkeley
+    database files built in other applications via these functions.  You
+    may access databases GSL/BDB databases through the Berkeley C API so
+    long as you do not create new tables.
+
+    Aborts the GSL script under these conditions:
+      - database directory already exists
+      - illegal database type
+      - any database system error
+ -------------------------------------------------------------------------->
+
+<function name = "create_database" >
+  <parameter name = "name"   pass = "value"  compulsory = "1" />
+  <parameter name = "type"   pass = "value" />
+  <parameter name = "group"  pass = "value" />
+<body>
+{
+    int
+        rc;                             /*  Return code from BDB calls       */
+    qbyte
+        flags;                          /*  Flags for BDB function call      */
+    char
+        *my_name,                       /*  Database name                    */
+        *my_type;                       /*  Database type                    */
+    Bool
+        my_group;                       /*  Database group mode              */
+
+    /*  Get arguments to method                                              */
+    my_name  =        STRING_VALUE (name, "");
+    my_type  =        STRING_VALUE (type, "ds");
+    my_group = (Bool) NUMBER_VALUE (group, 1);
+
+    /*  If a database connection is already active, close it                 */
+    disconnect_current_db ();
+        
+    if (file_exists (my_name)) {
+        if (file_is_directory (my_name))
+            sprintf (object_error, "Directory '%s' already exists", my_name);
+        else
+            sprintf (object_error, "'%s' already exists and is not a directory", my_name);
+        return (-1);
+    }
+    if ((flags = dbtype_flags (my_type)) == -1) {
+        sprintf (object_error, "Illegal database type '%s' - use one of ds, cds, tds, or hads", my_type);
+        return (-1);
+    }
+
+    make_dir (my_name);
+    db_env_create (&db_env, 0);
+    if ((rc = db_env-> open (db_env, my_name, flags + DB_CREATE, 0)) != 0)
+        RETURN_ERROR (rc, "createdb/open");
+
+    /*  Create database catalog file                                         */
+    db_catfile = xstrcpy (NULL, clean_path (my_name), "/", GSLDB_CATALOG, NULL);
+    db_root    = xml_new (NULL, "database", "");
+    xml_put_attr  (db_root, "name",  my_name);
+    xml_put_attr  (db_root, "type",  my_type);
+    xml_put_attr  (db_root, "group", strprintf ("%d", my_group));
+    xml_save_file (db_root, db_catfile);
+
+    /*  Release resources                                                    */
+    disconnect_current_db ();
+
+    RETURN_STATUS (0);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    db.connect (database)
+        database    name of database directory to connect to
+        
+    Connects to the specified database, which must have been created through
+    the db.create_database method.  You can connect to a single database
+    only, and the active connection is shared by all threads in the process.
+    This may be improved at a later date.
+
+    Returns the number of tables defined in the database, 0 or greater,
+    if the connection succeeds. Returns -1 if the connection fails.
+
+    Aborts the GSL script under these conditions:
+      - no database catalog found, database illegally created
+      - illegal database type
+      - any database system error
+ -------------------------------------------------------------------------->
+
+<function name = "connect" >
+  <parameter name = "name"   pass = "value"  compulsory = "1" />
+<body>
+{
+    int
+        rc;                             /*  Return code from BDB calls       */
+    qbyte
+        flags;                          /*  Flags for BDB function call      */
+    char
+        *my_name;                       /*  Database name                    */
+        
+    /*  Get arguments to method                                              */
+    my_name = STRING_VALUE (name, "");
+
+    /*  If a database connection is already active, close it                 */
+    disconnect_current_db ();
+
+    /*  Check database directory exists and has a valid catalog file         */
+    if (!file_is_directory (my_name)) {
+        coprintf ("GSL/DB: cannot open database in '%s'", my_name);
+        RETURN_STATUS (-1);
+    }
+
+    db_catfile = xstrcpy (NULL, clean_path (my_name), "/", GSLDB_CATALOG, NULL);
+    if (xml_load_file (&db_root, NULL, db_catfile, FALSE) == 0)
+        db_catalog = xml_first_child (db_root);
+    else {
+        sprintf (object_error, "Cannot open database catalog - %s", xml_error ());
+        return (-1);
+    }
+
+    db_env_create (&db_env, 0);
+    flags = dbtype_flags (xml_get_attr (db_catalog, "type", ""));
+    if ((rc = db_env-> open (db_env, my_name, flags, 0)) != 0)
+        RETURN_ERROR (rc, "connect/open");
+
+    /*  Set global db_locking flag to TRUE if locking subsystem is enabled   */
+    db_locking = (flags & DB_INIT_CDB || flags & DB_INIT_TXN || flags & DB_INIT_LOCK);
+    db_cdbtype = (flags & DB_INIT_CDB) != 0;
+
+    RETURN_STATUS (0);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    db.disconnect ()
+        
+    Disconnects from the currently-connected database.  A disconnect is done
+    automatically when the GSL script ends.
+ -------------------------------------------------------------------------->
+
+<function name = "disconnect" >
+<body>
+{
+    disconnect_current_db ();
+    RETURN_STATUS (0);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    db.set (option, value)
+        
+    Sets a database control option.  These are the options you may set:
+    buffering - if set to 0, database tables and logs files are not buffered
+    timeout   - timeout, in milliseconds, for locks and transactions
+    verbose   - if set to 1, traces all database accesses
+    debug     - if set to 1, traces database errors
+
+    You must be connected to a database.  The option setting is used for the
+    current connection.
+
+    Aborts the GSL script under these conditions:
+      - not connected to a database
+ -------------------------------------------------------------------------->
+
+<function name = "set" >
+  <parameter name = "option" pass = "value"  compulsory = "1" />
+  <parameter name = "value"  pass = "value"  compulsory = "1" />
+<body>
+{
+    char
+        *my_option;
+    long
+        my_value;
+
+    ASSERT_CONNECTED;                   /*  Must be connected to database    */
+
+    /*  Get arguments to method                                              */
+    my_option =        STRING_VALUE (option, "");
+    my_value  = (long) NUMBER_VALUE (value, 0);
+    
+    if (streq (my_option, "buffering")) {
+        if (my_value != 0)
+            my_value = 1;               /*  Want 1/0 toggle                  */
+        db_env-> set_flags (db_env, DB_DIRECT_DB + DB_DIRECT_LOG, my_value);
+    }
+    else
+    if (streq (my_option, "timeout")) {
+        db_env-> set_timeout (db_env, my_value * 1000, DB_SET_LOCK_TIMEOUT);
+        db_env-> set_timeout (db_env, my_value * 1000, DB_SET_TXN_TIMEOUT);  
+    }
+    else
+    if (streq (my_option, "verbose")) {
+        if (my_value != 0)
+            my_value = 1;               /*  Want 1/0 toggle                  */
+        db_env-> set_verbose (db_env, DB_VERB_CHKPOINT,    my_value);
+        db_env-> set_verbose (db_env, DB_VERB_DEADLOCK,    my_value);
+        db_env-> set_verbose (db_env, DB_VERB_RECOVERY,    my_value);
+        db_env-> set_verbose (db_env, DB_VERB_REPLICATION, my_value);
+        db_env-> set_verbose (db_env, DB_VERB_WAITSFOR,    my_value);
+    }
+    else
+    if (streq (my_option, "debug")) {
+        if (my_value != 0)
+            db_env-> set_errfile (db_env, stderr);
+        else
+            db_env-> set_errfile (db_env, NULL);
+    }
+    RETURN_STATUS (0);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    db.syncpoint ()
+
+    Starts a transaction.  This function is only valid for tds and hads
+    databases (which support transactions).  After a syncpoint, you can
+    perform database updates and then use db.commit or db.rollback the
+    entire transaction atomically.
+
+    Aborts the GSL script under these conditions:
+      - not connected to a database
+      - any database system error
+ -------------------------------------------------------------------------->
+
+<function name = "syncpoint" >
+<body>
+{
+    int
+        rc;                             /*  Return code from BDB calls       */
+    qbyte
+        flags;                          /*  Flags for access                 */
+
+    ASSERT_CONNECTED;                   /*  Must be connected to database    */
+
+    close_all_cursors ();
+    if (db_txn) {                       /*  Discard any open transaction     */
+        db_txn-> discard (db_txn, 0);
+        db_txn = NULL;
+    }
+    flags = db_locking? DB_DIRTY_READ: 0;
+    if ((rc = db_env-> txn_begin (db_env, NULL, &db_txn, flags)) != 0)
+        RETURN_ERROR (rc, "syncpoint/txn_begin");
+
+    RETURN_STATUS (0);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    db.commit ()
+
+    Commits a transaction.  This function only makes sense in tds and hads
+    databases.  You must have used db.syncpoint to start a transaction.
+
+    Aborts the GSL script under these conditions:
+      - not connected to a database
+      - no open transaction
+      - any database system error
+ -------------------------------------------------------------------------->
+
+<function name = "commit" >
+<body>
+{
+    int
+        rc;                             /*  Return code from BDB calls       */
+
+    ASSERT_CONNECTED;                   /*  Must be connected to database    */
+
+    close_all_cursors ();
+    if (db_txn) {
+        if ((rc = db_txn-> commit (db_txn, 0)) != 0)
+            RETURN_ERROR (rc, "commit/commit");
+        db_txn = NULL;
+    }
+    else {
+        sprintf (object_error, "No open transaction");
+        return (-1);
+    }
+    RETURN_STATUS (0);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    db.rollback ()
+
+    Cancels a transaction.  This function only makes sense in tds and hads
+    databases.  You must have used db.syncpoint to start a transaction.
+
+    Aborts the GSL script under these conditions:
+      - not connected to a database
+      - no open transaction
+      - any database system error
+ -------------------------------------------------------------------------->
+
+<function name = "rollback" >
+<body>
+{
+    int
+        rc;                             /*  Return code from BDB calls       */
+
+    ASSERT_CONNECTED;                   /*  Must be connected to database    */
+
+    close_all_cursors ();
+    if (db_txn) {
+        if ((rc = db_txn-> abort (db_txn)) != 0)
+            RETURN_ERROR (rc, "rollback/abort");
+        db_txn = NULL;
+    }
+    else {
+        sprintf (object_error, "No open transaction");
+        return (-1);
+    }
+    RETURN_STATUS (0);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    db.version (type)
+
+    Returns version information.  Use the type argument as follows:
+        "db"    Returns the Berkeley DB version number
+        "db+"   Returns the Berkeley DB product and version information
+        "obj"   Returns the version number of the GSL/DB interface
+    If the type argument is ommitted, the default is "obj".
+ -------------------------------------------------------------------------->
+
+<function name = "version" >
+  <parameter name = "type"   pass = "value"  />
+<body>
+{
+    int
+        major,
+        minor,
+        patch;
+    char
+        *my_type,
+        *version;
+        
+    my_type = STRING_VALUE (type, "obj");
+    if (streq (my_type, "db")) {
+        db_version (&major, &minor, &patch);
+        version = strprintf ("%d.%d/%d", major, minor, patch);
+    }
+    else
+    if (streq (my_type, "db+")) {
+        version = db_version (NULL, NULL, NULL);
+    }
+    else
+    if (streq (my_type, "obj")) {
+        version = GSLDB_VERSION;
+    }
+    else
+        version = "(illegal type argument)";    
+
+    result-> value.type = TYPE_STRING;
+    result-> value.s    = mem_strdup (version);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    db.create_table (table, identity)
+
+    Creates a new database table.  The table may not already exist in the
+    database.  You must specify a unique table name.  The table is always
+    created with a primary index.  You can add further indexes at any time
+    with db.create_index().  If the optional identity option is set as "1",
+    the primary key of the table will be managed automatically by GSL/DB.
+    
+    Aborts the GSL script under these conditions:
+      - not connected to a database
+      - table already exists in database
+ -------------------------------------------------------------------------->
+
+<function name = "create_table" >
+  <parameter name = "table"    pass = "value"  compulsory = "1" />
+  <parameter name = "identity" pass = "value"  />
+<body>
+{
+    char
+        *my_table;                      /*  Table name                       */
+    Bool
+        my_identity;                    /*  Identity option                  */
+
+    ASSERT_CONNECTED;                   /*  Must be connected to database    */
+
+    my_table    =        STRING_VALUE (table,   "");
+    my_identity = (Bool) NUMBER_VALUE (identity, 0);
+
+    if (create_db_table (my_table, NULL, NULL, my_identity) == 0) {
+        RETURN_STATUS (0);
+    }
+    else
+        return (-1);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    db.create_index (table, index, format)
+
+    Creates an index on a table.  The table may be empty or populated; if
+    you index an existing table the process may take some time.  The index
+    name must be unique within the table, but you can use arbitrary index
+    names.  The format tells GSL/DB how to calculate the index from the
+    record data.  This calculation can be done in various ways:
+
+    Firstly, by specifying columns of data.  This is appropriate for data
+    that follows a fixed column format.  To specify one or more columns,
+    use this syntax: c:n[-m]{,n[-m]}...  For example: c:1-5,10-15.  The
+    first column in the data is numbered 1 (not 0).
+
+    Secondly, by specifying data fields separated by some delimiter.  This
+    is appropriate for printable data in a simple delimited format.  To
+    specify one or more fields, use this syntax: fx:n{,m}...  For example,
+    f,:3,6.  Note that the delimiter character must be specified after the
+    initial 'f'.  The first field in the data is numbered 1.
+
+    Lastly, by specifying XML attributes.  This is appropriate when the
+    table data is a valid XML item.  The attributes must be in the root
+    item.  Use this syntax: x:name{,name}...  For example: x:city,country.
+
+    If you want to change an index format you should drop it and then
+    recreate it.
+    
+    Aborts the GSL script under these conditions:
+      - not connected to a database
+      - table already exists in database
+ -------------------------------------------------------------------------->
+
+<function name = "create_index" >
+  <parameter name = "table"  pass = "value"  compulsory = "1" />
+  <parameter name = "index"  pass = "value"  compulsory = "1" />
+  <parameter name = "format" pass = "value"  compulsory = "1" />
+<body>
+{
+    char
+        *my_table,                      /*  Table name                       */
+        *my_index,                      /*  Index name within table          */
+        *my_format;                     /*  Format value                     */
+
+    ASSERT_CONNECTED;                   /*  Must be connected to database    */
+
+    my_table  = STRING_VALUE (table, "");
+    my_index  = STRING_VALUE (index, "");
+    my_format = STRING_VALUE (format, "");
+
+    /*  Check that format makes some kind of sense                           */
+    if (build_sort_key (NULL, my_format) == NULL) {
+        sprintf (object_error, "Invalid index format: '%s'", my_format);
+        return (0);
+    }
+    if (streq (my_index, "")) {
+        sprintf (object_error, "Name not supplied for create_index on '%s'", my_table);
+        return (0);
+    }
+    if (create_db_table (my_table, my_index, my_format, FALSE) == 0) {
+        /*  Access index, which will populate it if the table has records    */
+        get_table_handle (my_table, my_index);
+        RETURN_STATUS (0);
+    }
+    else
+        return (-1);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    db.drop_table (table)
+
+    Drops a database table and deletes all data contained in it.  If one or
+    more indices were created for the table, these are also deleted.
+
+    Aborts the GSL script under these conditions:
+      - not connected to a database
+      - table does not exist in database
+ -------------------------------------------------------------------------->
+
+<function name = "drop_table" >
+  <parameter name = "table"  pass = "value"  compulsory = "1" />
+<body>
+{
+    char
+        *my_table;                      /*  Table name                       */
+
+    ASSERT_CONNECTED;                   /*  Must be connected to database    */
+
+    my_table = STRING_VALUE (table, "");
+    if (delete_db_table (my_table, NULL) == 0) {
+        RETURN_STATUS (0);
+    }
+    else
+        return (-1);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    db.drop_index (table, index)
+
+    Drops an index on a specified database table.
+
+    Aborts the GSL script under these conditions:
+      - not connected to a database
+      - index does not exist in table
+      - table does not exist in database
+ -------------------------------------------------------------------------->
+
+<function name = "drop_index" >
+  <parameter name = "table"  pass = "value"  compulsory = "1" />
+  <parameter name = "index"  pass = "value"  compulsory = "1" />
+<body>
+{
+    char
+        *my_table,                      /*  Table name                       */
+        *my_index;                      /*  Index name within table          */
+
+    ASSERT_CONNECTED;                   /*  Must be connected to database    */
+
+    my_table = STRING_VALUE (table, "");
+    my_index = STRING_VALUE (index, "");
+
+    if (streq (my_index, "")) {
+        sprintf (object_error, "Name not supplied for drop_index on '%s'", my_table);
+        return (0);
+    }
+    if (delete_db_table (my_table, my_index) == 0) {
+        RETURN_STATUS (0);
+    }
+    else
+        return (-1);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    db.flush (table)
+
+    Flushes table data to disk.  Note that this does not guarantee that the
+    database is consistently saved to disk, but it does reduce the risk of
+    lost data in case of an application crash.
+
+    Aborts the GSL script under these conditions:
+      - not connected to a database
+      - table does not exist in database
+ -------------------------------------------------------------------------->
+
+<function name = "flush" >
+  <parameter name = "table" pass = "value"  compulsory = "1" />
+<body>
+{
+    char
+        *my_table;                      /*  Table name                       */
+
+    ASSERT_CONNECTED;                   /*  Must be connected to database    */
+
+    my_table = STRING_VALUE (table, "");
+    if (process_table (my_table, flush_one_table) == 0) {
+        RETURN_STATUS (0);
+    }
+    else
+        return (-1);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    db.truncate (table)
+
+    Deletes all records in the table.
+    This operation is enclosed by the current transaction if any.
+
+    Aborts the GSL script under these conditions:
+      - not connected to a database
+      - table does not exist in database
+ -------------------------------------------------------------------------->
+
+<function name = "truncate" >
+  <parameter name = "table" pass = "value"  compulsory = "1" />
+<body>
+{
+    char
+        *my_table;                      /*  Table name                       */
+
+    ASSERT_CONNECTED;                   /*  Must be connected to database    */
+
+    my_table = STRING_VALUE (table, "");
+    close_table_cursor (my_table);
+    if (process_table (my_table, truncate_one_table) == 0) {
+        RETURN_STATUS (0);
+    }
+    else
+        return (-1);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    db.insert (table, key, data)
+
+    Inserts a new record into the specified table.  Use db.update() to make
+    changes to an existing record.  The arguments to this method are the
+    table name, the primary key, and the table data.  If the identity option
+    was set when creating the table, the primary key is ignored.
+
+    Because of limitations in the GSL interface, the key and data must be
+    valid ANSI C strings, i.e. not contain meaningful binary zeroes.
+
+    This operation is enclosed by the current transaction if any.
+
+    Returns 0 if the record was inserted in normal tables, -1 if the specified
+    key already existed in the table, and a value greater than zero if the
+    record was inserted in a table with the IDENTITY option set.
+
+    Aborts the GSL script under these conditions:
+      - not connected to a database
+      - table does not exist in database
+ -------------------------------------------------------------------------->
+
+<function name = "insert" >
+  <parameter name = "table" pass = "value"  compulsory = "1" />
+  <parameter name = "key"   pass = "value"  compulsory = "0" />
+  <parameter name = "data"  pass = "value"  compulsory = "1" />
+<body>
+{
+    int
+        rc;                             /*  Return code from BDB calls       */
+    char
+        *my_table;                      /*  Table name                       */
+    DBT
+        my_key,                         /*  Database descriptors             */
+        my_data;
+    DB
+        *db_table;                      /*  Primary table handle             */
+    DBC
+        *db_cursor;                     /*  Table cursor                     */
+    qbyte
+        flags;                          /*  Flags for BDB function call      */
+    qbyte
+        idvalue;                        /*  Identity value                   */
+
+    ASSERT_CONNECTED;                   /*  Must be connected to database    */
+
+    /*  Get arguments to method                                              */
+    my_table = STRING_VALUE (table, "");
+
+    close_table_cursor (my_table);      /*  Close any open cursor            */
+    if ((db_table = get_table_handle (my_table, NULL)) == NULL)
+        return (-1);
+
+    /*  If identity option set on table, calculate new primary key           */
+    /*  We store identities as a four-byte long number starting at 1         */
+    if (table_identity (my_table)) {
+        if ((db_cursor = get_table_cursor (my_table, "")) == NULL)
+            return (-1);
+
+        /*  Via primary key                                              */
+        flags = DB_LAST;
+        memset (&my_data, 0, sizeof (DBT));
+        memset (&my_key,  0, sizeof (DBT));
+        if (db_cursor-> c_get (db_cursor, &my_key, &my_data, flags) == 0) {
+            /*  Found key, so grab it and store in identity          */
+            ASSERT (my_key.size == 4);
+            memcpy (&idvalue, my_key.data, 4);
+        }
+        else {
+            idvalue = 0;
+        }
+        idvalue++;
+        my_key.data = &idvalue;
+        my_key.size = 4;
+    }
+    else {
+        idvalue = 0;
+        get_dbt_value (&my_key, key);
+    }
+    get_dbt_value (&my_data, data);
+
+    if ((rc = db_table-> put (db_table, db_txn, &my_key, &my_data, DB_NOOVERWRITE)) != 0) {
+        if (rc == DB_KEYEXIST) {
+            RETURN_STATUS (-1);
+        }
+        else {
+            RETURN_ERROR (rc, "insert/put");
+        }
+    }
+    RETURN_STATUS (idvalue);
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    db.fetch (table, [index], [mode], [key], [lock], [scope])
+
+    Retrieves a record from the specified table.  The fetch method lets you
+    access data according to primary or alternate indices, and allows you
+    to scan sequentially through an index from various starting positions.
+
+    The table argument is the name of an existing database table.
+
+    The index argument is the name of an alternate index.  If ommitted,
+    the primary index is used.
+
+    The mode argument specifies what kind of access to do.  This may be:
+        eq      get the record specified by the key
+        ge      get the first record greater or equal to the key
+        first   get the first record in the table
+        last    get the last record in the table
+        next    get the next record, scanning forwards
+        prev    get the previous record, scanning backwards
+
+    The default mode is "eq" if a key is specified, and "first" if no key
+    value is specified.  The next and prev modes are only allowed after a
+    successful fetch.  Note that after a fetch, you can update or delete
+    the record and continue with a next/prev scan.  These methods depend
+    on an internal cursor that is closed only when the transaction ends.
+
+    The key argument is the value of the key on which to access the table.
+    This argument may be ommitted for the last, first, next, and prev modes
+    but is required for the eq/gt modes.
+
+    The lock argument specifies whether to apply write locks to the data
+    being fetched.  Use this when you intend to update the record within
+    a tight read/modify/write cycle, to minimize the risk of deadlocks.
+    The default for this argument is 0 (normal read locking only).
+
+    The scope argument specifies the scope into which the results of the
+    fetch are placed.  By default, the current scope is used.  After a
+    successful fetch, an item is created under the scope with the name
+    "record" and with two or three attributes:
+        key   - the primary key of the record
+        data  - the data for the record
+        index - the alternate key for the record, if appropriate
+    
+    The fetch method returns the number of records with the current key,
+    which is usually 1 for accesses via the primary key, and may be greater
+    than 1 for alternate keys.  If no records are found that match the key,
+    index, and mode, the fetch method returns 0.  If an illegal mode or
+    index number is used, or if the key is empty/ommitted for the eq/gt
+    modes, the fetch method returns -1.
+
+    This operation is enclosed by the current transaction if any.
+
+    Aborts the GSL script under these conditions:
+      - not connected to a database
+      - table does not exist in database
+ -------------------------------------------------------------------------->
+
+<function name = "fetch" >
+  <parameter name = "table" pass = "value"  compulsory = "1" />
+  <parameter name = "index" pass = "value"  />
+  <parameter name = "mode"  pass = "value"  />
+  <parameter name = "key"   pass = "value"  />
+  <parameter name = "lock"  pass = "value"  />
+  <parameter name = "scope" pass = "value"  />
+<body>
+{
+    int
+        rc;                             /*  Return code from BDB calls       */
+    char
+        *my_table,                      /*  Table name                       */
+        *my_index,                      /*  Index used                       */
+        *my_mode;                       /*  Access mode                      */
+    Bool
+        my_lock;                        /*  Lock record?                     */
+    DBT
+        my_key,                         /*  Key used for lookup              */
+        my_pkey,                        /*  Primary key, if index > 1        */
+        my_data;                        /*  Data returned                    */
+    qbyte
+        idvalue,                        /*  In case of fetch by ID           */
+        flags;                          /*  Flags for BDB function call      */
+    DB
+        *db_table;                      /*  Table handle                     */
+    DBC
+        *db_cursor;                     /*  Table cursor                     */
+    db_recno_t
+        record_count;                   /*  Number of records matching key   */
+    XML_ITEM
+        *xml_item;                      /*  Where we stick returned data     */
+
+    ASSERT_CONNECTED;                   /*  Must be connected to database    */
+
+    /*  Get arguments to method                                              */
+    get_dbt_value (&my_key, key);
+    my_table = STRING_VALUE (table, "");
+    my_mode  = STRING_VALUE (mode,  my_key.size? "eq": "first");
+    my_index = STRING_VALUE (index, "");
+    my_lock  = (Bool) NUMBER_VALUE (lock, 0);
+
+    /*  If table uses identity, primary key is a numeric value               */
+    if (table_identity (my_table) && !*my_index) {
+        idvalue = (qbyte) NUMBER_VALUE (key, 0);
+        my_key.data = &idvalue;
+        my_key.size = 4;
+    }
+
+    flags = db_locking? (DB_DIRTY_READ + (my_lock? DB_RMW: 0)): 0;
+    memset (&my_data, 0, sizeof (DBT));
+    memset (&my_pkey, 0, sizeof (DBT));
+
+    if ((db_table = get_table_handle (my_table, my_index)) == NULL)
+        return (-1);
+
+    if (streq (my_mode, "eq")) {
+        if (my_key.size == 0) {
+            coprintf ("GSL/DB: no key specified for 'eq' access on %s/%s", my_table, my_index);
+            RETURN_STATUS (-1);             /*  Key is mandatory             */
+        }
+        flags += DB_SET;
+    }
+    else
+    if (streq (my_mode, "ge")) {
+        if (my_key.size == 0) {
+            coprintf ("GSL/DB: no key specified for 'ge' access on %s/%s", my_table, my_index);
+            RETURN_STATUS (-1);             /*  Key is mandatory             */
+        }
+        flags += DB_SET_RANGE;
+    }
+    else
+    if (streq (my_mode, "first")) {
+        flags += DB_FIRST;
+    }
+    else
+    if (streq (my_mode, "last")) {
+        flags += DB_LAST;
+    }
+    else
+    if (streq (my_mode, "next")) {
+        flags += DB_NEXT;
+    }
+    else
+    if (streq (my_mode, "prev")) {
+        flags += DB_PREV;
+    }
+    else {
+        coprintf ("GSL/DB: illegal fetch mode '%s' on %s/%s", my_mode, my_table, my_index);
+        RETURN_STATUS (-1);
+    }
+    if ((db_cursor = get_table_cursor (my_table, my_index)) == NULL)
+        return (-1);
+    
+    /*  Create new record item at current or specified scope                 */
+    if ((xml_item = open_xml_item (gsl_thread, scope, "record")) == NULL)
+        return (-1);
+        
+    if (*my_index) {
+        /*  Via cursor                                                       */
+        rc = db_cursor-> c_pget (db_cursor, &my_key, &my_pkey, &my_data, flags);
+    }
+    else
+        /*  Via primary key                                                  */
+        rc = db_cursor-> c_get (db_cursor, &my_key, &my_data, flags);
+
+    switch (rc) {
+        case 0:
+            if (*my_index) {
+                store_attr_from_dbt (xml_item, &my_data, "data",  FALSE);
+                store_attr_from_dbt (xml_item, &my_key,  "index", FALSE);
+                store_attr_from_dbt (xml_item, &my_pkey, "key",   table_identity (my_table));
+            }
+            else {
+                store_attr_from_dbt (xml_item, &my_data, "data",  FALSE);
+                store_attr_from_dbt (xml_item, &my_key,  "key",   table_identity (my_table));
+            }
+            db_cursor-> c_count (db_cursor, &record_count, 0);
+            RETURN_STATUS (record_count);
+        case DB_NOTFOUND:
+            close_table_cursor (my_table);
+            RETURN_STATUS (0);
+        default:
+            close_table_cursor (my_table);
+            RETURN_ERROR (rc, "fetch/c_get");
+    }
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    db.update (table, [key], data)
+
+    Updates an existing record in the specified table.  Use db.insert()
+    to insert a new record.  The arguments to this method are the table
+    name, the primary key, and the table data.  The key is optional during
+    a fetch cycle started using the eq/ge/first/last modes, in which case
+    the update will change the data for the last record fetched.  You can
+    not change the key for a record - do this by inserting and deleting.
+
+    Because of limitations in the GSL interface, the keys and data must be
+    valid ANSI C strings, i.e. not contain meaningful binary zeroes.
+
+    This operation is enclosed by the current transaction if any.
+
+    Returns 0 if the record was updated, and -1 if the specified key did 
+    not exist in the table.
+
+    Aborts the GSL script under these conditions:
+      - not connected to a database
+      - table does not exist in database
+ -------------------------------------------------------------------------->
+
+<function name = "update" >
+  <parameter name = "table" pass = "value"  compulsory = "1" />
+  <parameter name = "key"   pass = "value"                   />
+  <parameter name = "data"  pass = "value"  compulsory = "1" />
+<body>
+{
+    int
+        rc;                             /*  Return code from BDB calls       */
+    char
+        *my_table;                      /*  Table name                       */
+    DBT
+        my_key,                         /*  Primary key                      */
+        my_data,                        /*  and record data                  */
+        old_data;                       /*  Previous record data             */
+    DB
+        *db_table;                      /*  Primary table handle             */
+    DBC
+        *db_cursor;                     /*  Table cursor                     */
+    qbyte
+        idvalue,                        /*  In case of fetch by ID           */
+        flags;                          /*  Flags for access                 */
+
+    ASSERT_CONNECTED;                   /*  Must be connected to database    */
+
+    /*  Get arguments to method                                              */
+    my_table = STRING_VALUE (table, "");
+    get_dbt_value (&my_key,  key);
+    get_dbt_value (&my_data, data);
+
+    if ((db_table = get_table_handle (my_table, NULL)) == NULL)
+        return (-1);
+
+    if (my_key.size) {
+        /*  If table uses identity, primary key is a numeric value           */
+        if (table_identity (my_table)) {
+            idvalue = (qbyte) NUMBER_VALUE (key, 0);
+            my_key.data = &idvalue;
+            my_key.size = 4;
+        }
+        close_table_cursor (my_table);  /*  Close any open cursor            */
+        memset (&old_data, 0, sizeof (DBT));
+        flags = db_locking? DB_DIRTY_READ: 0;
+        rc = db_table-> get (db_table, db_txn, &my_key, &old_data, flags);
+
+        /*  Update if we found the record, and the data has changed          */
+        if (rc == 0 && strneq (my_data.data, old_data.data)) {
+            rc = db_table-> put (db_table, db_txn, &my_key, &my_data, 0);
+            if (rc != 0) {
+                sprintf (object_error, "db error 001: %s", db_strerror (rc));
+                return (-1);
+            }
+        }
+    }
+    else {                              /*  Update via cursor                */
+        if (have_table_cursor (my_table)) {
+            db_cursor = get_table_cursor (my_table, NULL);
+            rc = db_cursor-> c_put (db_cursor, &my_key, &my_data, DB_CURRENT);
+        }
+        else {
+            coprintf ("GSL/DB: update without current record on '%s'", my_table);
+            RETURN_STATUS (-1);
+        }
+    }
+    if (rc == DB_NOTFOUND) {
+        RETURN_STATUS (-1);             /*  No such record                   */
+    }
+    else
+    if (rc != 0) {
+        RETURN_ERROR (rc, "update");
+    }
+    else {
+        RETURN_STATUS (0);
+    }
+}
+</body>
+</function>
+
+    
+<!-------------------------------------------------------------------------
+    db.delete (table [,key])
+
+    Deletes a record from the specified table, specified by primary key.
+    The key is optional during a fetch cycle started using the
+    eq/ge/first/last modes, in which case the delete will act on the the
+    last record fetched.
+    
+    This operation is enclosed by the current transaction if any.
+
+    Returns 0 if the record was deleted, and -1 if the specified key did
+    not exist in the table.
+
+    Aborts the GSL script under these conditions:
+      - not connected to a database
+      - table does not exist in database
+ -------------------------------------------------------------------------->
+
+<function name = "delete" >
+  <parameter name = "table" pass = "value"  compulsory = "1" />
+  <parameter name = "key"   pass = "value"  />
+<body>
+{
+    int
+        rc;                             /*  Return code from BDB calls       */
+    char
+        *my_table;                      /*  Table name                       */
+    DBT
+        my_key;                         /*  Primary key                      */
+    DB
+        *db_table;                      /*  Primary table handle             */
+    DBC
+        *db_cursor;                     /*  Table cursor                     */
+    qbyte
+        idvalue;                        /*  In case of fetch by ID           */
+
+    ASSERT_CONNECTED;                   /*  Must be connected to database    */
+
+    /*  Get arguments to method                                              */
+    my_table = STRING_VALUE (table, "");
+    get_dbt_value (&my_key, key);
+
+    if ((db_table = get_table_handle (my_table, NULL)) == NULL)
+        return (-1);
+
+    if (my_key.size) {
+        /*  If table uses identity, primary key is a numeric value           */
+        if (table_identity (my_table)) {
+            idvalue = (qbyte) NUMBER_VALUE (key, 0);
+            my_key.data = &idvalue;
+            my_key.size = 4;
+        }
+        close_table_cursor (my_table);  /*  Close any open cursor            */
+        rc = db_table-> del (db_table, db_txn, &my_key, 0);
+    }
+    else {                              /*  Update via cursor                */
+        if (have_table_cursor (my_table)) {
+            db_cursor = get_table_cursor (my_table, NULL);
+            rc = db_cursor-> c_del (db_cursor, 0);
+        }
+        else {
+            coprintf ("GSL/DB: delete without current record on '%s'", my_table);
+            RETURN_STATUS (-1);
+        }
+    }
+    if (rc == DB_NOTFOUND) {
+        RETURN_STATUS (-1);             /*  No such record                   */
+    }
+    else
+    if (rc != 0) {
+        RETURN_ERROR (rc, "delete");
+    }
+    else {
+        RETURN_STATUS (0);
+    }
+}
+</body>
+</function>
+
+
+<!-------------------------------------------------------------------------
+    db.stats (table, [scope], [fast])
+
+    Returns various statistics about the specified table.  The statistics
+    are returned as a "stats" item in the current scope, or the specified
+    scope.  If the fast argument is specified as 1, only those statistics
+    which can be retrived without scanning the table are provided.  This
+    function resets all cursors.
+
+    Attribute:      Meaning:
+    rows            number of rows of data
+    pagesize        page size used to implement table
+    depth           for btree indexes, maximum tree depth
+    usedpages       number of pages used in table
+    freepages       number of free pages in table
+    
+    Returns the total number of records in the table.
+
+    Aborts the GSL script under these conditions:
+      - not connected to a database
+      - table does not exist in database
+ -------------------------------------------------------------------------->
+
+<function name = "stats" >
+  <parameter name = "table" pass = "value"  compulsory = "1" />
+  <parameter name = "scope" pass = "value"  compulsory = "0" />
+  <parameter name = "fast"  pass = "value"  compulsory = "0" />
+<body>
+{
+    char
+        *my_table;                      /*  Table name                       */
+    Bool
+        my_fast;                        /*  Fast option, if any              */
+    XML_ITEM
+        *xml_item;                      /*  Individual items                 */
+    DB
+        *db_table;                      /*  Primary table handle             */
+    DB_BTREE_STAT
+        *bsp;                           /*  For btree tables                 */
+    long
+        record_count;                   /*  Number of records in table       */
+
+    ASSERT_CONNECTED;                   /*  Must be connected to database    */
+
+    /*  Get arguments to method                                              */
+    my_table =        STRING_VALUE (table, "");
+    my_fast  = (Bool) NUMBER_VALUE (fast, 0);
+
+    if ((db_table = get_table_handle (my_table, NULL)) == NULL)
+        return (-1);
+    if ((xml_item = open_xml_item (gsl_thread, scope, "stats")) == NULL)
+        return (-1);
+
+    db_table-> stat (db_table, &bsp, my_fast? DB_FAST_STAT: 0);
+    xml_put_attr (xml_item, "rows",      strprintf ("%ld", bsp-> bt_ndata));
+    xml_put_attr (xml_item, "pagesize",  strprintf ("%ld", bsp-> bt_pagesize));
+    xml_put_attr (xml_item, "depth",     strprintf ("%ld", bsp-> bt_levels));
+    xml_put_attr (xml_item, "usedpages", strprintf ("%ld", bsp-> bt_int_pg + bsp-> bt_leaf_pg));
+    xml_put_attr (xml_item, "freepages", strprintf ("%ld", bsp-> bt_free));
+
+    record_count = bsp-> bt_ndata;
+    free (bsp);
+
+    /*  The stat call does weird shit with the table handles, so we close 
+        them and any open cursors.  When needed, they'll be reopened.        */
+    close_all_cursors ();
+    close_all_handles ();
+
+    RETURN_STATUS (record_count);
+}
+</body>
+</function>
+
+</object>
+
+
+<!-- ==========================   HELPER FUNCTIONS   ========================= -->
+
+<extra>
+
+/*  Function that processes a table or index                                 */
+typedef Bool (*tablefunc) (DB *db_table);
+
+/*  Local function prototypes                                                */
+static qbyte     dbtype_flags           (char *type);
+static XML_ITEM *lookup_catalog         (char *table, char *index);
+static int       create_db_table        (char *table, char *index, char *format, Bool identity);
+static int       delete_db_table        (char *table, char *index);
+static DB *      get_table_handle       (char *table, char *index);
+static int       index_callback         (DB *, const DBT *, const DBT *, DBT *);
+static DBC *     get_table_cursor       (char *table, char *index);
+static Bool      have_table_cursor      (char *table);
+static void      close_table_cursor     (char *table);
+static Bool      table_identity         (char *table);
+static void      disconnect_current_db  (void);
+static void      close_all_handles      (void);
+static Bool      close_one_handle       (SYMBOL *symbol, ...);
+static void      close_all_cursors      (void);
+static Bool      close_one_cursor       (SYMBOL *symbol, ...);
+static int       process_table          (char *table, tablefunc handler);
+static Bool      flush_one_table        (DB *db_table);
+static Bool      truncate_one_table     (DB *db_table);
+static void      get_dbt_value          (DBT *dbt, RESULT_NODE *argument);
+static XML_ITEM *open_xml_item          (THREAD *gsl_thread, RESULT_NODE *scope, char *name);
+static void      store_attr_from_dbt    (XML_ITEM *xml_item, DBT *dbt, char *name, Bool identity);
+
+
+/*  ---------------------------------------------------------------------------
+    dbtype_flags
+
+    Return database subsystem flags for database type (ds, cds, tds, hads).
+    Returns -1 if database type is not one of these.  
+ */
+
+static qbyte
+dbtype_flags (char *type)
+{
+    if (streq (type, "ds"))
+        return (DB_INIT_MPOOL);
+    else
+    if (streq (type, "cds"))
+        return (DB_INIT_CDB + DB_INIT_MPOOL);
+    else
+    if (streq (type, "tds"))
+        return (DB_INIT_TXN + DB_INIT_LOCK + DB_INIT_MPOOL);
+    else
+    if (streq (type, "hads"))
+        return (DB_INIT_TXN + DB_INIT_LOCK + DB_INIT_MPOOL);
+    else
+        return (-1);
+}
+
+
+/*  ---------------------------------------------------------------------------
+    lookup_catalog
+
+    Looks for the specified table in the XML catalog, returns the table item if
+    found, else returns NULL.  If an index name is specified, searches the table
+    for the corresponding index and returns that, or NULL if not found.
+ */
+
+static XML_ITEM *
+lookup_catalog (char *table, char *index)
+{
+    XML_ITEM
+        *xml_table,
+        *xml_index;
+
+    ASSERT (db_env);
+    ASSERT (db_catalog);
+    if (index == NULL)
+        index = "";                     /*  Simplify our work a little       */
+    
+    FORCHILDREN (xml_table, db_catalog) {
+        if (streq (xml_item_name (xml_table), "table")
+        &&  streq (xml_get_attr  (xml_table, "name", ""), table)) {
+            if (strnull (index))
+                return (xml_table);
+            else {
+                FORCHILDREN (xml_index, xml_table) {
+                if (streq (xml_item_name (xml_index), "index")
+                &&  streq (xml_get_attr  (xml_index, "name", ""), index))
+                    return (xml_index);
+                }
+                return (NULL);          /*  Index not found in table         */
+            }
+        }
+    }
+    return (NULL);                      /*  Table not found in catalog       */
+}
+
+
+/*  ---------------------------------------------------------------------------
+    create_db_table
+
+    Creates a Berkeley DB table ('database') for the primary table or
+    alternate index if specified (not NULL).  Must be connected.
+    Updates the catalog with the new information.  If the operation fails,
+    formats object_error and returns -1, else returns 0 for success.
+ */
+    
+static int
+create_db_table (char *table, char *index, char *format, Bool identity)
+{
+    int
+        rc;                             /*  Return code from BDB calls       */
+    Bool
+        group;                          /*  Database is grouped?             */
+    DB
+        *db_table;                      /*  Local table handle               */
+    char
+        *filename,                      /*  Physical data filename           */
+        *tblname;                       /*  Physical table name              */
+    XML_ITEM
+        *xml_table = NULL,              /*  Table item in catalog            */
+        *xml_index;                     /*  Index item in catalog            */
+    qbyte
+        flags;                          /*  Flags for access                 */
+
+    ASSERT (db_env);
+    if (index == NULL)
+        index = "";                     /*  Simplify our work a little       */
+        
+    if (strnull (index)) {
+        /*  New table may not already exist in catalog                       */
+        if (lookup_catalog (table, NULL)) {
+            sprintf (object_error, "Table '%s' already exists", table);
+            return (-1);
+        }
+    }
+    else {
+        /*  New index may not exist, but parent table must exist             */
+        xml_table = lookup_catalog (table, NULL);
+        if (xml_table == NULL) {
+            sprintf (object_error, "Table '%s' does not exist", table);
+            return (-1);
+        }
+        else
+        if (lookup_catalog (table, index)) {
+            sprintf (object_error, "Index '%s/%s' already exists", table, index);
+            return (-1);
+        }
+    }
+    group    = (Bool) atoi (xml_get_attr (db_catalog, "group", "1"));
+    filename = mem_strdup (group? GSLDB_DATABASE: strprintf ("%s.dat", table));
+    tblname  = mem_strdup (*index? strprintf ("%s_%s", table, index): table);
+    flags    = db_locking? DB_CREATE + DB_EXCL + DB_DIRTY_READ: DB_CREATE + DB_EXCL;
+
+    db_create (&db_table, db_env, 0);
+    if (*index)
+        db_table-> set_flags (db_table, DB_DUPSORT);
+    rc = db_table-> open (db_table, NULL, filename, tblname, DB_BTREE, flags, 0);
+    db_table-> close (db_table, 0);
+
+    mem_free (filename);
+    mem_free (tblname);
+    if (rc != 0) {
+        sprintf (object_error, "db error 002: %s", db_strerror (rc));
+        return (-1);
+    }
+    /*  Update catalog when everything has succeeded                         */
+    if (strnull (index)) {
+        xml_table = xml_new (db_catalog, "table", "");
+        xml_put_attr (xml_table, "name",     table);
+        xml_put_attr (xml_table, "created",  conv_date_pict (date_now (), "yyyy/mm/dd"));
+        xml_put_attr (xml_table, "identity", strprintf ("%d", identity));
+    }
+    else {
+        xml_index = xml_new (xml_table, "index", "");
+        xml_put_attr (xml_index, "name",    index);
+        xml_put_attr (xml_index, "format",  format);
+        xml_put_attr (xml_index, "created", conv_date_pict (date_now (), "yyyy/mm/dd"));
+    }        
+    xml_save_file (db_catalog, db_catfile);
+    return (0);
+}
+
+
+/*  ---------------------------------------------------------------------------
+    delete_db_table
+
+    Deletes a Berkeley DB table ('database') for the primary table or
+    alternate index if specified.  Must be connected to the database.
+    Updates the catalog with the new information.  If the operation fails,
+    formats object_error and returns -1, else returns 0 for success.
+ */
+    
+static int
+delete_db_table (char *table, char *index)
+{
+    int
+        rc;                             /*  Return code from BDB calls       */
+    Bool
+        group;                          /*  Database is grouped?             */
+    DB
+        *db_table;                      /*  Local table handle               */
+    char
+        *filename;                      /*  Physical data filename           */
+    XML_ITEM
+        *xml_table,                     /*  Table item in catalog            */
+        *xml_index;                     /*  Index item in catalog            */
+
+    ASSERT (db_env);
+    if (index == NULL)
+        index = "";                     /*  Simplify our work a little       */
+
+    xml_table = lookup_catalog (table, NULL);
+    if (xml_table == NULL) {
+        sprintf (object_error, "Table '%s' does not exist", table);
+        return (-1);
+    }
+    xml_index = lookup_catalog (table, index);
+    if (*index && xml_index == NULL) {
+        sprintf (object_error, "Index '%s/%s' does not exist", table, index);
+        return (-1);
+    }
+    close_all_cursors ();
+    close_all_handles ();
+    group    = (Bool) atoi (xml_get_attr (db_catalog, "group", "1"));
+    filename = mem_strdup (group? GSLDB_DATABASE: strprintf ("%s.dat", table));
+
+    if (strnull (index)) {              /*  Drop primary table?              */
+        /*  Remove all indices, then remove table                            */
+        FORCHILDREN (xml_index, xml_table) {
+            if (streq (xml_item_name (xml_index), "index")) {
+                db_create (&db_table, db_env, 0);
+                rc = db_table-> remove (db_table, filename,
+                    strprintf ("%s_%s", table, xml_get_attr (xml_index, "name", "")), 0);
+            }
+        }
+        db_create (&db_table, db_env, 0);
+        rc = db_table-> remove (db_table, filename, group? table: NULL, 0);
+    }
+    else {
+        /*  Remove just the specified index                                  */
+        db_create (&db_table, db_env, 0);
+        rc = db_table-> remove (
+            db_table, filename, strprintf ("%s_%s", table, index), 0);
+    }
+    mem_free (filename);
+    if (rc != 0) {
+        sprintf (object_error, "db error 003: %s", db_strerror (rc));
+        return (-1);
+    }
+    /*  Update catalog when everything has succeeded                         */
+    if (strnull (index))
+      {
+        remove_scope_references_to_xml (xml_table);
+        xml_free (xml_table);
+      }
+    else
+      {
+        remove_scope_references_to_xml (xml_index);
+        xml_free (xml_index);
+      }
+    xml_save_file (db_catalog, db_catfile);
+    return (0);
+}
+
+
+/*  ---------------------------------------------------------------------------
+    get_table_handle
+
+    Returns a handle to the table and index.  The index can be NULL or "", both
+    which mean 'primary index'.  The table handles are cached in the db_symbol
+    table, created on demand, and closed when the application disconnects from
+    the database.  Returns NULL if the table or index are not in the current
+    database, or there is no connected database, or if there is a fatal error
+    opening the database table.
+
+    The handle to an index always contains the app_private field set to the
+    index format string passed to db.create_index().
+ */
+
+static DB *
+get_table_handle (char *table, char *index)
+{
+    int
+        rc = 0;                         /*  Return code from BDB calls       */
+    Bool
+        group;                          /*  Database is grouped?             */
+    DB
+        *db_table,                      /*  Table handle                     */
+        *db_index;                      /*  Index handle                     */
+    char
+        *filename,                      /*  Physical data filename           */
+        *tblname;                       /*  Physical table name              */
+    XML_ITEM
+        *xml_table,                     /*  Table item in catalog            */
+        *xml_index;                     /*  Index item in catalog            */
+    SYMBOL
+        *symptr;                        /*  Pointer into db_handles          */
+    qbyte
+        type,                           /*  Table index type                 */
+        flags;                          /*  Table access flags               */
+
+    ASSERT (db_env);
+    if (index == NULL)
+        index = "";                     /*  Simplify our work a little       */
+
+    /*  Silently create db_handles table when we need to                     */
+    if (db_handles == NULL)
+        db_handles = sym_create_table ();
+
+    xml_table = lookup_catalog (table, NULL);
+    if (xml_table == NULL) {
+        sprintf (object_error, "Table '%s' does not exist", table);
+        return (NULL);
+    }
+    xml_index = lookup_catalog (table, index);
+    if (*index && xml_index == NULL) {
+        sprintf (object_error, "Index '%s/%s' does not exist", table, index);
+        return (NULL);
+    }
+    group    = (Bool) atoi (xml_get_attr (db_catalog, "group", "1"));
+    filename = mem_strdup (group? GSLDB_DATABASE: strprintf ("%s.dat", table));
+    tblname  = mem_strdup (*index? strprintf ("%s_%s", table, index): table);
+    type     = DB_UNKNOWN;
+    flags    = db_locking? DB_DIRTY_READ: 0;
+
+    /*  First find/load handle for primary table                             */
+    if ((symptr = sym_lookup_symbol (db_handles, table)) == NULL) {
+        db_create (&db_table, db_env, 0);
+        rc = db_table-> open (db_table, NULL, filename, table, type, flags, 0);
+        symptr = sym_create_symbol (db_handles, table, NULL);
+        symptr-> data = db_table;
+    }
+    else
+        db_table = (DB *) symptr-> data;
+
+    if (*index && rc == 0) {
+        /*  Now find/load handle for index if requested                      */
+        if ((symptr = sym_lookup_symbol (db_handles, tblname)) == NULL) {
+            db_create (&db_index, db_env, 0);
+            db_index-> app_private = xml_get_attr (xml_index, "format", "");
+            rc = db_index-> set_flags (db_index, DB_DUPSORT);
+            if (rc == 0)
+                rc = db_index-> open (db_index, NULL, filename, tblname, type, flags, 0);
+            if (rc == 0)
+                rc = db_index-> associate (db_table, NULL, db_index, index_callback, DB_CREATE);
+            symptr = sym_create_symbol (db_handles, tblname, NULL);
+            symptr-> data = db_index;
+        }
+    }
+    mem_free (filename);
+    mem_free (tblname);
+    if (rc == 0)
+        return ((DB *) symptr-> data);
+    else {
+        sprintf (object_error, "db error 004: %s", db_strerror (rc));
+        return (NULL);
+    }
+}
+
+
+/*  ---------------------------------------------------------------------------
+    index_callback
+
+    Callback function that calculates an alternate key from the record data.
+    This function uses the index format passed to db.index_create() and sitting
+    in the app_private field of the db_index handle, if all went correctly.
+    Uses the SFL sflsort build_sort_key() function.
+*/
+
+static int
+index_callback (DB *db_index, const DBT *primary, const DBT *data, DBT *index)
+{
+    /*  To avoid mixing memory allocation routines, we copy the calculated
+        key into static storage.  Will work with SMT threads, not native threads.
+     */        
+    static char
+        index_value [4096 + 1];
+    char
+        *sort_key;
+
+    sort_key = build_sort_key (data-> data, (char *) db_index-> app_private);
+    if (sort_key) {
+        strcpy (index_value, sort_key);
+        mem_free (sort_key);
+        memset (index, 0, sizeof (DBT));
+        index-> data = index_value;
+        index-> size = strlen (index_value);
+        return (index-> size? 0: DB_DONOTINDEX);
+    }
+    else
+        return (DB_DONOTINDEX);
+}
+
+
+/*  ---------------------------------------------------------------------------
+    get_table_cursor
+
+    Returns a cursor for the table.  Cursors are opened on demand and closed
+    when the transaction is closed or the application disconnects from the
+    database.  Cursors are not visible to the GSL programmer - we manage them
+    entirely automatically in the GSL/DB interface.  Allows one active cursor
+    per index per table.  If you specify a NULL index, returns an existing
+    cursor on whatever index previously used, if any, else returns NULL.  If
+    the index is not NULL, creates a new cursor if and when the index changes.
+    To force a new cursor, use close_table_cursor() to close the cursor first.
+    Returns NULL if the table is not in the current database, or there is no
+    connected database, or if there is a fatal error creating the cursor.
+ */
+
+static DBC *
+get_table_cursor (char *table, char *index)
+{
+    int
+        rc = 0;                         /*  Return code from BDB calls       */
+    SYMBOL
+        *symptr;                        /*  Pointer into db_cursors          */
+    DB
+        *db_table;                      /*  Current table handle             */
+    DBC
+        *db_cursor;                     /*  Current table cursor             */
+    qbyte
+        flags;                          /*  Flags for access                 */
+
+    ASSERT (db_env);
+
+    /*  Silently create db_cursors table when we need to                     */
+    if (db_cursors == NULL)
+        db_cursors = sym_create_table ();
+
+    if ((db_table = get_table_handle (table, index)) == NULL)
+        return (NULL);
+
+    symptr = sym_lookup_symbol (db_cursors, table);
+
+    /*  First handle the case where index is NULL - cursor must exist        */
+    if (index == NULL) {
+        if (symptr)
+            return ((DBC *) symptr-> data);
+        else {
+            coprintf ("GSL/DB: no active cursor for %s", table);
+            return (NULL);
+        }
+    }
+    
+    /*  Now handle the case for a well-specified index                       */
+    if (symptr && strneq (symptr-> value, index)) {
+        close_one_cursor (symptr);
+        symptr = NULL;
+    }
+    if (symptr == NULL) {
+        flags = (db_locking? DB_DIRTY_READ: 0) + (db_cdbtype? DB_WRITECURSOR: 0);
+        rc = db_table-> cursor (db_table, db_txn, &db_cursor, flags);
+        symptr = sym_create_symbol (db_cursors, table, index);
+        symptr-> data = db_cursor;
+    }
+    if (rc == 0)
+        return ((DBC *) symptr-> data);
+    else {
+        sprintf (object_error, "db error 005: %s", db_strerror (rc));
+        return (NULL);
+    }
+}
+
+
+/*  ---------------------------------------------------------------------------
+    have_table_cursor
+
+    Returns TRUE if the specified table has an open cursor.
+ */
+
+static Bool
+have_table_cursor (char *table)
+{
+    ASSERT (db_env);
+    if (db_cursors && sym_lookup_symbol (db_cursors, table))
+        return (TRUE);
+    else
+        return (FALSE);
+}
+
+
+/*  ---------------------------------------------------------------------------
+    close_table_cursor
+
+    Closes the open cursor, if any, for the table and index, if not NULL.
+    Has no return code.
+ */
+
+static void
+close_table_cursor (char *table)
+{
+    SYMBOL
+        *symptr;                        /*  Pointer into db_cursors          */
+    DBC
+        *db_cursor;                     /*  Current table cursor             */
+
+    ASSERT (db_env);
+    if (db_cursors) {
+        symptr = sym_lookup_symbol (db_cursors, table);
+        if (symptr) {
+            db_cursor = (DBC *) symptr-> data;
+            db_cursor-> c_close (db_cursor);
+            sym_delete_symbol (db_cursors, symptr);
+        }
+    }
+}
+
+
+/*  ---------------------------------------------------------------------------
+    table_identity
+
+    Returns the table identity flag, TRUE or FALSE, set when the table
+    was created.
+ */
+
+static Bool
+table_identity (char *table)
+{
+    XML_ITEM
+        *xml_table;                     /*  Table entry in catalog           */
+
+    xml_table = lookup_catalog (table, NULL);
+    if (xml_table)
+        return (Bool) atoi (xml_get_attr (xml_table, "identity", "0"));
+    else
+        return (0);
+}
+
+
+/*  ---------------------------------------------------------------------------
+    disconnect_current_db
+
+    Disconnects the current database and releases all resources used.
+ */
+
+static void
+disconnect_current_db (void)
+{
+    close_all_cursors ();
+    close_all_handles ();
+    mem_strfree (&db_catfile);
+    if (db_txn) {                       /*  Discard any open transaction     */
+        db_txn-> discard (db_txn, 0);
+        db_txn = NULL;
+    }
+    if (db_env) {                       /*  Close handle to database         */
+        db_env-> close (db_env, 0);
+        db_env = NULL;
+    }
+    if (db_root) {                      /*  Drop XML catalog data            */
+        remove_scope_references_to_xml (db_root);
+        xml_free (db_root);
+        db_root = NULL;
+    }
+}
+
+
+/*  ---------------------------------------------------------------------------
+    close_all_cursors
+
+    Closes all open table cursors, and releases the global db_cursors symbol
+    table.
+ */
+
+static void
+close_all_cursors (void)
+{
+    if (db_cursors) {
+        sym_exec_all     (db_cursors, close_one_cursor);
+        sym_delete_table (db_cursors);
+        db_cursors = NULL;
+    }
+}
+
+
+/*  ---------------------------------------------------------------------------
+    close_one_cursor
+
+    Releases the table cursor referred to by the symbol.
+ */
+
+static Bool
+close_one_cursor (SYMBOL *symbol, ...)
+{
+    DBC
+        *db_cursor;
+        
+    if (symbol-> data) {
+        db_cursor = (DBC *) symbol-> data;
+        db_cursor-> c_close (db_cursor);
+        symbol-> data = NULL;
+    }
+    return (TRUE);
+}
+
+
+/*  ---------------------------------------------------------------------------
+    close_all_handles
+
+    Closes all open table handles, and releases the global db_handles symbol
+    table.
+ */
+
+static void
+close_all_handles (void)
+{
+    if (db_handles) {
+        sym_exec_all     (db_handles, close_one_handle);
+        sym_delete_table (db_handles);
+        db_handles = NULL;
+    }
+}
+
+
+/*  ---------------------------------------------------------------------------
+    close_one_handle
+
+    Releases the table handle referred to by the symbol.
+ */
+
+static Bool
+close_one_handle (SYMBOL *symbol, ...)
+{
+    DB
+        *db_table;
+        
+    if (symbol-> data) {
+        db_table = (DB *) symbol-> data;
+        db_table-> close (db_table, 0);
+        symbol-> data = NULL;
+    }
+    return (TRUE);
+}
+
+
+/*  ---------------------------------------------------------------------------
+    process_table
+
+    Executes the specified function on all alternate indices and then the main
+    table specified.  Returns 0 if the table was processed, -1 if the table
+    was not found in the catalogue.
+*/
+    
+static int
+process_table (char *table, tablefunc handler)
+{
+    DB
+        *db_table,                      /*  Table handle                     */
+        *db_index;                      /*  Index handle                     */
+    XML_ITEM
+        *xml_table,                     /*  Table item in catalog            */
+        *xml_index;                     /*  Index item in catalog            */
+
+    if ((db_table = get_table_handle (table, NULL)) == NULL)
+        return (-1);
+
+    xml_table = lookup_catalog (table, NULL);
+    FORCHILDREN (xml_index, xml_table) {
+        if (streq (xml_item_name (xml_index), "index")) {
+            db_index = get_table_handle (table, xml_get_attr (xml_index, "name", ""));
+            if (db_index)
+                (handler) (db_index);
+        }
+    }
+    (handler) (db_table);
+    return (0);
+}
+
+
+/*  ---------------------------------------------------------------------------
+    flush_one_table
+
+    This callback handler flushes the specified table.
+*/
+
+static Bool
+flush_one_table (DB *db_table)
+{
+    return (db_table-> sync (db_table, 0) == 0);
+}
+
+
+/*  ---------------------------------------------------------------------------
+    truncate_one_table
+
+    This callback handler deletes the data in the specified table.
+*/
+
+static Bool
+truncate_one_table (DB *db_table)
+{
+    long
+        record_count;                   /*  Number of records dropped        */
+
+    return (db_table-> truncate (db_table, db_txn, &record_count, 0) == 0);
+}
+
+
+/*  ---------------------------------------------------------------------------
+    get_dbt_value
+
+    Gets a DBT structure from a GXL argument.
+ */
+
+static void
+get_dbt_value (DBT *dbt, RESULT_NODE *argument)
+{
+    memset (dbt, 0, sizeof (DBT));
+    dbt-> data = STRING_VALUE (argument, "");
+    dbt-> size = strlen (dbt-> data);
+}
+
+
+/*  ---------------------------------------------------------------------------
+    open_xml_item
+
+    Prepares a new XML item ready to receive data.  Returns the new XML item
+    if successful, else returns NULL.  Any existing items with the specified
+    name are deleted before the new empty item is created.
+    The following is black magic, unless you know how the GSL internals work.
+ */
+
+static XML_ITEM *
+open_xml_item (THREAD *gsl_thread, RESULT_NODE *scope, char *name)
+{
+    XML_ITEM
+        *xml_scope,                     /*  Parent scope                     */
+        *xml_item = NULL,               /*  Created item                     */
+        *xml_next;                      /*  Next item, for walking list      */
+    GGCODE_TCB
+        *tcb;                           /*  Thread control block             */
+    char
+        *gg_error;                      /*  Possible error from ggcomm       */
+
+    tcb = gsl_thread-> tcb;
+    xml_scope = extended_scope_xml (&tcb-> scope_stack,
+                                    scope? scope-> scope: NULL,
+                                    tcb-> ignorecase, &gg_error);
+    if (xml_scope) {
+        /*  Look for, delete any record items present as children of scope   */
+        xml_item = xml_first_child (xml_scope);
+        while (xml_item) {
+            xml_next = xml_next_sibling (xml_item);
+            if (streq (xml_item_name (xml_item), name))
+              {
+                remove_scope_references_to_xml (xml_item);
+                xml_free (xml_item);
+              }
+            xml_item = xml_next;
+        }
+        xml_item = xml_new (xml_scope, name, NULL);
+    }
+    else {
+        if (gg_error)
+            strcpy (object_error, gg_error);
+        else
+            sprintf (object_error, "Unknown data scope: %s",
+                                    extended_scope_string (scope-> scope));
+    }
+    return (xml_item);
+}
+
+
+/*  ---------------------------------------------------------------------------
+    store_attr_from_dbt
+
+    Stores an XML attribute taking a DBT value.  If the identity option is set,
+    the DBT value is assumed to be a 4-byte binary numeric value.
+ */
+
+static void
+store_attr_from_dbt (XML_ITEM *xml_item, DBT *dbt, char *name, Bool identity)
+{
+    char
+        *value;
+    qbyte
+        idvalue;
+
+    if (identity) {
+        /*  Max. ID size is 10^9    */
+        value = mem_alloc (11);
+        ASSERT (dbt-> size == 4);
+        memcpy  (&idvalue, dbt-> data, 4);
+        sprintf (value, "%ld", idvalue);
+    }
+    else {
+        value = mem_alloc (dbt-> size + 1);
+        memcpy (value, dbt-> data, dbt-> size);
+        value [dbt-> size] = '\0';
+    }
+    xml_put_attr (xml_item, name, value);
+    mem_free (value);
+}
+</extra>
+
+</gxl>
+

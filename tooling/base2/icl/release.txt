@@ -1,0 +1,218 @@
+PH: 2005/08/14
+
+Changed icl_object, icl_base to:
+
+ - track line and file to destroy calls when possession is enabled
+ - dump the object (showing line and file) when destroy fails on "too
+few possesses"
+ - hide the self_p from animation in destroy and unlink
+ - show self at the start of animation in these two methods
+
+PH: 2005/07/25
+
+ - Added "defines" private name for constants
+ - #undef precalculated arguments at end of method
+ 
+1.0a1 - 2005/07/14
+
+ - Added 'pool' option to icl_object.
+
+1.0a0 - 
+
+ - Merged threadsafe branch
+
+0.5c4 - 2005/06/09
+
+ - Adding a link now changes ownership of an object.
+
+0.5c3 - 2005/06/02
+
+ - Added test for Opteron/64.
+
+1.0a2-threadsafe - 2005/05/31
+
+ - Removed icl_alloc_xxxx, icl_rwlock, icl_ref_count.  Everything is now
+   in icl_object
+ - We now have "handle" for threadsafine and "ref_count" for ownership.
+
+0.5c2 - 2005/05/02
+
+ - JS: Inheritence has been made more consistent.
+
+0.5c1 - 2005/04/09
+
+ - Patch with minor fixes/changes
+
+2005-04-08 
+  - Updated for XNF release 2.1a2
+
+2005/03/19
+ Pieter
+  - renamed icl_types.h to base.h
+  - deleted icl_classes.h, not needed
+
+2005/02/21
+ Jonathan
+  - significant changes to internal operation of inheritence.
+
+2005/02/18
+ Pieter
+  - made nullify option default to 1 so it's not needed in classes
+    unless it should specifically be zero.
+
+2005/01/06
+ Pieter
+  - self_animate function removed; animation now happens when you use
+    the animate = "1" option in a class.
+
+2005/01/03
+ Pieter
+  - implemented argument dismissal
+
+2004/12/29
+ Pieter
+  - removed vestiges of iCL shortstr_t and longstr_t
+  - some fixes to project, still referred to ipr_ref_count
+
+2004/12/26
+ Pieter
+  - Rebuilt clean iCL project from gaggle and iPR
+  - ipr_metacache -> icl_system
+  - ipr_mem -> icl_mem
+  - ipr_alloc_plain -> icl_alloc_plain
+  - ipr_alloc_cache -> icl_alloc_cache
+  - ipr_ref_count -> icl_ref_count
+
+2004/11/26
+ Pieter
+  - private names: header, footer, body (=default)
+  - public names: header, include, types (=default), functions, footer
+
+2004/11/25
+ Pieter
+  - class can define '<option name = "selftest" value = "0"/>' to disable
+    selftest generation.
+  - code generation for prototypes cleaned-up if class has no methods.
+
+2004/11/24
+ Pieter
+  - if class does not define any context at all, structure and typedef
+    are not generated (must be provided by class in public).
+
+2004/11/21 - Release 2.0b1
+  - Added DFL generation files to gaggle.
+
+2004/11/20
+ Jonathan
+  - New version of xnf.xnf, some changes to icl.xnf.  Should have no effect
+    on functionality.
+
+2004/11/11
+ Pieter
+  - fixed inheritence of templates so code generation works correctly
+
+2004/10/24
+ Pieter
+  - added 'inline' option for classes
+
+2004/10/20
+  Pieter
+  - added "invoke" concept to allow plug-in generators
+  - reworked inheritence completely
+        - method arguments and other children inherited using before/after
+        - method <header> <footer> inherited explicitly before/after
+  - removed private, inline options on methods (for now)
+  - added class role attribute
+  - added assertions, enable classes to assert a valid set of roles
+        - i.e. "I need an allocator class"
+  - added constructor/destructor templates in icl_base
+  - icl_object radically simplified
+  - removed prefix on inherited method names, removed selfbase symbol
+  - removed memory allocation from icl objects, done in ipr
+  - added <header> and <footer> blocks for methods, templates
+
+2004/10/20
+  Jonathan
+  - icl.xnf now has 'inline' attribute on 'class' and 'method' items.
+  - 'inherit' items may have 'option' children.
+  - 'public' and 'private' items now have rich inheritance.
+  - icl_iprc now accepts <private name = "static"> for static variables.
+  - if class.inline == '1' then this block is copied to the header;
+    otherwise the code file.
+  - icl_object now has private alloc/free methods that are called by
+    new/destroy.
+
+2003/10/14
+  Pieter
+  - renamed 'this' to 'self' everywhere
+
+2004/10/10
+  Pieter
+    - inheritence from methods based on templates did not work, fixed
+    - now allows <local> in templates
+
+2004/10/09
+  Pieter
+    - now allows prefix on inherited method names
+    - use $(thisbase) in all method name references
+
+2004/10/08
+  Pieter
+    - 'option' items now used for templating (also in parent classes)
+
+2004/10/07
+  Pieter
+    - added during in class inheritence using 'argument' structures
+
+2004/10/06
+  Pieter
+    - moved <public name = "header"> after typedef so that public declarations
+      may refer to the typedef.
+    - Made <public name = "header"> not appear at default point to avoid
+      duplication.
+
+2004/10/06
+  Pieter
+    - methods can now define blocks of local storage - simpler than
+      using the declare item.
+    - 'use' renamed to 'import'
+    - 'inherit filename' changed to 'inherit class', no extension
+
+2004/10/03
+  Pieter
+    - removed typedef option and added 'use' element instead.
+    - now generates short macros for class methods
+
+2004/10/02
+  Pieter
+    - added 'typedef' option to class object.
+
+2004/09/30
+  Pieter
+  - icl_classes.pdl
+    - added generation of classes.h header from project classes.  This file
+      is automatically used in all generated class sources.  You should
+      include it in the project header using the PDL 'collect' function.
+
+2004/09/28
+  Pieter
+    - allow multiple inheritence from different classes with detection of
+      redundant base classes
+
+2004/09/25
+  Pieter
+    - added "smt constructor" for creating new threads
+    - adapted to using THREAD * for smt/3
+
+2004/09/25
+  Pieter
+    - added "smt method" template for SMT/3 glue
+
+2004/09/24
+  Pieter
+    - Removed "handler" and generalised to using only "method" to define function
+      bodies.
+    - Added "template" option on methods, to allow easy templating of method APIs
+      (this achieves what the old method/handler split did, but in a more general
+      way).
+    - Define a template called "function" in icl_base.icl.

@@ -1,0 +1,240 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<xnf 
+    name    = "icl"
+    license = "gpl"
+    >
+
+<rule phase = "wrap" when = "after">
+if global.errno = 0
+    [gsl].include ("icl_$(global.top.target).gsl")
+    generate_class (global.top)
+endif
+</rule>
+
+<entity name = "icl" tag = "class" template = "top">
+    The class tag defines the class.  One iCL file defines exactly one
+    class.
+
+    <allow entity = "doc"       inherit = "none" />
+    <allow entity = "import"    />
+    <allow entity = "assert"    />
+    <allow entity = "data"      export = "before"/>
+    <allow entity = "invoke"    export = "before"/>
+    <!-- Put option here so that it comes after invoke -->
+    <allow entity = "option"    />
+    <allow entity = "method"    />
+    <allow entity = "todo"      />
+
+    <attr name = "name" required = "1" short = "class name">
+    Specifies the name of the class.  This name will be used to prefix all
+    function names and will also be used as the filename for generated code.
+    </attr>
+    <attr name = "comment" short = "Short description">
+    An optional one-line comment that describes the class.
+    </attr>
+    <attr name = "target" short = "Target platform">
+    Specifies the name of the target environment; the target is implemented by
+    a GSL script that generates code for a specific language environment.
+    The target can be inherited from a parent class.
+        <restrict value = "doc" >Documentation</restrict>
+    </attr>
+    <attr name = "version" required = "1" short = "Version number">
+    Specifies the version of the class. This text can take any format but we
+    recommend this standard format: '2.4b1' which is major version 2, minor version
+    4, release b, update 1.  This string is stamped into the project sources.
+    </attr>
+    <attr name = "animate" default = "$(switches.animate?0)" short = "Enable animation">
+    If set, the generated code contains animation that can be switched on
+    and off at runtime.  This option can be overridden by a command-line
+    switch (e.g. "-animate:0").  The animate option can be inherited from
+    a parent class.
+        <restrict value = "0" >do not animate</restrict>
+        <restrict value = "1" >generate animation code</restrict>
+    </attr>
+    <attr name = "import" default = "0" short = "Import-only class">
+    If set, the class is only a collection of imports of other classes.
+        <restrict value = "0" >normal class</restrict>
+        <restrict value = "1" >import-only class</restrict>
+    </attr>
+
+    <rule phase = "preproc" when = "before">
+    if my.icl = global.top
+        my.icl.selfname = my.icl.name
+        my.icl.selftype = my.icl.name + "_t"
+        if defined (switches.target)
+            my.icl.target = switches.target
+        endif
+
+        #   Parse the boom model
+        my.string = env.get ("BOOM_MODEL") ? "release,st"
+        while string.length (my.string) ?> 0
+            my.index = string.locate (my.string, ",") ?
+            if defined (my.index)
+                if my.index > 0
+                    my.icl.boom_$(string.substr (my.string, , my.index - 1)) = 1
+                endif
+                my.string = string.substr (my.string, my.index + 1)
+            elsif string.length (my.string)
+                my.icl.boom_$(my.string) = 1
+                my.string =
+            endif
+        endwhile
+    endif
+    </rule>
+</entity>
+
+<entity name = "doc" cdata = "1" inherit = "insert">
+    Documentation for the current element: this is included in the
+    generated source code in a suitable form.  Documentation should be in
+    iMatix gurudoc format.
+
+    <attr name = "domain" short = "documentation domain">
+    Allows documentation of different types to be included in the iCL
+    definitions.
+    </attr>
+</entity>
+
+<entity name = "import" key = "class" sequence = "after">
+    <inherit name = "condition"/>
+    Specifies other classes that this class refers to.  Note if you
+    want the generated code to be correct you must define an import item
+    for each class that you refer to in your class context or methods.
+    By default, the import tag is inherited unless you specify inherit
+    = "0".
+    <attr name = "class" required = "1" short = "Name of class">
+    The name of the class imported.
+    </attr>
+</entity>
+
+<entity name = "assert" key = "role">
+    Asserts that a specified class role is present at code generation.
+    <attr name = "role" required = "1" short = "Role being asserted">
+    The name of the class role being asserted.  If no class is present
+    (inherited or current) with this role, the code generation process
+    aborts.
+    </attr>
+</entity>
+
+<entity name = "data" disconnect = "1">
+    Holds a block of arbitrary XML data, for use by invoke scripts.  The
+    data blocks' grammar is defined by implicit accord with the invoked
+    scripts.
+    <attr name = "name" short = "Data block name" />
+</entity>
+
+<entity name = "invoke" disconnect = "1">
+    Invoke gsl code to operate on the class tree.  Invokes the gsl code
+    contained in the invoke item body, if any, followed by the gsl code
+    specified by the script attribute, if present. The gsl code can
+    access the class entity and manipulate it in any way desired.  It
+    may also generate other files; the script is invoked before any other
+    code generation starts.  The invoke tag can contain arbitrary XML
+    definitions for use by the gsl script. Note that while method templates
+    are resolved _after_ all invoke tags, class inheritence is done before,
+    and the invoked script cannot affect it.
+    <attr name = "script" short = "Script name, no extension">
+    The name of the GSL script, without any extension (.gsl is enforced).
+    </attr>
+    <attr name = "phase">
+    The processing phase during which this invoke is executed.
+        <restrict value = "preproc" >rule is used in preprocessor</restrict>
+        <restrict value = "parse"   >rule is used in parser</restrict>
+    </attr>
+
+    <rule phase = "preproc">
+    if my.invoke.phase ? "preproc" = "preproc"
+#       if ! defined (target)
+#           save icl
+#       endif
+        [gsl].exec (my.invoke.?'', 0)
+        if defined (.script)
+            [gsl].include (my.invoke.script + ".gsl", 0)
+        endif
+        my.invoke.delete ()             /*  To avoid inheritance             */
+    endif
+    </rule>
+
+    <rule phase = "parse">
+    if my.invoke.phase ? "preproc" = "parse"
+        [gsl].exec (my.invoke.?'', 0)
+        if defined (.script)
+            [gsl].include (my.invoke.script + ".gsl", 0)
+        endif
+    endif
+    </rule>
+</entity>
+
+<entity name = "method" cdata = "1" sequence = "after" >
+    <inherit name = "default"  />
+    <inherit name = "condition"/>
+    Methods provide functionality for the component class. Methods can
+    operate on specific objects, on the whole class of objects, or on
+    other arbitrary data. Methods are inherited from parent classes unless
+    the inherit attribute is set to "0".  In the new and destroy methods,
+    the class is addressed using the name "self".
+    <allow entity = "doc"     />
+    <allow entity = "animate" />
+    <allow entity = "invoke"    />
+
+    <attr name = "name" required = "1" short = "method name">
+    The name of the method, used in the API.
+    </attr>
+    <attr name = "inherit" default = "overlay">
+    Specifies whether this method may inherit from other classes.
+        <restrict value = "none" >may not inherit</restrict>
+        <restrict value = "overlay" >may inherit</restrict>
+    </attr>
+    <attr name = "export" default = "default" >
+    Specifies how this item may be inherited.
+        <restrict value = "none" >may not be inherited</restrict>
+        <restrict value = "default">inherited in the default manner</restrict>
+        <restrict value = "before" >inherited before existing items</restrict>
+        <restrict value = "after" >inherited after existing items</restrict>
+    </attr>
+    <attr name = "private" default = "0">
+    Specifies whether this method is for public or private (internal) access.
+        <restrict value = "0">This method is for public use.</restrict>
+        <restrict value = "1">This method is for internal use only.</restrict>
+    </attr>
+</entity>
+
+<entity name = "animate" cdata = "1">
+    Provides a message or comment that will be shown when animating the
+    component.  The animate tag can be mixed with code.
+    <attr name = "name" required = "1" short = "variable name">
+    The name of the variable to be output with the animation.
+    </attr>
+    <attr name = "format" required = "1" short = "variable name">
+    The format string to output the variable.
+    </attr>
+</entity>
+
+<entity name = "todo" cdata = "1" inherit = "insert">
+    Defines a change request, bug or other issue that needs changing in
+    the iCL class.  Todo items are formalised so that they can be
+    extracted and processed mechanically.
+
+    <attr name = "owner" short = "issue owner">
+    The developer who registered the issue and will deal with it, specified
+    as an email address.
+    </attr>
+</entity>
+
+</xnf>

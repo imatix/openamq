@@ -1,0 +1,8 @@
+3.0c2 - 2005/06/07
+
+ - 64-bit clean
+
+3.0c1 - 2005/05/27
+
+ - Added caching of dialog locations to improve performance (Jonathan)
+

@@ -1,0 +1,64 @@
+#                                                                         
+#   $(filename) - $(description)                                          
+#                                                                         
+#   $(project) $(version)                                                 
+#   $(copyright)                                                          
+#                                                                         
+#   $(license)                                                            
+#
+#   Synopsis:   This file lists all source files that comprise the SFL, and
+#               for which srcdoc must generate documentation.  To produce
+#               the documentation, do this:
+#
+#                   srcdoc sfldoc.txt
+#                   htmlpp ...?
+#
+#               You need to install the srcdoc and htmlpp packages: you can
+#               download these from http://www.imatix.com as zip files in
+#               /pub/tools/srcdoc.zip and /pub/tools/htmlpp.zip.  The .man
+#               pages explain how to use these packages.
+#
+
+<<Files>>
+prelude.h
+sflvers.h
+sflbits.h  sflbits.c
+sflcomp.h  sflcomp.c
+sflcons.h  sflcons.c
+sflconv.h  sflcvbs.c  sflcvdp.c  sflcvds.c  sflcvns.c
+           sflcvsb.c  sflcvsd.c  sflcvsn.c  sflcvst.c
+           sflcvtp.c  sflcvts.c  sflconv.c
+sflcryp.h  sflcryp.c
+sfldate.h  sfldate.c
+sflexdr.h  sflexdr.c
+sflfind.h  sflfind.c
+sflfile.h  sflfile.c
+sflfort.h  sflfort.c
+sflini.h   sflini.c
+sfllang.h  sfllang.c
+sfllbuf.h  sfllbuf.c
+sfllist.h  sfllist.c
+sflmail.h  sflmail.c
+sflmath.h  sflmath.c
+sflmesg.h  sflmesg.c
+sflmem.h   sflmem.c
+sflmime.h  sflmime.c
+sflnode.h  sflnode.c
+sfldir.h   sfldir.c
+sflproc.h  sflproc.c
+sflslot.h  sflslot.c
+sflstr.h   sflstr.c
+sflsock.h  sflsock.c
+sflsymb.h  sflsymb.c
+sflsyst.h  sflsyst.c
+sflhttp.h  sflhttp.c
+sflenv.h   sflenv.c
+sfltok.h   sfltok.c
+sfltree.h  sfltree.c
+sfltron.h  sfltron.c
+sfluid.h   sfluid.c
+sflxml.h   sflxml.c
+sflxmll.h  sflxmll.c
+
+<<Header>>
+.include sfldoc1.txt

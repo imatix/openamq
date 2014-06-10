@@ -1,0 +1,510 @@
+<?xml?>
+<!--
+    GSL/math - Math functions object
+
+    Copyright (c) 1991-2009 iMatix Corporation
+
+    ------------------ GPL Licensed Source Code ------------------
+    iMatix makes this software available under the GNU General
+    Public License (GPL) license for open source projects.  For
+    details of the GPL license please see www.gnu.org or read the
+    file license.gpl provided in this package.
+
+    This program is free software; you can redistribute it and/or             
+    modify it under the terms of the GNU General Public License as            
+    published by the Free Software Foundation; either version 2 of            
+    the License, or (at your option) any later version.                       
+                                                                              
+    This program is distributed in the hope that it will be useful,           
+    but WITHOUT ANY WARRANTY; without even the implied warranty of            
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             
+    GNU General Public License for more details.                               
+                                                                               
+    You should have received a copy of the GNU General Public                  
+    License along with this program in the file 'license.gpl'; if             
+    not, write to the Free Software Foundation, Inc., 59 Temple               
+    Place - Suite 330, Boston, MA 02111-1307, USA.                            
+                                                                              
+    You can also license this software under iMatix's General Terms           
+    of Business (GTB) for commercial projects.  If you have not               
+    explicitly licensed this software under the iMatix GTB you may            
+    only use it under the terms of the GNU General Public License.            
+                                                                              
+    For more information, send an email to info@imatix.com.                   
+    --------------------------------------------------------------            
+ -->
+
+<gxl script = "ggobjt.gsl" filename = "ggmath" title = "GSL/math package" >
+
+<extra>
+</extra>
+
+<object name = "math" title = "Math Functions" >
+
+<!-------------------------------------------------------------------------->
+
+<function name = "abs" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if (parm-> value. type == TYPE_NUMBER)
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = fabs (parm-> value. n);
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "ceil" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if (parm-> value. type == TYPE_NUMBER)
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = ceil (parm-> value. n);
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "floor" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if (parm-> value. type == TYPE_NUMBER)
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = floor (parm-> value. n);
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "mod" >
+    <parameter name = "x" pass = "value" />
+    <parameter name = "y" pass = "value" />
+<body>
+  {
+    number_value (&x-> value);
+    number_value (&y-> value);
+
+    if ((x-> value. type == TYPE_NUMBER)
+    && (y-> value. type == TYPE_NUMBER)
+    && (y-> value. n))
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = fmod (number_value (&x-> value),
+                                     number_value (&y-> value));
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "rand" >
+<body>
+  {
+    static Bool
+        first_time = TRUE;
+  
+    if (first_time)
+      {
+        srand (micro_time ());
+        first_time = FALSE;
+      }
+    result-> value. type = TYPE_NUMBER;
+    result-> value. n    = (double) rand () / RAND_MAX;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "sqrt" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if ((parm-> value. type == TYPE_NUMBER)
+    && (parm-> value. n >= 0))
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = sqrt (parm-> value. n);
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "exp" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if (parm-> value. type == TYPE_NUMBER)
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = exp (parm-> value. n);
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "log" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if ((parm-> value. type == TYPE_NUMBER)
+    && (parm-> value.n > 0))
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = log (parm-> value. n);
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "log10" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if ((parm-> value. type == TYPE_NUMBER)
+    && (parm-> value.n > 0))
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = log10 (parm-> value. n);
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "pow" >
+    <parameter name = "x" pass = "value" />
+    <parameter name = "y" pass = "value" />
+<body>
+  {
+    number_value (&x-> value);
+    number_value (&y-> value);
+
+    if ((x-> value. type == TYPE_NUMBER)
+    && (y-> value. type == TYPE_NUMBER))
+      {
+        if (((x-> value.n != 0)
+        ||   (y-> value.n > 0))
+        && ((x-> value.n >= 0)
+        ||   (y-> value.n == floor (y-> value.n))))
+          {
+            result-> value. type = TYPE_NUMBER;
+            result-> value. n    = pow (number_value (&x-> value),
+                                           number_value (&y-> value));
+          }
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "sin" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if (parm-> value. type == TYPE_NUMBER)
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = sin (parm-> value. n);
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "cos" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if (parm-> value. type == TYPE_NUMBER)
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = cos (parm-> value. n);
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "tan" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if (parm-> value. type == TYPE_NUMBER)
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = tan (parm-> value. n);
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "sinh" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if (parm-> value. type == TYPE_NUMBER)
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = sinh (parm-> value. n);
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "cosh" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if (parm-> value. type == TYPE_NUMBER)
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = cosh (parm-> value. n);
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "tanh" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if (parm-> value. type == TYPE_NUMBER)
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = tanh (parm-> value. n);
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "asin" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if ((parm-> value. type == TYPE_NUMBER)
+    && (parm-> value. n >= -1)
+    && (parm-> value. n &lt;=  1))
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = asin (parm-> value. n);
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "acos" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if ((parm-> value. type == TYPE_NUMBER)
+    && (parm-> value. n >= -1)
+    && (parm-> value. n &lt;=  1))
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = acos (parm-> value. n);
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "atan" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if (parm-> value. type == TYPE_NUMBER)
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = atan (parm-> value. n);
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "atan2" >
+    <parameter name = "x" pass = "value" />
+    <parameter name = "y" pass = "value" />
+<body>
+  {
+    number_value (&x-> value);
+    number_value (&y-> value);
+
+    if ((x-> value. type == TYPE_NUMBER)
+    && (y-> value. type == TYPE_NUMBER))
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = atan2 (x-> value. n, y-> value. n);
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "pi" >
+<body>
+  {
+    result-> value. type = TYPE_NUMBER;
+    result-> value. n    = atan (1) * 4;
+    
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "asinh" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if (parm-> value. type == TYPE_NUMBER)
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = -log (
+            sqrt (parm-> value. n * parm-> value. n + 1)
+            - parm-> value. n
+        );
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "acosh" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if ((parm-> value. type == TYPE_NUMBER)
+    && (parm-> value. n >= 1))
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = log (
+            sqrt (parm-> value. n * parm-> value. n - 1)
+            + parm-> value. n
+        );
+      }
+    return 0;
+  }
+</body>
+</function>
+
+<!-------------------------------------------------------------------------->
+
+<function name = "atanh" >
+    <parameter name = "parm" pass = "value" />
+<body>
+  {
+    number_value (&parm-> value);
+
+    if ((parm-> value. type == TYPE_NUMBER)
+    && (parm-> value. n &lt; 1))
+      {
+        result-> value. type = TYPE_NUMBER;
+        result-> value. n    = log (
+            (1 + parm-> value. n) /
+            (1 - parm-> value. n)
+        ) / 2;
+      }
+    return 0;
+  }
+</body>
+</function>
+
+</object>
+
+</gxl>

@@ -1,0 +1,30 @@
+Changes in GSL/4
+----------------
+
+1. References to a->b are only converted to linear value when this is
+implicit in the script.  Eg
+    $(a->b) is unchanged
+    x=a->b  is changed.
+
+Extensions in GSL/4
+-------------------
+
+1. Pointers
+2. a->b(cond,alias)
+3.  .for/.else/.endfor
+
+Still to do
+-----------
+1. Rationalise inbuilt functions
+2.  a->b(cond,alias,count)
+3. .function (xxx)
+4. Better error messages for attribute fail.  !!!
+5. while cond as name
+6. commands as expressions
+7. Careful where expressions are scalarised
+8. Array objects
+9. Debug functions: where (attr), scope dump, save to screen.
+10. everything is an expression - what about =/==/:=
+11. Disallow functions with reserved word as name
+12. Exceptions
+13. 'my' scope for main program.

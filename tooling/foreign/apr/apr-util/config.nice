@@ -1,0 +1,23 @@
+#! /bin/sh
+#
+# Created by configure
+
+"./configure" \
+"--without-libtool" \
+"--disable-shared" \
+"--without-sendfile" \
+"--enable-threads" \
+"--enable-nonportable-atomics" \
+"--enable-debug" \
+"--with-apr=../apr" \
+"--without-gdbm" \
+"--without-ndbm" \
+"--without-berkeley-db" \
+"--without-pgsql" \
+"--without-mysql" \
+"--without-sqlite2" \
+"--without-sqlite3" \
+"--without-oracle" \
+"--without-freetds" \
+"--without-odbc" \
+"$@"

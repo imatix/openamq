@@ -1,0 +1,271 @@
+<?xml?>
+<!--
+    The Object Property Framework
+    Yet Another Production from The iMatix Industrial Bit Factory
+
+    OPF generates classes that provide a management framework for
+    object properties. A typical use is for configuration data.
+
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
+<opf
+    name    = "demo_server_config"
+    comment = "Server configuration properties"
+    script  = "opf_gen"
+    root    = "config"
+    config  = "demo_srv.cfg"
+    >
+
+<public>
+extern $\(selftype)
+    *demo_server_config;                //  Global properties object
+</public>
+
+<private>
+$\(selftype)
+    *demo_server_config = NULL;         //  Global properties
+</private>
+
+<path name = "server">
+    <property name = "port" type = "char *" default = "7654">
+    Server port for client connections
+    <doc>
+    Specifies the port on which the server should open its connections.
+    </doc>
+    </property>
+
+    <property name = "listen" type = "char *" default = "*">
+    Address (local network interface) to listen on
+    <doc>
+    Specifies the network interface on which the server should listen for
+    connections.  By default this is *, meaning all interfaces.  You would
+    choose to set an address when you use OpenAMQ on a server with multiple
+    network interfaces, e.g. routing between two networks.
+    </doc>
+    </property>
+
+    <property name = "user" type = "char *">
+    User to run server as
+    <doc>
+    If you specify a user and group, the server will switch to that user
+    and group after opening its port, thus dropping any privileges it
+    previously had.
+    </doc>
+    </property>
+
+    <property name = "group" type = "char *">
+    Group to run server as
+    <doc>
+    If you specify a user and group, the server will switch to that user
+    and group after opening its port, thus dropping any privileges it
+    previously had.
+    </doc>
+    </property>
+</path>
+
+<path name = "resources">
+    <property name = "monitor" type = "int" default = "1">
+    Monitor interval, seconds
+    <doc>
+    Specifies the interval in seconds at which the server will report
+    its message rates.  If zero, no monitoring is shown. The recommended
+    value is 1, if monitoring is desired.
+    </doc>
+    </property>
+
+    <property name = "record stats" type = "Bool" default = "0" dynamic = "1">
+    Record performance statistics
+    <doc>
+    Specifies whether or not the server records performance statistics
+    in a format suitable for importing into a spreadsheet.  If set, the
+    server creates a file called 'amq_server_stats_(portnumber).del' which
+    contains performance statistics in a comma-delimited format.  For this
+    setting to take effect, the monitor option must also be set.
+    </doc>
+    </property>
+</path>
+
+<path name = "tuning">
+    <property name = "heartbeat" type = "int" default = "2">
+    Heartbeat from client to server, seconds
+    <doc>
+    Defines the timeout for connection heartbeating.
+    </doc>
+    </property>
+
+    <property name = "setup timeout" type = "int" default = "5">
+    Connection setup timeout, seconds
+    <doc>
+    Defines the maximum amount of time connection negotiation may
+    take, before the connection is forcibly closed by the server.
+    </doc>
+    </property>
+
+    <property name = "close timeout" type = "int" default ="5">
+    Connection close timeout, seconds
+    <doc>
+    Defines the maximum amount of time the server will wait for a
+    client to send a connection.close-ok when closing the
+    connection due to an exception.
+    </doc>
+    </property>
+
+    <property name = "accept retry timeout" type = "int" default = "60" min = "1">
+    Timeout before retrying accept calls, seconds
+    <doc>
+    Defines the amount of time the server will wait before retrying
+    an accept call if the call failed due to running out of file
+    descriptors.
+    </doc>
+    </property>
+
+    <property name = "tcp nodelay" type = "Bool" default = "1">
+    TCP/IP NODELAY option
+    <doc>
+    If this value is 1, socket data is written immediately, which is
+    usually good for latency.  If this value is 0, data is buffered
+    until there is a full packet, which is usually good for throughput.
+    </doc>
+    </property>
+
+    <property name = "tcp rcvbuf" type = "int">
+    TCP/IP receive buffer, in bytes
+    <doc>
+    If this value is greater than zero, all client connections will use
+    the specified value.  Note: setting this value is delicate, do not
+    use this option unless you know what you are doing.
+    </doc>
+    </property>
+
+    <property name = "tcp sndbuf" type = "int">
+    TCP/IP send buffer, in bytes
+    <doc>
+    If this value is greater than zero, all client connections will use
+    the specified value.  Note: setting this value is delicate, do not
+    use this option unless you know what you are doing.
+    </doc>
+    </property>
+
+    <property name = "frame max" type = "int" min = "2048" max = "2097152" default = "32768">
+    Maximum size of AMQP content frames
+    <doc>
+    Defines the maximum frame size the server will accept. Larger frame
+    sizes are useful for applications that create very large message
+    headers but will cause congestion on multi-channel connections.
+    </doc>
+    </property>
+
+    <property name = "direct" type = "int" default = "0">
+    Enables Direct Mode for client connections
+    <doc>
+    If set to 1, new connections will by default use Direct Mode.  Applications
+    can override this by setting the connection->direct property on new connections.
+    </doc>
+    </property>
+</path>
+
+<path name = "logging">
+    <property name = "log_path" type = "char *" default = "/var/log/demo">
+    Active log file directory
+    <doc>
+    Specifies the directory into which active log files are placed.  To get
+    the old behaviour, set this option to 'logs'.
+    </doc>
+    </property>
+
+    <property name = "keep logs" type = "Bool" default = "1">
+    Keep log files
+    <doc>
+    Specifies whether or not the server should keep logs.  If zero,
+    the server will not keep logs.  If 1, it will keep an alert log,
+    a daily log, and a debug log as specified.
+    </doc>
+    </property>
+
+    <property name = "archive_cmd" type = "char *">
+    Archive command
+    <doc>
+    If specified, this command is run on all archived log files. You can
+    use this option to compress archived log files, or clean up old and
+    unwanted files.  When the command is run, the name of the archived
+    log file is provided as an argument to it.
+    </doc>
+    </property>
+
+    <property name = "alert_log" type = "char *" default = "alert.log">
+    Alert log file name
+    <doc>
+    The name of the alert log file, which records all alerts issued by the
+    server.  Note that the server port number is always added to the name
+    of the log file.
+    </doc>
+    </property>
+
+    <property name = "daily_log" type = "char *" default = "daily.log">
+    Daily log file name
+    <doc>
+    The name of the daily log file, which records all normal activity
+    as well as errors. Note that the server port number is always added
+    to the name of the log file.
+    </doc>
+    </property>
+
+    <property name = "debug_log" type = "char *" default = "debug.log">
+    Debug log file name
+    <doc>
+    The name of the debug log file, which records all normal activity,
+    errors, and debug trace information. Note that the server port number
+    is always added to the name of the log file.
+    </doc>
+    </property>
+
+    <property name = "trace" type = "int" default = "0" dynamic = "1">
+    Protocol trace level
+    <doc>
+    Specifies the protocol debug level, which can be 0 (no tracing),
+    1 (show information and protocol methods), 2 (show protocol
+    animation), 3 (show wire-level data).  You should not use any
+    tracing on production servers except in low-volume scenarios.
+    </doc>
+    </property>
+
+    <property name = "syslog" type = "int" default = "0">
+    Use syslog logging protocol
+    <doc>
+    Specifies whether or not to use the syslog protocol for logging.
+    By default log files are written directly to disk.  If this option
+    is set to 1, uses the syslog protocol for all log files.  Uses a
+    priority depending on the type of log message (LOG_ERROR, LOG_INFO,
+    LOG_DEBUG). Uses the LOG_DAEMON facility.  Has no effect on Windows.
+    Overrides the keep_logs option.
+    </doc>
+    </property>
+</path>
+
+<path name = "direct">
+    <property name = "batching" type = "int" max = "2097152" default = "32768">
+    Maximum size of Direct Mode batches
+    <doc>
+    Defines the maximum batch size for Direct Mode opportunistic batching on
+    message sends.  Setting this higher will improve throughput, and usually
+    with lower latency, but will cause higher memory consumption.  Setting
+    this to zero will switch off batching.  Any value less than 2048 is
+    treated as zero.
+    </doc>
+    </property>
+</path>
+
+</opf>

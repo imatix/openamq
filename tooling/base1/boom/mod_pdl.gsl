@@ -1,0 +1,145 @@
+#
+#   mod_pdl.gsl - PDL module
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+#   mod_pdl provides a number of functions to work with PDL files:
+#
+#   pdl_load          - loads and validates a PDL file
+#   pdl_documentation - generate documentation for a PDL
+#
+
+include "pdlparse.gsl"      #   Generated from pdl.xnf
+
+################################   PDL LOAD   ################################
+#
+#   Load and check the PDL file
+#
+function pdl_load (root, pdlfile)
+    trace ("Loading and processing $(my.pdlfile)...")
+    xml to $(my.root) from my.pdlfile
+    for $(my.root).pdl
+        errors = 0
+
+        #   Include everything from <include> files
+        for [include]
+            if (required?1) | file.exists (filename)
+                xml to pdl from filename
+                for pdl.pdl
+                    abort "$(filename) is not a valid include file - use <inherit>"
+                endfor
+            endif
+        endfor
+
+        #   Inherit classes from <inherit> files
+        for inherit
+            xml from filename
+            if count (pdl) = 0
+                abort "$(filename) is not a valid - inherited files must contain 'pdl' entity"
+            endif    
+            for pdl as inheritpdl
+                for class as inheritclass where count (pdl.class, count.name = inheritclass.name, count) = 0
+                    copy inheritclass to pdl
+                endfor
+            endfor
+            delete inherit-> pdl
+        endfor
+
+        trace ("Parsing project definitions...")
+        pdl_parse_pdl ('pdl')
+
+        if errors > 0
+            abort "pdl file contains one or more errors - aborting"
+        endif
+    endfor
+endfunction
+
+############################   PDL DOCUMENTATION   ###########################
+#
+#   Generates 'classes.txt' documentation in gurudoc format.
+#
+function pdl_documentation ()
+    include "mod_xnf.gsl"
+    global.ignorecase = 1
+
+    xnf_load ("pdl.xnf")
+    xnf_doc ("pdl.txt")
+    delete root-> xnf
+    
+    xnf_load ("pwl.xnf")
+    xnf_doc ("pwl.txt")
+    delete root-> xnf
+
+    xnf_load ("xnf.xnf")
+    xnf_doc ("xnf.txt")
+    delete root-> xnf
+    global.ignorecase = 0
+
+    output "classes.txt"
+    >These are all the classes defined in classes.pdl:
+    for root.pdl
+        for class
+            >
+            >$(name):
+            >    $(string.trim (.?"No description"))
+            for distrib
+                >    Distribute as $([as]).
+            endfor
+            for configure
+                for version
+                    >    Version header in $([as]).
+                endfor
+                for embed
+                    >    Version header in $([as]).
+                endfor
+            endfor
+            for generate
+                for execute
+                    >    Run "$(command)" to generate.
+                endfor
+                for copy
+                    >    Copy file from $(filename) in $([from]).
+                endfor
+            endfor
+            for build
+                for compile
+                    >    Compile via 'c' command.
+                endfor
+                for replace
+                    >    Replace into library.
+                endfor
+                for link
+                    >    Link as main program.
+                endfor
+            endfor
+            if generated ?= 1
+                >    Generated.
+            endif
+            for install
+                >    Install as $([as]).
+                if raw ?= 1
+                    >    Must be handled as raw binary data (not text).
+                endif
+            endfor
+            for derive
+                >    Includes '$(class)' as a derived class.
+            endfor
+        endfor
+    endfor
+    close
+endfunction
+

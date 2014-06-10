@@ -1,0 +1,73 @@
+2.1c0 - 2005/09/13
+
+ - Fixed codegen rules & phase, which was not fully implemented.
+ 
+2.1b11 - 2005/07/01
+
+ - Made default inheritence order the way we expect.
+
+2.1b10 - 2005/06/08
+
+ - Allow <option> to be multiply defined if the value is the same.
+
+2.1b9 - 2005/06/06
+
+ - Fixed bug in <option> processing.
+
+2.1b8 - 2005/06/02
+
+ - Fixed problem with <option>s being too extensively inherited.
+
+2.1b7 - 2005/05/31
+
+ - Added "condition" abstract entity.
+ - Added code to inherit <option> attributes.
+
+2.1b6 - 2005/05/22
+
+ - <inherit> name can now contain GSL substitution.
+
+2.1b5 - 2005/05/20
+
+ - JS: Fixed bug that made order of <produce> significant.
+
+2.1b4 - 2005/05/02
+
+ - JS: Inheritence has been made more consistent.
+
+XNF release history
+This is version 2, part of Base/2.  Version 1 was historically part
+of boom, in Base/1.
+
+Release 2.1a3 - 2005-04-14 JS
+
+1. Added test for abstract entity.
+
+Release 2.1a2 - 2005-04-08 JS
+ - Updated to support smt.xnf
+ - icl.xnf and friends moved to base2/icl
+
+2005-03-13 JS
+ - Removed redundend 'multiple' attribute from <inherit>
+ - Made icl and xnf inheritence more consistent.
+
+2005/02/14
+ Pieter
+  - fixed inheritence of method declares from templates
+  
+2005/01/03
+ Pieter
+  - implemented argument dismissal in icl.xnf
+
+2004/12/30
+ Pieter
+  - Added data block for invoke scripts
+
+2004/12/29
+ Pieter
+  - Fixed disconnect option on rules, was broken in last XNF upgrade
+ 
+2004/12/26
+ Pieter
+  - Rebuilt clean XNF project from grammars in gaggle
+

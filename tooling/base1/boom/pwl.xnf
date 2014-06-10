@@ -1,0 +1,162 @@
+<?xml version="1.0"?>
+<!--
+    Copyright (c) 1996-2009 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+-->
+
+<xnf name = "pwl">
+PWL is the Boom Project Workflow Language.  PWL is an XML language, which we
+describe formally using a grammar notion similar to BNF.
+
+<entity name = "pwl" tag = "pwl" cdata = "1" >
+    A PWL file defines a project builder workflow. The workflow defines
+    the states and the events that the build and install process moves through.
+    Each valid event provokes a series of actions, which are implemented as
+    rules for different target systems. The PWL structure lets you formalise
+    an abitrary building process.  For more enlightenment on the state-machine
+    concept used in PWL, see the iMatix Libero tool.
+
+    <allow entity = "include" />
+    <allow entity = "inherit" />
+    <allow entity = "state"   />
+    <allow entity = "target"  />
+    <attr name = "name" required = "1" short = "Workflow name">
+    This is the name of the workflow.
+    </attr>
+</entity>
+
+<entity name = "include" tag = "include" >
+    The 'include' element permits textual-inclusion from another file.  The
+    included file must be a valid XML file containing a set of states.  These
+    are included in the PWL tree as-is.
+    <attr name = "filename" required = "1" >
+    The name of the XML-format file to be included in place of the
+    'include' element.
+    </attr>
+    <attr name = "required" default = "1">
+        <restrict value = "0" >File is not required</restrict>
+        <restrict value = "1" >File is required</restrict>
+    If set to zero, the include file is ignored if it is missing.
+    </attr>
+</entity>
+
+<entity name = "inherit" tag = "inherit" >
+    The 'inherit' element permits reference to a base set of states which
+    should be used if the states are not already defined in the PWL file.
+    <attr name = "filename" required = "1" >
+    The name of the PWL-format file to read the base states from.
+    </attr>
+</entity>
+
+<entity name = "state" tag = "state" cdata = "1" >
+    The workflow contains one or more states that define a specific point in
+    the project lifecycle.  The state defines the events allowed at that point,
+    and the consequence of each event.
+
+    <allow entity = "event" />
+    <attr name = "name"  required = "1" short = "Name of state" >
+    The name of the state.
+    </attr>
+    <attr name = "inherit" short = "State class">
+    The state can inherit from another state in the workflow.  All events in
+    the inherited state are included in the current state if not already
+    defined there.  Boom allows multiple inheritence.
+    </attr>
+    <rule name = "parse">
+    if defined (inherit) & count (pwl.state, count.name = state.inherit, count) = 0
+        abort ("Inherit state '$(inherit:)' is not defined for $(name)")
+    endif
+
+    state.event_list  = ""
+    check_state = state.name
+    while defined (check_state)
+        for pwl.state as pwl_state where name = check_state
+            for event where (internal?0) = 0
+                state.event_list += event.name + " "
+            endfor
+            check_state = pwl_state.inherit?
+        endfor
+    endwhile
+    </rule>
+</entity>
+
+<entity name = "event" tag = "event" cdata = "1" >
+    Events are either internal - produced by the workflow actions - or external,
+    provoked by user commands.  An event causes zero or more workflow actions.
+
+    <allow entity = "action" />
+    <attr name = "name"  required = "1" short = "Name of event" >
+    The name of the event.
+    </attr>
+    <attr name = "internal" default = "0" short = "Internal event?" >
+        <restrict value = "0">Event is external</restrict>
+        <restrict value = "1">Event is internal</restrict>
+    If 1, the event is treated as an internal workflow event and never shown
+    to the user or accepted from the user.
+    </attr>
+    <attr name = "nextstate" short = "Next state after event">
+    If this is specified, the workflow will continue into the next state as
+    specified.  The last action in the action list must generate an internal
+    event that is handled in the next state.
+    </attr>
+</entity>
+
+<entity name = "action" tag = "action">
+    A workflow action is implemented by some user code.
+    <attr name = "name"  required = "1" short = "Name of action">
+    The name of the action.
+    </attr>
+    <rule name = "parse">
+    if count (pwl.action, count.name = action.name, count) = 0
+        copy action to pwl
+    endif
+    </rule>
+</entity>
+
+<entity name = "target" tag = "target" >
+    The target defines a platform for which we generate a packaging script.
+
+    <attr name = "name" required = "1" short = "Platform name">
+    The abbreviated name of the platform.
+    </attr>
+    <attr name = "label" short = "Platform label">
+    The long name of the platform.
+    </attr>
+    <attr name = "script" required = "1" short = "Rule library script">
+    The GSL script file that contains the rule actions code.
+    </attr>
+    <attr name = "pathsep" default = "/" short = "Directory separator">
+    Specifies the path separator for this target.
+    </attr>
+    <attr name = "inherit" short = "Inherit from target">
+    The target can inherit its rules from another target.  All rules in the
+    inherited target are included in the current target if they are not
+    already defined there.
+    </attr>
+    <attr name = "output" short = "Packaging script">
+    This is the name + extension of the packaging script that Boom will build
+    for this target.  If empty, Boom does not build any output file and simply
+    calls all target rules so that these can - if wanted - generate other output
+    files.
+    </attr>
+
+    <rule name = "parse">
+    if defined (inherit) & count (pwl.target, count.name = target.inherit, count) = 0
+        abort ("Inherit target '$(inherit:)' is not defined")
+    endif
+    </rule>
+</entity>
+
+</xnf>

@@ -1,0 +1,312 @@
+#
+#   groff_simple.gsl - Template GDL module
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+function generate_groff_header
+    body += ".RP\n"
+    body += ".DA\n"
+    body += ".TL\n"
+    body += "$(title:)\n"
+    body += ".AU\n"
+    body += "$(string.replace (author, '&amp;lt;|<,&amp;gt;|>'):)\n"
+    body += ".AI\n"
+    body += "$(copyright:)\n"
+endfunction
+
+
+#####################   FUNCTION GENERATE_GDL_BEFORE   ######################
+
+function generate_gdl_before 
+    g_header_level = 0
+    
+    body = ""
+    
+    generate_groff_header ()
+endfunction
+
+
+######################   FUNCTION GENERATE_GDL_AFTER   ######################
+
+function generate_gdl_after
+    body += ".TC\n"
+    
+    output base + ".ms"
+    >$(body:)
+    close
+endfunction
+
+
+####################   FUNCTION GENERATE_HEADER_BEFORE   ####################
+
+function generate_header_before
+    g_header_level += 1
+    
+    if defined (.)
+        if    g_header_level = 1
+            body += ".NH 1\n"
+        elsif g_header_level = 2
+            body += ".NH 2\n"
+        elsif g_header_level = 3
+            body += ".NH 3\n"
+        elsif g_header_level = 4
+            body += ".NH 4\n"
+        endif
+        body += string.trim(.) + "\n"
+        body += ".XS\n"
+        body += ("\t" * (g_header_level - 1)) + string.trim(.) + "\n"
+        body += ".XE\n"
+    endif
+endfunction
+
+
+####################   FUNCTION GENERATE_HEADER_AFTER   #####################
+
+function generate_header_after
+    g_header_level -= 1
+endfunction
+
+
+##################   FUNCTION GENERATE_PARAGRAPH_BEFORE   ###################
+
+function generate_paragraph_before
+    body += ".LP\n"
+    body += "$(.)\n"
+endfunction
+
+
+###################   FUNCTION GENERATE_PARAGRAPH_AFTER   ###################
+
+function generate_paragraph_after
+endfunction
+
+
+####################   FUNCTION GENERATE_QUOTE_BEFORE   #####################
+
+function generate_quote_before
+    body += ".LP\n"
+    body += "$(.)\n"
+endfunction
+
+
+#####################   FUNCTION GENERATE_QUOTE_AFTER   #####################
+
+function generate_quote_after
+endfunction
+
+
+###################   FUNCTION GENERATE_EXAMPLE_BEFORE   ####################
+
+function generate_example_before
+    body += ".DS I\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_EXAMPLE_AFTER   ####################
+
+function generate_example_after
+    body += ".DE\n"
+endfunction
+
+
+#####################   FUNCTION GENERATE_LINE_BEFORE   #####################
+
+function generate_line_before
+    body += "$(.?)\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_RULER_BEFORE   #####################
+
+function generate_ruler_before
+endfunction
+
+
+#####################   FUNCTION GENERATE_ITEM_BEFORE   #####################
+
+function generate_item_before
+    if    name (-1) = 'itemize'
+        if (first_list)
+            first_list = 0
+            body += ".IP \\[bu] 2\n"
+        else
+            body += ".IP \\[bu]\n"
+        endif
+    elsif name (-1) = 'enumerate'
+        if (first_list)
+            first_list = 0
+            body += ".IP \\n[step] 3\n"
+        else
+            body += ".IP \\n+[step]\n"
+        endif
+    else
+        body += ".LP\n"
+    endif
+    body += "$(.)"
+endfunction
+
+
+###################   FUNCTION GENERATE_ITEMIZE_BEFORE   ####################
+
+function generate_itemize_before
+    first_list = 1
+endfunction
+
+
+####################   FUNCTION GENERATE_ITEMIZE_AFTER   ####################
+
+function generate_itemize_after
+    body += "\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_ENUMERATE_BEFORE   ###################
+
+function generate_enumerate_before
+    first_list = 1
+
+    body += ".nr step 1 1\n"
+endfunction
+
+
+###################   FUNCTION GENERATE_ENUMERATE_AFTER   ###################
+
+function generate_enumerate_after
+    body += "\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_DEFINITION_BEFORE   ##################
+
+function generate_definition_before
+    body += ".LP\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_DEFINITION_AFTER   ###################
+
+function generate_definition_after
+    body += "\n"
+endfunction
+
+
+###################   FUNCTION GENERATE_DEF_TERM_BEFORE   ###################
+
+function generate_def_term_before
+    body += ".IP \"$(.?)\"\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_DEF_VALUE_BEFORE   ###################
+
+function generate_def_value_before
+    body += "$(.?)\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_TABLE_BEFORE   #####################
+
+function generate_table_before
+    body += ".TS H\n"
+    
+    #   Table options
+    #
+    body += "center"        #   Center the table;
+    body += " allbox"       #   Enclose each item in the table in a box;
+    body += " tab(&)"       #   Use & instead of tab to separate data items;
+    body += ";\n"           #   End of options.
+    
+    for table_row where item () = 1
+        cols = count (table_data)
+    endfor
+    
+    #   Table format
+    #
+    body += ("c " * cols)   #   Centered column;
+    body += ".\n"           #   End of format.
+
+    first_line = 1
+endfunction
+
+
+#####################   FUNCTION GENERATE_TABLE_AFTER   #####################
+
+function generate_table_after
+    body += ".TE\n"
+endfunction
+
+
+##################   FUNCTION GENERATE_TABLE_ROW_BEFORE   ###################
+
+function generate_table_row_before
+    first_col = 1
+endfunction
+
+
+###################   FUNCTION GENERATE_TABLE_ROW_AFTER   ###################
+
+function generate_table_row_after
+    body += "\n"
+    if (first_line)
+        first_line = 0
+        body += ".TH\n"     #   End of table header
+    endif
+endfunction
+
+
+##################   FUNCTION GENERATE_TABLE_DATA_BEFORE   ##################
+
+function generate_table_data_before
+    if (first_col)
+        first_col = 0
+    else
+        body += "&"         #   Separate data items
+    endif
+    body += "T{$(string.trim(.)?:)\n"
+    body += "T}"
+endfunction
+
+
+####################   FUNCTION GENERATE_IMAGE_BEFORE   #####################
+
+function generate_image_before
+    #   Image must be EPS
+    #
+    body += ".PSPIC -L $(filename) $(width:)p $(height:)p\n"
+    if defined (caption)
+        body += ".QP\n"
+        body += "$(caption:)\n"
+        body += ".LP\n"
+    endif
+endfunction
+
+
+####################   FUNCTION GENERATE_FIGURE_BEFORE   ####################
+
+function generate_figure_before
+    #   Image must be EPS
+    #
+    body += ".PSPIC -L $(filename) $(width:)p $(height:)p\n"
+endfunction
+
+
+####################   FUNCTION GENERATE_ANCHOR_BEFORE   ####################
+
+function generate_anchor_before
+    body += "<$(name:)$(":"+.?)>\n"
+endfunction
+

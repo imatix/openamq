@@ -1,0 +1,119 @@
+#
+#   mod_pwl.gsl - PWL module
+#
+#   Copyright (c) 1996-2009 iMatix Corporation
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or (at
+#   your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#   General Public License for more details.
+# 
+#   For information on alternative licensing for OEMs, please contact
+#   iMatix Corporation.
+#
+
+#   mod_pwl provides a number of functions to work with PWL files:
+#
+#   pwl_load           - loads and validates a PWL file
+#   pwl_documentation  - generate PWL documentation
+#
+
+include "pwlparse.gsl"      #   Generated from pwl.xnf
+
+
+################################   PWL LOAD   ################################
+#
+#   Load and check the PWL file
+#
+function pwl_load (root, pwlfile)
+    trace ("Loading and processing $(my.pwlfile)...")
+    xml to $(my.root) from my.pwlfile
+    for $(my.root).pwl
+        errors = 0
+
+        #   Include everything from <include> files
+        for [include]
+            if (required?1) | file.exists (filename)
+                xml to pwl from filename
+                for pwl.pwl
+                    abort "$(filename) is not a valid include file - use <inherit>"
+                endfor
+            endif
+        endfor
+
+        #   Inherit states from <inherit> files
+        for inherit
+            xml from filename
+            if count (pwl) = 0
+                abort "$(filename) is not a valid - inherited files must contain 'pwl' entity"
+            endif    
+            for pwl as inheritpwl
+                for state as inheritstate where count (pwl.state, count.name = inheritstate.name, count) = 0
+                    copy inheritstate to pwl
+                endfor
+            endfor
+            delete inherit-> pwl
+        endfor
+
+        trace ("Parsing workflow definitions...")
+        pwl_parse_pwl ('pwl')
+
+        if errors > 0
+            abort "pwl file contains one or more errors - aborting"
+        endif
+    endfor pwl
+endfunction
+
+
+############################   PWL DOCUMENTATION   ###########################
+#
+#   Generates workflow documentation in gurudoc format.
+#
+function pwl_documentation ()
+    pwl_document ("standard")
+    pwl_document ("scripted")
+    pwl_document ("simple")
+    pwl_document ("product")
+endfunction
+
+function pwl_document (workflow)
+    pwl_load ("root", "$(my.workflow).pwl")
+    for root.pwl
+        output pwl.name + ".txt"
+        >$(string.trim (pwl.))
+        >This workflow generates a builder that accepts these commands:
+        >
+        for state
+            for event
+                my.text = string.trim (event.?"")
+                my.name = event.name
+                if my.text <> ""
+                    if count (pwl.event, count.name = my.name) = 0
+                        event.text = my.text
+                        copy event to pwl
+                    else
+                        for pwl.event where name = my.name
+                            if event.text <> my.text
+                                event.text += (" " + my.text)
+                            endif
+                        endfor
+                    endif
+                endif
+            endfor
+        endfor
+        for pwl.event
+            >
+            >$(name):
+            >$(string.justify (text, 70, "    "):)
+        endfor
+        close
+    endfor
+    delete root-> pwl
+endfunction
+
+

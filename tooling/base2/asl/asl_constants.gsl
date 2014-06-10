@@ -1,0 +1,70 @@
+.#
+.#   Copyright (c) 1996-2009 iMatix Corporation
+.#
+.#   This program is free software; you can redistribute it and/or modify
+.#   it under the terms of the GNU General Public License as published by
+.#   the Free Software Foundation; either version 2 of the License, or (at
+.#   your option) any later version.
+.#
+.#   This program is distributed in the hope that it will be useful, but
+.#   WITHOUT ANY WARRANTY; without even the implied warranty of
+.#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+.#   General Public License for more details.
+.#
+.#   For information on alternative licensing for OEMs, please contact
+.#   iMatix Corporation.
+.#
+.open_output ("$(protocol.name)_constants.icl")
+<?xml?>
+<!--
+    *** GENERATED FROM $(ARG?FILENAME) BY $(SCRIPT) USING GSL/4 ***
+    *** DO NOT MODIFY THIS FILE ***
+
+.   if defined (copyright)
+        >#   $(copyright:)
+.   endif
+.   $(license:lower)_license ("")
+ -->
+<class
+    name      = "$(protocol.name)_constants"
+    comment   = "Constants for $(protocol.name) protocol"
+    version   = "1.0"
+    script    = "icl_gen"
+.   if defined (copyright)
+    copyright = "$(copyright)"
+.   endif
+    license   = "$(license)"
+    >
+<doc>
+This class defines a set of constants for the $(protocol.name)
+protocol.
+</doc>
+
+<option name = "selftest" value = "0" />
+
+<public name = "header">
+.for constant
+#define ASL_$(NAME:C)                   $(value)
+.endfor
+
+.for constant where .class ?= "soft error"
+.   if index() = 1
+#define ASL_SOFT_ERROR(r)               (  (r) == $(value) \\\\
+.   else
+                                        || (r) == $(value) \\\\
+.   endif
+.endfor
+                                         )
+
+.for constant where .class ?= "hard error"
+.   if index() = 1
+#define ASL_HARD_ERROR(r)               (  (r) == $(value) \\\\
+.   else
+                                        || (r) == $(value) \\\\
+.   endif
+.endfor
+                                         )
+</public>
+
+</class>
+.close
